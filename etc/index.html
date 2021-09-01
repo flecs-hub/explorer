@@ -1,0 +1,25 @@
+<html>
+  <head>
+    <title>Flecs Query Explorer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="app">
+      <div class="query-box">
+        <query ref="query" v-on:changed="query_on_changed" :error="error"></query>
+      </div>
+
+      <div class="result-box">
+        <results :data="data"></results>
+      </div>
+    </div>
+
+    <script src="web_queries.js"></script>
+    <script src="web_queries_imports.js"></script>
+    <script src="vue.js"></script>
+    <script src="query.js"></script>
+    <script src="results.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
