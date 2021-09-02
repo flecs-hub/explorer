@@ -20,16 +20,13 @@ Vue.component('results', {
     },
     template: `
       <div class="ecs-results">
-      <template v-if="data">
-        <div v-if="data && is_true" class="ecs-yesno ecs-yes">Yes</div>
-        <div v-else class="ecs-yesno ecs-no">No</div>
-      </template>
       <template v-if="data && is_true">
         <div v-if="data && data.valid" class="ecs-table">    
+          <div class="box-header">Query results</div>
           <table>
             <thead>
               <tr>
-                <th v-if="data.has_this">This (.)</th>
+                <th v-if="data.filter.has_this">Entities</th>
                 <th v-for="var_name in data.variables" class="ecs-table">
                   {{var_name}}
                 </th>
@@ -41,7 +38,7 @@ Vue.component('results', {
             </thead>
             <tbody>
               <template v-for="result in data.results">
-                <template v-if="data.has_this">
+                <template v-if="data.filter.has_this">
                   <tr v-for="entity in result.entities" class="ecs-table">
                     <td>{{entity}}</td>
                     <td v-for="variable in result.variables" class="ecs-table">

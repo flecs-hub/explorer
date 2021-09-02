@@ -18,11 +18,9 @@ Vue.component('query', {
     }
   },
   template: `
-    <div class="query">
-      <p>
-        <input ref="input" :class="query_class()" v-on:keyup="on_change">
-        </input>
-      </p>
+    <div class="ecs-query">
+      <input ref="input" :class="query_class()" v-on:keyup="on_change">
+      </input>
     </div>
     `
 });

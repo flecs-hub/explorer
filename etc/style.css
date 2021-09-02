@@ -1,8 +1,9 @@
 body {
-  font-family: Arial;
-  font-size: 15px;
+  font-family: Consolas;
+  font-size: 18px;
   background-color: #0E1116;
   color: #fff;
+  margin: 0px;
 }
 
 h3 {
@@ -20,40 +21,156 @@ input {
   padding: 5px;
 }
 
-div.query-box {
+textarea {
+  -webkit-appearance: none; 
+  -moz-appearance: none;
+  border: solid 2px #aaa;
+  outline: none;
+  padding: 5px;
+  padding: 10px;
+}
+
+div.app-box {
   position: relative;
   max-width: 100%;
-  margin: 10px;
+  width: calc(100% - 400px);
+}
+
+div.editor-box {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  height: calc(100vh);
+  border-style: solid;
+  border-left-width: 3px;
+  border-right-width: 0px;
+  border-top-width: 0px;
+  border-bottom-width: 0px;
+  color: #232833;
+}
+
+div.editor-box textarea {
+  position: relative;
+  top: 50px;
+  width: 400px;
+  height: calc(100vh - 50px);
+  background-color: #000;
+  border: none;
+  resize: none;
+  color: #ddd;
+  font-family: Consolas;
+  font-size: 16px;
+}
+
+button.editor-button-run {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  height: 45px;
+  padding-left: 30px;
+  padding-right: 30px;
+  background-color: #47B576;
+  color: #000;
+  border: none;
+  cursor: pointer;
+}
+
+button.editor-button-run:hover {
+  background-color: #5BE595;
+}
+
+button.button-disabled {
+  background-color: #aaa;
+  color: #444;
+  cursor: default;
+}
+
+button.button-disabled:hover {
+  background-color: #aaa;
+  color: #444;
+  cursor: default;
+}
+
+div.editor-top-bar {
+  position: absolute;
+  top: 0px;
+  right: 0px;
+  width: 100%;
+  height: 50px;
+  background-color: #232833;
+}
+
+div.editor-msg-bar {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  width: calc(100% - 10px);
+  height: 16px;
+  padding-top: 4px;
+  padding-right: 10px;
+  font-size: 14px;
+  color: #ddd;
+  background-color: #232833;
+  text-align: right;
+
+  border-color: #232833;
+  border-bottom-width: 3px;
+  border-top-width: 0px;
+  border-left-width: 0px;
+  border-right-width: 0px;
+  border-style:solid;
+}
+
+div.editor-ok-bar {
+  border-color: #47B576;
+}
+
+div.editor-err-bar {
+  border-color: #B5494B;
+}
+
+div.query-box {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  height: 50px;
+  background-color: #232833;
+}
+
+div.content-box {
+  position: absolute;
+  top: 50px;
+  width: 100%;
+  height: calc(100vh - 50px);
+}
+
+div.filter-box {
+  position: relative;
 }
 
 div.result-box {
   position: relative;
-  top: 60px;
-  clear: both;
 }
 
-div.logo-box {
-  position: relative;
-  clear: both;
-  text-align: center;
-  width: 100%;
+div.box-header {
+  font-size: 14px;
+  font-style: italic;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 10px;
 }
 
-div.query {
-}
-
-div.query input {
+div.ecs-query input {
   font-size: 18px;
-  border-radius: 5px;
-  padding-left: 10px;
+  border-radius: 0px;
   background-color: #000;
   color: #fff;
   border-color: #47B576;
-  width: 100%;
+  width: calc(100% - 20px);
+  margin-left: 10px;
+  margin-top: 7px;
 }
 
 .query-error {
-  box-shadow: 0px 0px 10px rgba(181,73,75,1.0) !important;
   border-color: #B5494B !important;
 }
 
@@ -72,7 +189,6 @@ div.info {
   top: -30px;
   margin: auto;
   padding: 15px;
-  box-shadow: 0px 5px 20px rgba(0,0,0,1.0);
   background-color: #000;
   max-width: 80%;  
 }
@@ -85,22 +201,12 @@ span.prompt {
   color: #47B576 !important;
 }
 
-div.ecs-yes {
-  color: #47B576;
+span.ecs-entity {
+  color: #47B576; 
 }
 
-div.ecs-no {
-  color: #B5494B; 
-}
-
-div.ecs-yesno {
-  position: relative;
-  top: -30px;
-  margin: auto;
-  padding: 15px;
-  box-shadow: 0px 5px 20px rgba(0,0,0,1.0);
-  background-color: #000;
-  margin: 10px;
+span.ecs-var {
+  color: #4981B5; 
 }
 
 div.ecs-results {
@@ -108,11 +214,18 @@ div.ecs-results {
   margin: auto;
 }
 
+div.ecs-filter {
+  margin: auto;
+  padding: 15px;
+  background-color: #000;
+  margin: 10px;
+}
+
 div.ecs-table {
   position: relative;
   margin: auto;
   padding: 15px;
-  box-shadow: 0px 5px 20px rgba(0,0,0,1.0);
+
   background-color: #000;
   overflow-x: auto;
   max-width: 100%;

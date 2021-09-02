@@ -6,12 +6,27 @@
   </head>
   <body>
     <div id="app">
-      <div class="query-box">
-        <query ref="query" v-on:changed="query_on_changed" :error="error"></query>
+      <div class="app-box">
+        <div class="query-box">
+          <query ref="query" v-on:changed="query_on_changed" :error="error"></query>
+        </div>
+        <div class="content-box">
+          <div class="filter-box">
+            <filter-explorer :data="data"></filter-explorer>
+          </div>
+          <div class="result-box">
+            <results :data="data"></results>
+          </div>
+        </div>
       </div>
-
-      <div class="result-box">
-        <results :data="data"></results>
+      <div class="editor-box">
+        <editor 
+          :run_ok="run_ok"
+          :run_error="run_error" 
+          :run_msg="run_msg" 
+          v-on:run-code="run_code"
+          v-on:change-code="change_code">
+        </editor>
       </div>
     </div>
 
@@ -20,6 +35,8 @@
     <script src="vue.js"></script>
     <script src="query.js"></script>
     <script src="results.js"></script>
+    <script src="filter.js"></script>
+    <script src="editor.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
