@@ -30,6 +30,24 @@ static ecs_world_t *world;
 // }
 
 static
+int variable_count(ecs_rule_t *r) {
+    int32_t i, var_count = ecs_rule_variable_count(r), count = 0;
+    for (i = 0; i < var_count; i ++) {
+        const char *var_name = ecs_rule_variable_name(r, i);
+        if (var_name[0] == '.') {
+            continue;
+        }
+        if (var_name[0] == '_') {
+            continue;
+        }
+
+        count ++;
+    }
+
+    return count;
+}
+
+static
 void reply_variables(ecs_strbuf_t *reply, ecs_rule_t *r) {
     ecs_strbuf_list_appendstr(reply, "\"variables\":");
     ecs_strbuf_list_push(reply, "[", ",");
@@ -198,11 +216,17 @@ void reply_filter(ecs_strbuf_t *reply, ecs_rule_t *r) {
     ecs_strbuf_list_appendstr(reply, "\"filter\":");
     ecs_strbuf_list_push(reply, "{", ",");
 
-    reply_terms(reply, f);
 
     if (f->match_this) {
         ecs_strbuf_list_appendstr(reply, "\"has_this\": true");
+    } else {
+        ecs_strbuf_list_appendstr(reply, "\"has_this\": false");
     }
+
+    ecs_strbuf_list_append(reply, "\"variable_count\": %d",
+        variable_count(r));
+
+    reply_terms(reply, f);
 
     ecs_strbuf_list_pop(reply, "}");
 }

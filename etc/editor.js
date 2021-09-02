@@ -1,3 +1,37 @@
+const example_plecs = `Transitive(LocatedIn)
+
+Continent(NorthAmerica)
+Continent(Europe)
+
+Country(UnitedStates)
+Country(Italy)
+Country(Sweden)
+
+City(SanFrancisco)
+City(Seattle)
+City(Florence)
+City(Stockholm)
+
+LocatedIn(NorthAmerica, Earth)
+LocatedIn(Europe, Earth)
+LocatedIn(UnitedStates, NorthAmerica)
+LocatedIn(Italy, Europe)
+LocatedIn(Sweden, Europe)
+LocatedIn(SanFrancisco, UnitedStates)
+LocatedIn(Seattle, UnitedStates)
+LocatedIn(Florence, Italy)
+LocatedIn(Stockholm, Sweden)
+
+LocatedIn(Sander, SanFrancisco)
+LocatedIn(Cart, Seattle)
+LocatedIn(Michele, Florence)
+LocatedIn(OurMachinery, Stockholm)
+
+AuthorOf(Sander, Flecs)
+AuthorOf(Cart, Bevy)
+AuthorOf(Michele, EnTT)
+AuthorOf(OurMachinery, TheMachinery)
+`
 
 Vue.component('editor', {
     props: ['run_ok', 'run_error', 'run_msg'],
@@ -14,31 +48,7 @@ Vue.component('editor', {
     data: function() {
         return {
             changed: true,
-            code: `Transitive(LocatedIn)
-
-IsA(Planet, Location)
-IsA(City, Thing)
-IsA(City, Location)
-IsA(Country, Thing)
-IsA(Country, Location)
-
-Planet(Earth)
-
-Country(Netherlands)
-Country(UnitedStates)
-
-City(SanFrancisco)
-City(NewYork)
-City(LosAngeles)
-City(Amsterdam)
-
-LocatedIn(Netherlands, Earth)
-LocatedIn(UnitedStates, Earth)
-LocatedIn(SanFrancisco, UnitedStates)
-LocatedIn(NewYork, UnitedStates)
-LocatedIn(LosAngeles, UnitedStates)
-LocatedIn(Amsterdam, Netherlands)            
-            `
+            code: example_plecs
         }
     },
     computed: {

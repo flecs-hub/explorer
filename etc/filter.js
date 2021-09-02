@@ -20,23 +20,21 @@ Vue.component('term-id', {
 Vue.component('filter-explorer', {
     props: ['data'],
     template: `
-      <div class="ecs-filter">
-        <template v-if="data.filter">
-            <div class="box-header">Query exploder</div>
-            <div v-for="(term, i) in data.filter.terms">
-                <span v-if="term.pred">
-                    <term-id :data="term.pred"></term-id>
+      <div class="ecs-filter" v-if="data && data.filter">
+        <div class="box-header">Query exploder</div>
+        <div v-for="(term, i) in data.filter.terms">
+            <span v-if="term.pred">
+                <term-id :data="term.pred"></term-id>
+            </span>
+            <span v-if="term.subj">
+                ( 
+                <term-id :data="term.subj"></term-id>
+                <span v-if="term.obj">
+                , <term-id :data="term.obj"></term-id>
                 </span>
-                <span v-if="term.subj">
-                    ( 
-                    <term-id :data="term.subj"></term-id>
-                    <span v-if="term.obj">
-                    , <term-id :data="term.obj"></term-id>
-                    </span>
-                    )
-                </span>
-            </div>
-        </template>
+                )
+            </span>
+        </div>
       </div>
       `
   });

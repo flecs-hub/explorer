@@ -23,12 +23,10 @@ var app = new Vue({
       this.run_ok = data.valid == true;
       this.run_error = data.valid == false;
 
-      console.log(r);
-
       if (this.run_error) {
         this.run_msg = "Code contains errors!";
       } else {
-        this.run_msg = "Code ran successfully!";
+        this.run_msg = "Code ran successfully!";;
       }
     },
 

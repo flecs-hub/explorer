@@ -33,7 +33,7 @@ textarea {
 div.app-box {
   position: relative;
   max-width: 100%;
-  width: calc(100% - 400px);
+  width: calc(100% - 450px);
 }
 
 div.editor-box {
@@ -42,17 +42,17 @@ div.editor-box {
   right: 0px;
   height: calc(100vh);
   border-style: solid;
-  border-left-width: 3px;
+  border-left-width: 0px;
   border-right-width: 0px;
   border-top-width: 0px;
   border-bottom-width: 0px;
-  color: #232833;
+  border-color: #232833;
 }
 
 div.editor-box textarea {
   position: relative;
   top: 50px;
-  width: 400px;
+  width: 450px;
   height: calc(100vh - 50px);
   background-color: #000;
   border: none;
@@ -142,6 +142,7 @@ div.content-box {
   top: 50px;
   width: 100%;
   height: calc(100vh - 50px);
+  overflow-y: auto;
 }
 
 div.filter-box {
@@ -207,6 +208,22 @@ span.ecs-entity {
 
 span.ecs-var {
   color: #4981B5; 
+}
+
+div.ecs-yes {
+  color: #47B576;
+}
+
+div.ecs-no {
+  color: #B5494B; 
+}
+
+div.ecs-yesno {
+  position: relative;
+  margin: auto;
+  padding: 15px;
+  background-color: #000;
+  margin: 10px;
 }
 
 div.ecs-results {
