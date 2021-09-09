@@ -1,4 +1,4 @@
-const example_query = "LocatedIn(_Author, _Location), City(_Location), AuthorOf(_Author, _Framework)"
+const example_query = "LocatedIn(_Author, _Location), Country(_Location), AuthorOf(_Author, _Framework)"
 
 Vue.component('query', {
   props: ['error'],

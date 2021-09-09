@@ -16,6 +16,9 @@
         </div>
         <div class="content-box">
           <div class="filter-box">
+            <entity-explorer :data="entity_data"></entity-explorer>
+          </div>
+          <div class="filter-box">
             <filter-explorer :data="data"></filter-explorer>
           </div>
           <div class="result-box">
@@ -40,6 +43,7 @@
     <script src="vue.js"></script>
     <script src="query.js"></script>
     <script src="results.js"></script>
+    <script src="entity.js"></script>
     <script src="filter.js"></script>
     <script src="editor.js"></script>
     <script src="app.js"></script>

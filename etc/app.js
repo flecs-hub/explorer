@@ -19,6 +19,16 @@ var app = new Vue({
       const r = wq_query(query);
       this.data = JSON.parse(r);
       this.error = this.data.valid == false;
+
+      if (this.is_entity_query(query)) {
+        const er = wq_get_entity(query);
+        this.entity_data = JSON.parse(er);
+        if (this.entity_data.valid == false) {
+          this.entity_data = undefined;
+        }
+      } else {
+        this.entity_data = undefined;
+      }
     },
 
     run_code(code) {
@@ -40,7 +50,11 @@ var app = new Vue({
       this.run_msg = "Run the code!";
       this.run_ok = false;
       this.run_error = false;
-    }
+    },
+
+    is_entity_query: function(query) {
+      return (query.indexOf(",") == -1) && (query.indexOf("(") == -1);
+    }    
   },
 
   data: {
@@ -49,6 +63,7 @@ var app = new Vue({
     run_ok: false,
     run_error: false,
     run_msg: "Run the code!",
-    data: undefined
+    data: undefined,
+    entity_data: undefined
   }
 });

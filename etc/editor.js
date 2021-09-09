@@ -16,11 +16,12 @@ City(Seattle)
 City(Florence)
 
 LocatedIn(NorthAmerica, Earth)
-LocatedIn(Europe, Earth)
 LocatedIn(UnitedStates, NorthAmerica)
-LocatedIn(Italy, Europe)
 LocatedIn(SanFrancisco, UnitedStates)
 LocatedIn(Seattle, UnitedStates)
+
+LocatedIn(Europe, Earth)
+LocatedIn(Italy, Europe)
 LocatedIn(Florence, Italy)
 
 LocatedIn(Sander, SanFrancisco)

@@ -2007,6 +2007,9 @@ var _init = Module["_init"] = createExportWrapper("init");
 var _query = Module["_query"] = createExportWrapper("query");
 
 /** @type {function(...*):?} */
+var _get_entity = Module["_get_entity"] = createExportWrapper("get_entity");
+
+/** @type {function(...*):?} */
 var _run = Module["_run"] = createExportWrapper("run");
 
 /** @type {function(...*):?} */
