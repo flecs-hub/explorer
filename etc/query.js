@@ -1,9 +1,15 @@
+const example_query = "LocatedIn(_Author, _Location), City(_Location), AuthorOf(_Author, _Framework)"
 
 Vue.component('query', {
   props: ['error'],
+  data: function() {
+    return {
+      query: example_query
+    }
+  },
   methods: {
-    on_change: function(e) {
-      this.$emit('changed', {query: e.target.value});
+    changed: function(e) {
+      this.$emit('changed', {query: this.query});
     },
     query_class() {
       if (this.error) {
@@ -19,7 +25,7 @@ Vue.component('query', {
   },
   template: `
     <div class="ecs-query">
-      <input ref="input" :class="query_class()" v-on:keyup="on_change">
+      <input ref="input" :class="query_class()" v-model="query" v-on:keyup="changed">
       </input>
     </div>
     `

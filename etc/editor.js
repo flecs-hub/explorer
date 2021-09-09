@@ -1,36 +1,40 @@
 const example_plecs = `Transitive(LocatedIn)
+Final(LocatedIn)
+Final(Continent)
+Final(Country)
+Final(City)
+Final(AuthorOf)
 
 Continent(NorthAmerica)
 Continent(Europe)
 
 Country(UnitedStates)
 Country(Italy)
-Country(Sweden)
 
 City(SanFrancisco)
 City(Seattle)
 City(Florence)
-City(Stockholm)
 
 LocatedIn(NorthAmerica, Earth)
 LocatedIn(Europe, Earth)
 LocatedIn(UnitedStates, NorthAmerica)
 LocatedIn(Italy, Europe)
-LocatedIn(Sweden, Europe)
 LocatedIn(SanFrancisco, UnitedStates)
 LocatedIn(Seattle, UnitedStates)
 LocatedIn(Florence, Italy)
-LocatedIn(Stockholm, Sweden)
 
 LocatedIn(Sander, SanFrancisco)
 LocatedIn(Cart, Seattle)
 LocatedIn(Michele, Florence)
-LocatedIn(OurMachinery, Stockholm)
 
 AuthorOf(Sander, Flecs)
 AuthorOf(Cart, Bevy)
 AuthorOf(Michele, EnTT)
-AuthorOf(OurMachinery, TheMachinery)
+
+Language(Flecs, C)
+Language(Flecs, Cpp)
+Language(Bevy, Rust)
+Language(EnTT, Cpp)
 `
 
 Vue.component('editor', {

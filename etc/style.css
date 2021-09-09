@@ -1,7 +1,7 @@
 body {
   font-family: Consolas;
-  font-size: 18px;
-  background-color: #0E1116;
+  font-size: 16px;
+  background-color: #1A1D26;
   color: #fff;
   margin: 0px;
 }
@@ -208,6 +208,10 @@ span.ecs-entity {
 
 span.ecs-var {
   color: #4981B5; 
+}
+
+span.ecs-set {
+  color: #7D67B5; 
 }
 
 div.ecs-yes {

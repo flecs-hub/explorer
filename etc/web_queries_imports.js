@@ -6,4 +6,6 @@ Module['onRuntimeInitialized'] = function() {
   wq_query = Module.cwrap('query', 'string', ['string'])
   wq_run = Module.cwrap('run', 'string', ['string'])
   wq_init();
+
+  app.ready();
 }

@@ -8,7 +8,11 @@
     <div id="app">
       <div class="app-box">
         <div class="query-box">
-          <query ref="query" v-on:changed="query_on_changed" :error="error"></query>
+          <query 
+            ref="query" 
+            :error="error"
+            v-on:changed="query_on_changed">
+          </query>
         </div>
         <div class="content-box">
           <div class="filter-box">
@@ -21,6 +25,7 @@
       </div>
       <div class="editor-box">
         <editor 
+          ref="editor"
           :run_ok="run_ok"
           :run_error="run_error" 
           :run_msg="run_msg" 

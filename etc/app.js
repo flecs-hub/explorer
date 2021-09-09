@@ -3,16 +3,20 @@ var app = new Vue({
   el: '#app',
 
   methods: {
-    query_on_changed(e) {
-      this.query = e.query;
+    ready() {
+      this.$refs.editor.run();
+    },
 
-      if (!this.query || this.query.length <= 1) {
+    query_on_changed(e) {
+      const query = e.query;
+
+      if (!query || query.length <= 1) {
         this.data = undefined;
         this.error = false;
         return;
       }
       
-      const r = wq_query(this.query);
+      const r = wq_query(query);
       this.data = JSON.parse(r);
       this.error = this.data.valid == false;
     },
@@ -28,6 +32,8 @@ var app = new Vue({
       } else {
         this.run_msg = "Code ran successfully!";;
       }
+
+      this.$refs.query.changed();
     },
 
     change_code() {
@@ -38,7 +44,6 @@ var app = new Vue({
   },
 
   data: {
-    query: "",
     query_ok: "",
     error: false,
     run_ok: false,
