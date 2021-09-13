@@ -1,0 +1,29 @@
+// Foo
+Transitive(LocatedIn)
+
+Continent(NorthAmerica)
+Continent(Europe)
+
+Country(UnitedStates)
+Country(Italy)
+
+City(SanFrancisco)
+City(Seattle)
+City(Florence)
+
+LocatedIn(NorthAmerica, Earth)
+LocatedIn(UnitedStates, NorthAmerica)
+LocatedIn(SanFrancisco, UnitedStates)
+LocatedIn(Seattle, UnitedStates)
+
+LocatedIn(Europe, Earth)
+LocatedIn(Italy, Europe)
+LocatedIn(Florence, Italy)
+
+LocatedIn(Sander, SanFrancisco)
+LocatedIn(Cart, Seattle)
+LocatedIn(Michele, Florence)
+
+AuthorOf(Sander, Flecs)
+AuthorOf(Cart, Bevy)
+AuthorOf(Michele, EnTT)

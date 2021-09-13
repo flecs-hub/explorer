@@ -17,6 +17,7 @@ var app = new Vue({
       }
       
       const r = wq_query(query);
+
       this.data = JSON.parse(r);
       this.error = this.data.valid == false;
 

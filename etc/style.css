@@ -1,24 +1,20 @@
 body {
-  font-family: Consolas;
-  font-size: 16px;
-  background-color: #1A1D26;
-  color: #fff;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
+  background-color: #232833;
+  color: #DDE0E6;
   margin: 0px;
-}
-
-h3 {
-  color: #777;
-  font-size: 20px;
-  font-weight: normal;
-  padding-top: 20px;
 }
 
 input {
   -webkit-appearance: none; 
   -moz-appearance: none;
-  border: solid 2px #aaa;
   outline: none;
   padding: 5px;
+  padding-left: 7px;
+  color: inherit;
+  font-size: inherit;
+  font-family: inherit;
 }
 
 textarea {
@@ -30,43 +26,58 @@ textarea {
   padding: 10px;
 }
 
+pre, pre.span {
+  font-family: inherit;
+  font-size: inherit;
+}
+
 div.app-box {
   position: relative;
   max-width: 100%;
-  width: calc(100% - 450px);
+  width: calc(100% - 500px);
 }
 
 div.editor-box {
   position: absolute;
-  top: 0px;
+  top: 50px;
   right: 0px;
-  height: calc(100vh);
+  height: calc(100vh - 50px);
   border-style: solid;
   border-left-width: 0px;
   border-right-width: 0px;
   border-top-width: 0px;
   border-bottom-width: 0px;
   border-color: #232833;
+  background-color: #000;
 }
 
-div.editor-box textarea {
+div.plecs-editor {
   position: relative;
-  top: 50px;
-  width: 450px;
-  height: calc(100vh - 50px);
+  top: 51px;
+  width: 500px;
+  height: calc(100vh - 130px);
   background-color: #000;
   border: none;
   resize: none;
-  color: #ddd;
-  font-family: Consolas;
-  font-size: 16px;
+  color: #DDE0E6;
+  font-family: 'Roboto Mono', monospace;
+  font-size: inherit;
+  border-width: 0px;
+  border-style: solid;
+  border-top-width: 2px;
+  border-color: #232833;
+}
+
+div.ldt textarea {
+  padding-top: 7px;
+  padding-left: 10px;
 }
 
 button.editor-button-run {
   position: absolute;
-  top: 0px;
-  right: 0px;
-  height: 45px;
+  top: 7px;
+  right: 7px;
+  height: 35px;
   padding-left: 30px;
   padding-right: 30px;
   background-color: #47B576;
@@ -91,34 +102,23 @@ button.button-disabled:hover {
   cursor: default;
 }
 
-div.editor-top-bar {
-  position: absolute;
-  top: 0px;
-  right: 0px;
-  width: 100%;
-  height: 50px;
-  background-color: #232833;
-}
-
 div.editor-msg-bar {
   position: absolute;
   bottom: 0px;
   right: 0px;
   width: calc(100% - 10px);
-  height: 16px;
-  padding-top: 4px;
+  height: 22px;
+  padding-top: 0px;
   padding-right: 10px;
   font-size: 14px;
   color: #ddd;
-  background-color: #232833;
+  background-color: #000;
   text-align: right;
 
   border-color: #232833;
-  border-bottom-width: 3px;
-  border-top-width: 0px;
-  border-left-width: 0px;
-  border-right-width: 0px;
   border-style:solid;
+  border-width: 0px;
+  border-bottom-width: 3px;
 }
 
 div.editor-ok-bar {
@@ -129,12 +129,16 @@ div.editor-err-bar {
   border-color: #B5494B;
 }
 
-div.query-box {
+div.top-box {
   position: absolute;
   top: 0px;
   width: 100%;
   height: 50px;
   background-color: #232833;
+  border-color: rgba(0, 0, 0, 0.5);
+  border-style: solid;
+  border-width: 0px;
+  border-bottom-width: 1px;
 }
 
 div.content-box {
@@ -145,7 +149,7 @@ div.content-box {
   overflow-y: auto;
 }
 
-div.filter-box {
+div.entity-box {
   position: relative;
 }
 
@@ -156,22 +160,38 @@ div.result-box {
 div.box-header {
   font-size: 14px;
   font-style: italic;
-  color: rgba(255,255,255,0.5);
-  margin-bottom: 10px;
+  color: #8B909D;
+  margin-bottom: 5px;
 }
 
-div.ecs-query input {
-  font-size: 18px;
+div.ecs-query {
   border-radius: 0px;
   background-color: #000;
-  color: #fff;
-  border-color: #47B576;
   width: calc(100% - 20px);
   margin-left: 10px;
   margin-top: 7px;
+  height: 35px;
 }
 
-.query-error {
+div.ecs-query pre {
+  min-height: 35px;
+  padding-top: 7px;
+}
+
+#query-editor {
+  border-color: rgba(0, 0, 0, 0);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 3px;
+  height: 35px;
+}
+
+div.ecs-query textarea:focus {
+  border-color: #47B576 !important;
+  width: calc(100% - 20px);
+}
+
+div.ecs-query textarea.query-error {
   border-color: #B5494B !important;
 }
 
@@ -195,7 +215,7 @@ div.info {
 }
 
 div.info span {
-  color: #fff;
+  color: #DDE0E6;
 }
 
 span.prompt {
@@ -225,7 +245,7 @@ div.ecs-no {
 div.ecs-yesno {
   position: relative;
   margin: auto;
-  padding: 15px;
+  padding: 10px;
   background-color: #000;
   margin: 10px;
 }
@@ -237,7 +257,7 @@ div.ecs-results {
 
 div.ecs-filter {
   margin: auto;
-  padding: 15px;
+  padding: 10px;
   background-color: #000;
   margin: 10px;
 }
@@ -245,7 +265,7 @@ div.ecs-filter {
 div.ecs-table {
   position: relative;
   margin: auto;
-  padding: 15px;
+  padding: 10px;
 
   background-color: #000;
   overflow-x: auto;
@@ -265,6 +285,7 @@ table {
   border-collapse: collapse;
   width: 100%;
   text-align: left;
+  font-size: inherit;
 }
 
 table th:first-child {
@@ -311,12 +332,12 @@ td.ecs-table-squeeze {
 }
 
 table tr {
-  height: 45px;
+  height: 40px;
 }
 
 table td {
-  padding-top: 8px;
-  padding-bottom: 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
   padding-right: 40px;
   border-top-color: #212834;
   border-top-style: solid;

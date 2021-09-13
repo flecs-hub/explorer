@@ -13526,19 +13526,78 @@ void FlecsTimerImport(
 
 
 #define TOK_NEWLINE '\n'
+#define TOK_WITH "with"
+
+#define STACK_MAX_SIZE (64)
+
+typedef struct {
+    ecs_entity_t last_predicate;
+    ecs_entity_t last_subject;
+    ecs_entity_t last_object;
+    ecs_entity_t scope[STACK_MAX_SIZE];
+    ecs_entity_t with[STACK_MAX_SIZE];
+    int32_t with_frames[STACK_MAX_SIZE];
+    int32_t sp;
+    int32_t with_frame;
+    bool with_clause;
+} plecs_state_t;
 
 static
 ecs_entity_t ensure_entity(
     ecs_world_t *world,
-    const char *path)
+    const char *path,
+    bool is_subject)
 {
-    ecs_entity_t e = ecs_lookup_fullpath(world, path);
+    if (!path) {
+        return 0;
+    }
+
+    ecs_entity_t e = ecs_lookup_path_w_sep(world, 0, path, NULL, NULL, true);
     if (!e) {
-        e = ecs_new_from_path(world, 0, path);
+        if (!is_subject) {
+            /* If this is not a subject create an existing empty id, which 
+             * ensures that scope & with are not applied */
+            e = ecs_new_id(world);
+        }
+
+        e = ecs_add_path(world, e, 0, path);
         ecs_assert(e != 0, ECS_INTERNAL_ERROR, NULL);
+    } else {
+        /* If entity exists, make sure it gets the right scope and with */
+        if (is_subject) {
+            ecs_entity_t scope = ecs_get_scope(world);
+            if (scope) {
+                ecs_add_id(world, e, scope);
+            }
+
+            ecs_entity_t with = ecs_get_with(world);
+            if (with) {
+                ecs_add_id(world, e, with);
+            }
+        }
     }
 
     return e;
+}
+
+static
+bool pred_is_subj(
+    ecs_term_t *term,
+    plecs_state_t *state)
+{
+    if (term->args[0].name != NULL) {
+        return false;
+    }
+    if (term->args[1].name != NULL) {
+        return false;
+    }
+    if (term->args[0].set.mask == EcsNothing) {
+        return false;
+    }
+    if (state->with_clause) {
+        return false;
+    }
+    return true;
 }
 
 static
@@ -13547,33 +13606,198 @@ int create_term(
     ecs_term_t *term,
     const char *name,
     const char *expr,
-    int32_t column)
+    int64_t column,
+    plecs_state_t *state)
 {
+    state->last_subject = 0;
+    state->last_predicate = 0;
+    state->last_object = 0;
+
     if (!ecs_term_id_is_set(&term->pred)) {
         ecs_parser_error(name, expr, column, "missing predicate in expression");
         return -1;
     }
 
-    if (!ecs_term_id_is_set(&term->args[0])) {
-        ecs_parser_error(name, expr, column, "missing subject in expression");
-        return -1;
-    }
-
-    ecs_entity_t pred = ensure_entity(world, term->pred.name);
-    ecs_entity_t subj = ensure_entity(world, term->args[0].name);
+    bool pred_as_subj = pred_is_subj(term, state);
+    ecs_entity_t pred = ensure_entity(world, term->pred.name, pred_as_subj); 
+    ecs_entity_t subj = ensure_entity(world, term->args[0].name, true);
     ecs_entity_t obj = 0;
 
     if (ecs_term_id_is_set(&term->args[1])) {
-        obj = ensure_entity(world, term->args[1].name);
+        obj = ensure_entity(world, term->args[1].name, false);
     }
 
-    if (!obj) {
-        ecs_add_id(world, subj, pred);
+    if (subj) {
+        if (!obj) {
+            ecs_add_id(world, subj, pred);
+        } else {
+            ecs_add_pair(world, subj, pred, obj);
+            state->last_object = obj;
+        }
+        state->last_predicate = pred;
+        state->last_subject = subj;
     } else {
-        ecs_add_pair(world, subj, pred, obj);
+        if (!obj) {
+            /* If no subject or object were provided, use predicate as subj 
+             * unless the expression explictly excluded the subject */
+            if (pred_as_subj) {
+                state->last_subject = pred;
+                subj = pred;
+            } else {
+                state->last_predicate = pred;
+            }
+        } else {
+            state->last_predicate = pred;
+            state->last_object = obj;
+        }
+    }
+
+    /* If this is a with clause (the list of entities between 'with' and scope
+     * open), add subject to the array of with frames */
+    if (state->with_clause) {
+        ecs_assert(pred != 0, ECS_INTERNAL_ERROR, NULL);
+        ecs_id_t id;
+
+        if (obj) {
+            id = ecs_pair(pred, obj);
+        } else {
+            id = pred;
+        }
+
+        state->with[state->with_frame ++] = id;
+
+    /* If this is not a with clause, add with frames to subject */
+    } else {
+        if (subj) {
+            int32_t i, frame_count = state->with_frames[state->sp];
+            for (i = 0; i < frame_count; i ++) {
+                ecs_add_id(world, subj, state->with[i]);
+            }
+        }
     }
 
     return 0;
+}
+
+static
+const char *plecs_skip_space(
+    const char *ptr)
+{
+    while ((*ptr != '\n') && isspace(*ptr)) {
+        ptr ++;
+    }
+
+    return ptr;
+}
+
+static
+bool is_newline_comment(
+    const char *ptr)
+{
+    if (ptr[0] == '/' && ptr[1] == '/') {
+        return true;
+    }
+    return false;
+}
+
+static 
+const char* skip_fluff(
+    const char *ptr) 
+{
+    do {
+        /* Skip whitespaces before checking for a comment */
+        ptr = plecs_skip_space(ptr);
+
+        /* Newline comment, skip until newline character */
+        if (is_newline_comment(ptr)) {
+            ptr += 2;
+            while (ptr[0] && ptr[0] != '\n') {
+                ptr ++;
+            }
+        }
+
+        /* If a newline character is found, skip it */
+        if (ptr[0] == TOK_NEWLINE) {
+            ptr ++;
+        }
+
+    } while (isspace(ptr[0]) || is_newline_comment(ptr));
+
+    return ptr;
+}
+
+static
+const char* parse_stmt(
+    ecs_world_t *world,
+    const char *name,
+    const char *expr,
+    const char *ptr,
+    plecs_state_t *state)
+{
+    (void)world;
+    (void)name;
+    (void)expr;
+
+    bool stmt_parsed;
+
+    do {
+        stmt_parsed = false;
+
+        ptr = skip_fluff(ptr);
+
+        if (!ecs_os_strncmp(ptr, TOK_WITH " ", 5)) {
+            /* Add following expressions to with list */
+            state->with_clause = true;
+            ptr = skip_fluff(ptr + 5);
+            stmt_parsed = true;
+        }
+
+        if (ptr[0] == '{') {
+            state->sp ++;
+
+            if (!state->with_clause) {
+                if (state->last_subject) {
+                    state->scope[state->sp] = state->last_subject;
+                    ecs_set_scope(world, state->last_subject);
+                } else {
+                    ecs_id_t id;
+                    if (state->last_object) {
+                        id = ecs_pair(state->last_predicate, state->last_object);
+                        ecs_set_with(world, id);
+                    } else {
+                        id = ecs_pair(EcsChildOf, state->last_predicate);
+                        ecs_set_scope(world, state->last_predicate);
+                    }
+                    state->scope[state->sp] = id;
+                }
+            }
+
+            state->with_frames[state->sp] = state->with_frame;
+            state->with_clause = false;
+
+            ptr ++;
+            stmt_parsed = true;
+        }
+
+        while (ptr[0] == '}') {
+            state->sp --;
+            ptr = skip_fluff(ptr + 1);
+            ecs_id_t id = state->scope[state->sp];
+            if (!id || ECS_HAS_ROLE(id, PAIR)) {
+                ecs_set_with(world, id);
+            }
+
+            if (!id || !ECS_HAS_ROLE(id, PAIR)) {
+                ecs_set_scope(world, id);
+            }
+
+            state->with_frame = state->with_frames[state->sp];
+            stmt_parsed = true;
+        }
+
+    } while (stmt_parsed);
+
+    return ptr;
 }
 
 int ecs_plecs_from_str(
@@ -13583,33 +13807,55 @@ int ecs_plecs_from_str(
 {
     const char *ptr = expr;
     ecs_term_t term = {0};
+    plecs_state_t state = {0};
 
     if (!expr) {
         return 0;
     }
 
-    while (ptr[0] && (ptr = ecs_parse_term(world, name, expr, ptr, &term))) {
-        if (!ecs_term_is_initialized(&term)) {
-            break;
+    state.scope[0] = ecs_get_scope(world);
+    ecs_entity_t prev_with = ecs_set_with(world, 0);
+
+    do {
+        expr = ptr = parse_stmt(world, name, expr, ptr, &state);
+        if (!ptr) {
+            goto error;
         }
-        
-        if (create_term(world, &term, name, expr, (int32_t)(ptr - expr))) {
-            return -1;
+
+        if (!ptr[0]) {
+            break; /* End of expression */
+        }
+
+        ptr = ecs_parse_term(world, name, expr, ptr, &term);
+        if (!ptr) {
+            goto error; /* Error occurred */
+        }
+
+        if (!ecs_term_is_initialized(&term)) {
+            goto error; /* No term found */
+        }
+
+        if (create_term(world, &term, name, expr, (ptr - expr), &state)) {
+            goto error; /* Failed to create term */
         }
 
         ecs_term_fini(&term);
+    } while (true);
 
-        if (ptr[0] == TOK_NEWLINE) {
-            ptr ++;
-            expr = ptr;
-        }
+    ecs_set_scope(world, state.scope[0]);
+    ecs_set_with(world, prev_with);
+
+    if (state.sp != 0) {
+        ecs_parser_error(name, expr, 0, "missing end of scope");
+        goto error;
     }
 
-    if (!ptr) {
-        return -1;
-    } else {
-        return 0;
-    }
+    return 0;
+error:
+    ecs_set_scope(world, state.scope[0]);
+    ecs_set_with(world, prev_with);
+    ecs_term_fini(&term);
+    return -1;
 }
 
 int ecs_plecs_from_file(
@@ -13743,6 +13989,7 @@ typedef enum ecs_rule_op_kind_t {
     EcsRuleEach,        /* Forwards each entity in a table */
     EcsRuleSetJmp,      /* Set label for jump operation to one of two values */
     EcsRuleJump,        /* Jump to an operation label */
+    EcsRuleNot,         /* Invert result of an operation */
     EcsRuleYield        /* Yield result */
 } ecs_rule_op_kind_t;
 
@@ -14018,12 +14265,10 @@ ecs_rule_var_t* term_id_to_var(
     ecs_term_id_t *id)
 {
     ecs_rule_var_t *result;
-    if (!id->entity) {
+    if (!id->entity) {;
         result = find_variable(rule, EcsRuleVarKindUnknown, id->name);
-        ecs_assert(result != NULL, ECS_INTERNAL_ERROR, NULL);
     } else if (id->entity == EcsThis) {
         result = find_variable(rule, EcsRuleVarKindUnknown, ".");
-        ecs_assert(result != NULL, ECS_INTERNAL_ERROR, NULL);
     } else {
         result = NULL;
     }
@@ -14515,6 +14760,17 @@ bool is_subject(
 }
 
 static
+bool skip_term(ecs_term_t *term) {
+    if (term->args[0].set.mask & EcsNothing) {
+        return true;
+    }
+    if (term->oper == EcsNot) {
+        return true;
+    }
+    return false;
+}
+
+static
 int32_t get_variable_depth(
     ecs_rule_t *rule,
     ecs_rule_var_t *var,
@@ -14533,7 +14789,10 @@ int32_t crawl_variable(
 
     for (i = 0; i < count; i ++) {
         ecs_term_t *term = &terms[i];
-
+        if (skip_term(term)) {
+            continue;
+        }
+        
         ecs_rule_var_t 
         *pred = term_pred(rule, term),
         *subj = term_subj(rule, term),
@@ -14655,6 +14914,9 @@ int32_t get_variable_depth(
 
     for (i = 0; i < count; i ++) {
         ecs_term_t *term = &terms[i];
+        if (skip_term(term)) {
+            continue;
+        }
 
         ecs_rule_var_t 
         *pred = term_pred(rule, term),
@@ -14691,6 +14953,9 @@ int32_t get_variable_depth(
      * variables are found, loop again & follow predicate & object links */
     for (i = 0; i < count; i ++) {
         ecs_term_t *term = &terms[i];
+        if (skip_term(term)) {
+            continue;
+        }
 
         ecs_rule_var_t 
         *subj = term_subj(rule, term),
@@ -14767,6 +15032,9 @@ void ensure_all_variables(
 
     for (i = 0; i < count; i ++) {
         ecs_term_t *term = &terms[i];
+        if (skip_term(term)) {
+            continue;
+        }
 
         /* If predicate is a variable, make sure it has been registered */
         if (!term->pred.entity || (term->pred.entity == EcsThis)) {
@@ -14807,11 +15075,11 @@ int scan_variables(
 
     /* Step 1: find all possible roots */
     ecs_term_t *terms = rule->filter.terms;
-    int32_t i, count = rule->filter.term_count;
+    int32_t i, term_count = rule->filter.term_count;
 
-    rule->subject_variables = ecs_os_malloc_n(int32_t, count);
+    rule->subject_variables = ecs_os_malloc_n(int32_t, term_count);
 
-    for (i = 0; i < count; i ++) {
+    for (i = 0; i < term_count; i ++) {
         ecs_term_t *term = &terms[i];
 
         /* Evaluate the subject. The predicate and object are not evaluated, 
@@ -14849,7 +15117,7 @@ int scan_variables(
     ensure_all_variables(rule);
 
     /* Variables in a term with a literal subject have depth 0 */
-    for (i = 0; i < count; i ++) {
+    for (i = 0; i < term_count; i ++) {
         ecs_term_t *term = &terms[i];
 
         if (term->args[0].var == EcsVarIsEntity) {
@@ -14888,6 +15156,29 @@ int scan_variables(
         if (rule->variables[i].depth == UINT8_MAX) {
             rule_error(rule, "unconstrained variable '%s'", 
                 rule->variables[i].name);
+            goto error;
+        } 
+    }
+
+    /* For each Not term, verify that variables are known */
+    for (i = 0; i < term_count; i ++) {
+        ecs_term_t *term = &terms[i];
+        if (term->oper != EcsNot) {
+            continue;
+        }
+
+        ecs_rule_var_t 
+        *pred = term_pred(rule, term),
+        *obj = term_obj(rule, term);
+
+        if (!pred && term_id_is_variable(&term->pred)) {
+            rule_error(rule, "missing predicate variable '%s'", 
+                term->pred.name);
+            goto error;
+        }
+        if (!obj && term_id_is_variable(&term->args[1])) {
+            rule_error(rule, "missing object variable '%s'", 
+                term->args[1].name);
             goto error;
         }
     }
@@ -15725,6 +16016,10 @@ void compile_program(
      * candidates for quickly narrowing down the set of potential results. */
     for (c = 0; c < term_count; c ++) {
         ecs_term_t *term = &terms[c];
+        if (skip_term(term)) {
+            continue;
+        }
+
         ecs_rule_var_t* subj = term_subj(rule, term);
         if (subj) {
             continue;
@@ -15741,6 +16036,9 @@ void compile_program(
 
         for (c = 0; c < term_count; c ++) {
             ecs_term_t *term = &terms[c];
+            if (skip_term(term)) {
+                continue;
+            }
 
             /* Only process columns for which variable is subject */
             ecs_rule_var_t* subj = term_subj(rule, term);
@@ -15752,6 +16050,35 @@ void compile_program(
 
             var = &rule->variables[v];
         }
+    }
+
+    for (c = 0; c < term_count; c ++) {
+        ecs_term_t *term = &terms[c];
+        if (term->oper != EcsNot) {
+            continue;
+        }
+
+        int32_t prev = rule->operation_count;
+
+        /* Prepend Not which turns a fail into a pass */
+        ecs_rule_op_t *not_pre = insert_operation(rule, -1, written);
+        not_pre->kind = EcsRuleNot;
+        not_pre->has_in = false;
+        not_pre->has_out = false;
+
+        /* First insert the operation(s) for the term as usual */
+        insert_term(rule, term, c, written);
+
+        /* Append Not which turns a pass into a fail */
+        ecs_rule_op_t *not_post = insert_operation(rule, -1, written);
+        not_post->kind = EcsRuleNot;
+        not_post->has_in = false;
+        not_post->has_out = false;
+
+        not_post->on_pass = prev - 1;
+        not_post->on_fail = prev - 1;
+        not_pre = &rule->operations[prev];
+        not_pre->on_fail = rule->operation_count;
     }
 
     /* Verify all subject variables have been written. Subject variables are of
@@ -15813,11 +16140,13 @@ static
 void create_variable_name_array(
     ecs_rule_t *rule)
 {
-    rule->variable_names = ecs_os_malloc_n(char*, rule->variable_count);
-    int i;
-    for (i = 0; i < rule->variable_count; i ++) {
-        ecs_rule_var_t *var = &rule->variables[i];
-        rule->variable_names[var->id] = var->name;
+    if (rule->variable_count) {
+        rule->variable_names = ecs_os_malloc_n(char*, rule->variable_count);
+        int i;
+        for (i = 0; i < rule->variable_count; i ++) {
+            ecs_rule_var_t *var = &rule->variables[i];
+            rule->variable_names[var->id] = var->name;
+        }
     }
 }
 
@@ -15833,11 +16162,31 @@ ecs_rule_t* ecs_rule_init(
     /* Parse the signature expression. This initializes the columns array which
      * contains the information about which components/pairs are requested. */
     if (ecs_filter_init(world, &result->filter, &local_desc)) {
-        ecs_os_free(result);
-        return NULL;
+        goto error;
     }
 
     result->world = world;
+
+    /* Rule has no terms */
+    if (!result->filter.term_count) {
+        rule_error(result, "rule has no terms");
+        goto error;
+    }
+
+    ecs_term_t *terms = result->filter.terms;
+    int32_t i, term_count = result->filter.term_count;
+
+    /* Make sure rule doesn't just have Not terms */
+    for (i = 0; i < term_count; i++) {
+        ecs_term_t *term = &terms[i];
+        if (term->oper != EcsNot) {
+            break;
+        }
+    }
+    if (i == term_count) {
+        rule_error(result, "rule cannot only have terms with Not operator");
+        goto error;
+    }
 
     /* Find all variables & resolve dependencies */
     if (scan_variables(result) != 0) {
@@ -15852,8 +16201,7 @@ ecs_rule_t* ecs_rule_init(
     create_variable_name_array(result);
 
     /* Make sure that subject variable ids are pointing to entity variables */
-    int32_t i;
-    for (i = 0; i < result->filter.term_count; i ++) {
+    for (i = 0; i < term_count; i ++) {
         int32_t var_id = result->subject_variables[i];
         if (var_id != -1) {
             ecs_rule_var_t *var = &result->variables[var_id];
@@ -15868,8 +16216,7 @@ ecs_rule_t* ecs_rule_init(
 
     return result;
 error:
-    /* TODO: proper cleanup */
-    ecs_os_free(result);
+    ecs_rule_fini(result);
     return NULL;
 }
 
@@ -15978,6 +16325,9 @@ char* ecs_rule_str(
             break;
         case EcsRuleJump:
             ecs_strbuf_append(&buf, "jump     ");
+            break;
+        case EcsRuleNot:
+            ecs_strbuf_append(&buf, "not      ");
             break;            
         case EcsRuleYield:
             ecs_strbuf_append(&buf, "yield    ");
@@ -16276,6 +16626,13 @@ void set_column(
     ecs_type_t type,
     int32_t column)
 {
+    if (op->term == -1) {
+        /* If operation is not associated with a term, don't set anything */
+        return;
+    }
+
+    ecs_assert(op->term >= 0, ECS_INTERNAL_ERROR, NULL);
+
     if (type) {
         it->ids[op->term] = rule_get_column(type, column);
     } else {
@@ -16290,8 +16647,14 @@ void set_source(
     ecs_rule_reg_t *regs,
     int32_t r)
 {
-    const ecs_rule_t *rule = it->iter.rule.rule;
+    if (op->term == -1) {
+        /* If operation is not associated with a term, don't set anything */
+        return;
+    }
 
+    ecs_assert(op->term >= 0, ECS_INTERNAL_ERROR, NULL);
+
+    const ecs_rule_t *rule = it->iter.rule.rule;
     if ((r != UINT8_MAX) && rule->variables[r].kind == EcsRuleVarKindEntity) {
         it->subjects[op->term] = reg_get_entity(rule, op, regs, r);
     } else {
@@ -16980,6 +17343,21 @@ bool eval_jump(
     return !redo;
 }
 
+/* The not operation reverts the result of the operation it embeds */
+static
+bool eval_not(
+    ecs_iter_t *it,
+    ecs_rule_op_t *op,
+    int32_t op_index,
+    bool redo)
+{
+    (void)it;
+    (void)op;
+    (void)op_index;
+
+    return !redo;
+}
+
 /* Yield operation. This is the simplest operation, as all it does is return
  * false. This will move the solver back to the previous instruction which
  * forces redo's on previous operations, for as long as there are matching
@@ -17028,6 +17406,8 @@ bool eval_op(
         return eval_setjmp(it, op, op_index, redo);
     case EcsRuleJump:
         return eval_jump(it, op, op_index, redo);
+    case EcsRuleNot:
+        return eval_not(it, op, op_index, redo);
     case EcsRuleYield:
         return eval_yield(it, op, op_index, redo);
     default:
@@ -17231,6 +17611,13 @@ bool ecs_rule_next(
             ecs_term_id_t *subj = &t->args[0];
             if (subj->var == EcsVarIsEntity && subj->entity != EcsThis) {
                 it->subjects[i] = subj->entity;
+            }
+        }
+
+        for (i = 0; i < rule->filter.term_count; i ++) {
+            ecs_term_t *term = &rule->filter.terms[i];
+            if (term->args[0].set.mask & EcsNothing || term->oper == EcsNot) {
+                it->ids[i] = term->id;
             }
         }
     }
@@ -19535,13 +19922,6 @@ parse_predicate:
 
         goto parse_done;
 
-    } else if (valid_token_start_char(ptr[0])) {
-        ptr = parse_token(name, expr, (ptr - expr), ptr, token);
-        if (!ptr) {
-            return NULL;
-        }
-
-        goto parse_name;
     }
 
     goto parse_done;
@@ -19559,6 +19939,7 @@ parse_pair:
     } else {
         ecs_parser_error(name, expr, (ptr - expr), 
             "unexpected character '%c'", ptr[0]);
+        return NULL;
     }
 
 parse_pair_predicate:
@@ -19608,14 +19989,27 @@ parse_singleton:
     parse_identifier(token, &term.args[0]);
     goto parse_done;
 
-parse_name:
-    term.name = ecs_os_strdup(token);
-    ptr = skip_space(ptr);
-
 parse_done:
     *term_out = term;
 
     return ptr;
+}
+
+static
+bool is_valid_end_of_term(
+    const char *ptr)
+{
+    if ((ptr[0] == TOK_AND) ||    /* another term with And operator */
+        (ptr[0] == TOK_OR[0]) ||  /* another term with Or operator */
+        (ptr[0] == '\n') ||       /* newlines are valid */
+        (ptr[0] == '\0') ||       /* end of string */
+        (ptr[0] == '/') ||        /* comment (in plecs) */
+        (ptr[0] == '{') ||        /* scope (in plecs) */
+        (ptr[0] == '}'))          
+    {
+        return true;
+    }
+    return false;
 }
 
 char* ecs_parse_term(
@@ -19677,7 +20071,6 @@ char* ecs_parse_term(
     /* Parse next element */
     ptr = parse_term(world, name, ptr, term);
     if (!ptr) {
-        ecs_term_fini(term);
         return NULL;
     }
 
@@ -19689,7 +20082,6 @@ char* ecs_parse_term(
         if (term->oper != EcsAnd) {
             ecs_parser_error(name, expr, (ptr - expr), 
                 "cannot combine || with other operators");
-            ecs_term_fini(term);
             return NULL;
         }
 
@@ -19697,10 +20089,9 @@ char* ecs_parse_term(
     }
 
     /* Term must either end in end of expression, AND or OR token */
-    if (ptr[0] != TOK_AND && (ptr[0] != TOK_OR[0]) && (ptr[0] != '\n') && ptr[0]) {
+    if (!is_valid_end_of_term(ptr)) {
         ecs_parser_error(name, expr, (ptr - expr), 
             "expected end of expression or next term");
-        ecs_term_fini(term);
         return NULL;
     }
 
@@ -19710,7 +20101,6 @@ char* ecs_parse_term(
         if (ptr[0]) {
             ecs_parser_error(name, expr, (ptr - expr), 
                 "unexpected term after 0"); 
-            ecs_term_fini(term);
             return NULL;
         }
 
@@ -19720,7 +20110,6 @@ char* ecs_parse_term(
         {
             ecs_parser_error(name, expr, (ptr - expr), 
                 "invalid combination of 0 with non-default subject");
-            ecs_term_fini(term);
             return NULL;
         }
 
@@ -19733,7 +20122,6 @@ char* ecs_parse_term(
     if (term->oper != EcsAnd && subj->set.mask == EcsNothing) {
         ecs_parser_error(name, expr, (ptr - expr), 
             "invalid operator for empty source"); 
-        ecs_term_fini(term);    
         return NULL;
     }
 
@@ -19743,7 +20131,6 @@ char* ecs_parse_term(
         if (subj->set.mask != prev_set) {
             ecs_parser_error(name, expr, (ptr - expr), 
                 "cannot combine different sources in OR expression");
-            ecs_term_fini(term);
             return NULL;
         }
 
@@ -22005,6 +22392,11 @@ void ecs_term_fini(
     ecs_os_free(term->args[0].name);
     ecs_os_free(term->args[1].name);
     ecs_os_free(term->name);
+
+    term->pred.name = NULL;
+    term->args[0].name = NULL;
+    term->args[1].name = NULL;
+    term->name = NULL;
 }
 
 int ecs_filter_finalize(
@@ -22993,8 +23385,6 @@ static
 void observer_callback(ecs_iter_t *it) {
     ecs_observer_t *o = it->ctx;
     ecs_world_t *world = it->world;
-    
-    ecs_assert(it->table != NULL, ECS_INTERNAL_ERROR, NULL);
 
     if (o->last_event_id == world->event_id) {
         /* Already handled this event */
@@ -28369,12 +28759,17 @@ bool ignore_table(
     ecs_trigger_t *t,
     ecs_table_t *table)
 {
+    if (!table) {
+        return false;
+    }
+
     if (!t->match_prefab && (table->flags & EcsTableIsPrefab)) {
         return true;
     }
     if (!t->match_disabled && (table->flags & EcsTableIsDisabled)) {
         return true;
     }
+    
     return false;
 }
 
@@ -28488,52 +28883,67 @@ void flecs_triggers_notify(
         observable = world;
     }
 
-    const ecs_map_t *evt = get_triggers_for_event(observable, event);
-    if (!evt) {
-        return;
-    }
+    ecs_entity_t trigger_event = event; 
 
-    ecs_iter_t it = {
-        .world = world,
-        .event = event,
-        .term_count = 1,
-        .table = table,
-        .type = table ? table->type : NULL,
-        .other_table = other_table,
-        .offset = row,
-        .count = count,
-        .param = param
-    };
-
-    int32_t i, ids_count = ids->count;
-    ecs_id_t *ids_array = ids->array;
-
-    for (i = 0; i < ids_count; i ++) {
-        ecs_id_t id = ids_array[i];
-        bool iter_set = false;
-
-        it.event_id = id;
-
-        notify_triggers_for_id(
-            evt, id, &it, &entity, table, row, count, &iter_set);
-
-        if (ECS_HAS_ROLE(id, PAIR)) {
-            ecs_entity_t pred = ECS_PAIR_RELATION(id);
-            ecs_entity_t obj = ECS_PAIR_OBJECT(id);
-
-            notify_triggers_for_id(evt, ecs_pair(pred, EcsWildcard), 
-                &it, &entity, table, row, count, &iter_set);
-
-            notify_triggers_for_id(evt, ecs_pair(EcsWildcard, obj), 
-                &it, &entity, table, row, count, &iter_set);
-
-            notify_triggers_for_id(evt, ecs_pair(EcsWildcard, EcsWildcard), 
-                &it, &entity, table, row, count, &iter_set);
-        } else {
-            notify_triggers_for_id(evt, EcsWildcard, 
-                &it, &entity, table, row, count, &iter_set);
+    do {
+        const ecs_map_t *evt = get_triggers_for_event(observable, trigger_event);
+        if (!evt && trigger_event != EcsWildcard) {
+            trigger_event = EcsWildcard;
+            continue;
         }
-    }
+
+        if (!evt) {
+            return;
+        }
+
+        ecs_iter_t it = {
+            .world = world,
+            .event = event,
+            .term_count = 1,
+            .table = table,
+            .type = table ? table->type : NULL,
+            .other_table = other_table,
+            .offset = row,
+            .count = count,
+            .param = param
+        };
+
+        int32_t i, ids_count = ids->count;
+        ecs_id_t *ids_array = ids->array;
+
+        for (i = 0; i < ids_count; i ++) {
+            ecs_id_t id = ids_array[i];
+            bool iter_set = false;
+
+            it.event_id = id;
+
+            notify_triggers_for_id(
+                evt, id, &it, &entity, table, row, count, &iter_set);
+
+            if (ECS_HAS_ROLE(id, PAIR)) {
+                ecs_entity_t pred = ECS_PAIR_RELATION(id);
+                ecs_entity_t obj = ECS_PAIR_OBJECT(id);
+
+                notify_triggers_for_id(evt, ecs_pair(pred, EcsWildcard), 
+                    &it, &entity, table, row, count, &iter_set);
+
+                notify_triggers_for_id(evt, ecs_pair(EcsWildcard, obj), 
+                    &it, &entity, table, row, count, &iter_set);
+
+                notify_triggers_for_id(evt, ecs_pair(EcsWildcard, EcsWildcard), 
+                    &it, &entity, table, row, count, &iter_set);
+            } else {
+                notify_triggers_for_id(evt, EcsWildcard, 
+                    &it, &entity, table, row, count, &iter_set);
+            }
+        }
+
+        if (trigger_event == EcsWildcard) {
+            break;
+        }
+        
+        trigger_event = EcsWildcard;
+    } while (true);
 }
 
 ecs_entity_t ecs_trigger_init(
@@ -30230,12 +30640,20 @@ ecs_entity_t ecs_add_path_w_sep(
             name = ecs_os_strdup(elem);
 
             /* If this is the last entity in the path, use the provided id */
-            if (entity && !path_elem(ptr, sep, NULL)) {
+            bool last_elem = false;
+            if (!path_elem(ptr, sep, NULL)) {
                 e = entity;
+                last_elem = true;
             }
 
             if (!e) {
-                e = ecs_new_id(world);
+                if (last_elem) {
+                    ecs_entity_t prev = ecs_set_scope(world, 0);
+                    e = ecs_new(world, 0);
+                    ecs_set_scope(world, prev);
+                } else {
+                    e = ecs_new_id(world);
+                }
             }
 
             ecs_set_name(world, e, name);

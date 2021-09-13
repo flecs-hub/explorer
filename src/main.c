@@ -1,10 +1,10 @@
-#include "flecs.h"
-
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #else
 #define EMSCRIPTEN_KEEPALIVE
 #endif
+
+#include "flecs.h"
 
 // Global world
 static ecs_world_t *world;
@@ -107,8 +107,9 @@ void reply_results(ecs_strbuf_t *reply, ecs_rule_t *r) {
                 continue;
             }                
             ecs_entity_t var = ecs_rule_variable(&it, i);
-            const char *var_value = ecs_get_name(world, var);
+            char *var_value = ecs_get_fullpath(world, var);
             ecs_strbuf_list_append(reply, "\"%s\"", var_value);
+            ecs_os_free(var_value);
         }
         ecs_strbuf_list_pop(reply, "]");
 
@@ -116,8 +117,9 @@ void reply_results(ecs_strbuf_t *reply, ecs_rule_t *r) {
         ecs_strbuf_list_appendstr(reply, "\"entities\":");
         ecs_strbuf_list_push(reply, "[", ",");
         for (int i = 0; i < it.count; i ++) {
-            const char *var_value = ecs_get_name(world, it.entities[i]);
+            char *var_value = ecs_get_fullpath(world, it.entities[i]);
             ecs_strbuf_list_append(reply, "\"%s\"", var_value);
+            ecs_os_free(var_value);
         }
         ecs_strbuf_list_pop(reply, "]");
 
@@ -445,12 +447,15 @@ char* run(char *plecs) {
 int main(int argc, char *argv[]) {
     init();
 
+    ecs_plecs_from_file(world, "etc/assets/db.plecs");
+
     while (1) {
         char str[1024];
         printf("\n?- ");
         fgets(str, sizeof(str), stdin);
 
         char *res = query(str);
+        printf("JSON = %s\n", res);
         ecs_os_free(res);
     }
 }

@@ -1,41 +1,65 @@
-const example_plecs = `Transitive(LocatedIn)
-Final(LocatedIn)
-Final(Continent)
-Final(Country)
-Final(City)
-Final(AuthorOf)
+const example_plecs = `// These relations enable the query engine to return
+// (for example) all entities with RockyPlanet, GasGiant
+// when asked for Planet.
+(IsA, CelestialBody) { 
+  Star, Satellite, DwarfPlanet, Planet
+}
 
-Continent(NorthAmerica)
-Continent(Europe)
+IsA(RockyPlanet, Planet)
+IsA(GasGiant, Planet)
 
-Country(UnitedStates)
-Country(Italy)
+// Create a hierarchy using the builtin ChildOf relation
+Star(Sun) {
+ // with reduces repetition for similar entities
+ with RockyPlanet {
+  Mercury, Venus, Earth, Mars 
+ }
 
-City(SanFrancisco)
-City(Seattle)
-City(Florence)
+ with GasGiant { 
+  Jupiter, Saturn, Neptune, Uranus 
+ }
 
-LocatedIn(NorthAmerica, Earth)
-LocatedIn(UnitedStates, NorthAmerica)
-LocatedIn(SanFrancisco, UnitedStates)
-LocatedIn(Seattle, UnitedStates)
+ with DwarfPlanet { Pluto, Ceres }
+}
 
-LocatedIn(Europe, Earth)
-LocatedIn(Italy, Europe)
-LocatedIn(Florence, Italy)
+// Extend the hierarchy with satellites
+Sun.Earth {
+ Satellite(Moon)
+ with Satellite, Artificial { HubbleTelescope, ISS }
+}
 
-LocatedIn(Sander, SanFrancisco)
-LocatedIn(Cart, Seattle)
-LocatedIn(Michele, Florence)
+Sun.Mars {
+ with Satellite { Phobos, Deimos }
+ with Satellite, Artificial { MarsOrbiter }
+}
 
-AuthorOf(Sander, Flecs)
-AuthorOf(Cart, Bevy)
-AuthorOf(Michele, EnTT)
+Sun.Jupiter {
+ with Satellite { Europa, Io, Callisto, Ganymede }
+}
 
-Language(Flecs, C)
-Language(Flecs, Cpp)
-Language(Bevy, Rust)
-Language(EnTT, Cpp)
+Sun.Saturn {
+ with Satellite { Titan, Enceladus }
+}
+
+Sun.Pluto {
+  Satellite(Charon)
+}
+
+// Add continents & countries to Earth
+Sun.Earth {
+ with Continent { 
+  Europe, Asia, Africa, NorthAmerica, SouthAmerica,
+  Australia, Antartica
+ }
+
+ with Country {
+   // The extra () here ensures that the identifiers
+   // are interpreted as components, so that Country is
+   // not added to them.
+   NorthAmerica() { UnitedStates, Canada }
+   Europe() { Netherlands, Germany, France, UK }
+ }
+}
 `
 
 Vue.component('editor', {
@@ -79,8 +103,7 @@ Vue.component('editor', {
     },
     template: `
       <div class="editor">
-        <div class="editor-top-bar"></div>
-        <textarea v-model="code" v-on:keyup="text_changed"></textarea>
+        <textarea id="plecs-editor" class="plecs-editor" v-model="code" v-on:keyup="text_changed"></textarea>
         <div :class="msg_css">{{msg}}</div>
         <button :class="button_css" v-on:click="run">Run</button>
       </div>
