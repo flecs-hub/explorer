@@ -5,6 +5,8 @@
 #endif
 
 #include "flecs.h"
+#include "base64.h"
+#include "fastlz.h"
 
 // Global world
 static ecs_world_t *world;
@@ -70,7 +72,7 @@ void reply_variables(ecs_strbuf_t *reply, ecs_rule_t *r) {
 
 static
 void reply_results(ecs_strbuf_t *reply, ecs_rule_t *r) {
-    ecs_iter_t it = ecs_rule_iter(r);
+    ecs_iter_t it = ecs_rule_iter(world, r);
     int32_t var_count = ecs_rule_variable_count(r);
 
     ecs_strbuf_list_append(reply, "\"term_count\": %d", it.term_count);
@@ -290,13 +292,11 @@ void print_variables(
 }
 
 void print_rule(ecs_rule_t *r) {
-    int32_t results = 0, result_count = 0;
-
     char *prog = ecs_rule_str(r);
     printf("\n%s\n", prog);
     ecs_os_free(prog);
 
-    ecs_iter_t it = ecs_rule_iter(r);
+    ecs_iter_t it = ecs_rule_iter(world, r);
     while (ecs_rule_next(&it)) {
         char *str = ecs_iter_str(&it);
         printf("%s\n", str);
@@ -443,6 +443,61 @@ char* run(char *plecs) {
     return ecs_strbuf_get(&reply);
 }
 
+/* Create a base64 encoded version of the input string that's safe to pass
+ * around in URL. Compress first to reduce the overhead of base64. */
+EMSCRIPTEN_KEEPALIVE
+char* encode(const char *str) {
+    int32_t length = ecs_os_strlen(str) + 1;
+
+    /* Compression lib states that out buffer should be at least 5% more than
+     * input, use 10% just to be safe. Add four additional bytes to store the
+     * length of the compressed string. */
+    int32_t compress_size = (int32_t)((float)length * 1.1) + 1 + sizeof(size_t);
+    unsigned char *compress = ecs_os_malloc(compress_size);
+    *(size_t*)compress = length;
+
+    /* Compress string, use better compression at some cpu cost */
+    int32_t actual_size = fastlz_compress_level(
+        2, str, length, compress + sizeof(size_t)) + sizeof(size_t);
+
+    /* Base64 encode compressed data */
+    int32_t base64_size = base64_encode_size(actual_size);
+    void *base64_str = ecs_os_malloc(base64_size);
+    base64_encode(compress, actual_size, base64_str);
+
+    /* No longer need the compressed string */
+    ecs_os_free(compress);
+
+    return base64_str;
+}
+
+EMSCRIPTEN_KEEPALIVE
+char* decode(const char *str) {
+    int32_t length = ecs_os_strlen(str);
+
+    /* Base64 decode compressed data (output data is guaranteed smaller) */
+    unsigned char *base64_decoded = ecs_os_malloc(length);
+    int32_t base64_decoded_length = base64_decode(str, length, base64_decoded);
+    assert(base64_decoded_length <= length);
+    assert(base64_decoded_length > 0);
+
+    /* Get length from decompressed data */
+    size_t str_length = *(size_t*)base64_decoded;
+    base64_decoded_length -= sizeof(size_t);
+    assert(base64_decoded_length > 0);
+
+    /* Decompress data (length includes 0 terminator) */
+    char *out_str = ecs_os_malloc(str_length);
+    int32_t decompress_length = fastlz_decompress(
+        base64_decoded + sizeof(size_t), base64_decoded_length, out_str, str_length);
+
+    assert(decompress_length == str_length);
+    
+    ecs_os_free(base64_decoded);
+
+    return out_str;
+}
+
 #ifndef __EMSCRIPTEN__
 int main(int argc, char *argv[]) {
     init();
@@ -456,7 +511,14 @@ int main(int argc, char *argv[]) {
 
         char *res = query(str);
         printf("JSON = %s\n", res);
+        char *encoded = encode(res);
+        char *decoded = decode(encoded);
+        ecs_assert(!ecs_os_strcmp(res, decoded), ECS_INTERNAL_ERROR, NULL);
         ecs_os_free(res);
+        ecs_os_free(encoded);
+        ecs_os_free(decoded);
     }
+
+    return 0;
 }
 #endif

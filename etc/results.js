@@ -50,7 +50,6 @@ Vue.component('results', {
       </template>      
       <template v-if="show_results">
         <div v-if="data && data.valid" class="ecs-table">
-          <div class="box-header">Query results</div>
           <table>
             <thead>
               <tr>

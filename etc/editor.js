@@ -1,16 +1,23 @@
-const example_plecs = `// These relations enable the query engine to return
-// (for example) all entities with RockyPlanet, GasGiant
-// when asked for Planet.
+const example_plecs = `// This is Plecs, a simple language that lets us create
+// entities and queries without having to write or
+// compile C++ code.
+
+// With the builtin IsA relation we can make one entity
+// inherit from another. This lets us query for Planet,
+// and get DwarfPlanets, RockyPlanets and GasGiants.
 (IsA, CelestialBody) { 
-  Star, Satellite, DwarfPlanet, Planet
+  Star, Satellite
+  (IsA, Planet) {
+    DwarfPlanet, RockyPlanet, GasGiant
+  }
 }
 
-IsA(RockyPlanet, Planet)
-IsA(GasGiant, Planet)
-
-// Create a hierarchy using the builtin ChildOf relation
+// This creates the Sun entity with a Star tag. The { }
+// operators are used to create hierarchies which use the
+// builtin ChildOf relation.
 Star(Sun) {
- // with reduces repetition for similar entities
+ // A 'with' statement lets us add the same component(s)
+ // to multiple entities.
  with RockyPlanet {
   Mercury, Venus, Earth, Mars 
  }
@@ -22,7 +29,8 @@ Star(Sun) {
  with DwarfPlanet { Pluto, Ceres }
 }
 
-// Extend the hierarchy with satellites
+// To avoid deep indentation, we can open the scope of
+// a nested entity outside of the initial hierarchy.
 Sun.Earth {
  Satellite(Moon)
  with Satellite, Artificial { HubbleTelescope, ISS }
@@ -45,67 +53,75 @@ Sun.Pluto {
   Satellite(Charon)
 }
 
-// Add continents & countries to Earth
+// Further extend Earth's hierarchy
 Sun.Earth {
  with Continent { 
   Europe, Asia, Africa, NorthAmerica, SouthAmerica,
   Australia, Antartica
  }
 
- with Country {
-   // The extra () here ensures that the identifiers
-   // are interpreted as components, so that Country is
-   // not added to them.
-   NorthAmerica() { UnitedStates, Canada }
-   Europe() { Netherlands, Germany, France, UK }
+ NorthAmerica {
+  with Country { UnitedStates, Canada }
+
+  UnitedStates {
+    with City {
+      SanFrancisco, LosAngeles, NewYorkCity, Seattle 
+    }
+  }
+ }
+
+ Europe {
+  with Country { Netherlands, Germany, France, UK }
  }
 }
+
 `
 
 Vue.component('editor', {
-    props: ['run_ok', 'run_error', 'run_msg'],
-    methods: {
-        run() {
-            this.$emit('run-code', this.code);
-            this.changed = false;
-        },
-        text_changed() {
-            this.changed = true;
-            this.$emit('change-code');
-        }
+  props: ['run_ok', 'run_error', 'run_msg'],
+  mounted: function() {
+    this.ldt = new TextareaDecorator( 
+      document.getElementById('plecs-editor'), syntax_highlighter );
+  },
+  updated: function() {
+    this.ldt.update();
+  },
+  methods: {
+    run() {
+      this.$emit('run-code', this.code);
     },
-    data: function() {
-        return {
-            changed: true,
-            code: example_plecs
-        }
+    get_code() {
+      return this.code;
     },
-    computed: {
-        button_css: function() {
-            if (this.changed && this.code && this.code.length) {
-                return "editor-button-run";
-            } else {
-                return "editor-button-run button-disabled";
-            }
-        },
-        msg: function() {
-            return this.run_msg;
-        },
-        msg_css: function() {
-            if (this.run_ok) {
-                return "editor-msg-bar editor-ok-bar";
-            } else if (this.run_error) {
-                return "editor-msg-bar editor-err-bar";
-            } else {
-                return "editor-msg-bar";
-            }
-        }
+    set_code(code) {
+      this.code = code;
+      this.run();
     },
-    template: `
-      <div class="editor">
-        <textarea id="plecs-editor" class="plecs-editor" v-model="code" v-on:keyup="text_changed"></textarea>
-        <div :class="msg_css">{{msg}}</div>
-        <button :class="button_css" v-on:click="run">Run</button>
-      </div>
-      `
-  });
+    tab_pressed (event) { }
+  },
+  data: function() {
+    return {
+      code: example_plecs
+    }
+  },
+  computed: {
+    button_css: function() {
+      if (this.code != this.last_ran) {
+        return "editor-button-run";
+      } else {
+        return "editor-button-run button-disabled";
+      }
+    }
+  },
+  template: `
+    <div>
+      <textarea 
+          id="plecs-editor" 
+          class="editor-textarea" 
+          v-model="code" 
+          v-on:keyup="run"
+          v-on:keydown.tab.prevent="tab_pressed($event)">
+      </textarea>
+    </div>
+    `
+});

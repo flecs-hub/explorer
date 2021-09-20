@@ -1,6 +1,9 @@
+/* HTML element styling */
+
 body {
-  font-family: 'Roboto Mono', monospace;
-  font-size: 14px;
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-feature-settings: "liga" 0, "calt" 0;
+  font-size: 13px;
   background-color: #232833;
   color: #DDE0E6;
   margin: 0px;
@@ -24,6 +27,8 @@ textarea {
   outline: none;
   padding: 5px;
   padding: 10px;
+  line-height: 18px;
+  font-weight: 400;
 }
 
 pre, pre.span {
@@ -31,41 +36,180 @@ pre, pre.span {
   font-size: inherit;
 }
 
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+
+/* High level layout */
+
 div.app-box {
   position: relative;
   max-width: 100%;
-  width: calc(100% - 500px);
+  width: calc(100% - 475px);
+}
+
+div.top-box {
+  position: absolute;
+  top: 0px;
+  width: 100%;
+  height: 40px;
+  background-color: #232833;
+  border-color: rgba(0, 0, 0, 0.5);
+  border-style: solid;
+  border-width: 0px;
+  border-bottom-width: 1px;
+}
+
+div.tree-box {
+  position: absolute;
+  top: 41px;
+  left: 0px;
+  width: 200px;
+  height: calc(100vh - 45px);
+  border-style: solid;
+  border-width: 0px;
+  border-right-width: 1px;
+  border-color: #000;
 }
 
 div.editor-box {
   position: absolute;
-  top: 50px;
+  top: 41px;
   right: 0px;
-  height: calc(100vh - 50px);
+  height: calc(100vh - 45px);
   border-style: solid;
-  border-left-width: 0px;
-  border-right-width: 0px;
-  border-top-width: 0px;
-  border-bottom-width: 0px;
-  border-color: #232833;
-  background-color: #000;
+  border-width: 0px;
+  border-left-width: 1px;
+  border-color: #000;
 }
 
-div.plecs-editor {
+div.content-box {
+  position: absolute;
+  top: 40px;
+  left: 200px;
+  width: calc(100% - 200px);
+  height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+div.query-box {
+  width: calc(100% - 30px);
+}
+
+div.share-button-box {
+  position: absolute;
+  right: 0px;
+  top: 6px;
+  width: 35px;
+  cursor: pointer;
+}
+
+div.share-button-box img {
+  height: 25px;
+}
+
+div.entity-box {
   position: relative;
-  top: 51px;
-  width: 500px;
-  height: calc(100vh - 130px);
-  background-color: #000;
+}
+
+div.result-box {
+  position: relative;
+}
+
+/* UI elements */
+
+div.entity-tree {
+  background-color: #13151A;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+text.entity-tree-text {
+  fill: #DDE0E6;
+  cursor: pointer;
+}
+
+image.entity-tree-expand {
+  cursor: pointer;
+  width: 15px;
+  height: 15px;
+}
+
+rect.entity-tree-select {
+  fill: rgba(0,0,0,0);
+  rx: 5px;
+  cursor: pointer;
+}
+
+div.url-modal {
+  position: relative;
+  z-index: 99;
+  background-color: rgb(0, 0, 0, 0.6);
+  width: 100%;
+  height: 100%;
+}
+
+div.url-modal-hidden {
+  display: none;
+}
+
+div.url-modal-content {
+  position: relative;
+  top: calc(20% - 64px);
+  margin: 0 auto;
+  width: 700px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  background-color: #232833;
+  border-color: #232833;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 5px;
+  padding: 20px;
+}
+
+div.url-modal-url-container {
+  background-color: #13151A;
+  border-color: #000;
+  border-width: 1px;
+  border-style: solid;
+  border-radius: 5px;
+  padding: 20px;
+  height: 200px;
+}
+
+div.url-modal-url {
+  overflow-y: auto;
+  height: 100%;
+}
+
+div.url-modal-content a {
+  color: #DDE0E6;
+}
+
+div.url-modal h1 {
+  font-size: 16px;
+  margin: 0px;
+  margin-bottom: 15px;
+}
+
+div.editor-textarea {
+  position: relative;
+  width: 475px;
+  height: 100%;
+  background-color: #13151A;
   border: none;
   resize: none;
   color: #DDE0E6;
-  font-family: 'Roboto Mono', monospace;
+  font-family: inherit;
   font-size: inherit;
-  border-width: 0px;
-  border-style: solid;
-  border-top-width: 2px;
-  border-color: #232833;
 }
 
 div.ldt textarea {
@@ -86,91 +230,13 @@ button.editor-button-run {
   cursor: pointer;
 }
 
-button.editor-button-run:hover {
-  background-color: #5BE595;
-}
-
-button.button-disabled {
-  background-color: #aaa;
-  color: #444;
-  cursor: default;
-}
-
-button.button-disabled:hover {
-  background-color: #aaa;
-  color: #444;
-  cursor: default;
-}
-
-div.editor-msg-bar {
-  position: absolute;
-  bottom: 0px;
-  right: 0px;
-  width: calc(100% - 10px);
-  height: 22px;
-  padding-top: 0px;
-  padding-right: 10px;
-  font-size: 14px;
-  color: #ddd;
-  background-color: #000;
-  text-align: right;
-
-  border-color: #232833;
-  border-style:solid;
-  border-width: 0px;
-  border-bottom-width: 3px;
-}
-
-div.editor-ok-bar {
-  border-color: #47B576;
-}
-
-div.editor-err-bar {
-  border-color: #B5494B;
-}
-
-div.top-box {
-  position: absolute;
-  top: 0px;
-  width: 100%;
-  height: 50px;
-  background-color: #232833;
-  border-color: rgba(0, 0, 0, 0.5);
-  border-style: solid;
-  border-width: 0px;
-  border-bottom-width: 1px;
-}
-
-div.content-box {
-  position: absolute;
-  top: 50px;
-  width: 100%;
-  height: calc(100vh - 50px);
-  overflow-y: auto;
-}
-
-div.entity-box {
-  position: relative;
-}
-
-div.result-box {
-  position: relative;
-}
-
-div.box-header {
-  font-size: 14px;
-  font-style: italic;
-  color: #8B909D;
-  margin-bottom: 5px;
-}
-
 div.ecs-query {
   border-radius: 0px;
-  background-color: #000;
+  background-color: #13151A;
   width: calc(100% - 20px);
   margin-left: 10px;
-  margin-top: 7px;
-  height: 35px;
+  margin-top: 5px;
+  height: 30px;
 }
 
 div.ecs-query pre {
@@ -182,8 +248,8 @@ div.ecs-query pre {
   border-color: rgba(0, 0, 0, 0);
   border-width: 1px;
   border-style: solid;
-  border-radius: 3px;
-  height: 35px;
+  border-radius: 5px;
+  height: 30px;
 }
 
 div.ecs-query textarea:focus {
@@ -267,7 +333,12 @@ div.ecs-table {
   margin: auto;
   padding: 10px;
 
-  background-color: #000;
+  border-style: solid;
+  border-color: #000;
+  border-width: 1px;
+  border-radius: 5px;
+
+  background-color: #13151A;
   overflow-x: auto;
   max-width: 100%;
   margin: 10px;

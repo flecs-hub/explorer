@@ -11,9 +11,12 @@
 }
 
 .ldt, .ldt pre, .ldt textarea {
-	font-size: 14px !important;
+	font-size: inherit;
 	/* resize algorithm depends on a monospaced font */
-	font-family: 'Roboto Mono', monospace;
+	font-family: inherit;
+	font-feature-settings: "liga" 0, "calt" 0;
+	line-height: 18px;
+	font-weight: 400;
 }
 
 .ldt textarea {
