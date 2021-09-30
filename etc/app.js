@@ -35,48 +35,52 @@ var app = new Vue({
     query_on_changed(e) {
       const query = e.query;
 
+      this.$refs.terminal.clear();
+
       if (!query || query.length <= 1) {
         this.data = undefined;
         this.error = false;
         return;
       }
-      
+
+      this.$refs.terminal.log({
+        text: "Run query \"" + query + "\"",
+        kind: "command"
+      });
+
       const r = wq_query(query);
-
       this.data = JSON.parse(r);
-      this.error = this.data.valid == false;
 
-      if (this.is_entity_query(query)) {
-        const er = wq_get_entity(query);
-        this.entity_data = JSON.parse(er);
-        if (this.entity_data.valid == false) {
-          this.entity_data = undefined;
-        }
+      if (this.data.valid == false) {
+        this.$refs.terminal.log({text: this.data.error, kind: "error"});
       } else {
-        this.entity_data = undefined;
+        this.$refs.terminal.log({text: "Ok", kind: "ok" });
       }
+
+      this.error = this.data.valid == false;
     },
 
     run_code(code) {
+      this.$refs.terminal.clear();
+
+      this.$refs.terminal.log({
+        text: "Run plecs code",
+        kind: "command"
+      });
+
       const r = wq_run(code);
       const data = JSON.parse(r);
       this.run_ok = data.valid == true;
       this.run_error = data.valid == false;
 
-      if (this.run_error) {
-        this.run_msg = "Code contains errors!";
-      } else {
-        this.run_msg = "Code ran successfully!";;
-      }
-
-      this.$refs.query.changed();
+      this.$refs.query.refresh();
       this.$refs.tree.update_expanded();
-    },
+      this.select(this.selection);
 
-    change_code() {
-      this.run_msg = "Run the code!";
-      this.run_ok = false;
-      this.run_error = false;
+      if (this.run_error) {
+        this.$refs.terminal.log({text: "Run plecs", kind: "command" });
+        this.$refs.terminal.log({text: data.error, kind: "error"});
+      }
     },
 
     show_url() {
@@ -92,9 +96,18 @@ var app = new Vue({
       this.$refs.url.show();
     },
 
-    is_entity_query: function(query) {
-      return (query.indexOf(",") == -1) && (query.indexOf("(") == -1);
-    }    
+    select(e) {
+      this.selection = e;
+      if (e) {
+        const r = wq_get_entity(e.path);
+        this.entity_data = JSON.parse(r);
+        if (this.entity_data.valid == false) {
+          this.entity_data = undefined;
+        }
+      } else {
+        this.entity_data = undefined;
+      }
+    }   
   },
 
   data: {
@@ -102,9 +115,9 @@ var app = new Vue({
     error: false,
     run_ok: false,
     run_error: false,
-    run_msg: "Run the code!",
     data: undefined,
     entity_data: undefined,
+    selection: undefined,
     url: undefined
   }
 });

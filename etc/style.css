@@ -1,9 +1,10 @@
 /* HTML element styling */
 
 body {
-  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-family: Arial, Helvetica, sans-serif;
   font-feature-settings: "liga" 0, "calt" 0;
-  font-size: 13px;
+  letter-spacing: 0.5px;
+  font-size: 14px;
   background-color: #232833;
   color: #DDE0E6;
   margin: 0px;
@@ -23,7 +24,6 @@ input {
 textarea {
   -webkit-appearance: none; 
   -moz-appearance: none;
-  border: solid 2px #aaa;
   outline: none;
   padding: 5px;
   padding: 10px;
@@ -32,7 +32,6 @@ textarea {
 }
 
 pre, pre.span {
-  font-family: inherit;
   font-size: inherit;
 }
 
@@ -47,12 +46,6 @@ pre, pre.span {
 }
 
 /* High level layout */
-
-div.app-box {
-  position: relative;
-  max-width: 100%;
-  width: calc(100% - 475px);
-}
 
 div.top-box {
   position: absolute;
@@ -70,36 +63,69 @@ div.tree-box {
   position: absolute;
   top: 41px;
   left: 0px;
-  width: 200px;
-  height: calc(100vh - 45px);
+  width: 194px;
+  height: calc(100vh - 41px);
   border-style: solid;
   border-width: 0px;
+  border-left-color: #232833;
+  border-left-width: 5px;
+  border-right-color: #000;
   border-right-width: 1px;
-  border-color: #000;
+}
+
+div.app-box {
+  position: relative;
+  top: 41px;
+  left: 200px;
+  width: calc(100% - 200px);
+  height: calc(100vh - 191px);
+}
+
+div.content-box {
+  position: relative;
+  top: 0px;
+  left: 0px;
+  width: calc(100% - 400px);
+  height: 100%;
+  overflow-y: auto;
 }
 
 div.editor-box {
   position: absolute;
-  top: 41px;
+  top: 0px;
   right: 0px;
-  height: calc(100vh - 45px);
+  width: 400px;
+  height: 100%;
   border-style: solid;
   border-width: 0px;
   border-left-width: 1px;
   border-color: #000;
 }
 
-div.content-box {
-  position: absolute;
-  top: 40px;
-  left: 200px;
-  width: calc(100% - 200px);
-  height: calc(100vh - 40px);
-  overflow-y: auto;
-}
-
 div.query-box {
   width: calc(100% - 30px);
+}
+
+div.terminal-box {
+  background-color: #232833;
+  border-color: #000;
+  border-style: solid;
+  border-width: 0px;
+  border-top-width: 1px;
+
+  position: absolute;
+  width: calc(100% - 200px);
+  height: 150px;
+  left: 200px;
+  bottom: 0px;
+}
+
+div.play-button-box {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 30px;
+  cursor: pointer;
 }
 
 div.share-button-box {
@@ -108,6 +134,10 @@ div.share-button-box {
   top: 6px;
   width: 35px;
   cursor: pointer;
+}
+
+div.play-button-box img {
+  height: 24px;
 }
 
 div.share-button-box img {
@@ -136,6 +166,14 @@ text.entity-tree-text {
   cursor: pointer;
 }
 
+text.entity-tree-text:hover {
+  fill: #fff;
+}
+
+text.entity-tree-text-select {
+  fill: #fff;
+}
+
 image.entity-tree-expand {
   cursor: pointer;
   width: 15px;
@@ -144,12 +182,70 @@ image.entity-tree-expand {
 
 rect.entity-tree-select {
   fill: rgba(0,0,0,0);
-  rx: 5px;
+  rx: 2px;
   cursor: pointer;
 }
 
-div.url-modal {
+rect.entity-tree-selected {
+  fill: #333A4B;
+}
+
+div.entity-inspector {
+  background-color: #232833;
+}
+
+div.entity-property-inspector {
   position: relative;
+  /* background-color: #13151A;
+  background-color: #333A4B;
+  background-color: #232833; */
+  /* border-style: solid;
+  border-color: #000;
+  border-width: 1px; */
+  width: calc(100% - 10px);
+  padding: 5px;
+  padding-top: 0px;
+  margin-top: 10px;
+  overflow: auto;
+}
+
+div.entity-property {
+  position: relative;
+  /* border-style: solid;
+  border-color: #000;
+  border-width: 1px;
+  background-color: #232833;
+  background-color: #333A4B; */
+  width: calc(100% - 16px);
+  padding: 5px;
+}
+
+div.entity-property-overridden span.inner {
+  color: #8B909D;
+}
+
+div.entity-property-overridden span.outer {
+  color: #8B909D;
+  text-decoration: line-through;
+}
+
+div.entity-property-header {
+  margin-top: 10px;
+  font-style: italic;
+  color: #8B909D;
+  color: #47B576;
+}
+
+div.entity-inspector-parent {
+  font-size: 12px;
+  color: #47B576;
+  padding-top: 5px;
+  padding-left: 12px;
+}
+
+div.url-modal {
+  position: absolute;
+  top: 0px;
   z-index: 99;
   background-color: rgb(0, 0, 0, 0.6);
   width: 100%;
@@ -171,7 +267,7 @@ div.url-modal-content {
   border-color: #232833;
   border-style: solid;
   border-width: 1px;
-  border-radius: 5px;
+  border-radius: 3px;
   padding: 20px;
 }
 
@@ -180,7 +276,7 @@ div.url-modal-url-container {
   border-color: #000;
   border-width: 1px;
   border-style: solid;
-  border-radius: 5px;
+  border-radius: 3px;
   padding: 20px;
   height: 200px;
 }
@@ -202,14 +298,15 @@ div.url-modal h1 {
 
 div.editor-textarea {
   position: relative;
-  width: 475px;
+  width: 400px;
   height: 100%;
   background-color: #13151A;
   border: none;
   resize: none;
   color: #DDE0E6;
-  font-family: inherit;
-  font-size: inherit;
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-size: 13px;
+  letter-spacing: 0.0px;
 }
 
 div.ldt textarea {
@@ -231,12 +328,17 @@ button.editor-button-run {
 }
 
 div.ecs-query {
-  border-radius: 0px;
+  position: absolute;
+  border-radius: 3px;
   background-color: #13151A;
-  width: calc(100% - 20px);
+  left: 30px;
+  width: calc(100% - 80px);
   margin-left: 10px;
   margin-top: 5px;
   height: 30px;
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-size: 13px;
+  letter-spacing: 0.0px;
 }
 
 div.ecs-query pre {
@@ -248,7 +350,7 @@ div.ecs-query pre {
   border-color: rgba(0, 0, 0, 0);
   border-width: 1px;
   border-style: solid;
-  border-radius: 5px;
+  border-radius: 3px;
   height: 30px;
 }
 
@@ -269,6 +371,79 @@ div.error {
 
 div.error span {
   color: #B5494B;
+}
+
+div.terminal {
+  position: relative;
+  top: 5px;
+  height: calc(100% - 5px);
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-size: 12px;
+}
+
+div.terminal-content {
+  position: relative;
+  background-color: #101115;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: nowrap;
+}
+
+div.terminal-log {
+  height: 22px;
+  border-style: solid;
+  border-width: 0px;
+  border-bottom-width: 1px;
+}
+
+span.terminal-msg {
+  position: relative;
+  top: 5px;
+  left: 5px;
+}
+
+span.terminal-icon img {
+  position: relative;
+  height: 20px;
+  top: 1px;
+}
+
+div.terminal-command {
+  border-color: #232833;
+}
+
+span.terminal-command {
+  color: #4981B5;
+}
+
+span.terminal-command {
+  position: relative;
+  top: -5px;
+  left: -5px;
+}
+
+div.terminal-ok {
+  background-color: #02210A;
+  border-color: #0B4C1C;
+}
+
+span.terminal-ok {
+  color: #47B576;
+}
+
+div.terminal-error {
+  background-color: #250201;
+  border-color: #540C06;
+}
+
+span.terminal-error {
+  color: #EF8784;
+}
+
+div.terminal-info {
+  border-color: #232833;
 }
 
 div.info {
@@ -312,8 +487,14 @@ div.ecs-yesno {
   position: relative;
   margin: auto;
   padding: 10px;
-  background-color: #000;
-  margin: 10px;
+  margin: 7px;
+  font-weight: 600;
+
+  border-style: solid;
+  border-color: #000;
+  border-width: 1px;
+  border-radius: 3px;
+  background-color: #13151A;
 }
 
 div.ecs-results {
@@ -336,12 +517,12 @@ div.ecs-table {
   border-style: solid;
   border-color: #000;
   border-width: 1px;
-  border-radius: 5px;
+  border-radius: 3px;
 
   background-color: #13151A;
   overflow-x: auto;
   max-width: 100%;
-  margin: 10px;
+  margin: 7px;
 }
 
 div.ecs-table ecs-value {

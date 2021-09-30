@@ -11,25 +11,26 @@
 // Global world
 static ecs_world_t *world;
 
-// // Utilities for capturing (parser) errors
-// static ecs_strbuf_t err_buf = ECS_STRBUF_INIT;
-// bool str_set = false;
+// Utilities for capturing (parser) errors
+static ecs_strbuf_t err_buf = ECS_STRBUF_INIT;
+bool str_set = false;
 
-// static 
-// void capture_error(
-//     const char *msg)
-// {
-//     if (!str_set) {
-//         ecs_strbuf_appendstr(&err_buf, msg);
-//         str_set = true;
-//     }
-// }
+static 
+void capture_error(
+    const char *msg,
+    va_list args)
+{
+    if (!str_set) {
+        ecs_strbuf_vappend(&err_buf, msg, args);
+        str_set = true;
+    }
+}
 
-// static
-// char* get_error() {
-//     str_set = false;
-//     return ecs_strbuf_get(&err_buf);
-// }
+static
+char* get_error() {
+    str_set = false;
+    return ecs_strbuf_get(&err_buf);
+}
 
 static
 int variable_count(ecs_rule_t *r) {
@@ -60,7 +61,7 @@ void reply_variables(ecs_strbuf_t *reply, ecs_rule_t *r) {
             continue;
         }
         const char *var_name = ecs_rule_variable_name(r, i);
-        if (var_name[0] == '_') {
+        if (var_name[0] == '_' || var_name[0] == '.') {
             continue;
         }
 
@@ -94,7 +95,19 @@ void reply_results(ecs_strbuf_t *reply, ecs_rule_t *r) {
             ecs_strbuf_list_append(reply, "\"%s\"", id_str);
             ecs_os_free(id_str);
         }
+        ecs_strbuf_list_pop(reply, "]");
 
+        /* Output whether terms are set */
+        ecs_strbuf_list_appendstr(reply, "\"terms_set\":");
+        ecs_strbuf_list_push(reply, "[", ",");
+
+        for (int i = 0; i < it.term_count; i ++) {
+            if (ecs_term_is_set(&it, i + 1)) {
+                ecs_strbuf_list_appendstr(reply, "true");
+            } else {
+                ecs_strbuf_list_appendstr(reply, "false");
+            }
+        }
         ecs_strbuf_list_pop(reply, "]");
 
         /* Output variables */
@@ -105,7 +118,7 @@ void reply_results(ecs_strbuf_t *reply, ecs_rule_t *r) {
                 continue;
             }
             const char *var_name = ecs_rule_variable_name(r, i);
-            if (var_name[0] == '_') {
+            if (var_name[0] == '_' || var_name[0] == '.') {
                 continue;
             }                
             ecs_entity_t var = ecs_rule_variable(&it, i);
@@ -328,9 +341,9 @@ void reply_rule(ecs_strbuf_t *reply, const char *q) {
     } else {
         ecs_strbuf_list_appendstr(reply, "\"valid\": false");
 
-        // char *err = get_error();
-        // ecs_strbuf_list_append(reply, "\"error\": \"%s\"", err);
-        // ecs_os_free(err);
+        char *err = get_error();
+        ecs_strbuf_list_append(reply, "\"error\": \"%s\"", err);
+        ecs_os_free(err);
     }
 
     ecs_strbuf_list_pop(reply, "}");
@@ -341,10 +354,10 @@ void reply_rule(ecs_strbuf_t *reply, const char *q) {
 
 EMSCRIPTEN_KEEPALIVE
 void init() {
-    // ecs_os_set_api_defaults();
-    // ecs_os_api_t api = ecs_os_api;
-    // api.log_error_ = capture_error;
-    // ecs_os_set_api(&api);
+    ecs_os_set_api_defaults();
+    ecs_os_api_t api = ecs_os_api;
+    api.log_error_ = capture_error;
+    ecs_os_set_api(&api);
 
     ecs_tracing_color_enable(false);
 
@@ -353,6 +366,10 @@ void init() {
         ecs_err("failed to create world");
         return;
     }
+
+    ECS_IMPORT(world, FlecsMeta);
+
+    ecs_plecs_from_file(world, "etc/assets/db.plecs");
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -363,6 +380,86 @@ char* query(char *q) {
     return result;
 }
 
+static
+void append_type(ecs_strbuf_t *reply, ecs_entity_t ent, ecs_entity_t inst) {
+    ecs_type_t type = ecs_get_type(world, ent);
+    ecs_id_t *ids = ecs_vector_first(type, ecs_id_t);
+    int32_t i, count = ecs_vector_count(type);
+
+    ecs_strbuf_list_appendstr(reply, "\"type\": ");
+    ecs_strbuf_list_push(reply, "[", ",");
+    for (i = 0; i < count; i ++) {
+        ecs_id_t id = ids[i];
+        ecs_entity_t pred = 0, obj = 0, role = 0;
+
+        if (ECS_HAS_RELATION(id, EcsIsA)) {
+            /* Skip IsA as they are already added in "inherits" */
+            continue;
+        }
+
+        if (ECS_HAS_ROLE(id, PAIR)) {
+            pred = ecs_pair_relation(world, id);
+            obj = ecs_pair_object(world, id);
+        } else {
+            pred = id & ECS_COMPONENT_MASK;
+            if (id & ECS_ROLE_MASK) {
+                role = id & ECS_ROLE_MASK;
+            }
+        }
+
+        ecs_strbuf_list_next(reply);
+        ecs_strbuf_list_push(reply, "{", ",");
+        if (pred) {
+            char *str = ecs_get_fullpath(world, pred);
+            ecs_strbuf_list_append(reply, "\"pred\":\"%s\"", str);
+            ecs_os_free(str);
+        }
+        if (obj) {
+            char *str = ecs_get_fullpath(world, obj);
+            ecs_strbuf_list_append(reply, "\"obj\":\"%s\"", str);
+            ecs_os_free(str);
+        }
+        if (role) {
+            ecs_strbuf_list_append(reply, "\"obj\":\"%s\"", 
+                ecs_role_str(role));
+        }
+
+        if (ent != inst) {
+            if (ecs_get_object_for_id(world, inst, EcsIsA, id) != ent) {
+                ecs_strbuf_list_append(reply, "\"overridden\":true", 
+                    ecs_role_str(role));
+            } else {
+                ecs_strbuf_list_append(reply, "\"overridden\":false", 
+                    ecs_role_str(role));
+            }
+        }
+
+        ecs_strbuf_list_pop(reply, "}");
+    }
+    ecs_strbuf_list_pop(reply, "]");
+}
+
+static
+void append_base(ecs_strbuf_t *reply, ecs_entity_t ent, ecs_entity_t inst) {
+    ecs_type_t type = ecs_get_type(world, ent);
+    ecs_id_t *ids = ecs_vector_first(type, ecs_id_t);
+    int32_t i, count = ecs_vector_count(type);
+
+    for (i = 0; i < count; i ++) {
+        ecs_id_t id = ids[i];
+        if (ECS_HAS_RELATION(id, EcsIsA)) {
+            append_base(reply, ecs_pair_object(world, id), inst);
+        }
+    }
+
+    char *path = ecs_get_fullpath(world, ent);
+    ecs_strbuf_list_append(reply, "\"%s\": ", path);
+    ecs_os_free(path);
+    ecs_strbuf_list_push(reply, "{", ",");
+    append_type(reply, ent, inst);
+    ecs_strbuf_list_pop(reply, "}");
+}
+
 EMSCRIPTEN_KEEPALIVE
 char* get_entity(char *path) {
     ecs_strbuf_t reply = ECS_STRBUF_INIT;
@@ -370,51 +467,29 @@ char* get_entity(char *path) {
     ecs_strbuf_list_push(&reply, "{", ",");
 
     ecs_entity_t ent = ecs_lookup_path(world, 0, path);
-    if (!ent) {
+
+    if (!ent || !ecs_is_valid(world, ent)) {
         ecs_strbuf_list_appendstr(&reply, "\"valid\": false");
     } else {
         ecs_strbuf_list_appendstr(&reply, "\"valid\": true");
 
-        ecs_strbuf_list_appendstr(&reply, "\"type\": ");
         ecs_type_t type = ecs_get_type(world, ent);
         ecs_id_t *ids = ecs_vector_first(type, ecs_id_t);
         int32_t i, count = ecs_vector_count(type);
 
-        ecs_strbuf_list_push(&reply, "[", ",");
-        for (i = 0; i < count; i ++) {
-            ecs_id_t id = ids[i];
-            ecs_entity_t pred = 0, obj = 0, role = 0;
-
-            if (ECS_HAS_ROLE(id, PAIR)) {
-                pred = ecs_pair_relation(world, id);
-                obj = ecs_pair_object(world, id);
-            } else {
-                pred = id & ECS_COMPONENT_MASK;
-                if (id & ECS_ROLE_MASK) {
-                    role = id & ECS_ROLE_MASK;
+        if (ecs_has_pair(world, ent, EcsIsA, EcsWildcard)) {
+            ecs_strbuf_list_appendstr(&reply, "\"inherit\": ");
+            ecs_strbuf_list_push(&reply, "{", ",");
+            for (i = 0; i < count; i ++) {
+                ecs_id_t id = ids[i];
+                if (ECS_HAS_RELATION(id, EcsIsA)) {
+                    append_base(&reply, ecs_pair_object(world, id), ent);
                 }
             }
-
-            ecs_strbuf_list_next(&reply);
-            ecs_strbuf_list_push(&reply, "{", ",");
-            if (pred) {
-                char *str = ecs_get_fullpath(world, pred);
-                ecs_strbuf_list_append(&reply, "\"pred\":\"%s\"", str);
-                ecs_os_free(str);
-            }
-            if (obj) {
-                char *str = ecs_get_fullpath(world, obj);
-                ecs_strbuf_list_append(&reply, "\"obj\":\"%s\"", str);
-                ecs_os_free(str);
-            }
-            if (role) {
-                ecs_strbuf_list_append(&reply, "\"obj\":\"%s\"", 
-                    ecs_role_str(role));
-            }
-
             ecs_strbuf_list_pop(&reply, "}");
         }
-        ecs_strbuf_list_pop(&reply, "]");
+
+        append_type(&reply, ent, ent);
     }
 
     ecs_strbuf_list_pop(&reply, "}");
@@ -427,13 +502,18 @@ EMSCRIPTEN_KEEPALIVE
 char* run(char *plecs) {
     ecs_strbuf_t reply = ECS_STRBUF_INIT;
 
-    ecs_strbuf_list_push(&reply, "{", ",");
-
     ecs_fini(world);
-    world = ecs_mini();
+
+    init();
+
+    ecs_strbuf_list_push(&reply, "{", ",");
 
     if (ecs_plecs_from_str(world, NULL, plecs)) {
         ecs_strbuf_list_appendstr(&reply, "\"valid\": false");
+
+        char *err = get_error();
+        ecs_strbuf_list_append(&reply, "\"error\": \"%s\"", err);
+        ecs_os_free(err);
     } else {
         ecs_strbuf_list_appendstr(&reply, "\"valid\": true");
     }

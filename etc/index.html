@@ -7,13 +7,19 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
-    <link rel="icon" href="#" />
+    <link rel="icon" href="flecs_logo.png" />
   </head>
   <body>
     <div id="app">
+      <!-- Top bar -->
       <div class="top-box">
         <div class="query-box">
-          <query 
+          <div class="play-button-box">
+            <a href="https://github.com/SanderMertens/flecs" target="_blank">
+              <img src="flecs_logo.png" alt="Flecs GitHub">
+            </a>
+          </div>
+          <query
             ref="query" 
             :error="error"
             v-on:changed="query_on_changed">
@@ -23,30 +29,44 @@
           <img src="share_icon.png" v-on:click="show_url">
         </div>
       </div>
+
+      <!-- Tree view -->
+      <div class="tree-box">
+        <entity-tree ref="tree" v-on:select="select"></entity-tree>
+      </div>
+
+      <!-- Application box -->
       <div class="app-box">
-        <div class="tree-box">
-          <entity-tree ref="tree"></entity-tree>
-        </div>
+
+        <!-- Query results & Entity inspector -->
         <div class="content-box">
           <div class="entity-box">
-            <entity-explorer :data="entity_data"></entity-explorer>
+            <entity-inspector :entity="entity_data" :selection="selection">
+            </entity-inspector>
           </div>
           <div class="result-box">
             <results :data="data"></results>
           </div>
         </div>
+
+        <!-- Editor -->
+        <div class="editor-box">
+          <editor 
+            ref="plecs"
+            :run_ok="run_ok"
+            :run_error="run_error" 
+            v-on:run-code="run_code">
+          </editor>
+        </div>
       </div>
-      <div class="editor-box">
-        <editor 
-          ref="plecs"
-          :run_ok="run_ok"
-          :run_error="run_error" 
-          :run_msg="run_msg" 
-          v-on:run-code="run_code"
-          v-on:change-code="change_code">
-        </editor>
+
+      <!-- Terminal -->
+      <div class="terminal-box">
+        <terminal ref="terminal"></terminal>
       </div>
-      <url-modal ref="url" :url="url"></url-box>
+
+      <!-- URL modal -->
+      <url-modal ref="url" :url="url"></url-modal>
     </div>
 
     <script src="vue.js"></script>
@@ -60,7 +80,7 @@
         { whitespace: /\s+/,
           comment: /\/\/[^\r\n]*/,
           rel_prop: /\b(Transitive|Final|Inclusive|Tag)\b/,
-          builtin: /\b(IsA|ChildOf|Component|Identifier|Name|Symbol)\b/,
+          builtin: /\b(IsA|ChildOf|Component|Identifier|Name|Symbol|Module|Prefab)\b/,
           builtin_variable: /(\bThis\b)|[\\.\\*]/,
           keyword: /\bwith\b/,
           entity: /\b[^_(),\s][a-zA-Z_0-9]+\b/,
@@ -69,12 +89,14 @@
           other: /\S/ } );
     </script>
 
-    <script src="tree.js"></script>
+    <script src="entity_icon.js"></script>
+    <script src="entity_tree.js"></script>
     <script src="query.js"></script>
     <script src="results.js"></script>
-    <script src="entity.js"></script>
+    <script src="entity_inspector.js"></script>
     <script src="editor.js"></script>
     <script src="url_modal.js"></script>
+    <script src="terminal.js"></script>
     <script src="app.js"></script>
 
     <script src="web_queries.js"></script>

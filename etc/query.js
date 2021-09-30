@@ -1,4 +1,4 @@
-const example_query = "ChildOf(_Planet, Sun), !DwarfPlanet(_Planet), ChildOf(_Moon, _Planet), Satellite(_Moon)"
+const example_query = "ChildOf(_Planet, Sun), Planet(_Planet), ChildOf(_Moon, _Planet), Satellite(_Moon)"
 
 Vue.component('query', {
   props: ['error'],
@@ -12,12 +12,19 @@ Vue.component('query', {
   data: function() {
     return {
       query: example_query,
+      last_query: undefined,
       ldt: undefined
     }
   },
   methods: {
     changed: function(e) {
+      if (this.query != this.last_query) {
+        this.refresh();
+      }
+    },
+    refresh: function() {
       this.$emit('changed', {query: this.query});
+      this.last_query = this.query;
     },
     query_class() {
       if (this.error) {
@@ -29,7 +36,6 @@ Vue.component('query', {
     set_query(expr) {
       this.query = expr;
       this.$emit('changed', {query: expr});
-      // this.ldt.update();
     },
     get_query() {
       return this.query;

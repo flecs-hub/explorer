@@ -32,7 +32,7 @@ var Module = typeof Module !== 'undefined' ? Module : {};
       }
   Module['FS_createPath']("/", "etc", true, true);
 Module['FS_createPath']("/etc", "assets", true, true);
-var fileData0 = 'Ly8gVGhpcyBpcyBQbGVjcywgYSBzaW1wbGUgbGFuZ3VhZ2UgdGhhdCBsZXRzIHVzIGNyZWF0ZQovLyBlbnRpdGllcyBhbmQgcXVlcmllcyB3aXRob3V0IGhhdmluZyB0byB3cml0ZSBvcgovLyBjb21waWxlIEMrKyBjb2RlLgoKLy8gV2l0aCB0aGUgYnVpbHRpbiBJc0EgcmVsYXRpb24gd2UgY2FuIG1ha2Ugb25lIGVudGl0eQovLyBpbmhlcml0IGZyb20gYW5vdGhlci4gVGhpcyBsZXRzIHVzIHF1ZXJ5IGZvciBQbGFuZXQsCi8vIGFuZCBnZXQgRHdhcmZQbGFuZXRzLCBSb2NreVBsYW5ldHMgYW5kIEdhc0dpYW50cy4KKElzQSwgQ2VsZXN0aWFsQm9keSkgeyAKICBTdGFyLCBTYXRlbGxpdGUKICAoSXNBLCBQbGFuZXQpIHsKICAgIER3YXJmUGxhbmV0LCBSb2NreVBsYW5ldCwgR2FzR2lhbnQKICB9Cn0KCi8vIFRoaXMgY3JlYXRlcyB0aGUgU3VuIGVudGl0eSB3aXRoIGEgU3RhciB0YWcuIFRoZSB7IH0KLy8gb3BlcmF0b3JzIGFyZSB1c2VkIHRvIGNyZWF0ZSBoaWVyYXJjaGllcyB3aGljaCB1c2UgdGhlCi8vIGJ1aWx0aW4gQ2hpbGRPZiByZWxhdGlvbi4KU3RhcihTdW4pIHsKIC8vIEEgJ3dpdGgnIHN0YXRlbWVudCBsZXRzIHVzIGFkZCB0aGUgc2FtZSBjb21wb25lbnQocykKIC8vIHRvIG11bHRpcGxlIGVudGl0aWVzLgogd2l0aCBSb2NreVBsYW5ldCB7CiAgTWVyY3VyeSwgVmVudXMsIEVhcnRoLCBNYXJzIAogfQoKIHdpdGggR2FzR2lhbnQgeyAKICBKdXBpdGVyLCBTYXR1cm4sIE5lcHR1bmUsIFVyYW51cyAKIH0KCiB3aXRoIER3YXJmUGxhbmV0IHsgUGx1dG8sIENlcmVzIH0KfQoKLy8gVG8gYXZvaWQgZGVlcCBpbmRlbnRhdGlvbiwgd2UgY2FuIG9wZW4gdGhlIHNjb3BlIG9mCi8vIGEgbmVzdGVkIGVudGl0eSBvdXRzaWRlIG9mIHRoZSBpbml0aWFsIGhpZXJhcmNoeS4KU3VuLkVhcnRoIHsKIFNhdGVsbGl0ZShNb29uKQogd2l0aCBTYXRlbGxpdGUsIEFydGlmaWNpYWwgeyBIdWJibGVUZWxlc2NvcGUsIElTUyB9Cn0KClN1bi5NYXJzIHsKIHdpdGggU2F0ZWxsaXRlIHsgUGhvYm9zLCBEZWltb3MgfQogd2l0aCBTYXRlbGxpdGUsIEFydGlmaWNpYWwgeyBNYXJzT3JiaXRlciB9Cn0KClN1bi5KdXBpdGVyIHsKIHdpdGggU2F0ZWxsaXRlIHsgRXVyb3BhLCBJbywgQ2FsbGlzdG8sIEdhbnltZWRlIH0KfQoKU3VuLlNhdHVybiB7CiB3aXRoIFNhdGVsbGl0ZSB7IFRpdGFuLCBFbmNlbGFkdXMgfQp9CgpTdW4uUGx1dG8gewogIFNhdGVsbGl0ZShDaGFyb24pCn0KCi8vIEZ1cnRoZXIgZXh0ZW5kIEVhcnRoJ3MgaGllcmFyY2h5ClN1bi5FYXJ0aCB7CiB3aXRoIENvbnRpbmVudCB7IAogIEV1cm9wZSwgQXNpYSwgQWZyaWNhLCBOb3J0aEFtZXJpY2EsIFNvdXRoQW1lcmljYSwKICBBdXN0cmFsaWEsIEFudGFydGljYQogfQoKIE5vcnRoQW1lcmljYSB7CiAgd2l0aCBDb3VudHJ5IHsgVW5pdGVkU3RhdGVzLCBDYW5hZGEgfQogfQoKIEV1cm9wZSB7CiAgd2l0aCBDb3VudHJ5IHsgTmV0aGVybGFuZHMsIEdlcm1hbnksIEZyYW5jZSwgVUsgfQogfQp9Cgo=';
+var fileData0 = '';
 Module['FS_createDataFile']('/etc/assets', 'db.plecs', decodeBase64(fileData0), true, true, false);
 
     }
@@ -1832,112 +1832,11 @@ var ASM_CONSTS = {
       abort('stack overflow');
     }
 
-  function _abort() {
-      abort();
-    }
-
-  var _emscripten_get_now;if (ENVIRONMENT_IS_NODE) {
-    _emscripten_get_now = function() {
-      var t = process['hrtime']();
-      return t[0] * 1e3 + t[1] / 1e6;
-    };
-  } else _emscripten_get_now = function() { return performance.now(); }
-  ;
-  
-  var _emscripten_get_now_is_monotonic = true;;
-  
   function setErrNo(value) {
       HEAP32[((___errno_location())>>2)] = value;
       return value;
     }
-  function _clock_gettime(clk_id, tp) {
-      // int clock_gettime(clockid_t clk_id, struct timespec *tp);
-      var now;
-      if (clk_id === 0) {
-        now = Date.now();
-      } else if ((clk_id === 1 || clk_id === 4) && _emscripten_get_now_is_monotonic) {
-        now = _emscripten_get_now();
-      } else {
-        setErrNo(28);
-        return -1;
-      }
-      HEAP32[((tp)>>2)] = (now/1000)|0; // seconds
-      HEAP32[(((tp)+(4))>>2)] = ((now % 1000)*1000*1000)|0; // nanoseconds
-      return 0;
-    }
-
-  function _emscripten_memcpy_big(dest, src, num) {
-      HEAPU8.copyWithin(dest, src, src + num);
-    }
-
-  function emscripten_realloc_buffer(size) {
-      try {
-        // round size grow request up to wasm page size (fixed 64KB per spec)
-        wasmMemory.grow((size - buffer.byteLength + 65535) >>> 16); // .grow() takes a delta compared to the previous size
-        updateGlobalBufferAndViews(wasmMemory.buffer);
-        return 1 /*success*/;
-      } catch(e) {
-        err('emscripten_realloc_buffer: Attempted to grow heap from ' + buffer.byteLength  + ' bytes to ' + size + ' bytes, but got error: ' + e);
-      }
-      // implicit 0 return to save code size (caller will cast "undefined" into 0
-      // anyhow)
-    }
-  function _emscripten_resize_heap(requestedSize) {
-      var oldSize = HEAPU8.length;
-      requestedSize = requestedSize >>> 0;
-      // With pthreads, races can happen (another thread might increase the size in between), so return a failure, and let the caller retry.
-      assert(requestedSize > oldSize);
   
-      // Memory resize rules:
-      // 1. Always increase heap size to at least the requested size, rounded up to next page multiple.
-      // 2a. If MEMORY_GROWTH_LINEAR_STEP == -1, excessively resize the heap geometrically: increase the heap size according to 
-      //                                         MEMORY_GROWTH_GEOMETRIC_STEP factor (default +20%),
-      //                                         At most overreserve by MEMORY_GROWTH_GEOMETRIC_CAP bytes (default 96MB).
-      // 2b. If MEMORY_GROWTH_LINEAR_STEP != -1, excessively resize the heap linearly: increase the heap size by at least MEMORY_GROWTH_LINEAR_STEP bytes.
-      // 3. Max size for the heap is capped at 2048MB-WASM_PAGE_SIZE, or by MAXIMUM_MEMORY, or by ASAN limit, depending on which is smallest
-      // 4. If we were unable to allocate as much memory, it may be due to over-eager decision to excessively reserve due to (3) above.
-      //    Hence if an allocation fails, cut down on the amount of excess growth, in an attempt to succeed to perform a smaller allocation.
-  
-      // A limit is set for how much we can grow. We should not exceed that
-      // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
-      // In CAN_ADDRESS_2GB mode, stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate full 4GB Wasm memories, the size will wrap
-      // back to 0 bytes in Wasm side for any code that deals with heap sizes, which would require special casing all heap size related code to treat
-      // 0 specially.
-      var maxHeapSize = 2147483648;
-      if (requestedSize > maxHeapSize) {
-        err('Cannot enlarge memory, asked to go up to ' + requestedSize + ' bytes, but the limit is ' + maxHeapSize + ' bytes!');
-        return false;
-      }
-  
-      // Loop through potential heap size increases. If we attempt a too eager reservation that fails, cut down on the
-      // attempted size and reserve a smaller bump instead. (max 3 times, chosen somewhat arbitrarily)
-      for (var cutDown = 1; cutDown <= 4; cutDown *= 2) {
-        var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown); // ensure geometric growth
-        // but limit overreserving (default to capping at +96MB overgrowth at most)
-        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296 );
-  
-        var newSize = Math.min(maxHeapSize, alignUp(Math.max(requestedSize, overGrownHeapSize), 65536));
-  
-        var t0 = _emscripten_get_now();
-        var replacement = emscripten_realloc_buffer(newSize);
-        var t1 = _emscripten_get_now();
-        out('Heap resize call from ' + oldSize + ' to ' + newSize + ' took ' + (t1 - t0) + ' msecs. Success: ' + !!replacement);
-        if (replacement) {
-  
-          return true;
-        }
-      }
-      err('Failed to grow the heap from ' + oldSize + ' bytes to ' + newSize + ' bytes, not enough memory!');
-      return false;
-    }
-
-  function _emscripten_thread_sleep(msecs) {
-      var start = _emscripten_get_now();
-      while (_emscripten_get_now() - start < msecs) {
-        // Do nothing.
-      }
-    }
-
   var PATH = {splitPath:function(filename) {
         var splitPathRe = /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
         return splitPathRe.exec(filename).slice(1);
@@ -4339,10 +4238,247 @@ var ASM_CONSTS = {
         else assert(high === -1);
         return low;
       }};
+  function ___sys_fcntl64(fd, cmd, varargs) {SYSCALLS.varargs = varargs;
+  try {
+  
+      var stream = SYSCALLS.getStreamFromFD(fd);
+      switch (cmd) {
+        case 0: {
+          var arg = SYSCALLS.get();
+          if (arg < 0) {
+            return -28;
+          }
+          var newStream;
+          newStream = FS.open(stream.path, stream.flags, 0, arg);
+          return newStream.fd;
+        }
+        case 1:
+        case 2:
+          return 0;  // FD_CLOEXEC makes no sense for a single process.
+        case 3:
+          return stream.flags;
+        case 4: {
+          var arg = SYSCALLS.get();
+          stream.flags |= arg;
+          return 0;
+        }
+        case 12:
+        /* case 12: Currently in musl F_GETLK64 has same value as F_GETLK, so omitted to avoid duplicate case blocks. If that changes, uncomment this */ {
+          
+          var arg = SYSCALLS.get();
+          var offset = 0;
+          // We're always unlocked.
+          HEAP16[(((arg)+(offset))>>1)] = 2;
+          return 0;
+        }
+        case 13:
+        case 14:
+        /* case 13: Currently in musl F_SETLK64 has same value as F_SETLK, so omitted to avoid duplicate case blocks. If that changes, uncomment this */
+        /* case 14: Currently in musl F_SETLKW64 has same value as F_SETLKW, so omitted to avoid duplicate case blocks. If that changes, uncomment this */
+          
+          
+          return 0; // Pretend that the locking is successful.
+        case 16:
+        case 8:
+          return -28; // These are for sockets. We don't have them fully implemented yet.
+        case 9:
+          // musl trusts getown return values, due to a bug where they must be, as they overlap with errors. just return -1 here, so fnctl() returns that, and we set errno ourselves.
+          setErrNo(28);
+          return -1;
+        default: {
+          return -28;
+        }
+      }
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
+    return -e.errno;
+  }
+  }
+
+  function ___sys_ioctl(fd, op, varargs) {SYSCALLS.varargs = varargs;
+  try {
+  
+      var stream = SYSCALLS.getStreamFromFD(fd);
+      switch (op) {
+        case 21509:
+        case 21505: {
+          if (!stream.tty) return -59;
+          return 0;
+        }
+        case 21510:
+        case 21511:
+        case 21512:
+        case 21506:
+        case 21507:
+        case 21508: {
+          if (!stream.tty) return -59;
+          return 0; // no-op, not actually adjusting terminal settings
+        }
+        case 21519: {
+          if (!stream.tty) return -59;
+          var argp = SYSCALLS.get();
+          HEAP32[((argp)>>2)] = 0;
+          return 0;
+        }
+        case 21520: {
+          if (!stream.tty) return -59;
+          return -28; // not supported
+        }
+        case 21531: {
+          var argp = SYSCALLS.get();
+          return FS.ioctl(stream, op, argp);
+        }
+        case 21523: {
+          // TODO: in theory we should write to the winsize struct that gets
+          // passed in, but for now musl doesn't read anything on it
+          if (!stream.tty) return -59;
+          return 0;
+        }
+        case 21524: {
+          // TODO: technically, this ioctl call should change the window size.
+          // but, since emscripten doesn't have any concept of a terminal window
+          // yet, we'll just silently throw it away as we do TIOCGWINSZ
+          if (!stream.tty) return -59;
+          return 0;
+        }
+        default: abort('bad ioctl syscall ' + op);
+      }
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
+    return -e.errno;
+  }
+  }
+
+  function ___sys_open(path, flags, varargs) {SYSCALLS.varargs = varargs;
+  try {
+  
+      var pathname = SYSCALLS.getStr(path);
+      var mode = varargs ? SYSCALLS.get() : 0;
+      var stream = FS.open(pathname, flags, mode);
+      return stream.fd;
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
+    return -e.errno;
+  }
+  }
+
+  function _abort() {
+      abort();
+    }
+
+  var _emscripten_get_now;if (ENVIRONMENT_IS_NODE) {
+    _emscripten_get_now = function() {
+      var t = process['hrtime']();
+      return t[0] * 1e3 + t[1] / 1e6;
+    };
+  } else _emscripten_get_now = function() { return performance.now(); }
+  ;
+  
+  var _emscripten_get_now_is_monotonic = true;;
+  function _clock_gettime(clk_id, tp) {
+      // int clock_gettime(clockid_t clk_id, struct timespec *tp);
+      var now;
+      if (clk_id === 0) {
+        now = Date.now();
+      } else if ((clk_id === 1 || clk_id === 4) && _emscripten_get_now_is_monotonic) {
+        now = _emscripten_get_now();
+      } else {
+        setErrNo(28);
+        return -1;
+      }
+      HEAP32[((tp)>>2)] = (now/1000)|0; // seconds
+      HEAP32[(((tp)+(4))>>2)] = ((now % 1000)*1000*1000)|0; // nanoseconds
+      return 0;
+    }
+
+  function _emscripten_memcpy_big(dest, src, num) {
+      HEAPU8.copyWithin(dest, src, src + num);
+    }
+
+  function emscripten_realloc_buffer(size) {
+      try {
+        // round size grow request up to wasm page size (fixed 64KB per spec)
+        wasmMemory.grow((size - buffer.byteLength + 65535) >>> 16); // .grow() takes a delta compared to the previous size
+        updateGlobalBufferAndViews(wasmMemory.buffer);
+        return 1 /*success*/;
+      } catch(e) {
+        err('emscripten_realloc_buffer: Attempted to grow heap from ' + buffer.byteLength  + ' bytes to ' + size + ' bytes, but got error: ' + e);
+      }
+      // implicit 0 return to save code size (caller will cast "undefined" into 0
+      // anyhow)
+    }
+  function _emscripten_resize_heap(requestedSize) {
+      var oldSize = HEAPU8.length;
+      requestedSize = requestedSize >>> 0;
+      // With pthreads, races can happen (another thread might increase the size in between), so return a failure, and let the caller retry.
+      assert(requestedSize > oldSize);
+  
+      // Memory resize rules:
+      // 1. Always increase heap size to at least the requested size, rounded up to next page multiple.
+      // 2a. If MEMORY_GROWTH_LINEAR_STEP == -1, excessively resize the heap geometrically: increase the heap size according to 
+      //                                         MEMORY_GROWTH_GEOMETRIC_STEP factor (default +20%),
+      //                                         At most overreserve by MEMORY_GROWTH_GEOMETRIC_CAP bytes (default 96MB).
+      // 2b. If MEMORY_GROWTH_LINEAR_STEP != -1, excessively resize the heap linearly: increase the heap size by at least MEMORY_GROWTH_LINEAR_STEP bytes.
+      // 3. Max size for the heap is capped at 2048MB-WASM_PAGE_SIZE, or by MAXIMUM_MEMORY, or by ASAN limit, depending on which is smallest
+      // 4. If we were unable to allocate as much memory, it may be due to over-eager decision to excessively reserve due to (3) above.
+      //    Hence if an allocation fails, cut down on the amount of excess growth, in an attempt to succeed to perform a smaller allocation.
+  
+      // A limit is set for how much we can grow. We should not exceed that
+      // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
+      // In CAN_ADDRESS_2GB mode, stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate full 4GB Wasm memories, the size will wrap
+      // back to 0 bytes in Wasm side for any code that deals with heap sizes, which would require special casing all heap size related code to treat
+      // 0 specially.
+      var maxHeapSize = 2147483648;
+      if (requestedSize > maxHeapSize) {
+        err('Cannot enlarge memory, asked to go up to ' + requestedSize + ' bytes, but the limit is ' + maxHeapSize + ' bytes!');
+        return false;
+      }
+  
+      // Loop through potential heap size increases. If we attempt a too eager reservation that fails, cut down on the
+      // attempted size and reserve a smaller bump instead. (max 3 times, chosen somewhat arbitrarily)
+      for (var cutDown = 1; cutDown <= 4; cutDown *= 2) {
+        var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown); // ensure geometric growth
+        // but limit overreserving (default to capping at +96MB overgrowth at most)
+        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296 );
+  
+        var newSize = Math.min(maxHeapSize, alignUp(Math.max(requestedSize, overGrownHeapSize), 65536));
+  
+        var t0 = _emscripten_get_now();
+        var replacement = emscripten_realloc_buffer(newSize);
+        var t1 = _emscripten_get_now();
+        out('Heap resize call from ' + oldSize + ' to ' + newSize + ' took ' + (t1 - t0) + ' msecs. Success: ' + !!replacement);
+        if (replacement) {
+  
+          return true;
+        }
+      }
+      err('Failed to grow the heap from ' + oldSize + ' bytes to ' + newSize + ' bytes, not enough memory!');
+      return false;
+    }
+
+  function _emscripten_thread_sleep(msecs) {
+      var start = _emscripten_get_now();
+      while (_emscripten_get_now() - start < msecs) {
+        // Do nothing.
+      }
+    }
+
   function _fd_close(fd) {try {
   
       var stream = SYSCALLS.getStreamFromFD(fd);
       FS.close(stream);
+      return 0;
+    } catch (e) {
+    if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
+    return e.errno;
+  }
+  }
+
+  function _fd_read(fd, iov, iovcnt, pnum) {try {
+  
+      var stream = SYSCALLS.getStreamFromFD(fd);
+      var num = SYSCALLS.doReadv(stream, iov, iovcnt);
+      HEAP32[((pnum)>>2)] = num
       return 0;
     } catch (e) {
     if (typeof FS === 'undefined' || !(e instanceof FS.ErrnoError)) abort(e);
@@ -4664,12 +4800,16 @@ function tryParseAsDataURI(filename) {
 var asmLibraryArg = {
   "__assert_fail": ___assert_fail,
   "__handle_stack_overflow": ___handle_stack_overflow,
+  "__sys_fcntl64": ___sys_fcntl64,
+  "__sys_ioctl": ___sys_ioctl,
+  "__sys_open": ___sys_open,
   "abort": _abort,
   "clock_gettime": _clock_gettime,
   "emscripten_memcpy_big": _emscripten_memcpy_big,
   "emscripten_resize_heap": _emscripten_resize_heap,
   "emscripten_thread_sleep": _emscripten_thread_sleep,
   "fd_close": _fd_close,
+  "fd_read": _fd_read,
   "fd_seek": _fd_seek,
   "fd_write": _fd_write,
   "setTempRet0": _setTempRet0
@@ -4741,16 +4881,19 @@ var _emscripten_stack_get_free = Module["_emscripten_stack_get_free"] = function
 var ___set_stack_limits = Module["___set_stack_limits"] = createExportWrapper("__set_stack_limits");
 
 /** @type {function(...*):?} */
+var dynCall_viiji = Module["dynCall_viiji"] = createExportWrapper("dynCall_viiji");
+
+/** @type {function(...*):?} */
 var dynCall_vijiiiii = Module["dynCall_vijiiiii"] = createExportWrapper("dynCall_vijiiiii");
 
 /** @type {function(...*):?} */
 var dynCall_vijiiiiiiii = Module["dynCall_vijiiiiiiii"] = createExportWrapper("dynCall_vijiiiiiiii");
 
 /** @type {function(...*):?} */
-var dynCall_ji = Module["dynCall_ji"] = createExportWrapper("dynCall_ji");
+var dynCall_vijiiiiiii = Module["dynCall_vijiiiiiii"] = createExportWrapper("dynCall_vijiiiiiii");
 
 /** @type {function(...*):?} */
-var dynCall_vijiiiiiii = Module["dynCall_vijiiiiiii"] = createExportWrapper("dynCall_vijiiiiiii");
+var dynCall_ji = Module["dynCall_ji"] = createExportWrapper("dynCall_ji");
 
 /** @type {function(...*):?} */
 var dynCall_jiji = Module["dynCall_jiji"] = createExportWrapper("dynCall_jiji");

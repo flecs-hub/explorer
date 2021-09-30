@@ -1,6 +1,0 @@
-Final(LocatedIn)
-Transitive(LocatedIn)
-LocatedIn(NorthAmerica, Earth)
-LocatedIn(UnitedStates, NorthAmerica)
-LocatedIn(SanFrancisco, UnitedStates)
-LocatedIn(Sander, SanFrancisco)

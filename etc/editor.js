@@ -1,84 +1,54 @@
-const example_plecs = `// This is Plecs, a simple language that lets us create
-// entities and queries without having to write or
-// compile C++ code.
+const example_plecs = `// This example creates a solar system and shows 
+// how to use entity hierarchies and relations. 
+// Changing the code updates the viewer
 
-// With the builtin IsA relation we can make one entity
-// inherit from another. This lets us query for Planet,
-// and get DwarfPlanets, RockyPlanets and GasGiants.
-(IsA, CelestialBody) { 
-  Star, Satellite
-  (IsA, Planet) {
-    DwarfPlanet, RockyPlanet, GasGiant
-  }
-}
+// Planet queries must match RockyPlanet/GasGiant
+(IsA, Planet) { RockyPlanet, GasGiant }
 
-// This creates the Sun entity with a Star tag. The { }
-// operators are used to create hierarchies which use the
-// builtin ChildOf relation.
+// Sun entity with Star tag & planets as children
 Star(Sun) {
- // A 'with' statement lets us add the same component(s)
- // to multiple entities.
- with RockyPlanet {
-  Mercury, Venus, Earth, Mars 
- }
+ // Create entities with RockyPlanet tag
+ with RockyPlanet { Earth, Mars }
 
- with GasGiant { 
-  Jupiter, Saturn, Neptune, Uranus 
- }
+ // Create entities with GasGiant tag
+ with GasGiant { Jupiter, Saturn }
 
+ // Create entities with DwarfPlanet tag
  with DwarfPlanet { Pluto, Ceres }
 }
 
-// To avoid deep indentation, we can open the scope of
-// a nested entity outside of the initial hierarchy.
+// Add child entities to planets
 Sun.Earth {
- Satellite(Moon)
- with Satellite, Artificial { HubbleTelescope, ISS }
+ with Satellite { Moon }
+ with Continent {
+  Europe, Asia, Africa, Australia, NorthAmerica, 
+  SouthAmerica, Antartica
+ }
+ 
+ NorthAmerica {
+  with Country { Canada, UnitedStates, Mexico }
+  UnitedStates {
+    with City { SanFrancisco }
+  }
+ }
 }
 
 Sun.Mars {
  with Satellite { Phobos, Deimos }
- with Satellite, Artificial { MarsOrbiter }
 }
 
 Sun.Jupiter {
- with Satellite { Europa, Io, Callisto, Ganymede }
-}
-
-Sun.Saturn {
- with Satellite { Titan, Enceladus }
+ with Satellite { Europa, Io }
 }
 
 Sun.Pluto {
-  Satellite(Charon)
-}
-
-// Further extend Earth's hierarchy
-Sun.Earth {
- with Continent { 
-  Europe, Asia, Africa, NorthAmerica, SouthAmerica,
-  Australia, Antartica
- }
-
- NorthAmerica {
-  with Country { UnitedStates, Canada }
-
-  UnitedStates {
-    with City {
-      SanFrancisco, LosAngeles, NewYorkCity, Seattle 
-    }
-  }
- }
-
- Europe {
-  with Country { Netherlands, Germany, France, UK }
- }
+ with Satellite { Charon }
 }
 
 `
 
 Vue.component('editor', {
-  props: ['run_ok', 'run_error', 'run_msg'],
+  props: ['run_ok', 'run_error'],
   mounted: function() {
     this.ldt = new TextareaDecorator( 
       document.getElementById('plecs-editor'), syntax_highlighter );
@@ -88,7 +58,10 @@ Vue.component('editor', {
   },
   methods: {
     run() {
-      this.$emit('run-code', this.code);
+      if (this.code != this.last_code) {
+        this.$emit('run-code', this.code);
+        this.last_code = this.code;
+      }
     },
     get_code() {
       return this.code;
@@ -101,7 +74,8 @@ Vue.component('editor', {
   },
   data: function() {
     return {
-      code: example_plecs
+      code: example_plecs,
+      last_code: undefined
     }
   },
   computed: {
