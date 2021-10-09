@@ -380,122 +380,18 @@ char* query(char *q) {
     return result;
 }
 
-static
-void append_type(ecs_strbuf_t *reply, ecs_entity_t ent, ecs_entity_t inst) {
-    ecs_type_t type = ecs_get_type(world, ent);
-    ecs_id_t *ids = ecs_vector_first(type, ecs_id_t);
-    int32_t i, count = ecs_vector_count(type);
-
-    ecs_strbuf_list_appendstr(reply, "\"type\": ");
-    ecs_strbuf_list_push(reply, "[", ",");
-    for (i = 0; i < count; i ++) {
-        ecs_id_t id = ids[i];
-        ecs_entity_t pred = 0, obj = 0, role = 0;
-
-        if (ECS_HAS_RELATION(id, EcsIsA)) {
-            /* Skip IsA as they are already added in "inherits" */
-            continue;
-        }
-
-        if (ECS_HAS_ROLE(id, PAIR)) {
-            pred = ecs_pair_relation(world, id);
-            obj = ecs_pair_object(world, id);
-        } else {
-            pred = id & ECS_COMPONENT_MASK;
-            if (id & ECS_ROLE_MASK) {
-                role = id & ECS_ROLE_MASK;
-            }
-        }
-
-        ecs_strbuf_list_next(reply);
-        ecs_strbuf_list_push(reply, "{", ",");
-        if (pred) {
-            char *str = ecs_get_fullpath(world, pred);
-            ecs_strbuf_list_append(reply, "\"pred\":\"%s\"", str);
-            ecs_os_free(str);
-        }
-        if (obj) {
-            char *str = ecs_get_fullpath(world, obj);
-            ecs_strbuf_list_append(reply, "\"obj\":\"%s\"", str);
-            ecs_os_free(str);
-        }
-        if (role) {
-            ecs_strbuf_list_append(reply, "\"obj\":\"%s\"", 
-                ecs_role_str(role));
-        }
-
-        if (ent != inst) {
-            if (ecs_get_object_for_id(world, inst, EcsIsA, id) != ent) {
-                ecs_strbuf_list_append(reply, "\"overridden\":true", 
-                    ecs_role_str(role));
-            } else {
-                ecs_strbuf_list_append(reply, "\"overridden\":false", 
-                    ecs_role_str(role));
-            }
-        }
-
-        ecs_strbuf_list_pop(reply, "}");
-    }
-    ecs_strbuf_list_pop(reply, "]");
-}
-
-static
-void append_base(ecs_strbuf_t *reply, ecs_entity_t ent, ecs_entity_t inst) {
-    ecs_type_t type = ecs_get_type(world, ent);
-    ecs_id_t *ids = ecs_vector_first(type, ecs_id_t);
-    int32_t i, count = ecs_vector_count(type);
-
-    for (i = 0; i < count; i ++) {
-        ecs_id_t id = ids[i];
-        if (ECS_HAS_RELATION(id, EcsIsA)) {
-            append_base(reply, ecs_pair_object(world, id), inst);
-        }
-    }
-
-    char *path = ecs_get_fullpath(world, ent);
-    ecs_strbuf_list_append(reply, "\"%s\": ", path);
-    ecs_os_free(path);
-    ecs_strbuf_list_push(reply, "{", ",");
-    append_type(reply, ent, inst);
-    ecs_strbuf_list_pop(reply, "}");
-}
-
 EMSCRIPTEN_KEEPALIVE
 char* get_entity(char *path) {
     ecs_strbuf_t reply = ECS_STRBUF_INIT;
 
-    ecs_strbuf_list_push(&reply, "{", ",");
-
     ecs_entity_t ent = ecs_lookup_path(world, 0, path);
 
-    if (!ent || !ecs_is_valid(world, ent)) {
-        ecs_strbuf_list_appendstr(&reply, "\"valid\": false");
-    } else {
-        ecs_strbuf_list_appendstr(&reply, "\"valid\": true");
-
-        ecs_type_t type = ecs_get_type(world, ent);
-        ecs_id_t *ids = ecs_vector_first(type, ecs_id_t);
-        int32_t i, count = ecs_vector_count(type);
-
-        if (ecs_has_pair(world, ent, EcsIsA, EcsWildcard)) {
-            ecs_strbuf_list_appendstr(&reply, "\"inherit\": ");
-            ecs_strbuf_list_push(&reply, "{", ",");
-            for (i = 0; i < count; i ++) {
-                ecs_id_t id = ids[i];
-                if (ECS_HAS_RELATION(id, EcsIsA)) {
-                    append_base(&reply, ecs_pair_object(world, id), ent);
-                }
-            }
-            ecs_strbuf_list_pop(&reply, "}");
-        }
-
-        append_type(&reply, ent, ent);
+    if (ecs_entity_to_json_buf(world, ent, &reply) != 0) {
+        ecs_strbuf_reset(&reply);
+        return ecs_os_strdup("{\"valid\": false}");
     }
 
-    ecs_strbuf_list_pop(&reply, "}");
-
-    char *result = ecs_strbuf_get(&reply);
-    return result;
+    return ecs_strbuf_get(&reply);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -508,10 +404,11 @@ char* run(char *plecs) {
 
     ecs_strbuf_list_push(&reply, "{", ",");
 
-    if (ecs_plecs_from_str(world, NULL, plecs)) {
-        ecs_strbuf_list_appendstr(&reply, "\"valid\": false");
+    int res = ecs_plecs_from_str(world, NULL, plecs);
+    char *err = get_error();
 
-        char *err = get_error();
+    if (res || err) {
+        ecs_strbuf_list_appendstr(&reply, "\"valid\": false");
         ecs_strbuf_list_append(&reply, "\"error\": \"%s\"", err);
         ecs_os_free(err);
     } else {

@@ -119,18 +119,26 @@ Vue.component('entity-tree-list', {
 
       result.sort((e1, e2) => {
         if (e1.is_module == e2.is_module) {
-          if (e1.has_children == e2.has_children) {
-            if (e1.is_component == e2.is_component) {
-              return e1.name.localeCompare(e2.name);
+          if (e1.is_prefab == e2.is_prefab) {
+            if (e1.has_children == e2.has_children) {
+              if (e1.is_component == e2.is_component) {
+                return e1.name.localeCompare(e2.name);
+              } else {
+                if (e1.is_component) {
+                  return -1;
+                } else {
+                  return 1;
+                }
+              }
             } else {
-              if (e1.is_component) {
+              if (e1.has_children) {
                 return -1;
               } else {
                 return 1;
               }
             }
           } else {
-            if (e1.has_children) {
+            if (e1.is_prefab) {
               return -1;
             } else {
               return 1;

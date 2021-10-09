@@ -196,12 +196,6 @@ div.entity-inspector {
 
 div.entity-property-inspector {
   position: relative;
-  /* background-color: #13151A;
-  background-color: #333A4B;
-  background-color: #232833; */
-  /* border-style: solid;
-  border-color: #000;
-  border-width: 1px; */
   width: calc(100% - 10px);
   padding: 5px;
   padding-top: 0px;
@@ -211,13 +205,10 @@ div.entity-property-inspector {
 
 div.entity-property {
   position: relative;
-  /* border-style: solid;
-  border-color: #000;
-  border-width: 1px;
-  background-color: #232833;
-  background-color: #333A4B; */
   width: calc(100% - 16px);
   padding: 5px;
+  padding-left: 0px;
+  clear: both;
 }
 
 div.entity-property-overridden span.inner {
@@ -232,8 +223,39 @@ div.entity-property-overridden span.outer {
 div.entity-property-header {
   margin-top: 10px;
   font-style: italic;
-  color: #8B909D;
+  color: #4981B5;
+  clear: both;
+}
+
+div.properties {
+  padding-top: 7px;
+  padding-left: 7px;
+}
+
+div.property {
+  height: 24px;
+  float: left;
+}
+
+span.property-key {
+  padding: 2px;
+  margin-left: 10px;
   color: #47B576;
+}
+
+span.property-value {
+  padding: 2px;
+  padding-left: 4px;
+  padding-right: 4px;
+  border-radius: 3px;
+  background-color: #333A4B;
+}
+
+img.property-expand {
+  position: relative;
+  top: 3px;
+  width: 15px;
+  height: 15px;
 }
 
 div.entity-inspector-parent {
