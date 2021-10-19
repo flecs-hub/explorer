@@ -11,26 +11,32 @@ function Parser( rules, i ){
 	// variables used internally
 	var i = i ? 'i' : '';
 	var parseRE = null;
-	var ruleSrc = [];
-	var ruleMap = {};
 
 	api.add = function( rules ){
+		var ruleSrc = [];
 		for( var rule in rules ){
 			var s = rules[rule].source;
-			ruleSrc.push( s );
-			ruleMap[rule] = new RegExp('^('+s+')$', i );
+			ruleSrc.push( '(?<' + rule + '>' + s + ')' ); // Named group
 		}
 		parseRE = new RegExp( ruleSrc.join('|'), 'g'+i );
 	};
-	api.tokenize = function(input){
-		return input.match(parseRE);
-	};
-	api.identify = function(token){
-		for( var rule in ruleMap ){
-			if( ruleMap[rule].test(token) ){
-				return rule;
+
+	api.findRule = function(match){
+		for (let r in match.groups) { // Find named group that matched something
+			const m = match.groups[r];
+			if (m != undefined) {
+				return [m, r];
 			}
+		} // Should always return as every character must be part of a token.
+	},
+
+	api.tokenize = function(input){
+		let match;
+		let result = [];
+		while ((match = parseRE.exec(input)) !== null) {
+			result.push( api.findRule(match) );
 		}
+		return result;
 	};
 
 	api.add( rules );

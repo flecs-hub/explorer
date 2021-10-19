@@ -37,16 +37,22 @@ var app = new Vue({
 
       this.$refs.terminal.clear();
 
-      if (!query || query.length <= 1) {
-        this.data = undefined;
-        this.error = false;
-        return;
-      }
-
       this.$refs.terminal.log({
         text: "Run query \"" + query + "\"",
         kind: "command"
       });
+
+      if (!query || query.length <= 1) {
+        this.data = undefined;
+        this.error = false;
+        if (query.length == 1) {
+          this.$refs.terminal.log({
+            text: "Query is too short \"" + query + "\"",
+            kind: "error"
+          });
+        }
+        return;
+      }
 
       const r = wq_query(query);
       this.data = JSON.parse(r);
@@ -63,24 +69,29 @@ var app = new Vue({
     run_code(code) {
       this.$refs.terminal.clear();
 
-      this.$refs.terminal.log({
-        text: "Run plecs code",
-        kind: "command"
-      });
-
       const r = wq_run(code);
       const data = JSON.parse(r);
+
       this.run_ok = data.valid == true;
       this.run_error = data.valid == false;
 
-      this.$refs.query.refresh();
+      if (!this.$refs.query.is_empty()) {
+        this.$refs.query.refresh();
+      } else {
+        this.$refs.terminal.log({
+          text: "Run plecs code",
+          kind: "command"
+        });
+
+        if (!this.run_error) {
+          this.$refs.terminal.log({text: "Ok", kind: "ok" });
+        } else {
+          this.$refs.terminal.log({text: data.error, kind: "error"});
+        }
+      }
+
       this.$refs.tree.update_expanded();
       this.select(this.selection);
-
-      if (this.run_error) {
-        this.$refs.terminal.log({text: "Run plecs", kind: "command" });
-        this.$refs.terminal.log({text: data.error, kind: "error"});
-      }
     },
 
     show_url() {
@@ -101,13 +112,18 @@ var app = new Vue({
       if (e) {
         const r = wq_get_entity(e.path);
         this.entity_data = JSON.parse(r);
+        
         if (this.entity_data.valid == false) {
           this.entity_data = undefined;
         }
       } else {
         this.entity_data = undefined;
       }
-    }   
+    },
+
+    evt_select(evt) {
+      this.select({path: evt});
+    }
   },
 
   data: {

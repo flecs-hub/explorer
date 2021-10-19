@@ -41,7 +41,7 @@
         <!-- Query results & Entity inspector -->
         <div class="content-box">
           <div class="entity-box">
-            <entity-inspector :entity="entity_data" :selection="selection">
+            <entity-inspector :entity="entity_data" :selection="selection" v-on:select-entity="evt_select">
             </entity-inspector>
           </div>
           <div class="result-box">
@@ -78,18 +78,22 @@
     <script>
       var syntax_highlighter = new Parser(
         { whitespace: /\s+/,
+          property: /[a-zA-Z_0-9]+(?=:)/,
+          number: /\b[0-9]+\b/,
+          operator: /[(),{}=.:]/,          
           comment: /\/\/[^\r\n]*/,
           rel_prop: /\b(Transitive|Final|Inclusive|Tag)\b/,
-          builtin: /\b(IsA|ChildOf|Component|Identifier|Name|Symbol|Module|Prefab)\b/,
-          builtin_variable: /(\bThis\b)|[\\.\\*]/,
+          builtin: /\b(IsA|ChildOf|Component|Tag|Identifier|Name|Symbol|Module|Prefab)\b/,
+          builtin_variable: /(\bThis\b)|[\\*]/,
           keyword: /\b(using|with)\b/,
-          entity: /\b[^_(),\s][a-zA-Z_0-9]+\b/,
-          variable: /\b[a-zA-Z_0-9]/,
-          operator: /[(),{}]/,
-          other: /\S/ } );
+          variable: /\b([A-Z_0-9]|_[a-zA-Z_0-9]+)\b/,
+          entity: /\b[a-zA-Z_0-9]+\b/,
+          other: /\S/
+        } );
     </script>
 
     <script src="entity_icon.js"></script>
+    <script src="entity_reference.js"></script>
     <script src="entity_tree.js"></script>
     <script src="query.js"></script>
     <script src="results.js"></script>

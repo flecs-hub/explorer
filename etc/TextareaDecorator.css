@@ -29,8 +29,16 @@
 	color: #8B909D;
 }
 
-.ldt pre span.operator {
+.ldt pre span.property {
 	color: #51CC84;
+}
+
+.ldt pre span.number {
+	color: #7595B3;
+}
+
+.ldt pre span.operator {
+	color: #8B909D;
 }
 
 .ldt pre span.rel_prop {
@@ -51,6 +59,10 @@
 
 .ldt pre span.keyword {
 	color: #7D67B5;
+}
+
+.ldt pre span.other {
+	color: #FFE100;
 }
 
 /* settings you shouldn't play with unless you have a good reason */

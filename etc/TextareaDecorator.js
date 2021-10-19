@@ -30,6 +30,7 @@ function TextareaDecorator( textarea, parser ){
 		var oldTokens = output.childNodes;
 		var newTokens = parser.tokenize(input);
 		var firstDiff, lastDiffNew, lastDiffOld;
+
 		// find the first difference
 		for( firstDiff = 0; firstDiff < newTokens.length && firstDiff < oldTokens.length; firstDiff++ )
 			if( newTokens[firstDiff] !== oldTokens[firstDiff].textContent ) break;
@@ -38,23 +39,24 @@ function TextareaDecorator( textarea, parser ){
 			output.removeChild(oldTokens[firstDiff]);
 		// find the last difference
 		for( lastDiffNew = newTokens.length-1, lastDiffOld = oldTokens.length-1; firstDiff < lastDiffOld; lastDiffNew--, lastDiffOld-- )
-			if( newTokens[lastDiffNew] !== oldTokens[lastDiffOld].textContent ) break;
+			if( newTokens[lastDiffNew][0] !== oldTokens[lastDiffOld].textContent ) break;
 		// update modified spans
 		for( ; firstDiff <= lastDiffOld; firstDiff++ ){
-			oldTokens[firstDiff].className = parser.identify(newTokens[firstDiff]);
-			oldTokens[firstDiff].textContent = oldTokens[firstDiff].innerText = newTokens[firstDiff];
+			oldTokens[firstDiff].className = newTokens[firstDiff][1];
+			oldTokens[firstDiff].textContent = oldTokens[firstDiff].innerText = newTokens[firstDiff][0];
 		}
 		// add in modified spans
 		for( var insertionPt = oldTokens[firstDiff] || null; firstDiff <= lastDiffNew; firstDiff++ ){
 			var span = document.createElement("span");
-			span.className = parser.identify(newTokens[firstDiff]);
-			span.textContent = span.innerText = newTokens[firstDiff];
+			span.className = newTokens[firstDiff][1];
+			span.textContent = span.innerText = newTokens[firstDiff][0];
 			output.insertBefore( span, insertionPt );
 		}
 	};
 
 	api.input = textarea;
 	api.output = output;
+
 	api.update = function(){
 		var input = textarea.value;
 		if( input ){
@@ -99,6 +101,7 @@ function TextareaDecorator( textarea, parser ){
 			}
 		);
 	}
+
 	// initial highlighting
 	api.update();
 

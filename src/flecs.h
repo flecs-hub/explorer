@@ -50,6 +50,8 @@
 #define FLECS_META          /* Reflection support */
 #define FLECS_EXPR          /* Parsing strings to/from component values */
 #define FLECS_JSON          /* Parsing JSON to/from component values */
+#define FLECS_DOC           /* Document entities & components */
+#define FLECS_COREDOC       /* Documentation for core entities & components */
 #endif // ifndef FLECS_CUSTOM_BUILD
 
 /** @} */
@@ -2288,7 +2290,8 @@ typedef struct ecs_term_t {
     
     ecs_inout_kind_t inout;     /* Access to contents matched with term */
     ecs_term_id_t pred;         /* Predicate of term */
-    ecs_term_id_t args[2];      /* Subject (0), object (1) of term */
+    ecs_term_id_t subj;         /* Subject of term */
+    ecs_term_id_t obj;          /* Object of term */
     ecs_oper_kind_t oper;       /* Operator of term */
     ecs_id_t role;              /* Role of term */
     char *name;                 /* Name of term */
@@ -2693,7 +2696,6 @@ struct ecs_iter_t {
     void *binding_ctx;            /* Binding context */
     FLECS_FLOAT delta_time;       /* Time elapsed since last frame */
     FLECS_FLOAT delta_system_time;/* Time elapsed since last system invocation */
-    FLECS_FLOAT world_time;       /* Time elapsed since start of simulation */
 
     int32_t frame_offset;         /* Offset relative to frame */
     int32_t offset;               /* Offset relative to current table */
@@ -4481,7 +4483,7 @@ ecs_entity_t ecs_get_typeid(
     ecs_id_t e);
 
 /** Get the name of an entity.
- * This will return the name as specified in the EcsName component.
+ * This will return the name stored in (EcsIdentifier, EcsName).
  *
  * @param world The world.
  * @param entity The entity.
@@ -4493,7 +4495,7 @@ const char* ecs_get_name(
     ecs_entity_t entity);
 
 /** Get the symbol of an entity.
- * This will return the name as specified in the EcsSymbol component.
+ * This will return the symbol stored in (EcsIdentifier, EcsSymbol).
  *
  * @param world The world.
  * @param entity The entity.
@@ -4508,7 +4510,7 @@ const char* ecs_get_symbol(
  * This will set or overwrite the name of an entity. If no entity is provided,
  * a new entity will be created.
  *
- * The name will be stored in the EcsName component.
+ * The name is stored in (EcsIdentifier, EcsName).
  *
  * @param world The world.
  * @param entity The entity.
@@ -4525,7 +4527,7 @@ ecs_entity_t ecs_set_name(
  * This will set or overwrite the symbol of an entity. If no entity is provided,
  * a new entity will be created.
  *
- * The symbol will be stored in the EcsName component.
+ * The symbol is stored in (EcsIdentifier, EcsSymbol).
  *
  * @param world The world.
  * @param entity The entity.
@@ -4722,9 +4724,8 @@ ecs_entity_t ecs_lookup_path_w_sep(
     bool recursive);
 
 /** Lookup an entity by its symbol name.
- * This looks up an entity by the symbol name that was provided in EcsName. The
- * operation does not take into account scoping, which means it will search all
- * entities that have an EcsName.
+ * This looks up an entity by symbol stored in (EcsIdentifier, EcsSymbol). The
+ * operation does not take into account hierarchies.
  *
  * This operation can be useful to resolve, for example, a type by its C 
  * identifier, which does not include the Flecs namespacing.
@@ -7001,7 +7002,151 @@ void FlecsTimerImport(
 
 #endif
 #endif
-#ifdef FLECS_META
+#ifdef FLECS_DOC
+/**
+ * @file doc.h
+ * @brief Doc module.
+ *
+ * The doc module allows for documenting entities (and thus components, systems)
+ * by adding brief and/or detailed descriptions as components. Documentation
+ * added with the doc module can be retrieved at runtime, and can be used by
+ * tooling such as UIs or documentation frameworks.
+ */
+
+#ifdef FLECS_DOC
+
+#ifndef FLECS_DOC_H
+#define FLECS_DOC_H
+
+#ifndef FLECS_MODULE
+#define FLECS_MODULE
+#endif
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+FLECS_API extern const ecs_entity_t ecs_id(EcsDocDescription);
+FLECS_API extern const ecs_entity_t EcsDocBrief;
+FLECS_API extern const ecs_entity_t EcsDocDetail;
+FLECS_API extern const ecs_entity_t EcsDocLink;
+
+typedef struct EcsDocDescription {
+    const char *value;
+} EcsDocDescription;
+
+/** Add brief description to entity.
+ * 
+ * @param world The world.
+ * @param entity The entity to which to add the description.
+ * @param description The description to add.
+ */
+FLECS_API
+void ecs_doc_set_brief(
+    ecs_world_t *world,
+    ecs_entity_t entity,
+    const char *description);
+
+/** Add detailed description to entity.
+ * 
+ * @param world The world.
+ * @param entity The entity to which to add the description.
+ * @param description The description to add.
+ */
+FLECS_API
+void ecs_doc_set_detail(
+    ecs_world_t *world,
+    ecs_entity_t entity,
+    const char *description);
+
+/** Add link to external documentation to entity.
+ * 
+ * @param world The world.
+ * @param entity The entity to which to add the link.
+ * @param description The link to add.
+ */
+FLECS_API
+void ecs_doc_set_link(
+    ecs_world_t *world,
+    ecs_entity_t entity,
+    const char *link);
+
+/** Get brief description from entity.
+ * 
+ * @param world The world.
+ * @param entity The entity from which to get the description.
+ * @return The description.
+ */
+FLECS_API
+const char* ecs_doc_get_brief(
+    const ecs_world_t *world,
+    ecs_entity_t entity);
+
+/** Get detailed description from entity.
+ * 
+ * @param world The world.
+ * @param entity The entity from which to get the description.
+ * @return The description.
+ */
+FLECS_API
+const char* ecs_doc_get_detail(
+    const ecs_world_t *world,
+    ecs_entity_t entity);
+
+/** Get link to external documentation from entity.
+ * 
+ * @param world The world.
+ * @param entity The entity from which to get the link.
+ * @return The link.
+ */
+FLECS_API
+const char* ecs_doc_get_link(
+    const ecs_world_t *world,
+    ecs_entity_t entity);
+
+/* Module import boilerplate */
+
+typedef struct FlecsDoc {
+    int32_t dummy; 
+} FlecsDoc;
+
+FLECS_API
+void FlecsDocImport(
+    ecs_world_t *world);
+
+#define FlecsDocImportHandles(handles)
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif
+#endif
+#ifdef FLECS_COREDOC
+/**
+ * @file coredoc.h
+ * @brief Core doc module.
+ *
+ * The core doc module imports documentation and reflection data for core
+ * components, tags and systems.
+ */
+
+#ifdef FLECS_COREDOC
+
+#ifndef FLECS_DOC
+#define FLECS_DOC
+#endif
+
+#ifndef FLECS_META
+#define FLECS_META
+#endif
+
+#ifndef FLECS_COREDOC_H
+#define FLECS_COREDOC_H
+
 /**
  * @file meta.h
  * @brief Meta addon.
@@ -7364,14 +7509,17 @@ typedef struct EcsVector {
 /** Serializer utilities */
 
 typedef enum ecs_meta_type_op_kind_t {
-    EcsOpEnum,
-    EcsOpBitmask,
     EcsOpArray,
     EcsOpVector,
     EcsOpPush,
     EcsOpPop,
 
-    EcsOpPrimitive,
+    EcsOpScope, /* Marks last constant that can open/close a scope */
+
+    EcsOpEnum,
+    EcsOpBitmask,
+
+    EcsOpPrimitive, /* Marks first constant that's a primitive */
 
     EcsOpBool,
     EcsOpChar,
@@ -7432,6 +7580,7 @@ typedef struct ecs_meta_cursor_t {
     ecs_meta_scope_t scope[ECS_META_MAX_SCOPE_DEPTH];
     int32_t depth;
     bool valid;
+    bool is_primitive_scope;  /* If in root scope, this allows for a push for primitive types */
 
     /* Custom entity lookup action for overriding default ecs_lookup_fullpath */
     ecs_entity_t (*lookup_action)(const ecs_world_t*, const char*, void*);
@@ -7626,6 +7775,32 @@ void FlecsMetaImport(
 #endif
 
 #endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Module import boilerplate */
+
+typedef struct FlecsCoreDoc {
+    int32_t dummy; 
+} FlecsCoreDoc;
+
+FLECS_API
+void FlecsCoreDocImport(
+    ecs_world_t *world);
+
+#define FlecsCoreDocImportHandles(handles)
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif
+#endif
+#ifdef FLECS_META
 #endif
 #ifdef FLECS_EXPR
 /**
@@ -7812,6 +7987,19 @@ FLECS_API
 ecs_size_t ecs_stresc(
     char *out, 
     ecs_size_t size, 
+    char delimiter, 
+    const char *in);
+
+/** Return escaped string.
+ * Return escaped version of input string. Same as ecs_stresc, but returns an
+ * allocated string of the right size.
+ * 
+ * @param delimiter The delimiter used (for example '"').
+ * @param in The input string.
+ * @return Escaped string.
+ */
+FLECS_API
+char* ecs_astresc(
     char delimiter, 
     const char *in);
 
@@ -10381,10 +10569,6 @@ public:
 
     FLECS_FLOAT delta_system_time() const {
         return m_iter->delta_system_time;
-    }
-
-    FLECS_FLOAT world_time() const {
-        return m_iter->world_time;
     }
 
     flecs::type type() const;
@@ -14330,12 +14514,17 @@ class entity_with_invoker<Func, if_t< is_callable<Func>::value > >
 namespace flecs {
 
 template<typename Base>
+
+/** Term identifier builder.
+ * A term identifier is either the predicate (pred), subject (subj) or object
+ * (obj) of a term. Use the term builder to select the term identifier. */
 class term_id_builder_i {
 public:
     term_id_builder_i() : m_term_id(nullptr) { }
 
     virtual ~term_id_builder_i() { }
 
+    /** Assign entity from type to currently selected term identifier. */
     template<typename T>
     Base& entity() {
         ecs_assert(m_term_id != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -14343,12 +14532,28 @@ public:
         return *this;
     }
 
+    /** Assign entity to currently selected term identifier. */
     Base& entity(flecs::id_t id) {
         ecs_assert(m_term_id != NULL, ECS_INVALID_PARAMETER, NULL);
         m_term_id->entity = id;
         return *this;
     }
 
+    /** Assign name to currently selected term identifier. 
+     * The name will be resolved to either an entity or a variable name,
+     * depending on the following rules (which are the same as the query DSL):
+     * 
+     * If the variable kind is flecs::VarIsDefault:
+     * - If the name is a single uppercase value it is parsed as a variable
+     * - If the name starts with an underscore it is parsed as a variable
+     * - In any other case the name is parsed as an entity identifier
+     * 
+     * If the variable kind is flecs::VarIsEntity:
+     * - The name is parsed as an entity identifier
+     * 
+     * If the variable kind is flecs::VarIsVariable:
+     * - The name is interpreted as a variable
+     */
     Base& name(const char *name) {
         ecs_assert(m_term_id != NULL, ECS_INVALID_PARAMETER, NULL);
         // Const cast is safe, when the value is actually used to construct a
@@ -14357,11 +14562,13 @@ public:
         return *this;
     }
 
+    /** Set whether the currently selected term id is a variable or entity. */
     Base& var(flecs::var_kind_t var = flecs::VarIsVariable) {
         m_term_id->var = static_cast<ecs_var_kind_t>(var);
         return *this;
     }
 
+    /** Set the current term id to be a variable. */
     Base& var(const char *name) {
         ecs_assert(m_term_id != NULL, ECS_INVALID_PARAMETER, NULL);
         // Const cast is safe, when the value is actually used to construct a
@@ -14370,6 +14577,7 @@ public:
         return var(); // Default to VarIsVariable
     }
 
+    /** Assign set mask and relation. */
     Base& set(uint8_t mask, const flecs::id_t relation = flecs::IsA)
     {
         ecs_assert(m_term_id != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -14378,23 +14586,27 @@ public:
         return *this;
     }
 
+    /** Shorthand for .set(flecs::SuperSet | mask, relation). */
     Base& super(const flecs::id_t relation = flecs::IsA, uint8_t mask = 0)
     {
         ecs_assert(!(mask & flecs::SubSet), ECS_INVALID_PARAMETER, NULL);
         return set(flecs::SuperSet | mask, relation);
     }
 
+    /** Shorthand for .set(flecs::SubSet | mask, relation). */
     Base& sub(const flecs::id_t relation = flecs::IsA, uint8_t mask = 0)
     {
         ecs_assert(!(mask & flecs::SuperSet), ECS_INVALID_PARAMETER, NULL);
         return set(flecs::SubSet | mask, relation);
     }
 
+    /** Set min_depth for set substitution. */
     Base& min_depth(int32_t min_depth) {
         m_term_id->set.min_depth = min_depth;
         return *this;
     }
 
+    /** Set min_depth for set substitution. */
     Base& max_depth(int32_t max_depth) {
         m_term_id->set.max_depth = max_depth;
         return *this;
@@ -14411,6 +14623,7 @@ private:
     }
 };
 
+/** Term builder. A term is a single element of a query expression. */
 template<typename Base>
 class term_builder_i : public term_id_builder_i<Base> {
 public:
@@ -14420,6 +14633,7 @@ public:
         set_term(term_ptr);
     }
 
+    /** Set (component) id to type id. */
     template<typename T>
     Base& id() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
@@ -14427,37 +14641,50 @@ public:
         return *this;
     }
 
-    template<typename R, typename O>
-    Base& id() {
-        ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
-        m_term->pred.entity = _::cpp_type<R>::id(world());
-        m_term->args[1].entity = _::cpp_type<O>::id(world());
-        return *this;
-    }
-
-    template<typename R>
-    Base& id(id_t o) {
-        ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
-        m_term->pred.entity = _::cpp_type<R>::id(world());
-        m_term->args[1].entity = o;
-        return *this;
-    }    
-
+    /** Set (component) id to id. */
     Base& id(id_t id) {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->pred.entity = id;
         return *this;
     }
 
+    /** Set (component) id to type.
+     * Type must be associated with an entity (e.g. created by world::type) and
+     * not an entity type (e.g. returned from entity::type). */
     Base& id(const flecs::type& type);
 
+    /** Set (component) id to pair derived from relation id / object id */
     Base& id(id_t r, id_t o) {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->pred.entity = r;
-        m_term->args[1].entity = o;
+        m_term->obj.entity = o;
         return *this;
     }
 
+    /** Set (component) id to pair derived from two types. */
+    template<typename R, typename O>
+    Base& id() {
+        ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
+        m_term->pred.entity = _::cpp_type<R>::id(world());
+        m_term->obj.entity = _::cpp_type<O>::id(world());
+        return *this;
+    }
+
+    /** Set (component) id to pair derived from relation type / object id. */
+    template<typename R>
+    Base& id(id_t o) {
+        ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
+        m_term->pred.entity = _::cpp_type<R>::id(world());
+        m_term->obj.entity = o;
+        return *this;
+    }    
+
+    /** Set term from expression.
+     * The syntax for expr is the same as that of the query DSL. The expression
+     * must only contain a single term, for example:
+     *   Position // correct
+     *   Position, Velocity // incorrect
+     */
     Base& expr(const char *expr) {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         const char *ptr;
@@ -14470,68 +14697,84 @@ public:
         return *this;
     }
 
-    Base& predicate() {
+    /** Select predicate of term. 
+     * Use methods from term_builder to configure properties of predicate. */
+    Base& pred() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         this->m_term_id = &m_term->pred;
         return *this;
     }
 
-    Base& subject() {
+    /** Select subject of term. 
+     * Use methods from term_builder to configure properties of subject. */
+    Base& subj() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
-        this->m_term_id = &m_term->args[0];
+        this->m_term_id = &m_term->subj;
         return *this;
     }
 
-    Base& object() {
+    /** Select object of term. 
+     * Use methods from term_builder to configure properties of object. Setting
+     * the object of a term will turn the term into a pair, and requires the
+     * predicate to also be set. */
+    Base& obj() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
-        this->m_term_id = &m_term->args[1];
+        this->m_term_id = &m_term->obj;
         return *this;
     }
 
-    Base& subject(entity_t entity) {
-        this->subject();
+    /** Select subject of term, initialize it with specified entity. */
+    Base& subj(entity_t entity) {
+        this->subj();
         this->m_term_id->entity = entity;
         return *this;
     }
 
-    Base& object(entity_t entity) {
-        this->object();
+    /** Select object of term, initialize it with specified entity. */
+    Base& obj(entity_t entity) {
+        this->obj();
         this->m_term_id->entity = entity;
         return *this;
     }
     
+    /** Select subject of term, initialize it with id from specified type. */
     template<typename T>
-    Base& subject() {
-        this->subject();
+    Base& subj() {
+        this->subj();
         this->m_term_id->entity = _::cpp_type<T>::id(world());
         return *this;
     }
 
+    /** Select object of term, initialize it with id from specified type. */
     template<typename T>
-    Base& object() {
-        this->object();
+    Base& obj() {
+        this->obj();
         this->m_term_id->entity = _::cpp_type<T>::id(world());
         return *this;
-    }        
+    }
 
+    /** Set role of term. */
     Base& role(id_t role) {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->role = role;
         return *this;
     }
 
+    /** Set read/write access of term. */
     Base& inout(flecs::inout_kind_t inout) {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->inout = static_cast<ecs_inout_kind_t>(inout);
         return *this;
     }
 
+    /** Set operator of term. */
     Base& oper(flecs::oper_kind_t oper) {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->oper = static_cast<ecs_oper_kind_t>(oper);
         return *this;
     }
 
+    /** Make term a singleton. */
     Base& singleton() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         ecs_assert(m_term->id || m_term->pred.entity, ECS_INVALID_PARAMETER, NULL);
@@ -14543,29 +14786,13 @@ public:
 
         ecs_assert(pred != 0, ECS_INVALID_PARAMETER, NULL);
 
-        m_term->args[0].entity = pred;
+        m_term->subj.entity = pred;
 
         return *this;
     }
 
     flecs::id id() {
         return flecs::id(world(), m_term->id);
-    }
-
-    flecs::entity get_subject() {
-        return flecs::entity(world(), m_term->args[0].entity);
-    }
-
-    flecs::entity get_object() {
-        return flecs::entity(world(), m_term->args[1].entity);
-    }
-
-    flecs::inout_kind_t inout() {
-        return static_cast<flecs::inout_kind_t>(m_term->inout);
-    }
-
-    flecs::oper_kind_t oper() {
-        return static_cast<flecs::oper_kind_t>(m_term->oper);
     }
 
     ecs_term_t *m_term;
@@ -14576,7 +14803,7 @@ protected:
     void set_term(ecs_term_t *term) {
         m_term = term;
         if (term) {
-            this->m_term_id = &m_term->args[0]; // default to subject
+            this->m_term_id = &m_term->subj; // default to subject
         } else {
             this->m_term_id = nullptr;
         }
@@ -14671,33 +14898,33 @@ public:
             this->id(r, o);
         }
 
-    term(const term& obj) : term_builder_i<term>(&value) {
-        m_world = obj.m_world;
-        value = ecs_term_copy(&obj.value);
+    term(const term& t) : term_builder_i<term>(&value) {
+        m_world = t.m_world;
+        value = ecs_term_copy(&t.value);
         this->set_term(&value);
     }
 
-    term(term&& obj) : term_builder_i<term>(&value) {
-        m_world = obj.m_world;
-        value = ecs_term_move(&obj.value);
-        obj.reset();
+    term(term&& t) : term_builder_i<term>(&value) {
+        m_world = t.m_world;
+        value = ecs_term_move(&t.value);
+        t.reset();
         this->set_term(&value);
     }
 
-    term& operator=(const term& obj) {
-        ecs_assert(m_world == obj.m_world, ECS_INVALID_PARAMETER, NULL);
+    term& operator=(const term& t) {
+        ecs_assert(m_world == t.m_world, ECS_INVALID_PARAMETER, NULL);
         ecs_term_fini(&value);
-        value = ecs_term_copy(&obj.value);
+        value = ecs_term_copy(&t.value);
         this->set_term(&value);
         return *this;
     }
 
-    term& operator=(term&& obj) {
-        ecs_assert(m_world == obj.m_world, ECS_INVALID_PARAMETER, NULL);
+    term& operator=(term&& t) {
+        ecs_assert(m_world == t.m_world, ECS_INVALID_PARAMETER, NULL);
         ecs_term_fini(&value);
-        value = obj.value;
+        value = t.value;
         this->set_term(&value);
-        obj.reset();
+        t.reset();
         return *this;
     }   
 
@@ -14720,6 +14947,22 @@ public:
 
     bool is_trivial() {
         return ecs_term_is_trivial(&value);
+    }
+
+    flecs::inout_kind_t inout() {
+        return static_cast<flecs::inout_kind_t>(value.inout);
+    }
+
+    flecs::oper_kind_t oper() {
+        return static_cast<flecs::oper_kind_t>(value.oper);
+    }
+
+    flecs::entity get_subject() {
+        return flecs::entity(world(), value.subj.entity);
+    }
+
+    flecs::entity get_object() {
+        return flecs::entity(world(), value.obj.entity);
     }
 
     ecs_term_t move() { /* explicit move to ecs_term_t */
@@ -15176,18 +15419,18 @@ public:
         this->populate_filter_from_pack();
     }
 
-    filter_builder_base(const filter_builder_base& obj) 
-        : filter_builder_i<filter_builder_base<Components...>, Components ...>(&m_desc, obj.m_term_index)
+    filter_builder_base(const filter_builder_base& f) 
+        : filter_builder_i<filter_builder_base<Components...>, Components ...>(&m_desc, f.m_term_index)
     {
-        m_world = obj.m_world;
-        m_desc = obj.m_desc;
+        m_world = f.m_world;
+        m_desc = f.m_desc;
     }
 
-    filter_builder_base(filter_builder_base&& obj) 
-        : filter_builder_i<filter_builder_base<Components...>, Components ...>(&m_desc, obj.m_term_index)
+    filter_builder_base(filter_builder_base&& f) 
+        : filter_builder_i<filter_builder_base<Components...>, Components ...>(&m_desc, f.m_term_index)
     {
-        m_world = obj.m_world;
-        m_desc = obj.m_desc;
+        m_world = f.m_world;
+        m_desc = f.m_desc;
     }
 
     operator filter<Components ...>() const;
@@ -15240,18 +15483,18 @@ public:
         this->populate_filter_from_pack();
     }
 
-    query_builder_base(const query_builder_base& obj) 
-        : query_builder_i<query_builder_base<Components...>, Components ...>(&m_desc, obj.m_term_index)
+    query_builder_base(const query_builder_base& f) 
+        : query_builder_i<query_builder_base<Components...>, Components ...>(&m_desc, f.m_term_index)
     {
-        m_world = obj.m_world;
-        m_desc = obj.m_desc;
+        m_world = f.m_world;
+        m_desc = f.m_desc;
     }
 
-    query_builder_base(query_builder_base&& obj) 
-        : query_builder_i<query_builder_base<Components...>, Components ...>(&m_desc, obj.m_term_index)
+    query_builder_base(query_builder_base&& f) 
+        : query_builder_i<query_builder_base<Components...>, Components ...>(&m_desc, f.m_term_index)
     {
-        m_world = obj.m_world;
-        m_desc = obj.m_desc;
+        m_world = f.m_world;
+        m_desc = f.m_desc;
     }
 
     operator query<Components ...>() const;

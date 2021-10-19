@@ -182,7 +182,7 @@ image.entity-tree-expand {
 
 rect.entity-tree-select {
   fill: rgba(0,0,0,0);
-  rx: 2px;
+  border-radius: 2px;
   cursor: pointer;
 }
 
@@ -194,8 +194,8 @@ div.entity-inspector {
   background-color: #232833;
 }
 
-div.entity-property-inspector {
-  position: relative;
+div.entity-inspector-components {
+  display: flex;
   width: calc(100% - 10px);
   padding: 5px;
   padding-top: 0px;
@@ -203,19 +203,35 @@ div.entity-property-inspector {
   overflow: auto;
 }
 
-div.entity-property {
-  position: relative;
+div.entity-component {
+  display: flex;
+  flex-direction: column;
   width: calc(100% - 16px);
   padding: 5px;
   padding-left: 0px;
-  clear: both;
 }
 
-div.entity-property-overridden span.inner {
+div.entity-component-label {
+  display: flex;
+  color: #DDE0E6;
+}
+
+div.entity-component span.inner {
+  display: flex;
+  flex-direction: column;
+}
+
+div.entity-component span.outer {
+  display: flex;
+}
+
+div.entity-component-overridden span.inner {
+  display: flex;
   color: #8B909D;
 }
 
-div.entity-property-overridden span.outer {
+div.entity-component-overridden span.outer {
+  display: flex;
   color: #8B909D;
   text-decoration: line-through;
 }
@@ -227,42 +243,74 @@ div.entity-property-header {
   clear: both;
 }
 
-div.properties {
+div.entity-component-value {
+  display: flex;
   padding-top: 7px;
   padding-left: 7px;
 }
 
-div.property {
-  height: 24px;
-  float: left;
+div.entity-property {
+  padding: 2px;
+  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-size: 13px;  
+  display: flex;
 }
 
-span.property-key {
-  padding: 2px;
+span.entity-property-key {
   margin-left: 10px;
-  color: #47B576;
+  color: #51CC84;
 }
 
-span.property-value {
-  padding: 2px;
+span.entity-property-value {
   padding-left: 4px;
   padding-right: 4px;
   border-radius: 3px;
   background-color: #333A4B;
 }
 
-img.property-expand {
-  position: relative;
-  top: 3px;
+div.entity-component-expand-icon {
+  width: 20px;
+  height: 15px;
+  cursor: pointer;
+}
+
+div.entity-component-expand-icon img {
   width: 15px;
   height: 15px;
 }
 
-div.entity-inspector-parent {
+div.entity-component-expand-nodata {
+  width: 20px;
+  text-align: center;
+  color: #b4b4b4;
+}
+
+div.entity-component-expand-nodata span {
+  text-align: center;
+}
+
+span.entity-inspector-parent {
   font-size: 12px;
   color: #47B576;
   padding-top: 5px;
-  padding-left: 12px;
+}
+
+div.entity-inspector-doc {
+  padding-top: 10px;
+}
+
+span.entity-inspector-link a { 
+  color: #47B576;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+span.entity-reference {
+  cursor: pointer;
+}
+
+span.entity-reference:hover {
+  color: #fff;
 }
 
 div.url-modal {

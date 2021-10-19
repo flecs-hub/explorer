@@ -29,7 +29,10 @@ void capture_error(
 static
 char* get_error() {
     str_set = false;
-    return ecs_strbuf_get(&err_buf);
+    char *str = ecs_strbuf_get(&err_buf);
+    char *escaped = ecs_astresc('"', str);
+    ecs_os_free(str);
+    return escaped;
 }
 
 static
@@ -201,14 +204,14 @@ void reply_term(ecs_strbuf_t *reply, const ecs_term_t *term) {
     ecs_strbuf_list_appendstr(reply, "\"pred\":");
     reply_term_id(reply, &term->pred);
 
-    if (ecs_term_id_is_set(&term->args[0])) {
+    if (ecs_term_id_is_set(&term->subj)) {
         ecs_strbuf_list_appendstr(reply, "\"subj\":");
-        reply_term_id(reply, &term->args[0]);
+        reply_term_id(reply, &term->subj);
     }
 
-    if (ecs_term_id_is_set(&term->args[1])) {
+    if (ecs_term_id_is_set(&term->obj)) {
         ecs_strbuf_list_appendstr(reply, "\"obj\":");
-        reply_term_id(reply, &term->args[1]);
+        reply_term_id(reply, &term->obj);
     }
 
     ecs_strbuf_list_pop(reply, "}");
@@ -368,6 +371,8 @@ void init() {
     }
 
     ECS_IMPORT(world, FlecsMeta);
+    ECS_IMPORT(world, FlecsDoc);
+    ECS_IMPORT(world, FlecsCoreDoc);
 
     ecs_plecs_from_file(world, "etc/assets/db.plecs");
 }

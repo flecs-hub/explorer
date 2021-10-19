@@ -39,6 +39,9 @@ Vue.component('query', {
     },
     get_query() {
       return this.query;
+    },
+    is_empty() {
+      return this.query == undefined || this.query.length == 0;
     }
   },
   template: `
