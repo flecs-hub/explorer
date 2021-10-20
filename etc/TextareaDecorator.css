@@ -34,7 +34,7 @@
 }
 
 .ldt pre span.number {
-	color: #7595B3;
+	color: #BDC1CC;
 }
 
 .ldt pre span.operator {
@@ -61,8 +61,12 @@
 	color: #7D67B5;
 }
 
+.ldt pre span.string {
+	color: #B5894B;
+}
+
 .ldt pre span.other {
-	color: #FFE100;
+	color: #B5494B;
 }
 
 /* settings you shouldn't play with unless you have a good reason */

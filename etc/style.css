@@ -1,9 +1,8 @@
 /* HTML element styling */
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Inter, Helvetica, sans-serif;
   font-feature-settings: "liga" 0, "calt" 0;
-  letter-spacing: 0.5px;
   font-size: 14px;
   background-color: #232833;
   color: #DDE0E6;
@@ -190,93 +189,131 @@ rect.entity-tree-selected {
   fill: #333A4B;
 }
 
-div.entity-inspector {
+div.inspector {
+  display: flex;
+  flex-direction: column;
   background-color: #232833;
 }
 
-div.entity-inspector-components {
+div.inspector-name {
   display: flex;
-  width: calc(100% - 10px);
-  padding: 5px;
-  padding-top: 0px;
+  flex-direction: row;
+  align-items: center;
+  font-weight: 500;
+  font-size: 16px;
+}
+
+div.inspector-icon {
+  display: flex;
+  width: 15px;
+}
+
+div.inspector-components {
+  display: flex;
+  flex-direction: column;
+}
+
+div.inspector-components-content {
+  display: flex;
+  flex-direction: column;
   margin-top: 10px;
-  overflow: auto;
+  margin-bottom: 10px;
+}
+
+div.inspector-components-nested {
+  margin-left: 15px;
 }
 
 div.entity-component {
   display: flex;
   flex-direction: column;
-  width: calc(100% - 16px);
-  padding: 5px;
-  padding-left: 0px;
+  margin-bottom: 10px;
+}
+
+div.entity-component:last-child {
+  margin-bottom: 0px;
 }
 
 div.entity-component-label {
   display: flex;
+}
+
+div.entity-component-name {
   color: #DDE0E6;
-}
-
-div.entity-component span.inner {
-  display: flex;
-  flex-direction: column;
-}
-
-div.entity-component span.outer {
-  display: flex;
+  font-weight: 500;  
 }
 
 div.entity-component-overridden span.inner {
   display: flex;
-  color: #8B909D;
+  color: #BDC1CC;
 }
 
 div.entity-component-overridden span.outer {
   display: flex;
-  color: #8B909D;
+  color: #BDC1CC;
   text-decoration: line-through;
 }
 
 div.entity-property-header {
-  margin-top: 10px;
+  display: flex;
+  margin-top: 20px;
   font-style: italic;
-  color: #4981B5;
-  clear: both;
+  color: #47B576;
+  font-weight: 600;
 }
 
-div.entity-component-value {
+div.entity-property-header:first-child {
+  margin-top: 10px;
+}
+
+div.entity-component-property {
   display: flex;
-  padding-top: 7px;
-  padding-left: 7px;
+  margin-top: 2px;
+  margin-left: 20px;
+  margin-bottom: 10px;
+}
+
+div.entity-property-value {
+  display: flex;
 }
 
 div.entity-property {
-  padding: 2px;
-  font-family: Menlo, Monaco, "Courier New", monospace;
-  font-size: 13px;  
   display: flex;
+  margin-right: 5px;
+}
+
+div.entity-property span {
+  padding: 4px;
+  padding-left: 6px;
+  padding-right: 6px;
+  border-radius: 6px;
 }
 
 span.entity-property-key {
-  margin-left: 10px;
-  color: #51CC84;
+  border-top-right-radius: 0px !important;
+  border-bottom-right-radius: 0px !important;
+  background-color: #333A4B;
 }
 
 span.entity-property-value {
-  padding-left: 4px;
-  padding-right: 4px;
-  border-radius: 3px;
-  background-color: #333A4B;
+  border-top-left-radius: 0px !important;
+  border-bottom-left-radius: 0px !important;
+  padding-right: 10px !important;
+  background-color: #4F5565;
 }
 
 div.entity-component-expand-icon {
   width: 20px;
-  height: 15px;
+  height: 20px;
   cursor: pointer;
 }
 
 div.entity-component-expand-icon img {
-  width: 15px;
-  height: 15px;
+  position: relative;
+  top: -2px;
+  left: -2px;
+  width: 20px;
+  height: 20px;
 }
 
 div.entity-component-expand-nodata {
@@ -289,17 +326,25 @@ div.entity-component-expand-nodata span {
   text-align: center;
 }
 
-span.entity-inspector-parent {
+span.inspector-parent {
   font-size: 12px;
   color: #47B576;
-  padding-top: 5px;
+  margin-left: 5px;
 }
 
-div.entity-inspector-doc {
-  padding-top: 10px;
+div.inspector-doc {
+  display: flex;
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
-span.entity-inspector-link a { 
+span.inspector-brief {
+  display: flex;
+  color: #BDC1CC;
+  margin-right: 5px;
+}
+
+span.inspector-link a { 
   color: #47B576;
   text-decoration: none;
   cursor: pointer;
@@ -579,8 +624,10 @@ div.ecs-filter {
   margin: 10px;
 }
 
-div.ecs-table {
-  position: relative;
+div.content-container {
+  display: flex;
+  flex-direction: column;
+  
   margin: auto;
   padding: 10px;
 
@@ -595,7 +642,7 @@ div.ecs-table {
   margin: 7px;
 }
 
-div.ecs-table ecs-value {
+div.content-container ecs-value {
   max-width: 150px;
   display: block;
   overflow: hidden;
@@ -635,18 +682,18 @@ table th {
   color: #47B576;
 }
 
-th.ecs-table-term {
+th.content-container-term {
   color: #FFE100;
 }
 
-th.ecs-table-squeeze {
+th.content-container-squeeze {
   width: 100%;
   padding: 0px;
   margin: 0px;
   min-width: 0px;
 }
 
-td.ecs-table-squeeze {
+td.content-container-squeeze {
   width: 100%;
   padding: 0px;
   margin: 0px;
@@ -666,4 +713,35 @@ table td {
   border-top-width: 1px;
   font-size: inherit;
   min-width: 100px;
+}
+
+/* Collapsable utils */
+.collapsible-container {
+  display: flex;
+  overflow: hidden;
+}
+.collapsible-container:after {
+  content: '';
+  height: 20px;
+  transition: height 0.1s ease, max-height 0s 0.1s ease;
+  max-height: 0px;
+}
+.collapsible {
+  display: flex;
+  transition: margin-bottom 0.1s cubic-bezier(0, 0, 0, 1);
+  margin-bottom: 0;
+  max-height: 1000000px;
+}
+.collapsible-container.collapsed > .collapsible {
+  margin-bottom: -2000px;
+  transition: margin-bottom 0.1s cubic-bezier(1, 0, 1, 1),
+              visibility 0s 0.1s, max-height 0s 0.1s;
+  visibility: hidden;
+  max-height: 0;
+}
+.collapsible-container.collapsed:after
+{
+  height: 0;
+  transition: height 0.1s ease;
+  max-height: 20px;
 }

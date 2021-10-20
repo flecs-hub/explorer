@@ -294,7 +294,44 @@ Vue.component('entity-tree', {
         this.update(entity);
       }
     },
+    collapse_all: function(cur) {
+      if (!cur) {
+        cur = this.root;
+      }
+
+      for (let k in cur.entities) {
+        let ent = cur.entities[k];
+        this.collapse_all(ent);
+        
+        ent.expand = false;
+        ent.entities = {};
+      }
+    },
     select: function(entity) {
+      const elems = entity.split('.');
+      let cur = this.root;
+
+      this.collapse_all();
+
+      for (let i = 0; i < elems.length; i ++) {
+        cur.expand = true;
+
+        this.update(cur);
+        cur = cur.entities[elems[i]];
+        if (!cur) {          
+          // Entity does not exist, try in core
+          if (elems[0] != "flecs" && elems[1] != "core") {
+            this.select("flecs.core." + entity);
+            return;
+          } else {
+            console.log("cannot navigate to entity " + elems[i]);
+          }
+        }
+      }
+
+      this.evt_select(cur);
+    },
+    evt_select: function(entity) {
       if (this.selection != entity) {
         if (this.selection) {
           this.selection.selected = false;
@@ -338,7 +375,7 @@ Vue.component('entity-tree', {
       <svg :height="tree_height" width="100%">
         <entity-tree-list :entities="root.entities" :x="0" :y="tree_top_margin" 
           v-on:toggle="toggle"
-          v-on:select="select">
+          v-on:select="evt_select">
         </entity-tree-list>
       </svg>
     </div>

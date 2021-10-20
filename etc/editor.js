@@ -1,51 +1,3 @@
-const example_plecs = `// This example creates a solar system and shows 
-// how to use entity hierarchies and relations. 
-// Changing the code updates the viewer
-
-// Planet queries must match RockyPlanet/GasGiant
-(IsA, Planet) { RockyPlanet, GasGiant }
-
-// Sun entity with Star tag & planets as children
-Star(Sun) {
- // Create entities with RockyPlanet tag
- with RockyPlanet { Earth, Mars }
-
- // Create entities with GasGiant tag
- with GasGiant { Jupiter, Saturn }
-
- // Create entities with DwarfPlanet tag
- with DwarfPlanet { Pluto, Ceres }
-}
-
-// Add child entities to planets
-Sun.Earth {
- with Satellite { Moon }
- with Continent {
-  Europe, Asia, Africa, Australia, NorthAmerica, 
-  SouthAmerica, Antartica
- }
- 
- NorthAmerica {
-  with Country { Canada, UnitedStates, Mexico }
-  UnitedStates {
-    with City { SanFrancisco }
-  }
- }
-}
-
-Sun.Mars {
- with Satellite { Phobos, Deimos }
-}
-
-Sun.Jupiter {
- with Satellite { Europa, Io }
-}
-
-Sun.Pluto {
- with Satellite { Charon }
-}
-
-`
 
 Vue.component('editor', {
   props: ['run_ok', 'run_error'],
@@ -74,7 +26,7 @@ Vue.component('editor', {
   },
   data: function() {
     return {
-      code: example_plecs,
+      code: undefined,
       last_code: undefined
     }
   },

@@ -1,6 +1,57 @@
 
 Vue.config.devtools = true;
 
+const example_query = "ChildOf(_Planet, Sun), Planet(_Planet), ChildOf(_Moon, _Planet), Satellite(_Moon)"
+
+const example_plecs = `// This example creates a solar system and shows 
+// how to use entity hierarchies and relations. 
+// Changing the code updates the viewer
+
+// Planet queries must match RockyPlanet/GasGiant
+(IsA, Planet) { RockyPlanet, GasGiant }
+
+// Sun entity with Star tag & planets as children
+Star(Sun) {
+ // Create entities with RockyPlanet tag
+ with RockyPlanet { Earth, Mars }
+
+ // Create entities with GasGiant tag
+ with GasGiant { Jupiter, Saturn }
+
+ // Create entities with DwarfPlanet tag
+ with DwarfPlanet { Pluto, Ceres }
+}
+
+// Add child entities to planets
+Sun.Earth {
+ with Satellite { Moon }
+ with Continent {
+  Europe, Asia, Africa, Australia, NorthAmerica, 
+  SouthAmerica, Antartica
+ }
+ 
+ NorthAmerica {
+  with Country { Canada, UnitedStates, Mexico }
+  UnitedStates {
+    with City { SanFrancisco }
+  }
+ }
+}
+
+Sun.Mars {
+ with Satellite { Phobos, Deimos }
+}
+
+Sun.Jupiter {
+ with Satellite { Europa, Io }
+}
+
+Sun.Pluto {
+ with Satellite { Charon }
+}
+
+`
+
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
   var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
@@ -17,15 +68,24 @@ var app = new Vue({
     ready() {
       const q_encoded = getParameterByName("q");
       const p_encoded = getParameterByName("p");
+      const selected = getParameterByName("s");
 
       if (q_encoded != undefined) {
         const q = wq_decode(q_encoded);
         this.$refs.query.set_query(q);
+      } else {
+        this.$refs.query.set_query(example_query);
       }
 
       if (p_encoded != undefined) {
         const p = wq_decode(p_encoded);
         this.$refs.plecs.set_code(p);
+      } else {
+        this.$refs.plecs.set_code(example_plecs);
+      }
+
+      if (selected) {
+        this.$refs.tree.select(selected);
       }
 
       this.$refs.plecs.run();
@@ -104,6 +164,10 @@ var app = new Vue({
       this.url = window.location.href + 
         "?q=" + query_encoded + "&p=" + plecs_encoded;
 
+      if (this.selection) {
+        this.url += "&s=" + this.selection.path;
+      }
+
       this.$refs.url.show();
     },
 
@@ -121,8 +185,8 @@ var app = new Vue({
       }
     },
 
-    evt_select(evt) {
-      this.select({path: evt});
+    evt_select(entity) {
+      this.$refs.tree.select(entity);
     }
   },
 

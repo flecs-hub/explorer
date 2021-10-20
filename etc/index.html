@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="TextareaDecorator.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
     <link rel="icon" href="flecs_logo.png" />
   </head>
@@ -41,8 +42,8 @@
         <!-- Query results & Entity inspector -->
         <div class="content-box">
           <div class="entity-box">
-            <entity-inspector :entity="entity_data" :selection="selection" v-on:select-entity="evt_select">
-            </entity-inspector>
+            <inspector :entity="entity_data" :selection="selection" v-on:select-entity="evt_select">
+            </inspector>
           </div>
           <div class="result-box">
             <results :data="data"></results>
@@ -88,6 +89,7 @@
           keyword: /\b(using|with)\b/,
           variable: /\b([A-Z_0-9]|_[a-zA-Z_0-9]+)\b/,
           entity: /\b[a-zA-Z_0-9]+\b/,
+          string: /"[^"]*"/,
           other: /\S/
         } );
     </script>

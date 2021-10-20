@@ -45,43 +45,43 @@ Vue.component('results', {
         <div v-else class="ecs-yesno ecs-no"> No </div>
       </template>      
       <template v-if="show_results">
-        <div v-if="data && data.valid" class="ecs-table">
+        <div v-if="data && data.valid" class="content-container">
           <table>
             <thead>
               <tr>
                 <th v-if="data.filter.has_this">Entities</th>
-                <th v-for="var_name in data.variables" class="ecs-table">
+                <th v-for="var_name in data.variables" class="content-container">
                   {{var_name}}
                 </th>
-                <th v-for="(n, index) in data.term_count" class="ecs-table-term" v-if="show_terms">
+                <th v-for="(n, index) in data.term_count" class="content-container-term" v-if="show_terms">
                   Term {{index + 1}}
                 </th>
-                <th class="ecs-table-squeeze"></th>
+                <th class="content-container-squeeze"></th>
               </tr>
             </thead>
             <tbody>
               <template v-for="result in data.results">
                 <template v-if="data.filter.has_this">
-                  <tr v-for="entity in result.entities" class="ecs-table">
+                  <tr v-for="entity in result.entities" class="content-container">
                     <td>{{entity}}</td>
-                    <td v-for="variable in result.variables" class="ecs-table">
+                    <td v-for="variable in result.variables" class="content-container">
                       {{variable}}
                     </td>
-                    <td v-for="term in result.terms" class="ecs-table-term" v-if="show_terms">
+                    <td v-for="term in result.terms" class="content-container-term" v-if="show_terms">
                       {{term}}
                     </td>
-                    <td class="ecs-table-squeeze"></td>
+                    <td class="content-container-squeeze"></td>
                   </tr>
                 </template>
                 <template v-else>
-                  <tr class="ecs-table">
-                    <td v-for="variable in result.variables" class="ecs-table">
+                  <tr class="content-container">
+                    <td v-for="variable in result.variables" class="content-container">
                       {{variable}}
                     </td>
-                    <td v-for="term in result.terms" class="ecs-table-term" v-if="show_terms">
+                    <td v-for="term in result.terms" class="content-container-term" v-if="show_terms">
                       {{term}}
                     </td>
-                    <td class="ecs-table-squeeze"></td>
+                    <td class="content-container-squeeze"></td>
                   </tr>
                 </template>
               </template>

@@ -1,4 +1,3 @@
-const example_query = "ChildOf(_Planet, Sun), Planet(_Planet), ChildOf(_Moon, _Planet), Satellite(_Moon)"
 
 Vue.component('query', {
   props: ['error'],
@@ -11,7 +10,7 @@ Vue.component('query', {
   },
   data: function() {
     return {
-      query: example_query,
+      query: undefined,
       last_query: undefined,
       ldt: undefined
     }
