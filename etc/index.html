@@ -2,13 +2,13 @@
   <head>
     <title>Flecs Explorer</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="TextareaDecorator.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="deps/TextareaDecorator.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
-    <link rel="icon" href="flecs_logo.png" />
+    <link rel="icon" href="img/flecs_logo.png" />
   </head>
   <body>
     <div id="app">
@@ -17,7 +17,7 @@
         <div class="query-box">
           <div class="play-button-box">
             <a href="https://github.com/SanderMertens/flecs" target="_blank">
-              <img src="flecs_logo.png" alt="Flecs GitHub">
+              <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
           <query
@@ -27,7 +27,7 @@
           </query>
         </div>
         <div class="share-button-box">
-          <img src="share_icon.png" v-on:click="show_url">
+          <img src="img/share_icon.png" v-on:click="show_url">
         </div>
       </div>
 
@@ -41,12 +41,12 @@
 
         <!-- Query results & Entity inspector -->
         <div class="content-box">
-          <div class="entity-box">
-            <inspector :entity="entity_data" :selection="selection" v-on:select-entity="evt_select">
-            </inspector>
-          </div>
           <div class="result-box">
-            <results :data="data"></results>
+            <results :data="data" v-on:select-entity="evt_select"></results>
+          </div>
+          <div class="entity-box">
+            <inspector :entity="entity_data" :selection="selection" v-on:select-entity="evt_select" ref="inspector">
+            </inspector>
           </div>
         </div>
 
@@ -70,11 +70,11 @@
       <url-modal ref="url" :url="url"></url-modal>
     </div>
 
-    <script src="vue.js"></script>
-    <script src="Keybinder.js"></script>
-    <script src="Parser.js"></script>
-    <script src="SelectHelper.js"></script>
-    <script src="TextareaDecorator.js"></script>
+    <script src="deps/vue.js"></script>
+    <script src="deps/Keybinder.js"></script>
+    <script src="deps/Parser.js"></script>
+    <script src="deps/SelectHelper.js"></script>
+    <script src="deps/TextareaDecorator.js"></script>
 
     <script>
       var syntax_highlighter = new Parser(
@@ -94,16 +94,18 @@
         } );
     </script>
 
-    <script src="entity_icon.js"></script>
-    <script src="entity_reference.js"></script>
-    <script src="entity_tree.js"></script>
-    <script src="query.js"></script>
-    <script src="results.js"></script>
-    <script src="entity_inspector.js"></script>
-    <script src="editor.js"></script>
-    <script src="url_modal.js"></script>
-    <script src="terminal.js"></script>
-    <script src="app.js"></script>
+    <script src="js/detail_toggle.js"></script>
+    <script src="js/content_container.js"></script>
+    <script src="js/entity_icon.js"></script>
+    <script src="js/entity_reference.js"></script>
+    <script src="js/entity_tree.js"></script>
+    <script src="js/query.js"></script>
+    <script src="js/results.js"></script>
+    <script src="js/entity_inspector.js"></script>
+    <script src="js/editor.js"></script>
+    <script src="js/url_modal.js"></script>
+    <script src="js/terminal.js"></script>
+    <script src="js/app.js"></script>
 
     <script src="web_queries.js"></script>
     <script src="web_queries_imports.js"></script>

@@ -32,6 +32,8 @@ Vue.component('editor', {
   },
   computed: {
     button_css: function() {
+      console.log(this.code);
+
       if (this.code != this.last_ran) {
         return "editor-button-run";
       } else {
@@ -41,13 +43,17 @@ Vue.component('editor', {
   },
   template: `
     <div>
-      <textarea 
-          id="plecs-editor" 
-          class="editor-textarea" 
-          v-model="code" 
-          v-on:keyup="run"
-          v-on:keydown.tab.prevent="tab_pressed($event)">
-      </textarea>
+
+    <textarea 
+      id="plecs-editor" 
+      class="editor-textarea" 
+      v-model="code" 
+      v-on:keyup="run"
+      v-on:keydown.tab.prevent="tab_pressed($event)">
+    </textarea>
+
+
+
     </div>
     `
 });

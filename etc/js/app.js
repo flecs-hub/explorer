@@ -1,56 +1,48 @@
 
 Vue.config.devtools = true;
 
-const example_query = "ChildOf(_Planet, Sun), Planet(_Planet), ChildOf(_Moon, _Planet), Satellite(_Moon)"
+const example_query = "(ChildOf, my_spaceship)"
 
-const example_plecs = `// This example creates a solar system and shows 
-// how to use entity hierarchies and relations. 
-// Changing the code updates the viewer
+const example_plecs = `// Module for organizing game assets
+Module(assets) {
+  // flecs.meta enables type creation at runtime
+  using flecs.meta
 
-// Planet queries must match RockyPlanet/GasGiant
-(IsA, Planet) { RockyPlanet, GasGiant }
-
-// Sun entity with Star tag & planets as children
-Star(Sun) {
- // Create entities with RockyPlanet tag
- with RockyPlanet { Earth, Mars }
-
- // Create entities with GasGiant tag
- with GasGiant { Jupiter, Saturn }
-
- // Create entities with DwarfPlanet tag
- with DwarfPlanet { Pluto, Ceres }
-}
-
-// Add child entities to planets
-Sun.Earth {
- with Satellite { Moon }
- with Continent {
-  Europe, Asia, Africa, Australia, NorthAmerica, 
-  SouthAmerica, Antartica
- }
- 
- NorthAmerica {
-  with Country { Canada, UnitedStates, Mexico }
-  UnitedStates {
-    with City { SanFrancisco }
+  Struct(Position) {
+    x = {f32}
+    y = {f32}
   }
- }
+
+  Property : f32
+  Health : Property
+  Attack : Property
+
+  Prefab(Turret) {
+    (Health){15}
+  }
+
+  Prefab(SpaceShip) {
+    (Health){75}
+  }
+
+  Prefab(BattleShip) : SpaceShip {
+    (Attack){50}
+    
+    Prefab(LeftTurret) : Turret
+    Prefab(RightTurret) : Turret
+  }
 }
 
-Sun.Mars {
- with Satellite { Phobos, Deimos }
-}
+using assets
 
-Sun.Jupiter {
- with Satellite { Europa, Io }
-}
-
-Sun.Pluto {
- with Satellite { Charon }
+// A spaceship to play around with
+my_spaceship : BattleShip {
+  (Position){10, 20}
 }
 
 `
+
+const example_selected = "my_spaceship";
 
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
@@ -86,6 +78,8 @@ var app = new Vue({
 
       if (selected) {
         this.$refs.tree.select(selected);
+      } else {
+        this.$refs.tree.select(example_selected);
       }
 
       this.$refs.plecs.run();
@@ -182,6 +176,10 @@ var app = new Vue({
         }
       } else {
         this.entity_data = undefined;
+      }
+
+      if (this.entity_data) {
+        this.$refs.inspector.expand();
       }
     },
 

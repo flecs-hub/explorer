@@ -1,9 +1,11 @@
 
 Vue.component('entity-reference', {
-    props: ['entity', 'show_name'],
+    props: ['entity', 'show_name', 'disabled'],
     methods: {
       select_entity: function() {
-        this.$emit('select-entity', this.entity);
+        if (!this.disabled) {
+          this.$emit('select-entity', this.entity);
+        }
       }
     },
     computed: {
@@ -13,10 +15,17 @@ Vue.component('entity-reference', {
         } else {
           return this.entity;
         }
+      },
+      css: function() {
+        if (!this.disabled) {
+          return "entity-reference";
+        } else {
+          return "";
+        }
       }
     },
     template: `
-      <span class="entity-reference" v-on:click="select_entity">
+      <span :class="css" v-on:click="select_entity">
         {{name}}
       </span>
       `

@@ -64,13 +64,13 @@ Vue.component('entity-tree-item', {
         <rect :x="x" :y="y - 5" :width="5" height="1" fill="#44464D"></rect>
         <image v-if="!expand"
           class="entity-tree-expand" 
-          href="nav-right.png" 
+          href="img/nav-right.png" 
           :x="x + 2" :y="y - 12" 
           v-on:click="toggle">
         </image>
         <image v-else
           class="entity-tree-expand" 
-          href="nav-down.png" 
+          href="img/nav-down.png" 
           :x="x + 2" 
           :y="y - 12" 
           v-on:click="toggle">
