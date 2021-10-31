@@ -1,5 +1,5 @@
 Vue.component('detail-toggle', {
-  props: ['disable', 'collapse', 'hide_disabled', 'summary_clickable', "show_divider"],
+  props: ['disable', 'collapse', 'hide_disabled', 'summary_toggle', "show_divider"],
   data: function() {
     return {
       should_expand: true
@@ -9,8 +9,8 @@ Vue.component('detail-toggle', {
     toggle: function() {
       this.should_expand = !this.should_expand;
     },
-    summary_toggle: function() {
-      if (this.summary_clickable && !this.disable) {
+    summary_clicked: function() {
+      if (this.summary_toggle && !this.disable) {
         this.should_expand = !this.should_expand;
       }
     },
@@ -22,50 +22,47 @@ Vue.component('detail-toggle', {
     expanded: function() {
       return this.should_expand && (this.collapse === undefined || this.collapse === false);
     },
-    css: function() {
-      if (this.expanded) {
-        return "detail-toggle-img";
-      } else {
-        return "detail-toggle-img detail-toggle-img-collapse";
-      }
-    },
-    toggle_css: function() {
-      if (!this.expanded) {
-        return "detail-toggle-hide";
-      } else {
-        return "detail-toggle-show"
-      }
-    },
     summary_css: function() {
       let result = "detail-toggle-summary";
-      if (this.summary_clickable) {
-        result += " clickable noselect";
+      if (this.summary_toggle) {
+        result += " noselect";
+      }
+      if (!this.disable) {
+        result += " clickable";
+      }
+      return result;
+    },
+    detail_css: function() {
+      let result = "detail-toggle-detail"
+      if (!this.expanded) {
+        result += " detail-toggle-detail-hide";
+      }
+      if (this.disable && !this.hide_disable) {
+        result += " detail-toggle-detail-disable";
       }
       return result;
     }
   },
   template: `
     <div class="detail-toggle">
-      <div :class="summary_css" v-on:click.stop="summary_toggle">
+      <div :class="summary_css" v-on:click.stop="summary_clicked">
         <template v-if="!disable">
-          <div :class="css">
-            <img src="img/nav-right.png" class="noselect entity-component-should_expand" v-on:click.stop="toggle">
-          </div>
+          <icon src="nav" v-on:click.stop="toggle" :rotate="expanded"/>
         </template>
         <template v-else>
-          <div class="noselect detail-toggle-img" v-if="!hide_disabled">
+          <span class="icon noselect" v-if="!hide_disabled">
             <svg width="20" height="20">
-              <circle r="2" cx="10" cy="10" fill="#4F5565"/>
+              <circle r="2" cx="10" cy="10" fill="#fff"/>
             </svg>
-          </div>
+          </span>
         </template>
 
         <slot name="summary"></slot>
 
-        <div class="detail-toggle-divider" v-if="show_divider"></div>
+        <div class="detail-toggle-divider" v-if="show_divider && !disable"></div>
       </div>
 
-      <div :class="toggle_css">
+      <div :class="detail_css">
         <slot name="detail"></slot>
       </div>
     </div>

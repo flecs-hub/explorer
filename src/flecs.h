@@ -48,10 +48,13 @@
 #define FLECS_PIPELINE      /* Pipeline support */
 #define FLECS_TIMER         /* Timer support */
 #define FLECS_META          /* Reflection support */
+#define FLECS_META_C        /* Utilities for populating reflection data */
 #define FLECS_EXPR          /* Parsing strings to/from component values */
 #define FLECS_JSON          /* Parsing JSON to/from component values */
 #define FLECS_DOC           /* Document entities & components */
 #define FLECS_COREDOC       /* Documentation for core entities & components */
+#define FLECS_LOG           /* When enabled ECS provides more detailed logs */
+#define FLECS_APP           /* Application addon */
 #endif // ifndef FLECS_CUSTOM_BUILD
 
 /** @} */
@@ -238,13 +241,7 @@ typedef int32_t ecs_size_t;
 /** Translate C type to id. */
 #define ecs_id(T) FLECS__E##T
 
-/** Translate C type to module struct. */
-#define ecs_module(T) FLECS__M##T
-
-/** Translate C type to module struct. */
-#define ecs_module_ptr(T) FLECS__M##T##_ptr
-
-/** Translate C type to module struct. */
+/** Translate C type to system function. */
 #define ecs_iter_action(T) FLECS__F##T
 
 
@@ -459,64 +456,47 @@ typedef int32_t ecs_size_t;
 #endif
 /**
  * @file log.h
- * @brief Internal logging API.
- *
- * Internal utility functions for tracing, warnings and errors. 
+ * @brief Logging addon.
+ * 
+ * The logging addon provides an API for (debug) tracing and reporting errors
+ * at various levels. When enabled, the logging addon can provide more detailed
+ * information about the state of the ECS and any errors that may occur.
+ * 
+ * The logging addon can be disabled to reduce footprint of the library, but
+ * limits information logged to only file, line and error code.
+ * 
+ * When enabled the logging addon can be configured to exclude levels of tracing
+ * from the build to reduce the impact on performance. By default all debug 
+ * tracing is enabled for debug builds, tracing is enabled at release builds.
+ * 
+ * Applications can change the logging level at runtime with ecs_log_set_level,
+ * but what is actually logged depends on what is compiled (when compiled 
+ * without debug tracing, setting the runtime level to debug won't have an 
+ * effect).
+ * 
+ * The logging addon uses the OS API log_ function for all tracing.
+ * 
+ * Note that even when the logging addon is not enabled, its header/source must
+ * be included in a build. To prevent unused variable warnings in the code, some
+ * API functions are included when the addon is disabled, but have empty bodies.
  */
 
 #ifndef FLECS_LOG_H
 #define FLECS_LOG_H
 
+#ifdef FLECS_LOG
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-////////////////////////////////////////////////////////////////////////////////
-//// Color macro's
-////////////////////////////////////////////////////////////////////////////////
-
-#define ECS_BLACK   "\033[1;30m"
-#define ECS_RED     "\033[0;31m"
-#define ECS_GREEN   "\033[0;32m"
-#define ECS_YELLOW  "\033[0;33m"
-#define ECS_BLUE    "\033[0;34m"
-#define ECS_MAGENTA "\033[0;35m"
-#define ECS_CYAN    "\033[0;36m"
-#define ECS_WHITE   "\033[1;37m"
-#define ECS_GREY    "\033[0;37m"
-#define ECS_NORMAL  "\033[0;49m"
-#define ECS_BOLD    "\033[1;49m"
-
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Tracing
 ////////////////////////////////////////////////////////////////////////////////
 
 FLECS_API
-void _ecs_trace(
-    int level,
-    const char *file,
-    int32_t line,
-    const char *fmt,
-    ...);
-
-FLECS_API
-void _ecs_warn(
-    const char *file,
-    int32_t line,
-    const char *fmt,
-    ...);
-
-FLECS_API
-void _ecs_err(
-    const char *file,
-    int32_t line,
-    const char *fmt,
-    ...);
-
-FLECS_API
-void _ecs_fatal(
+void _ecs_log(
+    int32_t level,
     const char *file,
     int32_t line,
     const char *fmt,
@@ -534,59 +514,9 @@ void ecs_log_push(void);
 FLECS_API
 void ecs_log_pop(void);
 
-#ifndef FLECS_LEGACY
-
-#define ecs_trace(lvl, ...)\
-    _ecs_trace(lvl, __FILE__, __LINE__, __VA_ARGS__)
-
-#define ecs_warn(...)\
-    _ecs_warn(__FILE__, __LINE__, __VA_ARGS__)
-
-#define ecs_err(...)\
-    _ecs_err(__FILE__, __LINE__, __VA_ARGS__)
-
-#define ecs_fatal(...)\
-    _ecs_fatal(__FILE__, __LINE__, __VA_ARGS__)
-
-#ifndef FLECS_NO_DEPRECATED_WARNINGS
-#define ecs_deprecated(...)\
-    _ecs_deprecated(__FILE__, __LINE__, __VA_ARGS__)
-#else
-#define ecs_deprecated(...)
-#endif
-
-/* If no tracing verbosity is defined, pick default based on build config */
-#if !(defined(ECS_TRACE_0) || defined(ECS_TRACE_1) || defined(ECS_TRACE_2) || defined(ECS_TRACE_3))
-#if !defined(NDEBUG)
-#define ECS_TRACE_3 /* Enable all tracing in debug mode. May slow things down */
-#else
-#define ECS_TRACE_1 /* Only enable infrequent tracing in release mode */
-#endif
-#endif
-
-#if defined(ECS_TRACE_3)
-#define ecs_trace_1(...) ecs_trace(1, __VA_ARGS__);
-#define ecs_trace_2(...) ecs_trace(2, __VA_ARGS__);
-#define ecs_trace_3(...) ecs_trace(3, __VA_ARGS__);
-
-#elif defined(ECS_TRACE_2)
-#define ecs_trace_1(...) ecs_trace(1, __VA_ARGS__);
-#define ecs_trace_2(...) ecs_trace(2, __VA_ARGS__);
-#define ecs_trace_3(...)
-
-#elif defined(ECS_TRACE_1)
-#define ecs_trace_1(...) ecs_trace(1, __VA_ARGS__);
-#define ecs_trace_2(...)
-#define ecs_trace_3(...)
-#endif
-#else
-#define ecs_trace_1(...)
-#define ecs_trace_2(...)
-#define ecs_trace_3(...)
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////
-//// Exceptions
+//// Error reporting
 ////////////////////////////////////////////////////////////////////////////////
 
 /** Get description for error code */
@@ -603,9 +533,6 @@ void _ecs_abort(
     const char *fmt,
     ...);
 
-#define ecs_abort(error_code, ...)\
-    _ecs_abort(error_code, __FILE__, __LINE__, __VA_ARGS__); abort()
-
 /** Assert */
 FLECS_API
 void _ecs_assert(
@@ -617,13 +544,73 @@ void _ecs_assert(
     const char *fmt,
     ...);
 
-#ifdef NDEBUG
-#define ecs_assert(condition, error_code, ...)
-#else
-#define ecs_assert(condition, error_code, ...)\
-    _ecs_assert(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__);\
-    assert(condition)
+/** Parser error.
+ * This function is used by parsers, and includes additional information such
+ * as the failed expression, position in the expression and the name of the
+ * expression/script being parsed. */
+FLECS_API
+void _ecs_parser_error(
+    const char *name,
+    const char *expr, 
+    int64_t column,
+    const char *fmt,
+    ...);
+
+FLECS_API
+void _ecs_parser_errorv(
+    const char *name,
+    const char *expr, 
+    int64_t column,
+    const char *fmt,
+    va_list args);
+
+#ifdef __cplusplus
+}
 #endif
+
+#else // FLECS_LOG
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// Functions/macro's that do nothing when logging is disabled
+////////////////////////////////////////////////////////////////////////////////
+
+FLECS_API
+void _ecs_log(
+    int32_t level,
+    const char *file,
+    int32_t line,
+    const char *fmt,
+    ...);
+
+#define _ecs_deprecated(file, line, msg)\
+    (void)file;\
+    (void)line;\
+    (void)msg
+
+#define ecs_log_push()
+#define ecs_log_pop()
+
+#define ecs_strerror(error_code)\
+    (void)error_code
+
+FLECS_API
+void _ecs_abort(
+    int32_t error_code,
+    const char *file,
+    int32_t line,
+    const char *fmt,
+    ...);
+
+FLECS_API
+void _ecs_assert(
+    bool condition,
+    int32_t error_code,
+    const char *condition_str,
+    const char *file,
+    int32_t line,
+    const char *fmt,
+    ...);
 
 FLECS_API
 void _ecs_parser_error(
@@ -641,7 +628,97 @@ void _ecs_parser_errorv(
     const char *fmt,
     va_list args);
 
-#ifndef FLECS_LEGACY
+#endif // FLECS_LOG
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// Logging Macro's
+////////////////////////////////////////////////////////////////////////////////
+
+#ifndef FLECS_LEGACY /* C89 doesn't support variadic macro's */
+
+/* Base logging function. Accepts a custom level */
+#define ecs_log(level, ...)\
+    _ecs_log(level, __FILE__, __LINE__, __VA_ARGS__)
+
+/* Tracing. Used for logging of infrequent events  */
+#define _ecs_trace(file, line, ...) _ecs_log(0, file, line, __VA_ARGS__)
+#define ecs_trace(...) _ecs_trace(__FILE__, __LINE__, __VA_ARGS__)
+
+/* Warning. Used when an issue occurs, but operation is successful */
+#define _ecs_warn(file, line, ...) _ecs_log(-2, file, line, __VA_ARGS__)
+#define ecs_warn(...) _ecs_warn(__FILE__, __LINE__, __VA_ARGS__)
+
+/* Error. Used when an issue occurs, and operation failed. */
+#define _ecs_err(file, line, ...) _ecs_log(-3, file, line, __VA_ARGS__)
+#define ecs_err(...) _ecs_err(__FILE__, __LINE__, __VA_ARGS__)
+
+/* Fatal. Used when an issue occurs, and the application cannot continue. */
+#define _ecs_fatal(file, line, ...) _ecs_log(-3, file, line, __VA_ARGS__)
+#define ecs_fatal(...) _ecs_fatal(__FILE__, __LINE__, __VA_ARGS__)
+
+/* Optionally include warnings about using deprecated features */
+#ifndef FLECS_NO_DEPRECATED_WARNINGS
+#define ecs_deprecated(...)\
+    _ecs_deprecated(__FILE__, __LINE__, __VA_ARGS__)
+#else
+#define ecs_deprecated(...)
+#endif // FLECS_NO_DEPRECATED_WARNINGS
+
+/* If no tracing verbosity is defined, pick default based on build config */
+#if !(defined(ECS_TRACE_0) || defined(ECS_TRACE_1) || defined(ECS_TRACE_2) || defined(ECS_TRACE_3))
+#if !defined(NDEBUG)
+#define ECS_TRACE_3 /* Enable all tracing in debug mode. May slow things down */
+#else
+#define ECS_TRACE_0 /* Only enable infrequent tracing in release mode */
+#endif // !defined(NDEBUG)
+#endif // !(defined(ECS_TRACE_0) || defined(ECS_TRACE_1) || defined(ECS_TRACE_2) || defined(ECS_TRACE_3))
+
+
+/* Define/undefine macro's based on compiled-in tracing level. This can optimize
+ * out tracing statements from a build, which improves performance. */
+
+#if defined(ECS_TRACE_3) /* All debug tracing enabled */
+#define ecs_dbg_1(...) ecs_log(1, __VA_ARGS__);
+#define ecs_dbg_2(...) ecs_log(2, __VA_ARGS__);
+#define ecs_dbg_3(...) ecs_log(3, __VA_ARGS__);
+
+#elif defined(ECS_TRACE_2) /* Level 2 and below debug tracing enabled */
+#define ecs_dbg_1(...) ecs_log(1, __VA_ARGS__);
+#define ecs_dbg_2(...) ecs_log(2, __VA_ARGS__);
+#define ecs_dbg_3(...)
+
+#elif defined(ECS_TRACE_1) /* Level 1 debug tracing enabled */
+#define ecs_dbg_1(...) ecs_log(1, __VA_ARGS__);
+#define ecs_dbg_2(...)
+#define ecs_dbg_3(...)
+
+#elif defined(ECS_TRACE_0) /* No debug tracing enabled */
+#define ecs_dbg_1(...)
+#define ecs_dbg_2(...)
+#define ecs_dbg_3(...)
+
+#else /* No tracing enabled */
+#undef ecs_trace
+#define ecs_trace(...)
+#define ecs_dbg_1(...)
+#define ecs_dbg_2(...)
+#define ecs_dbg_3(...)
+
+#endif // defined(ECS_TRACE_3)
+
+#define ecs_dbg ecs_dbg_1 /* Default debug tracing is at level 1 */
+
+#ifdef NDEBUG
+#define ecs_assert(condition, error_code, ...)
+#else
+#define ecs_assert(condition, error_code, ...)\
+    _ecs_assert(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__);\
+    assert(condition)
+#endif // NDEBUG
+
+#define ecs_abort(error_code, ...)\
+    _ecs_abort(error_code, __FILE__, __LINE__, __VA_ARGS__); abort()
 
 #define ecs_parser_error(name, expr, column, ...)\
     _ecs_parser_error(name, expr, column, __VA_ARGS__)
@@ -649,13 +726,25 @@ void _ecs_parser_errorv(
 #define ecs_parser_errorv(name, expr, column, fmt, args)\
     _ecs_parser_errorv(name, expr, column, fmt, args)
 
-#endif
+#endif // FLECS_LEGACY
 
-#ifdef __cplusplus
-}
-#endif
+////////////////////////////////////////////////////////////////////////////////
+//// Used when logging with colors is enabled
+////////////////////////////////////////////////////////////////////////////////
 
-#endif
+#define ECS_BLACK   "\033[1;30m"
+#define ECS_RED     "\033[0;31m"
+#define ECS_GREEN   "\033[0;32m"
+#define ECS_YELLOW  "\033[0;33m"
+#define ECS_BLUE    "\033[0;34m"
+#define ECS_MAGENTA "\033[0;35m"
+#define ECS_CYAN    "\033[0;36m"
+#define ECS_WHITE   "\033[1;37m"
+#define ECS_GREY    "\033[0;37m"
+#define ECS_NORMAL  "\033[0;49m"
+#define ECS_BOLD    "\033[1;49m"
+
+#endif // FLECS_LOG_H
 
 /**
  * @file vector.h
@@ -1791,8 +1880,10 @@ void (*ecs_os_api_get_time_t)(
 /* Logging */
 typedef
 void (*ecs_os_api_log_t)(
-    const char *fmt,
-    va_list args);
+    int32_t level,     /* Logging level */
+    const char *file,  /* File where message was logged */
+    int32_t line,      /* Line it was logged */
+    const char *msg);
 
 /* Application termination */
 typedef
@@ -1860,10 +1951,12 @@ typedef struct ecs_os_api_t {
     ecs_os_api_get_time_t get_time_;
 
     /* Logging */
-    ecs_os_api_log_t log_;
-    ecs_os_api_log_t log_error_;
-    ecs_os_api_log_t log_debug_;
-    ecs_os_api_log_t log_warning_;
+    ecs_os_api_log_t log_; /* Logging function. The level should be interpreted as: */
+                           /* >0: Debug tracing. Only enabled in debug builds. */
+                           /*  0: Tracing. Enabled in debug/release builds. */
+                           /* -2: Warning. An issue occurred, but operation was successful. */
+                           /* -3: Error. An issue occurred, and operation was unsuccessful. */
+                           /* -4: Fatal. An issue occurred, and application must quit. */
 
     /* Application termination */
     ecs_os_api_abort_t abort_;
@@ -1879,7 +1972,16 @@ typedef struct ecs_os_api_t {
 
     /* Overridable function that translates from a logical module id to a
      * path that contains module-specif resources or assets */
-    ecs_os_api_module_to_path_t module_to_etc_;    
+    ecs_os_api_module_to_path_t module_to_etc_;
+
+    /* Trace level */
+    int32_t log_level_;
+
+    /* Trace indentation */
+    int32_t log_indent_;
+
+    /* Enable tracing with color */
+    bool log_with_color_;
 } ecs_os_api_t;
 
 FLECS_API
@@ -2015,16 +2117,19 @@ void ecs_os_set_api_defaults(void);
 
 /* Logging (use functions to avoid using variadic macro arguments) */
 FLECS_API
-void ecs_os_log(const char *fmt, ...);
+void ecs_os_dbg(const char *file, int32_t line, const char *msg);
 
 FLECS_API
-void ecs_os_warn(const char *fmt, ...);
+void ecs_os_trace(const char *file, int32_t line, const char *msg);
 
 FLECS_API
-void ecs_os_err(const char *fmt, ...);
+void ecs_os_warn(const char *file, int32_t line, const char *msg);
 
 FLECS_API
-void ecs_os_dbg(const char *fmt, ...);
+void ecs_os_err(const char *file, int32_t line, const char *msg);
+
+FLECS_API
+void ecs_os_fatal(const char *file, int32_t line, const char *msg);
 
 FLECS_API
 const char* ecs_os_strerror(int err);
@@ -3797,7 +3902,7 @@ void ecs_end_wait(
  * @param level Desired tracing level.
  */
 FLECS_API
-void ecs_tracing_enable(
+void ecs_log_set_level(
     int level);
 
 /** Enable/disable tracing with colors.
@@ -3806,7 +3911,7 @@ void ecs_tracing_enable(
  * @param enabled Whether to enable tracing with colors.
  */
 FLECS_API
-void ecs_tracing_color_enable(
+void ecs_log_enable_colors(
     bool enabled);
 
 /** Measure frame time. 
@@ -4471,10 +4576,23 @@ ecs_type_t ecs_get_type(
  *
  * @param world The world.
  * @param entity The entity.
- * @return The table of the entity, NULL if the entity has no components.
+ * @return The table of the entity, NULL if the entity has no components/tags.
  */
 FLECS_API
 ecs_table_t* ecs_get_table(
+    const ecs_world_t *world,
+    ecs_entity_t entity);
+
+/** Get the storage table of an entity.
+ * The storage table of an entity has a type that only contains components, and
+ * excludes tags/entities/pairs that have no data.
+ *
+ * @param world The world.
+ * @param entity The entity.
+ * @return The storage table of the entity, NULL if the entity has no components.
+ */
+FLECS_API
+ecs_table_t* ecs_get_storage_table(
     const ecs_world_t *world,
     ecs_entity_t entity);
 
@@ -5310,7 +5428,7 @@ const ecs_filter_t* ecs_query_get_filter(
  */
 FLECS_API
 ecs_iter_t ecs_query_iter(
-    ecs_world_t *world,
+    const ecs_world_t *world,
     ecs_query_t *query);  
 
 /** Iterate over a query.
@@ -5325,7 +5443,7 @@ ecs_iter_t ecs_query_iter(
  */
 FLECS_API
 ecs_iter_t ecs_query_iter_page(
-    ecs_world_t *world,
+    const ecs_world_t *world,
     ecs_query_t *query,
     int32_t offset,
     int32_t limit);  
@@ -5880,7 +5998,7 @@ ecs_world_t* ecs_get_stage(
  */
 FLECS_API
 const ecs_world_t* ecs_get_world(
-    const ecs_world_t *world);
+    const ecs_poly_t *world);
 
 /** Test whether the current world object is readonly.
  * This function allows the code to test whether the currently used world object
@@ -6192,9 +6310,7 @@ FLECS_API
 ecs_entity_t ecs_import(
     ecs_world_t *world,
     ecs_module_action_t module,
-    const char *module_name,
-    void *handles_out,
-    size_t handles_size);
+    const char *module_name);
 
 /* Import a module from a library.
  * Similar to ecs_import, except that this operation will attempt to load the 
@@ -6234,14 +6350,10 @@ ecs_entity_t ecs_module_init(
         .entity = {\
             .name = #id,\
             .add = {EcsModule}\
-        },\
-        .size = sizeof(id),\
-        .alignment = ECS_ALIGNOF(id)\
+        }\
     });\
-    id *handles = (id*)ecs_get_mut(world, ecs_id(id), id, NULL);\
     ecs_set_scope(world, ecs_id(id));\
-    (void)ecs_id(id);\
-    (void)handles
+    (void)ecs_id(id);
 
 /** Wrapper around ecs_import.
  * This macro provides a convenient way to load a module with the world. It can
@@ -6256,52 +6368,10 @@ ecs_entity_t ecs_module_init(
  * typically contain handles to the content of the module.
  */
 #define ECS_IMPORT(world, id) \
-    id ecs_module(id);\
-    char *id##__name = ecs_module_path_from_c(#id);\
-    ecs_id_t ecs_id(id) = ecs_import(\
-        world, id##Import, id##__name, &ecs_module(id), sizeof(id));\
-    ecs_os_free(id##__name);\
-    id##ImportHandles(ecs_module(id));\
+    char *FLECS__##id##_name = ecs_module_path_from_c(#id);\
+    ecs_id_t ecs_id(id) = ecs_import(world, id##Import, FLECS__##id##_name);\
+    ecs_os_free(FLECS__##id##_name);\
     (void)ecs_id(id)
-
-/** Utility macro for declaring a component inside a handles type */
-#define ECS_DECLARE_COMPONENT(id)\
-    ecs_id_t ecs_id(id)
-
-/** Utility macro for declaring an entity inside a handles type */
-#define ECS_DECLARE_ENTITY(id)\
-    ecs_entity_t id\
-
-/** Utility macro for setting a component in a module function */
-#define ECS_SET_COMPONENT(id)\
-    if (handles) handles->ecs_id(id) = ecs_id(id)
-
-/** Utility macro for setting an entity in a module function */
-#define ECS_SET_ENTITY(id)\
-    if (handles) handles->id = id;
-
-#define ECS_EXPORT_COMPONENT(id)\
-    ECS_SET_COMPONENT(id)
-
-#define ECS_EXPORT_ENTITY(id)\
-    ECS_SET_ENTITY(id)
-
-/** Utility macro for importing a component */
-#define ECS_IMPORT_COMPONENT(handles, id)\
-    ecs_id_t ecs_id(id) = (handles).ecs_id(id); (void)ecs_id(id);\
-    (void)ecs_id(id)
-
-/** Utility macro for importing an entity */
-#define ECS_IMPORT_ENTITY(handles, id)\
-    ecs_entity_t id = (handles).id;\
-    (void)id
-
-#define ECS_IMPORT_TERM(it, module, column) \
-    module *ecs_module_ptr(module) = ecs_term(it, module, column);\
-    ecs_assert(ecs_module_ptr(module) != NULL, ECS_MODULE_UNDEFINED, #module);\
-    ecs_assert(!ecs_term_is_owned(it, column), ECS_COLUMN_IS_NOT_SHARED, NULL);\
-    module ecs_module(module) = *ecs_module_ptr(module);\
-    module##ImportHandles(ecs_module(module))
 
 #ifdef __cplusplus
 }
@@ -6417,15 +6487,18 @@ ecs_entity_t ecs_system_init(
     const ecs_system_desc_t *desc);
 
 #ifndef FLECS_LEGACY
-#define ECS_SYSTEM(world, id, kind, ...) \
-    ecs_iter_action_t ecs_iter_action(id) = id;\
-    ecs_entity_t id = ecs_system_init(world, &(ecs_system_desc_t){\
+#define ECS_SYSTEM_DEFINE(world, id, kind, ...) \
+    ecs_id(id) = ecs_system_init(world, &(ecs_system_desc_t){\
         .entity = { .name = #id, .add = {kind} },\
         .query.filter.expr = #__VA_ARGS__,\
-        .callback = ecs_iter_action(id)\
+        .callback = id\
     });\
-    ecs_assert(id != 0, ECS_INVALID_PARAMETER, NULL);\
-    (void)ecs_iter_action(id);\
+    ecs_assert(ecs_id(id) != 0, ECS_INVALID_PARAMETER, NULL);\
+
+#define ECS_SYSTEM(world, id, kind, ...) \
+    ecs_entity_t ECS_SYSTEM_DEFINE(world, id, kind, __VA_ARGS__);\
+    ecs_entity_t id = ecs_id(id);\
+    (void)ecs_id(id);\
     (void)id;
 #endif
 
@@ -6557,15 +6630,9 @@ void* ecs_get_system_binding_ctx(
 //// Module
 ////////////////////////////////////////////////////////////////////////////////
 
-typedef struct FlecsSystem {
-    int32_t dummy; 
-} FlecsSystem;
-
 FLECS_API
 void FlecsSystemImport(
     ecs_world_t *world);
-
-#define FlecsSystemImportHandles(handles)
 
 #ifdef __cplusplus
 }
@@ -6606,14 +6673,19 @@ extern "C" {
 #endif
 
 #ifndef FLECS_LEGACY
-#define ECS_PIPELINE(world, id, ...) \
-    ecs_entity_t id = ecs_type_init(world, &(ecs_type_desc_t){\
+#define ECS_PIPELINE_DEFINE(world, id, ...)\
+    id = ecs_type_init(world, &(ecs_type_desc_t){\
         .entity = {\
             .name = #id,\
             .add = {EcsPipeline}\
         },\
         .ids_expr = #__VA_ARGS__\
     });
+
+#define ECS_PIPELINE(world, id, ...) \
+    ecs_entity_t ECS_PIPELINE_DEFINE(world, id, __VA_ARGS__);\
+    (void)id
+    
 #endif
 
 /** Set a custom pipeline.
@@ -6737,16 +6809,9 @@ void ecs_set_threads(
 //// Module
 ////////////////////////////////////////////////////////////////////////////////
 
-/* Pipeline component is empty: components and tags in module are static */
-typedef struct FlecsPipeline {
-    int32_t dummy; 
-} FlecsPipeline;
-
 FLECS_API
 void FlecsPipelineImport(
     ecs_world_t *world);
-
-#define FlecsPipelineImportHandles(handles)
 
 #ifdef __cplusplus
 }
@@ -6990,16 +7055,9 @@ void ecs_set_tick_source(
 //// Module
 ////////////////////////////////////////////////////////////////////////////////
 
-/* Timers module component */
-typedef struct FlecsTimer {
-    int32_t dummy;
-} FlecsTimer;
-
 FLECS_API
 void FlecsTimerImport(
     ecs_world_t *world);
-
-#define FlecsTimerImportHandles(handles)
 
 #ifdef __cplusplus
 }
@@ -7112,17 +7170,10 @@ const char* ecs_doc_get_link(
     const ecs_world_t *world,
     ecs_entity_t entity);
 
-/* Module import boilerplate */
-
-typedef struct FlecsDoc {
-    int32_t dummy; 
-} FlecsDoc;
-
+/* Module import */
 FLECS_API
 void FlecsDocImport(
     ecs_world_t *world);
-
-#define FlecsDocImportHandles(handles)
 
 #ifdef __cplusplus
 }
@@ -7637,6 +7688,11 @@ FLECS_API
 int ecs_meta_is_collection(
     ecs_meta_cursor_t *cursor);
 
+/** Get type of current element. */
+FLECS_API
+ecs_entity_t ecs_meta_get_type(
+    ecs_meta_cursor_t *cursor);
+
 /** The set functions assign the field with the specified value. If the value
  * does not have the same type as the field, it will be cased to the field type.
  * If no valid conversion is available, the operation will fail. */
@@ -7763,17 +7819,10 @@ ecs_entity_t ecs_struct_init(
     const ecs_struct_desc_t *desc);
 
 
-/* Module import boilerplate */
-
-typedef struct FlecsMeta {
-    int32_t dummy; 
-} FlecsMeta;
-
+/* Module import */
 FLECS_API
 void FlecsMetaImport(
     ecs_world_t *world);
-
-#define FlecsMetaImportHandles(handles)
 
 #ifdef __cplusplus
 }
@@ -7787,17 +7836,11 @@ void FlecsMetaImport(
 extern "C" {
 #endif
 
-/* Module import boilerplate */
-
-typedef struct FlecsCoreDoc {
-    int32_t dummy; 
-} FlecsCoreDoc;
+/* Module import */
 
 FLECS_API
 void FlecsCoreDocImport(
     ecs_world_t *world);
-
-#define FlecsCoreDocImportHandles(handles)
 
 #ifdef __cplusplus
 }
@@ -7809,38 +7852,13 @@ void FlecsCoreDocImport(
 #endif
 #ifdef FLECS_META
 #endif
-#ifdef FLECS_EXPR
+#ifdef FLECS_META_C
 /**
- * @file expr.h
- * @brief Flecs expression parser addon.
- *
- * Parse expression strings into component values. The notation is similar to
- * JSON but with a smaller footprint, native support for (large) integer types,
- * character types, enumerations, bitmasks and entity identifiers.
- * 
- * Examples:
- * 
- * Member names:
- *   {x: 10, y: 20}
- * 
- * No member names (uses member ordering):
- *   {10, 20}
- * 
- * Enum values:
- *   {color: Red}
- * 
- * Bitmask values:
- *   {toppings: Lettuce|Tomato}
- * 
- * Collections:
- *   {points: [10, 20, 30]}
- * 
- * Nested objects:
- *   {start: {x: 10, y: 20}, stop: {x: 30, y: 40}}
- * 
+ * @file meta_c.h
+ * @brief Utility macro's for populating reflection data in C.
  */
 
-#ifdef FLECS_EXPR
+#ifdef FLECS_META_C
 
 #ifndef FLECS_META
 #define FLECS_META
@@ -7870,12 +7888,35 @@ extern "C" {
 /** Skip whitespace characters.
  * This function skips whitespace characters. Does not skip newlines.
  * 
- * @param expr pointer to (potential) whitespaces to skip.
- * @return pointer to the next non-whitespace character.
+ * @param expr Pointer to (potential) whitespaces to skip.
+ * @return Pointer to the next non-whitespace character.
  */
 FLECS_API
 const char* ecs_parse_whitespace(
     const char *ptr);
+
+/** Skip whitespace and newline characters.
+ * This function skips whitespace characters.
+ * 
+ * @param expr Pointer to (potential) whitespaces to skip.
+ * @return Pointer to the next non-whitespace character.
+ */
+FLECS_API
+const char* ecs_parse_eol_and_whitespace(
+    const char *ptr);
+
+/** Parse digit.
+ * This function will parse until the first non-digit character is found. The
+ * provided expression must contain at least one digit character.
+ * 
+ * @param expr The expression to parse.
+ * @param token The output buffer.
+ * @return Pointer to the first non-digit character.
+ */
+FLECS_API
+const char* ecs_parse_digit(
+    const char *ptr,
+    char *token);
 
 /** Skip whitespaces and comments.
  * This function skips whitespace characters and comments (single line, //).
@@ -7947,6 +7988,186 @@ char* ecs_parse_term(
 
 #endif // FLECS_PARSER
 
+#ifndef FLECS_META_C_H
+#define FLECS_META_C_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Public API */
+
+/* Macro that controls behavior of API. Usually set in module header. When the
+ * macro is not defined, it defaults to IMPL. */
+
+/* Define variables used by reflection utilities. This should only be defined
+ * by the module itself, not by the code importing the module */
+/* #define ECS_META_IMPL IMPL */
+
+/* Don't define variables used by reflection utilities but still declare the
+ * variable for the component id. This enables the reflection utilities to be
+ * used for global component variables, even if no reflection is used. */
+/* #define ECS_META_IMPL DECLARE */
+
+/* Don't define variables used by reflection utilities. This generates an extern
+ * variable for the component identifier. */
+/* #define ECS_META_IMPL EXTERN */
+
+/** Declare component with descriptor */
+#define ECS_META_COMPONENT(world, name)\
+    ECS_COMPONENT_DEFINE(world, name);\
+    ecs_meta_from_desc(world, ecs_id(name),\
+        FLECS__##name##_kind, FLECS__##name##_desc)
+
+/** ECS_STRUCT(name, body) */
+#define ECS_STRUCT(name, ...)\
+    ECS_STRUCT_TYPE(name, __VA_ARGS__);\
+    ECS_META_IMPL_CALL(ECS_STRUCT_, ECS_META_IMPL, name, #__VA_ARGS__)
+
+/** ECS_ENUM(name, body) */
+#define ECS_ENUM(name, ...)\
+    ECS_ENUM_TYPE(name, __VA_ARGS__);\
+    ECS_META_IMPL_CALL(ECS_ENUM_, ECS_META_IMPL, name, #__VA_ARGS__)
+
+/** ECS_BITMASK(name, body) */
+#define ECS_BITMASK(name, ...)\
+    ECS_ENUM_TYPE(name, __VA_ARGS__);\
+    ECS_META_IMPL_CALL(ECS_BITMASK_, ECS_META_IMPL, name, #__VA_ARGS__)
+
+/** Macro used to mark part of type for which no reflection data is created */
+#define ECS_PRIVATE
+
+/** Populate meta information from type descriptor. */
+FLECS_API
+int ecs_meta_from_desc(
+    ecs_world_t *world,
+    ecs_entity_t component,
+    ecs_type_kind_t kind,
+    const char *desc);
+
+
+/* Private API */
+
+/* Utilities to switch beteen IMPL, DECLARE and EXTERN variants */
+#define ECS_META_IMPL_CALL_INNER(base, impl, name, type_desc)\
+    base ## impl(name, type_desc)
+
+#define ECS_META_IMPL_CALL(base, impl, name, type_desc)\
+    ECS_META_IMPL_CALL_INNER(base, impl, name, type_desc)
+
+/* ECS_STRUCT implementation */
+#define ECS_STRUCT_TYPE(name, ...)\
+    typedef struct __VA_ARGS__ name
+
+#define ECS_STRUCT_ECS_META_IMPL ECS_STRUCT_IMPL
+
+#define ECS_STRUCT_IMPL(name, type_desc)\
+    static const char *FLECS__##name##_desc = type_desc;\
+    static ecs_type_kind_t FLECS__##name##_kind = EcsStructType;\
+    FLECS_META_C_EXPORT ECS_COMPONENT_DECLARE(name)
+
+#define ECS_STRUCT_DECLARE(name, type_desc)\
+    FLECS_META_C_EXPORT ECS_COMPONENT_DECLARE(name)
+
+#define ECS_STRUCT_EXTERN(name, type_desc)\
+    FLECS_META_C_IMPORT extern ECS_COMPONENT_DECLARE(name)
+
+
+/* ECS_ENUM implementation */
+#define ECS_ENUM_TYPE(name, ...)\
+    typedef enum __VA_ARGS__ name
+
+#define ECS_ENUM_ECS_META_IMPL ECS_ENUM_IMPL
+
+#define ECS_ENUM_IMPL(name, type_desc)\
+    static const char *FLECS__##name##_desc = type_desc;\
+    static ecs_type_kind_t FLECS__##name##_kind = EcsEnumType;\
+    FLECS_META_C_EXPORT ECS_COMPONENT_DECLARE(name)
+
+#define ECS_ENUM_DECLARE(name, type_desc)\
+    FLECS_META_C_EXPORT ECS_COMPONENT_DECLARE(name)
+
+#define ECS_ENUM_EXTERN(name, type_desc)\
+    FLECS_META_C_IMPORT extern ECS_COMPONENT_DECLARE(name)
+
+
+/* ECS_BITMASK implementation */
+#define ECS_BITMASK_TYPE(name, ...)\
+    typedef enum __VA_ARGS__ name
+
+#define ECS_BITMASK_ECS_META_IMPL ECS_BITMASK_IMPL
+
+#define ECS_BITMASK_IMPL(name, type_desc)\
+    static const char *FLECS__##name##_desc = type_desc;\
+    static ecs_type_kind_t FLECS__##name##_kind = EcsBitmaskType;\
+    FLECS_META_C_EXPORT ECS_COMPONENT_DECLARE(name)
+
+#define ECS_BITMASK_DECLARE(name, type_desc)\
+    FLECS_META_C_EXPORT ECS_COMPONENT_DECLARE(name)
+
+#define ECS_BITMASK_EXTERN(name, type_desc)\
+    FLECS_META_C_IMPORT extern ECS_COMPONENT_DECLARE(name)
+
+
+/* Symbol export utility macro's */
+#if (defined(_MSC_VER) || defined(__MINGW32__))
+#define FLECS_META_C_EXPORT __declspec(dllexport)
+#define FLECS_META_C_IMPORT __declspec(dllimport)
+#else
+#define FLECS_META_C_EXPORT __attribute__((__visibility__("default")))
+#define FLECS_META_C_IMPORT
+#endif
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // FLECS_META_C_H
+
+#endif // FLECS_META_C
+#endif
+#ifdef FLECS_EXPR
+/**
+ * @file expr.h
+ * @brief Flecs expression parser addon.
+ *
+ * Parse expression strings into component values. The notation is similar to
+ * JSON but with a smaller footprint, native support for (large) integer types,
+ * character types, enumerations, bitmasks and entity identifiers.
+ * 
+ * Examples:
+ * 
+ * Member names:
+ *   {x: 10, y: 20}
+ * 
+ * No member names (uses member ordering):
+ *   {10, 20}
+ * 
+ * Enum values:
+ *   {color: Red}
+ * 
+ * Bitmask values:
+ *   {toppings: Lettuce|Tomato}
+ * 
+ * Collections:
+ *   {points: [10, 20, 30]}
+ * 
+ * Nested objects:
+ *   {start: {x: 10, y: 20}, stop: {x: 30, y: 40}}
+ * 
+ */
+
+#ifdef FLECS_EXPR
+
+#ifndef FLECS_META
+#define FLECS_META
+#endif
+
+#ifndef FLECS_PARSER
+#define FLECS_PARSER
+#endif
+
+
 #ifndef FLECS_EXPR_H
 #define FLECS_EXPR_H
 
@@ -8012,7 +8233,7 @@ char* ecs_astresc(
     const char *in);
 
 /** Used with ecs_parse_expr. */
-typedef struct ecs_expr_desc_t {
+typedef struct ecs_parse_expr_desc_t {
     const char *name;
     const char *expr;
     ecs_entity_t (*lookup_action)(
@@ -8020,18 +8241,17 @@ typedef struct ecs_expr_desc_t {
         const char *value, 
         void *ctx);
     void *lookup_ctx;
-} ecs_expr_desc_t;
+} ecs_parse_expr_desc_t;
 
 /** Parse expression into value.
  * This operation parses a flecs expression into the provided pointer. The
  * memory pointed to must be large enough to contain a value of the used type.
  * 
  * @param world The world.
- * @param name The name of the expression (used for debug logs).
- * @param expr The full expression (used for debug logs).
  * @param ptr The pointer to the expression to parse.
  * @param type The type of the expression to parse.
  * @param data_out Pointer to the memory to write to.
+ * @param desc Configuration parameters for deserializer.
  * @return Pointer to the character after the last one read, or NULL if failed.
  */
 FLECS_API
@@ -8040,7 +8260,7 @@ const char* ecs_parse_expr(
     const char *ptr,
     ecs_entity_t type,
     void *data_out,
-    const ecs_expr_desc_t *desc);
+    const ecs_parse_expr_desc_t *desc);
 
 /** Serialize value into expression string.
  * This operation serializes a value of the provided type to a string. The 
@@ -8139,30 +8359,72 @@ const char *ecs_parse_expr_token(
 extern "C" {
 #endif
 
+/** Used with ecs_parse_json. */
+typedef struct ecs_parse_json_desc_t {
+    const char *name; /* Name of expression (used for logging) */
+    const char *expr; /* Full expression (used for logging) */
+} ecs_parse_json_desc_t;
+
 /** Parse JSON string into value.
  * This operation parses a JSON expression into the provided pointer. The
  * memory pointed to must be large enough to contain a value of the used type.
  * 
  * @param world The world.
- * @param name The name of the expression (used for debug logs).
- * @param expr The full expression (used for debug logs).
  * @param ptr The pointer to the expression to parse.
  * @param type The type of the expression to parse.
  * @param data_out Pointer to the memory to write to.
+ * @param desc Configuration parameters for deserializer.
  * @return Pointer to the character after the last one read, or NULL if failed.
  */
 FLECS_API
 const char* ecs_parse_json(
     const ecs_world_t *world,
-    const char *name,
-    const char *expr,
     const char *ptr,
     ecs_entity_t type,
-    void *data_out);
+    void *data_out,
+    const ecs_parse_json_desc_t *desc);
 
 /** Serialize value into JSON string.
  * This operation serializes a value of the provided type to a JSON string. The 
  * memory pointed to must be large enough to contain a value of the used type.
+ * 
+ * If count is 0, the function will serialize a single value, not wrapped in
+ * array brackets. If count is >= 1, the operation will serialize values to a
+ * a comma-separated list inside of array brackets.
+ * 
+ * @param world The world.
+ * @param type The type of the value to serialize.
+ * @param data The value to serialize.
+ * @param count The number of elements to serialize.
+ * @return String with JSON expression, or NULL if failed.
+ */
+FLECS_API
+char* ecs_array_to_json(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *data,
+    int32_t count);
+
+/** Serialize value into JSON string buffer.
+ * Same as ecs_array_to_json_buf, but serializes to an ecs_strbuf_t instance.
+ * 
+ * @param world The world.
+ * @param type The type of the value to serialize.
+ * @param data The value to serialize.
+ * @param count The number of elements to serialize.
+ * @param buf_out The strbuf to append the string to.
+ * @return Zero if success, non-zero if failed.
+ */
+FLECS_API
+int ecs_array_to_json_buf(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *data,
+    int32_t count,
+    ecs_strbuf_t *buf_out);
+
+/** Serialize value into JSON string.
+ * Same as ecs_array_to_json, with count = 0.
  * 
  * @param world The world.
  * @param type The type of the value to serialize.
@@ -8219,6 +8481,47 @@ int ecs_entity_to_json_buf(
     const ecs_world_t *world,
     ecs_entity_t entity,
     ecs_strbuf_t *buf_out);
+
+/** Used with ecs_iter_to_json. */
+typedef struct ecs_iter_to_json_desc_t {
+    bool dont_serialize_term_ids;  /* Exclude term (query) component ids from result */
+    bool dont_serialize_ids;       /* Exclude actual (matched) component ids from result */
+    bool dont_serialize_subjects;  /* Exclude subjects from result */
+    bool dont_serialize_variables; /* Exclude variables from result */
+    bool dont_serialize_is_set;    /* Exclude is_set (for optional terms) */
+    bool dont_serialize_values;    /* Exclude component values from result */
+    bool dont_serialize_entities;  /* Exclude entities (for This terms) */
+    bool measure_eval_duration;    /* Include evaluation duration */
+} ecs_iter_to_json_desc_t;
+
+/** Serialize iterator into JSON string.
+ * This operation will iterate the contents of the iterator and serialize them
+ * to JSON. The function acccepts iterators from any source.
+ * 
+ * @param world The world.
+ * @param iter The iterator to serialize to JSON.
+ * @return A JSON string with the serialized iterator data, or NULL if failed.
+ */
+FLECS_API
+char* ecs_iter_to_json(
+    const ecs_world_t *world,
+    ecs_iter_t *iter,
+    const ecs_iter_to_json_desc_t *desc);
+
+/** Serialize iterator into JSON string buffer.
+ * Same as ecs_iter_to_json, but serializes to an ecs_strbuf_t instance.
+ * 
+ * @param world The world.
+ * @param iter The iterator to serialize.
+ * @param buf_out The strbuf to append the string to.
+ * @return Zero if success, non-zero if failed.
+ */
+FLECS_API
+int ecs_iter_to_json_buf(
+    const ecs_world_t *world,
+    ecs_iter_t *iter,
+    ecs_strbuf_t *buf_out,
+    const ecs_iter_to_json_desc_t *desc);
 
 #ifdef __cplusplus
 }
@@ -8695,6 +8998,98 @@ FLECS_API void ecs_gauge_reduce(
 
 #endif
 #endif
+#ifdef FLECS_APP
+/**
+ * @file app.h
+ * @brief App addon.
+ *
+ * The app addon is a wrapper around the application's main loop. Its main
+ * purpose is to provide a hook to modules that need to take control of the
+ * main loop, as is for example the case with native applications that use
+ * emscripten with webGL.
+ */
+
+#ifdef FLECS_APP
+
+#ifndef FLECS_PIPELINE
+#define FLECS_PIPELINE
+#endif
+
+#ifndef FLECS_APP_H
+#define FLECS_APP_H
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/** Used with ecs_app_run. */
+typedef struct ecs_app_desc_t {
+    FLECS_FLOAT target_fps;   /* Target FPS. */
+    int32_t threads;          /* Number of threads. */
+    FLECS_FLOAT delta_time;   /* Frame time increment (0 for measured values) */
+} ecs_app_desc_t;
+
+/** Run application.
+ * This will run the application with the parameters specified in desc. After
+ * the application quits (ecs_quit is called) the world will be cleaned up.
+ * 
+ * @param world The world.
+ * @param desc Application parameters.
+ */
+FLECS_API
+int ecs_app_run(
+    ecs_world_t *world,
+    const ecs_app_desc_t *desc);
+
+/** Callback type for frame action. */
+typedef int(*ecs_frame_action_t)(
+    ecs_world_t *world, 
+    const ecs_app_desc_t *desc);
+
+/** Default frame callback.
+ * This function will call ecs_progress until it returns a non-zero value (the
+ * application called ecs_quit). It is the default frame callback that will be
+ * used by ecs_app_run, unless it is overridden.
+ * 
+ * Applications, though typically modules, can override the frame callback by
+ * using the ecs_app_set_frame_action function. This enables a module to take
+ * control of the main loop when necessary.
+ * 
+ * All worlds share the same frame accallbacktion. When a module attempts to 
+ * overwrite a frame callback (except the default one), an error will be thrown. 
+ * This prevents applications from importing modules with conflicting 
+ * requirements (e.g. two modules that * both need control over the main loop).
+ * 
+ * A custom frame callback may call this function once after or before it has 
+ * ran its own logic.
+ * 
+ * @param world The world.
+ * @param desc The desc struct passed to ecs_app_run.
+ * @return value returned by ecs_progress
+ */
+FLECS_API
+int ecs_app_run_frame(
+    ecs_world_t *world,
+    const ecs_app_desc_t *desc);
+
+/** Set custom frame action.
+ * See ecs_app_run_frame.
+ * 
+ * @param callback The frame action.
+ */
+FLECS_API
+int ecs_app_set_frame_action(
+    ecs_frame_action_t callback);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif // FLECS_APP
+#endif
 
 /**
  * @file flecs_c.h
@@ -8709,7 +9104,8 @@ FLECS_API void ecs_gauge_reduce(
  * @{
  */
 
-#define ECS_ENTITY_DECLARE(id)\
+/* Use for declaring entity, tag, prefab / any other entity identifier */
+#define ECS_DECLARE(id)\
     ecs_entity_t id;\
     ecs_entity_t ecs_id(id)
 
@@ -8727,14 +9123,13 @@ FLECS_API void ecs_gauge_reduce(
     ecs_entity_t ecs_id(id);\
     ecs_entity_t ECS_ENTITY_DEFINE(world, id, __VA_ARGS__);
 
-#define ECS_TAG_DECLARE(id)               ECS_ENTITY_DECLARE(id)
 #define ECS_TAG_DEFINE(world, id)         ECS_ENTITY_DEFINE(world, id, 0)
 #define ECS_TAG(world, id)                ECS_ENTITY(world, id, 0)
 
-#define ECS_PREFAB_DECLARE(id)            ECS_ENTITY_DECLARE(id)
 #define ECS_PREFAB_DEFINE(world, id, ...) ECS_ENTITY_DEFINE(world, id, Prefab, __VA_ARGS__)
 #define ECS_PREFAB(world, id, ...)        ECS_ENTITY(world, id, Prefab, __VA_ARGS__)
 
+/* Use for declaring component identifiers */
 #define ECS_COMPONENT_DECLARE(id)         ecs_entity_t ecs_id(id)
 #define ECS_COMPONENT_DEFINE(world, id)\
     ecs_id(id) = ecs_component_init(world, &(ecs_component_desc_t){\
@@ -8753,29 +9148,40 @@ FLECS_API void ecs_gauge_reduce(
     ECS_COMPONENT_DEFINE(world, id);\
     (void)ecs_id(id)
 
-#define ECS_TRIGGER(world, trigger_name, kind, component) \
-    ecs_entity_t __F##trigger_name = ecs_trigger_init(world, &(ecs_trigger_desc_t){\
-        .entity.name = #trigger_name,\
-        .callback = trigger_name,\
+/* Use for declaring trigger, observer and system identifiers */
+#define ECS_SYSTEM_DECLARE(id)         ecs_entity_t ecs_id(id)
+
+/* Triggers */
+#define ECS_TRIGGER_DEFINE(world, id, kind, component) \
+    ecs_id(id) = ecs_trigger_init(world, &(ecs_trigger_desc_t){\
+        .entity.name = #id,\
+        .callback = id,\
         .expr = #component,\
         .events = {kind},\
     });\
-    ecs_entity_t trigger_name = __F##trigger_name;\
-    ecs_assert(trigger_name != 0, ECS_INVALID_PARAMETER, NULL);\
-    (void)__F##trigger_name;\
-    (void)trigger_name;
+    ecs_assert(ecs_id(id) != 0, ECS_INVALID_PARAMETER, NULL);
 
-#define ECS_OBSERVER(world, observer_name, kind, ...)\
-    ecs_entity_t __F##observer_name = ecs_observer_init(world, &(ecs_observer_desc_t){\
-        .entity.name = #observer_name,\
-        .callback = observer_name,\
+#define ECS_TRIGGER(world, id, kind, component) \
+    ecs_entity_t ECS_TRIGGER_DEFINE(world, id, kind, component);\
+    ecs_entity_t id = ecs_id(id);\
+    (void)ecs_id(id);\
+    (void)id;
+
+/* Observers */
+#define ECS_OBSERVER_DEFINE(world, id, kind, ...)\
+    ecs_id(id) = ecs_observer_init(world, &(ecs_observer_desc_t){\
+        .entity.name = #id,\
+        .callback = id,\
         .filter.expr = #__VA_ARGS__,\
         .events = {kind},\
     });\
-    ecs_entity_t observer_name = __F##observer_name;\
-    ecs_assert(observer_name != 0, ECS_INVALID_PARAMETER, NULL);\
-    (void)__F##observer_name;\
-    (void)observer_name;
+    ecs_assert(ecs_id(id) != 0, ECS_INVALID_PARAMETER, NULL)
+
+#define ECS_OBSERVER(world, id, kind, ...)\
+    ecs_entity_t ECS_OBSERVER_DEFINE(world, id, kind, __VA_ARGS__);\
+    ecs_entity_t id = ecs_id(id);\
+    (void)ecs_id(id);\
+    (void)id;
 
 /** @} */
 
@@ -11003,7 +11409,7 @@ public:
      * @param level The tracing level.
      */
     static void enable_tracing(int level) {
-        ecs_tracing_enable(level);
+        ecs_log_set_level(level);
     }
 
     /** Enable tracing with colors.
@@ -11011,7 +11417,7 @@ public:
      * @param enabled Whether to enable tracing with colors.
      */
     static void enable_tracing_color(bool enabled) {
-        ecs_tracing_color_enable(enabled);
+        ecs_log_enable_colors(enabled);
     }    
 
     void set_pipeline(const flecs::pipeline& pip) const;
@@ -15933,7 +16339,7 @@ flecs::entity module(const flecs::world& world) {
 
 template <typename T>
 ecs_entity_t do_import(world& world, const char *symbol) {
-    ecs_trace_1("import %s", _::name_helper<T>::name());
+    ecs_trace("import %s", _::name_helper<T>::name());
     ecs_log_push();
 
     ecs_entity_t scope = ecs_get_scope(world);

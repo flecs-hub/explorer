@@ -12,7 +12,8 @@ Vue.component('query', {
     return {
       query: undefined,
       last_query: undefined,
-      ldt: undefined
+      ldt: undefined,
+      focus: false
     }
   },
   methods: {
@@ -25,13 +26,6 @@ Vue.component('query', {
       this.$emit('changed', {query: this.query});
       this.last_query = this.query;
     },
-    query_class() {
-      if (this.error) {
-        return "query-error";
-      } else {
-        return "query-ok";
-      }
-    },
     set_query(expr) {
       this.query = expr;
       this.$emit('changed', {query: expr});
@@ -41,15 +35,30 @@ Vue.component('query', {
     },
     is_empty() {
       return this.query == undefined || this.query.length == 0;
+    },
+    evt_focus(focus) {
+      this.focus = focus;
     }
   },
+  computed: {
+    query_class() {
+      if (this.error) {
+        return "ecs-query ecs-query-error";
+      } else if (this.focus) {
+        return "ecs-query ecs-query-ok";
+      } else {
+        return "ecs-query";
+      }
+    },
+  },
   template: `
-    <div class="ecs-query">
+    <div :class="query_class">
       <textarea ref="input" 
         id="query-editor"
-        :class="query_class()" 
         v-model="query" 
-        v-on:keyup="changed">
+        v-on:keyup="changed"
+        v-on:focus="evt_focus(true)"
+        v-on:blur="evt_focus(false)">
       </textarea>
     </div>
     `

@@ -252,13 +252,20 @@ Vue.component('entity-tree', {
               };
             }
 
-            entity.has_children = elem.terms_set[1];
-            entity.is_module = elem.terms_set[2];
-            entity.is_component = elem.terms_set[3] || elem.terms_set[4];
-            entity.is_prefab = elem.terms_set[5];
+            entity.has_children = elem.is_set[1];
+            entity.is_module = elem.is_set[2];
+            entity.is_component = elem.is_set[3] || elem.is_set[4];
+            entity.is_prefab = elem.is_set[5];
 
             Vue.set(result, name, entity);
           }
+        }
+      }
+
+      if (this.selection && scope[this.selection.name] != undefined) {
+        if (!result[this.selection.name]) {
+          // Selected entity is no longer available, clear it
+          this.$emit('select');
         }
       }
 
@@ -332,6 +339,11 @@ Vue.component('entity-tree', {
       this.evt_select(cur);
     },
     evt_select: function(entity) {
+      if (!entity) {
+        console.error("entity-tree: invalid entity selected");
+        return;
+      }
+
       if (this.selection != entity) {
         if (this.selection) {
           this.selection.selected = false;

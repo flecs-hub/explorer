@@ -16,12 +16,10 @@ static ecs_strbuf_t err_buf = ECS_STRBUF_INIT;
 bool str_set = false;
 
 static 
-void capture_error(
-    const char *msg,
-    va_list args)
+void capture_log(int32_t level, const char *file, int32_t line, const char *msg)
 {
-    if (!str_set) {
-        ecs_strbuf_vappend(&err_buf, msg, args);
+    if (!str_set && level < 0) {
+        ecs_strbuf_appendstr(&err_buf, msg);
         str_set = true;
     }
 }
@@ -35,334 +33,17 @@ char* get_error() {
     return escaped;
 }
 
-static
-int variable_count(ecs_rule_t *r) {
-    int32_t i, var_count = ecs_rule_variable_count(r), count = 0;
-    for (i = 0; i < var_count; i ++) {
-        const char *var_name = ecs_rule_variable_name(r, i);
-        if (var_name[0] == '.') {
-            continue;
-        }
-        if (var_name[0] == '_') {
-            continue;
-        }
-
-        count ++;
-    }
-
-    return count;
-}
-
-static
-void reply_variables(ecs_strbuf_t *reply, ecs_rule_t *r) {
-    ecs_strbuf_list_appendstr(reply, "\"variables\":");
-    ecs_strbuf_list_push(reply, "[", ",");
-
-    int32_t var_count = ecs_rule_variable_count(r);
-    for (int i = 0; i < var_count; i ++) {
-        if (!ecs_rule_variable_is_entity(r, i)) {
-            continue;
-        }
-        const char *var_name = ecs_rule_variable_name(r, i);
-        if (var_name[0] == '_' || var_name[0] == '.') {
-            continue;
-        }
-
-        ecs_strbuf_list_append(reply, "\"%s\"", var_name);
-    }
-
-    ecs_strbuf_list_pop(reply, "]");
-}
-
-static
-void reply_results(ecs_strbuf_t *reply, ecs_rule_t *r) {
-    ecs_iter_t it = ecs_rule_iter(world, r);
-    int32_t var_count = ecs_rule_variable_count(r);
-
-    ecs_strbuf_list_append(reply, "\"term_count\": %d", it.term_count);
-
-    ecs_strbuf_list_appendstr(reply, "\"results\":");
-    ecs_strbuf_list_push(reply, "[", ",");
-
-    while (ecs_rule_next(&it)) {
-        /* Begin result */
-        ecs_strbuf_list_next(reply);
-        ecs_strbuf_list_push(reply, "{", ",");
-
-        /* Output terms */
-        ecs_strbuf_list_appendstr(reply, "\"terms\":");
-        ecs_strbuf_list_push(reply, "[", ",");
-
-        for (int i = 0; i < it.term_count; i ++) {
-            char *id_str = ecs_id_str(world, ecs_term_id(&it, i + 1));
-            ecs_strbuf_list_append(reply, "\"%s\"", id_str);
-            ecs_os_free(id_str);
-        }
-        ecs_strbuf_list_pop(reply, "]");
-
-        /* Output whether terms are set */
-        ecs_strbuf_list_appendstr(reply, "\"terms_set\":");
-        ecs_strbuf_list_push(reply, "[", ",");
-
-        for (int i = 0; i < it.term_count; i ++) {
-            if (ecs_term_is_set(&it, i + 1)) {
-                ecs_strbuf_list_appendstr(reply, "true");
-            } else {
-                ecs_strbuf_list_appendstr(reply, "false");
-            }
-        }
-        ecs_strbuf_list_pop(reply, "]");
-
-        /* Output variables */
-        ecs_strbuf_list_appendstr(reply, "\"variables\":");
-        ecs_strbuf_list_push(reply, "[", ",");
-        for (int i = 0; i < var_count; i ++) {
-            if (!ecs_rule_variable_is_entity(r, i)) {
-                continue;
-            }
-            const char *var_name = ecs_rule_variable_name(r, i);
-            if (var_name[0] == '_' || var_name[0] == '.') {
-                continue;
-            }                
-            ecs_entity_t var = ecs_rule_variable(&it, i);
-            char *var_value = ecs_get_fullpath(world, var);
-            ecs_strbuf_list_append(reply, "\"%s\"", var_value);
-            ecs_os_free(var_value);
-        }
-        ecs_strbuf_list_pop(reply, "]");
-
-        /* Output entities */
-        ecs_strbuf_list_appendstr(reply, "\"entities\":");
-        ecs_strbuf_list_push(reply, "[", ",");
-        for (int i = 0; i < it.count; i ++) {
-            char *var_value = ecs_get_fullpath(world, it.entities[i]);
-            ecs_strbuf_list_append(reply, "\"%s\"", var_value);
-            ecs_os_free(var_value);
-        }
-        ecs_strbuf_list_pop(reply, "]");
-
-        /* End result */
-        ecs_strbuf_list_pop(reply, "}");
-    }
-
-    ecs_strbuf_list_pop(reply, "]");
-}
-
-static
-void reply_term_id(ecs_strbuf_t *reply, const ecs_term_id_t *term_id) {
-    ecs_strbuf_list_push(reply, "{", ",");
-    char *name = NULL;
-
-    if (term_id->entity) {
-        name = ecs_get_fullpath(world, term_id->entity);
-    } else {
-        name = term_id->name;
-    }
-
-    ecs_strbuf_list_append(reply, "\"name\":\"%s\"", name);
-
-    if (term_id->var == EcsVarIsVariable || term_id->entity == EcsThis) {
-        ecs_strbuf_list_appendstr(reply, "\"is_var\":true");
-    }
-
-    ecs_strbuf_list_appendstr(reply, "\"set\":");
-    ecs_strbuf_list_push(reply, "{", ",");
-
-    ecs_strbuf_list_appendstr(reply, "\"mask\":\"");
-    ecs_strbuf_list_push(reply, "", "|");
-    if (term_id->set.mask & EcsSelf) {
-        ecs_strbuf_list_appendstr(reply, "self");
-    }
-    if (term_id->set.mask & EcsSuperSet) {
-        ecs_strbuf_list_appendstr(reply, "super");
-    }
-    if (term_id->set.mask & EcsSubSet) {
-        ecs_strbuf_list_appendstr(reply, "sub");
-    }
-    if (term_id->set.mask & EcsCascade) {
-        ecs_strbuf_list_appendstr(reply, "cascade");
-    }
-    ecs_strbuf_list_pop(reply, NULL);
-    ecs_strbuf_appendstr(reply, "\"");
-
-    if (term_id->set.relation) {
-        char *rel = ecs_get_fullpath(world, term_id->set.relation);
-        ecs_strbuf_list_append(reply, "\"relation\":\"%s\"", rel);
-        ecs_os_free(rel);
-    }
-
-    ecs_strbuf_list_pop(reply, "}");
-    
-    ecs_strbuf_list_pop(reply, "}");
-}
-
-static
-void reply_term(ecs_strbuf_t *reply, const ecs_term_t *term) {
-    ecs_strbuf_list_next(reply);
-    ecs_strbuf_list_push(reply, "{", ",");
-
-    ecs_strbuf_list_appendstr(reply, "\"pred\":");
-    reply_term_id(reply, &term->pred);
-
-    if (ecs_term_id_is_set(&term->subj)) {
-        ecs_strbuf_list_appendstr(reply, "\"subj\":");
-        reply_term_id(reply, &term->subj);
-    }
-
-    if (ecs_term_id_is_set(&term->obj)) {
-        ecs_strbuf_list_appendstr(reply, "\"obj\":");
-        reply_term_id(reply, &term->obj);
-    }
-
-    ecs_strbuf_list_pop(reply, "}");
-}
-
-static
-void reply_terms(ecs_strbuf_t *reply, const ecs_filter_t *f) {
-    ecs_strbuf_list_appendstr(reply, "\"terms\":");
-    ecs_strbuf_list_push(reply, "[", ",");
-
-    for (int i = 0; i < f->term_count; i ++) {
-        reply_term(reply, &f->terms[i]);
-    }
-
-    ecs_strbuf_list_pop(reply, "]");
-}
-
-static
-void reply_filter(ecs_strbuf_t *reply, ecs_rule_t *r) {
-    const ecs_filter_t *f = ecs_rule_filter(r);
-
-    ecs_strbuf_list_appendstr(reply, "\"filter\":");
-    ecs_strbuf_list_push(reply, "{", ",");
-
-
-    if (f->match_this) {
-        ecs_strbuf_list_appendstr(reply, "\"has_this\": true");
-    } else {
-        ecs_strbuf_list_appendstr(reply, "\"has_this\": false");
-    }
-
-    ecs_strbuf_list_append(reply, "\"variable_count\": %d",
-        variable_count(r));
-
-    reply_terms(reply, f);
-
-    ecs_strbuf_list_pop(reply, "}");
-}
-
-#ifndef __EMSCRIPTEN__
-void print_terms(
-    ecs_iter_t *it)
-{
-    for (int i = 0; i < it->term_count; i ++) {
-        ecs_id_t id = ecs_term_id(it, i + 1);
-        if (!i) {
-            printf("Terms: [");
-        }
-        if (i) {
-            printf(", ");
-        }
-
-        char *str = ecs_id_str(world, id);
-        printf("%d = %s", i, str);
-        ecs_os_free(str);
-    }
-
-    if (it->count) {
-        printf("]\n");
-    }
-}
-
-void print_variables(
-    ecs_rule_t *r,
-    ecs_iter_t *it) 
-{
-    int32_t v, count = 0, var_count = ecs_rule_variable_count(r);
-
-    for (v = 0; v < var_count; v ++) {
-        const char *var_name = ecs_rule_variable_name(r, v);
-        if (!ecs_rule_variable_is_entity(r, v) 
-            || !strcmp(var_name, ".") ||
-            var_name[0] == '_') 
-        {
-            continue;
-        }
-
-        if (count > 0) {
-            printf(", ");
-        }
-
-        count ++;
-        if (count == 1) {
-            printf("Vars:  [");
-        }
-
-        printf("%s = ", var_name);
-        printf("%s", ecs_get_name(world, ecs_rule_variable(it, v)));
-    }
-
-    if (count) {
-        printf("]\n");
-    } 
-}
-
-void print_rule(ecs_rule_t *r) {
-    char *prog = ecs_rule_str(r);
-    printf("\n%s\n", prog);
-    ecs_os_free(prog);
-
-    ecs_iter_t it = ecs_rule_iter(world, r);
-    while (ecs_rule_next(&it)) {
-        char *str = ecs_iter_str(&it);
-        printf("%s\n", str);
-        ecs_os_free(str);
-    }
-}
-#endif
-
-static
-void reply_rule(ecs_strbuf_t *reply, const char *q) {
-    ecs_rule_t *r = ecs_rule_init(world, &(ecs_filter_desc_t) {
-        .expr = q
-    });
-
-    ecs_strbuf_list_push(reply, "{", ",");
-
-    if (r) {
-        ecs_strbuf_list_appendstr(reply, "\"valid\": true");
-
-        reply_filter(reply, r);
-        reply_variables(reply, r);
-        reply_results(reply, r);
-
-#ifndef __EMSCRIPTEN__
-        print_rule(r);
-#endif
-
-        ecs_rule_fini(r);
-    } else {
-        ecs_strbuf_list_appendstr(reply, "\"valid\": false");
-
-        char *err = get_error();
-        ecs_strbuf_list_append(reply, "\"error\": \"%s\"", err);
-        ecs_os_free(err);
-    }
-
-    ecs_strbuf_list_pop(reply, "}");
-}
-
-
-// External functions
-
 EMSCRIPTEN_KEEPALIVE
 void init() {
+    // Capture error messages so we can send it to the client
     ecs_os_set_api_defaults();
     ecs_os_api_t api = ecs_os_api;
-    api.log_error_ = capture_error;
+    api.log_ = capture_log;
     ecs_os_set_api(&api);
 
-    ecs_tracing_color_enable(false);
+    // Only enable errors, don't insert color codes
+    ecs_log_set_level(-1);
+    ecs_log_enable_colors(false);
 
     world = ecs_mini();
     if (!world) {
@@ -370,19 +51,35 @@ void init() {
         return;
     }
 
+    /* Import basic modules for serialization */
     ECS_IMPORT(world, FlecsMeta);
     ECS_IMPORT(world, FlecsDoc);
     ECS_IMPORT(world, FlecsCoreDoc);
-
-    ecs_plecs_from_file(world, "etc/assets/db.plecs");
 }
 
 EMSCRIPTEN_KEEPALIVE
 char* query(char *q) {
     ecs_strbuf_t reply = ECS_STRBUF_INIT;
-    reply_rule(&reply, q);
-    char *result = ecs_strbuf_get(&reply);
-    return result;
+    ecs_rule_t *r = ecs_rule_init(world, &(ecs_filter_desc_t) { .expr = q });
+    if (!r) {
+        goto error;
+    }
+
+    ecs_iter_t it = ecs_rule_iter(world, r);
+    if (ecs_iter_to_json_buf(world, &it, &reply, &(ecs_iter_to_json_desc_t) {
+        .measure_eval_duration = true
+    }) != 0) {
+        ecs_strbuf_reset(&reply);
+        goto error;
+    }
+
+    return ecs_strbuf_get(&reply);
+error: {
+        char *err = get_error();
+        ecs_strbuf_append(&reply, "{\"error\": \"%s\"}", err);
+        ecs_os_free(err);  
+        return ecs_strbuf_get(&reply);
+    }
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -393,7 +90,7 @@ char* get_entity(char *path) {
 
     if (ecs_entity_to_json_buf(world, ent, &reply) != 0) {
         ecs_strbuf_reset(&reply);
-        return ecs_os_strdup("{\"valid\": false}");
+        return ecs_os_strdup("{\"error\": \"failed to serialize entity\"}");
     }
 
     return ecs_strbuf_get(&reply);
@@ -403,21 +100,17 @@ EMSCRIPTEN_KEEPALIVE
 char* run(char *plecs) {
     ecs_strbuf_t reply = ECS_STRBUF_INIT;
 
+    /* Reset world */
     ecs_fini(world);
-
     init();
 
     ecs_strbuf_list_push(&reply, "{", ",");
 
     int res = ecs_plecs_from_str(world, NULL, plecs);
     char *err = get_error();
-
     if (res || err) {
-        ecs_strbuf_list_appendstr(&reply, "\"valid\": false");
         ecs_strbuf_list_append(&reply, "\"error\": \"%s\"", err);
         ecs_os_free(err);
-    } else {
-        ecs_strbuf_list_appendstr(&reply, "\"valid\": true");
     }
 
     ecs_strbuf_list_pop(&reply, "}");

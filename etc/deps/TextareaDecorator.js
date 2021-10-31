@@ -28,7 +28,7 @@ function TextareaDecorator( textarea, parser ){
 	// coloring algorithm
 	var color = function( input, output, parser ){
 		var oldTokens = output.childNodes;
-		var newTokens = parser.tokenize(input);
+		var newTokens = parser.tokenize(input + "\n");
 		var firstDiff, lastDiffNew, lastDiffOld;
 
 		// find the first difference
@@ -59,7 +59,8 @@ function TextareaDecorator( textarea, parser ){
 
 	api.update = function(){
 		var input = textarea.value;
-		if( input ){
+
+		if( input ) {
 			color( input, output, parser );
 			// determine the best size for the textarea
 			var lines = input.split('\n');
@@ -75,7 +76,7 @@ function TextareaDecorator( textarea, parser ){
 				// store the greatest line length thus far
 				maxlen = maxlen > curlen ? maxlen : curlen;
 			}
-			textarea.cols = maxlen + 1;
+			textarea.cols = maxlen;
 			textarea.rows = lines.length;
 		} else {
 			// clear the display

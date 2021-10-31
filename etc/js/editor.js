@@ -1,6 +1,5 @@
 
-Vue.component('editor', {
-  props: ['run_ok', 'run_error'],
+Vue.component('editor-textarea', {
   mounted: function() {
     this.ldt = new TextareaDecorator( 
       document.getElementById('plecs-editor'), syntax_highlighter );
@@ -9,7 +8,7 @@ Vue.component('editor', {
     this.ldt.update();
   },
   methods: {
-    run() {
+    run() {      
       if (this.code != this.last_code) {
         this.$emit('run-code', this.code);
         this.last_code = this.code;
@@ -32,8 +31,6 @@ Vue.component('editor', {
   },
   computed: {
     button_css: function() {
-      console.log(this.code);
-
       if (this.code != this.last_ran) {
         return "editor-button-run";
       } else {
@@ -42,8 +39,6 @@ Vue.component('editor', {
     }
   },
   template: `
-    <div>
-
     <textarea 
       id="plecs-editor" 
       class="editor-textarea" 
@@ -51,9 +46,33 @@ Vue.component('editor', {
       v-on:keyup="run"
       v-on:keydown.tab.prevent="tab_pressed($event)">
     </textarea>
+    `
+});
 
+Vue.component('editor', {
+  methods: {
+    run() {
+      this.$refs.textarea.run();
+    },
+    get_code() {
+      return this.$refs.textarea.get_code();
+    },
+    set_code(code) {
+      this.$refs.textarea.set_code(code);
+    }
+  },
+  template: `
+    <content-container no_padding="true" overflow="true">
+      <template v-slot:summary>
+        Editor
+      </template>
 
-
-    </div>
+      <template v-slot:detail>
+        <div class="editor">
+          <editor-textarea ref="textarea" v-on="$listeners">
+          </editor-textarea>
+        </div>
+      </template>
+    </content-container>
     `
 });

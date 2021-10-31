@@ -1,8 +1,15 @@
-Vue.component('entity-property-value', {
+Vue.component('entity-property-value-full', {
   props: ['prop_key', 'value'],
   computed: {
     is_object: function() {
       return (typeof this.value) === "object";
+    },
+    value_css: function() {
+      let result = "entity-property-value";
+      if (this.prop_key !== undefined) {
+        result += " entity-property-value-after-key";
+      }
+      return result;
     }
   },
   template: `
@@ -14,20 +21,53 @@ Vue.component('entity-property-value', {
               <span>{{prop_key}}</span>
             </template>
             <template v-slot:detail>
-              <inspector-properties :value="value"></inspector-properties>
+              <inspector-value :value="value"></inspector-value>
             </template>
           </detail-toggle>
         </div>
       </template>
       <template v-else>
-        <span class="entity-property-key">{{prop_key}}</span><span class="entity-property-value">{{value}}</span>
+        <template v-if="prop_key"><span class="entity-property-key">{{prop_key}}</span></template><span :class="value_css">{{value}}</span>
       </template>
     </div>
     `
 });
 
-Vue.component('inspector-properties', {
-  props: ['value'],
+Vue.component('entity-property-value-table', {
+  props: ['prop_key', 'value'],
+  computed: {
+    is_object: function() {
+      return (typeof this.value) === "object";
+    }
+  },
+  template: `
+    <div class="entity-property-value-table">
+      <template v-if="is_object">
+      </template>
+      <template v-else>
+        {{prop_key}}:&nbsp{{value}}
+      </template>
+    </div>
+    `
+});
+
+Vue.component('entity-property-value', {
+  props: ['prop_key', 'value', 'list'],
+  computed: {
+    is_object: function() {
+      return (typeof this.value) === "object";
+    }
+  },
+  template: `
+    <div><template v-if="!list">
+        <entity-property-value-full :prop_key="prop_key" :value="value"/>
+      </template>
+      <template v-else>{{value}}</template></div>
+    `
+});
+
+Vue.component('inspector-value', {
+  props: ['value', 'list'],
   computed: {
     is_object: function() {
       return (typeof this.value) === "object";
@@ -42,9 +82,13 @@ Vue.component('inspector-properties', {
       return false;
     },
     css: function() {
-      let result = "inspector-properties";
-      if (this.has_objects) {
-        result += " inspector-properties-vertical";
+      let result = "inspector-value";
+      if (this.list) {
+        result += "-list"
+      } else {
+        if (this.has_objects) {
+          result += " inspector-value-vertical";
+        }
       }
       return result;
     }
@@ -52,15 +96,11 @@ Vue.component('inspector-properties', {
   template: `
     <div :class="css">
       <template v-if="is_object">
-        <div class="entity-property" v-for="(v, k) in value">
-          <entity-property-value :prop_key="k" :value="v">
-          </entity-property-value>
-        </div>
+        <div class="entity-property" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><entity-property-value :prop_key="k" :value="v" :list="list"/></div>
       </template>
       <template v-else>
         <div class="entity-property">
-          <entity-property-value prop_key="value" :value="value">
-          </entity-property-value>
+          <entity-property-value :value="value" :list="list"/>
         </div>
       </template>
     </div>
@@ -87,19 +127,18 @@ Vue.component('entity-component', {
   template: `
     <div class="entity-component" v-if="!hide_property">
       <div class="inspector-component-name">
-        <detail-toggle :disable="prop.data == undefined">
+        <detail-toggle :disable="prop.value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="prop.pred" :show_name="true" v-on="$listeners"></entity-reference>
-              <template v-if="prop.obj">
-                , <entity-reference :entity="prop.obj" :show_name="true" v-on="$listeners"></entity-reference>
+              <entity-reference :entity="prop.pred" show_name="true" v-on="$listeners"></entity-reference>
+              <template v-if="prop.obj">, <entity-reference :entity="prop.obj" :show_name="true" v-on="$listeners"></entity-reference>
               </template>
             </div>
           </template>
 
           <template v-slot:detail>
-            <inspector-properties v-if="prop.data !== undefined" :value="prop.data">
-            </inspector-properties>
+            <inspector-value v-if="prop.value !== undefined" :value="prop.value">
+            </inspector-value>
           </template>
         </detail-toggle>
       </div>
@@ -140,18 +179,22 @@ Vue.component('inspector-components', {
   },
   template: `
     <div :class="css">
-      <detail-toggle :disable="!show_header" :hide_disabled="true" :show_divider="true">
+      <detail-toggle :disable="!show_header" hide_disabled="true" show_divider="true" summary_toggle="true">
         <template v-slot:summary>
-          <div class="inspector-header" v-if="show_header">
-            from <entity-reference :entity="path" :show_name="true" :disabled="entity != undefined" v-on="$listeners">
-            </entity-reference>
-          </div>
+          <span class="inspector-header" v-if="show_header">
+            <entity-reference 
+              :label="entity == undefined ? 'inherited from' : ''" 
+              :entity="path" 
+              show_name="true" 
+              :disabled="entity != undefined" 
+              icon_link="true" 
+              v-on="$listeners"/>
+          </span>
         </template>
         <template v-slot:detail>
           <div :class="detail_css">
             <div class="inspector-components-content">
-              <entity-component v-for="(prop, k) in entity_type" :prop="prop" :key="k" v-on="$listeners">
-              </entity-component>
+              <entity-component v-for="(prop, k) in entity_type" :prop="prop" :key="k" v-on="$listeners"/>
             </div>
           </div>
         </template>
@@ -188,7 +231,7 @@ Vue.component('inspector', {
       for (let i = 0; i < this.entity.type.length; i ++) {
         const obj = this.entity.type[i];
         if (obj.pred == "flecs.doc.Description" && obj.obj == "flecs.doc.Brief") {
-          return obj.data.value;
+          return obj.value.value;
         }
       }
     },
@@ -204,7 +247,7 @@ Vue.component('inspector', {
       for (let i = 0; i < this.entity.type.length; i ++) {
         const obj = this.entity.type[i];
         if (obj.pred == "flecs.doc.Description" && obj.obj == "flecs.doc.Link") {
-          return obj.data.value;
+          return obj.value.value;
         }
       }
     },
@@ -221,13 +264,11 @@ Vue.component('inspector', {
         <template v-slot:detail v-if="entity && entity.valid">
           <div class="inspector-name">
             <div class="inspector-icon">
-              <entity-icon x="0" y="0" :entity_data="selection">
-              </entity-icon>
+              <entity-icon x="0" y="0" :entity_data="selection"/>
             </div>
             {{selection.name}}
             <span class="inspector-parent" v-if="parent.length">
-            - <entity-reference :entity="parent" v-on="$listeners">
-            </entity-reference>
+            - <entity-reference :entity="parent" v-on="$listeners"/>
             </span>
           </div>
 
@@ -242,12 +283,14 @@ Vue.component('inspector', {
 
           <div class="inspector-content">
             <template v-for="(v, k) in entity.is_a">
-              <inspector-components :path="k" :type="v.type" :show_header="true" v-on="$listeners">
-              </inspector-components>
+              <inspector-components :path="k" :type="v.type" :show_header="true" v-on="$listeners"/>
             </template>
 
-            <inspector-components :entity="entity" :path="selection.path" :show_header="entity.is_a" v-on="$listeners">
-            </inspector-components>
+            <inspector-components 
+              :entity="entity" 
+              :path="selection.path" 
+              :show_header="entity.is_a" 
+              v-on="$listeners"/>
           </div>
         </template>
       </content-container>

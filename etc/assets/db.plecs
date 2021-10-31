@@ -1,0 +1,36 @@
+/// Module for organizing game assets
+Module(assets) {
+  // flecs.meta enables type creation at runtime
+  using flecs.meta
+
+  Struct(Position) {
+    x = {f32}
+    y = {f32}
+  }
+
+  Property : f32
+  Health : Property
+  Attack : Property
+
+  Prefab(Turret) {
+    (Health){15}
+  }
+
+  Prefab(SpaceShip) {
+    (Health){75}
+  }
+
+  Prefab(BattleShip) : SpaceShip {
+    (Attack){50}
+    
+    Prefab(LeftTurret) : Turret
+    Prefab(RightTurret) : Turret
+  }
+}
+
+using assets
+
+/// A spaceship to play around with
+my_spaceship : BattleShip {
+  (Position){10, 20
+}

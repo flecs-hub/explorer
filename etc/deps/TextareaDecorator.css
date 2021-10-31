@@ -33,20 +33,32 @@
 	color: #51CC84;
 }
 
-.ldt pre span.number {
-	color: #BDC1CC;
-}
-
 .ldt pre span.operator {
 	color: #8B909D;
 }
 
 .ldt pre span.rel_prop {
-	color: #FFE100;
+	color: #51CC84;
 }
 
 .ldt pre span.builtin {
-	color: #FFE100;
+	color: #51CC84;
+}
+
+.ldt pre span.module {
+	color: #51CC84
+}
+
+.ldt pre span.type {
+	color: #51CC84
+}
+
+.ldt pre span.builtin_type {
+	color: #4981B5;
+}
+
+.ldt pre span.builtin_literal {
+	color: #4981B5;
 }
 
 .ldt pre span.variable {
@@ -59,6 +71,10 @@
 
 .ldt pre span.keyword {
 	color: #7D67B5;
+}
+
+.ldt pre span.number {
+	color: #A2D8B4;
 }
 
 .ldt pre span.string {
@@ -79,8 +95,6 @@
 .ldt pre {
 	margin: 0;
 	overflow: initial;
-	padding-left: 10px;
-	padding-top: 7px;
 }
 
 .ldt label {
