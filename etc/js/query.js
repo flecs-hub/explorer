@@ -1,65 +1,57 @@
 
 Vue.component('query', {
-  props: ['error'],
-  mounted: function() {
-    this.ldt = new TextareaDecorator( 
-      document.getElementById('query-editor'), syntax_highlighter );
-  },
-  updated: function() {
-    this.ldt.update();
-  },
+  props: ['valid'],
   data: function() {
     return {
-      query: undefined,
-      last_query: undefined,
-      ldt: undefined,
-      focus: false
+      query_result: undefined,
+      query_error: undefined
     }
   },
   methods: {
-    changed: function(e) {
-      if (this.query != this.last_query) {
-        this.refresh();
+    // Query changed event
+    evt_query_changed(query) {
+      if (query.length > 1) {
+        app.request_query(query, (reply) => {
+          this.query_error = reply.error;
+          if (reply.error === undefined) {
+            this.query_result = reply;
+          }
+          this.$emit('changed');
+        });
+      } else {
+        this.query_result = undefined;
+        this.query_error = undefined;
+        this.$emit('changed');
       }
     },
-    refresh: function() {
-      this.$emit('changed', {query: this.query});
-      this.last_query = this.query;
-    },
-    set_query(expr) {
-      this.query = expr;
-      this.$emit('changed', {query: expr});
+    refresh() {
+      this.evt_query_changed(this.$refs.editor.get_query());
     },
     get_query() {
-      return this.query;
+      return this.$refs.editor.get_query();
     },
-    is_empty() {
-      return this.query == undefined || this.query.length == 0;
+    set_query(q) {
+      this.$refs.editor.set_query(q);
     },
-    evt_focus(focus) {
-      this.focus = focus;
+    get_error() {
+      return this.query_error;
     }
   },
-  computed: {
-    query_class() {
-      if (this.error) {
-        return "ecs-query ecs-query-error";
-      } else if (this.focus) {
-        return "ecs-query ecs-query-ok";
-      } else {
-        return "ecs-query";
-      }
-    },
-  },
   template: `
-    <div :class="query_class">
-      <textarea ref="input" 
-        id="query-editor"
-        v-model="query" 
-        v-on:keyup="changed"
-        v-on:focus="evt_focus(true)"
-        v-on:blur="evt_focus(false)">
-      </textarea>
-    </div>
+    <content-container :disable="query_result === undefined">
+      <template v-slot:summary>
+        Query&nbsp;&nbsp;<query-editor
+          ref="editor"
+          :error="query_error"
+          v-on:changed="evt_query_changed"/>
+      </template>
+
+      <template v-slot:detail>
+        <query-results 
+          :data="query_result" 
+          :valid="valid && query_error === undefined"
+          v-on="$listeners"/>
+      </template>
+    </content-container>
     `
 });

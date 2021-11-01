@@ -23,7 +23,8 @@ Vue.component('entity-tree-item', {
   },
   data: function() {
     return {
-      expand: false
+      expand: false,
+      text_elem: undefined
     }
   },
   methods: {
@@ -31,8 +32,15 @@ Vue.component('entity-tree-item', {
       this.$emit('toggle', this.entity_data);
       this.expand = this.entity_data.expand;
     },
+    search: function() {
+      this.$emit('select_query', this.entity_data.path);
+    },
     select: function() {
       this.$emit('select', this.entity_data);
+    },
+    search_x: function() {
+      console.log(this.$refs.item_text);
+      return 50;
     }
   },
   computed: {
@@ -63,13 +71,13 @@ Vue.component('entity-tree-item', {
       <template v-if="entity_data.has_children">
         <rect :x="x" :y="y - 5" :width="5" height="1" fill="#44464D"></rect>
         <image v-if="!expand"
-          class="entity-tree-expand" 
+          class="entity-tree-icon" 
           href="img/nav-right.png" 
           :x="x + 2" :y="y - 12" 
           v-on:click="toggle">
         </image>
         <image v-else
-          class="entity-tree-expand" 
+          class="entity-tree-icon" 
           href="img/nav-down.png" 
           :x="x + 2" 
           :y="y - 12" 
@@ -81,7 +89,12 @@ Vue.component('entity-tree-item', {
       </template>
 
       <entity-icon :x="x + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
-      <text :class="css_text" :x="x + 30" :y="y" v-on:click="select">{{entity}}</text>
+      <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity}}</text>
+      <image v-if="entity_data.is_component && !entity_data.is_module"
+        href="img/search.png" 
+        :x="170" :y="y - 12" height="13px"
+        v-on:click="search" class="entity-tree-icon">
+      </image>
     </svg>`
 });
 
@@ -94,7 +107,11 @@ Vue.component('entity-tree-outline', {
   },
   methods: {
     height: function() {
-      return subtree_height(this.entity_data) - item_height - 7;
+      let result = subtree_height(this.entity_data) - item_height - 7;
+      if (result < 0) {
+        result = 0;
+      }
+      return result;
     }
   },
   template: `
@@ -163,6 +180,9 @@ Vue.component('entity-tree-list', {
     select: function(entity) {
       this.$emit('select', entity);
     },
+    select_query: function(entity) {
+      this.$emit('select_query', entity);
+    },
     item_y: function(item) {
       return this.y + (item * item_height);
     },
@@ -182,7 +202,8 @@ Vue.component('entity-tree-list', {
   
           on: {
             toggle: this.toggle,
-            select: this.select
+            select: this.select,
+            select_query: this.select_query,
           }
         });
   
@@ -207,7 +228,8 @@ Vue.component('entity-tree-list', {
             },
             on: {
               toggle: this.toggle,
-              select: this.select
+              select: this.select,
+              select_query: this.select_query
             }
           });
           children.push(list_elem);
@@ -271,29 +293,32 @@ Vue.component('entity-tree', {
 
       return result;
     },
-    update: function(container) {
+    update: function(container, onready) {
       if (!container) {
         container = this.root;
       }
 
       const q = "(ChildOf, " + container.path + "), ?ChildOf(*, This), ?Module, ?Component, ?Tag, ?Prefab";
-      const r = wq_query(q);
-      data = JSON.parse(r);
-      container.entities = this.update_scope(container.entities, data);
+      app.request_query(q, (reply) => {
+        container.entities = this.update_scope(container.entities, reply);
+        if (onready) {
+          onready();
+        }
+      });
     },
     update_expanded: function(container) {
       if (!container) {
         container = this.root;
       }
 
-      this.update(container);
-
-      for (const entity in container.entities) {
-        const entity_data = container.entities[entity];
-        if (entity_data.expand) {
-          this.update_expanded(entity_data);
+      this.update(container, () => {
+        for (const entity in container.entities) {
+          const entity_data = container.entities[entity];
+          if (entity_data.expand) {
+            this.update_expanded(entity_data);
+          }
         }
-      }
+      });
     },
     toggle: function(entity) {
       entity.expand = !entity.expand;
@@ -314,29 +339,41 @@ Vue.component('entity-tree', {
         ent.entities = {};
       }
     },
+    select_recursive(entity, cur, elems, i, onready) {
+      if (!cur) {
+        return;
+      }
+
+      cur.expand = true;
+
+      this.update(cur, () => {
+        let next = cur.entities[elems[i]];
+        if (!next) {
+          if (elems[0] != "flecs" && elems[1] != "core") {
+            this.select("flecs.core." + entity);
+            return;
+          } else {
+            console.error("entity-tree: cannot navigate to entity " + elems[i]);
+            this.collapse_all();
+          }
+        }
+
+        if (i < (elems.length - 1)) {
+          this.select_recursive(entity, next, elems, i + 1, onready);
+        } else if (onready) {
+          onready(next);
+        }
+      });
+    },
     select: function(entity) {
       const elems = entity.split('.');
       let cur = this.root;
 
       this.collapse_all();
 
-      for (let i = 0; i < elems.length; i ++) {
-        cur.expand = true;
-
-        this.update(cur);
-        cur = cur.entities[elems[i]];
-        if (!cur) {          
-          // Entity does not exist, try in core
-          if (elems[0] != "flecs" && elems[1] != "core") {
-            this.select("flecs.core." + entity);
-            return;
-          } else {
-            console.log("cannot navigate to entity " + elems[i]);
-          }
-        }
-      }
-
-      this.evt_select(cur);
+      this.select_recursive(entity, cur, elems, 0, (item) => {
+        this.evt_select(item);
+      });
     },
     evt_select: function(entity) {
       if (!entity) {
@@ -359,6 +396,9 @@ Vue.component('entity-tree', {
       } else {
         this.$emit('select');
       }
+    },
+    evt_select_query: function(entity) {
+      this.$emit('select_query', entity);
     }
   },
   data: function() {
@@ -387,7 +427,8 @@ Vue.component('entity-tree', {
       <svg :height="tree_height" width="100%">
         <entity-tree-list :entities="root.entities" :x="0" :y="tree_top_margin" 
           v-on:toggle="toggle"
-          v-on:select="evt_select">
+          v-on:select="evt_select"
+          v-on:select_query="evt_select_query">
         </entity-tree-list>
       </svg>
     </div>

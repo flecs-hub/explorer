@@ -22,6 +22,8 @@ void capture_log(int32_t level, const char *file, int32_t line, const char *msg)
         ecs_strbuf_appendstr(&err_buf, msg);
         str_set = true;
     }
+
+    printf("flecs: %*s%s\n", ecs_os_api.log_indent_, "", msg);
 }
 
 static

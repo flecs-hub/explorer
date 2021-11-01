@@ -88,7 +88,6 @@
 /* settings you shouldn't play with unless you have a good reason */
 
 .ldt {
-	overflow: auto;
 	position: relative;
 }
 

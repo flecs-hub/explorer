@@ -16,50 +16,46 @@
     <div id="app">
       <!-- Top bar -->
       <div class="top-box">
-        <div class="query-box">
+        <div class="top-content">
+          <app-title ref="title" :value="title" :remote="remote"></app-title>
           <div class="play-button-box">
             <a href="https://github.com/SanderMertens/flecs" target="_blank">
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
-          <query
-            ref="query" 
-            :error="query_error"
-            v-on:changed="evt_query_changed"/>
-        </div>
-        <div class="share-button-box">
-          <img src="img/share_icon.png" v-on:click="show_url">
+          <div class="share-button-box">
+            <img src="img/share_icon.png" v-on:click="show_url">
+          </div>
         </div>
       </div>
 
       <!-- Tree view -->
       <div class="tree-box">
-        <entity-tree ref="tree" v-on:select="evt_select_tree_item"/>
+        <entity-tree ref="tree" v-on:select="evt_entity_changed" v-on:select_query="evt_select_query"/>
       </div>
 
       <!-- Application box -->
       <div class="app-box">
 
         <!-- Query results & Entity inspector -->
-        <div class="content-box">
-          <div class="result-box">
-            <query-results :data="query_result" 
-              v-on:select-entity="evt_select"/>
-          </div>
-          <div class="entity-box">
-            <inspector 
-              :entity="entity_data" 
-              :selection="selected_tree_item" 
-              v-on:select-entity="evt_select" 
-              ref="inspector"/>
-          </div>
+        <div class="left-column">
+          <query :valid="code_error === undefined" ref="query"
+            v-on:select-entity="evt_follow_ref"
+            v-on:changed="evt_query_changed"/>
         </div>
 
         <!-- Editor -->
-        <div class="editor-box">
+        <div class="right-column">
           <editor 
             ref="plecs"
-            v-on:run-code="evt_code_changed"/>
+            v-on:run-code="evt_code_changed"></editor>
+          <inspector 
+            :entity="entity_result" 
+            :selection="selected_tree_item" 
+            :valid="entity_error === undefined && code_error === undefined"
+            v-on:select-entity="evt_follow_ref" 
+            v-on:select-query="evt_select_query"
+            ref="inspector"></inspector>
         </div>
       </div>
 
@@ -109,11 +105,13 @@
     <script src="js/entity_reference.js"></script>
     <script src="js/entity_tree.js"></script>
     <script src="js/query.js"></script>
+    <script src="js/query_editor.js"></script>
     <script src="js/query_results.js"></script>
     <script src="js/entity_inspector.js"></script>
     <script src="js/editor.js"></script>
     <script src="js/url_modal.js"></script>
     <script src="js/terminal.js"></script>
+    <script src="js/app_title.js"></script>
     <script src="js/app.js"></script>
 
     <script src="web_queries.js"></script>

@@ -1,3 +1,26 @@
+Vue.component('scalar-value', {
+  props: ['value', 'css'],
+  computed: {
+    formatted_value: function() {
+      let value = this.value;
+      let str = value.toString();
+      if (typeof value === 'number') {
+        if (str.indexOf('.') == -1) {
+          return value;
+        } else {
+          let num = 4 - str.split('.')[0].length;
+          if (num < 0) {
+            num = 0;
+          }
+          return value.toFixed(num);
+        }
+      }
+      return value;
+    }
+  },
+  template: `<span :class="css">{{formatted_value}}</span>`
+});
+
 Vue.component('entity-property-value-full', {
   props: ['prop_key', 'value'],
   computed: {
@@ -27,25 +50,7 @@ Vue.component('entity-property-value-full', {
         </div>
       </template>
       <template v-else>
-        <template v-if="prop_key"><span class="entity-property-key">{{prop_key}}</span></template><span :class="value_css">{{value}}</span>
-      </template>
-    </div>
-    `
-});
-
-Vue.component('entity-property-value-table', {
-  props: ['prop_key', 'value'],
-  computed: {
-    is_object: function() {
-      return (typeof this.value) === "object";
-    }
-  },
-  template: `
-    <div class="entity-property-value-table">
-      <template v-if="is_object">
-      </template>
-      <template v-else>
-        {{prop_key}}:&nbsp{{value}}
+        <template v-if="prop_key"><span class="entity-property-key">{{prop_key}}</span></template><scalar-value :css="value_css" :value="value"/>
       </template>
     </div>
     `
@@ -60,9 +65,10 @@ Vue.component('entity-property-value', {
   },
   template: `
     <div><template v-if="!list">
-        <entity-property-value-full :prop_key="prop_key" :value="value"/>
-      </template>
-      <template v-else>{{value}}</template></div>
+      <entity-property-value-full :prop_key="prop_key" :value="value"/>
+    </template>
+    <template v-else><scalar-value :value="value"></scalar-value></template>
+    </div>
     `
 });
 
@@ -204,10 +210,13 @@ Vue.component('inspector-components', {
 });
 
 Vue.component('inspector', {
-  props: ['entity', 'selection'],
+  props: ['entity', 'selection', 'valid'],
   methods: {
     expand: function() {
       this.$refs.container.expand();
+    },
+    select_query: function() {
+      this.$emit('select-query', this.selection.path);
     }
   },
   computed: {
@@ -253,25 +262,36 @@ Vue.component('inspector', {
     },
     has_doc: function() {
       return this.brief || this.link;
+    },
+    content_css: function() {
+      if (!this.valid) {
+        return "entity-inspector-disabled";
+      } else {
+        return "";
+      }
     }
   },
   template: `
-    <div class="inspector">
-      <content-container :disable="!entity || !entity.valid" ref="container">
-        <template v-slot:summary>
-          Entity inspector
-        </template>
-        <template v-slot:detail v-if="entity && entity.valid">
+    <content-container :disable="!entity || !selection" ref="container">
+      <template v-slot:summary>
+        <template v-if="entity && selection">
           <div class="inspector-name">
             <div class="inspector-icon">
               <entity-icon x="0" y="0" :entity_data="selection"/>
             </div>
             {{selection.name}}
+            <icon src="search" v-if="selection.is_component" v-on:click.stop="select_query"/>
             <span class="inspector-parent" v-if="parent.length">
             - <entity-reference :entity="parent" v-on="$listeners"/>
             </span>
           </div>
-
+        </template>
+        <template v-else>
+          Entity inspector
+        </template>
+      </template>
+      <template v-slot:detail v-if="entity && selection">
+        <div :class="content_css">
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
               {{brief}}
@@ -292,8 +312,8 @@ Vue.component('inspector', {
               :show_header="entity.is_a" 
               v-on="$listeners"/>
           </div>
-        </template>
-      </content-container>
-    </div>
+        </div>
+      </template>
+    </content-container>
     `
 });

@@ -1,5 +1,5 @@
 Vue.component('detail-toggle', {
-  props: ['disable', 'collapse', 'hide_disabled', 'summary_toggle', "show_divider"],
+  props: ['disable', 'collapse', 'hide_disabled', 'summary_toggle', 'show_divider'],
   data: function() {
     return {
       should_expand: true
@@ -14,9 +14,13 @@ Vue.component('detail-toggle', {
         this.should_expand = !this.should_expand;
       }
     },
-    expand: function() {
-      this.should_expand = true;
-    }  
+    expand: function(expand) {
+      if (expand === undefined) {
+        this.should_expand = true;
+      } else {
+        this.should_expand = expand;
+      }
+    }
   },
   computed: {
     expanded: function() {

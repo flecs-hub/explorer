@@ -50,6 +50,9 @@ Vue.component('editor-textarea', {
 });
 
 Vue.component('editor', {
+  mounted: function() {
+    this.$refs.container.expand(false);
+  },
   methods: {
     run() {
       this.$refs.textarea.run();
@@ -59,10 +62,13 @@ Vue.component('editor', {
     },
     set_code(code) {
       this.$refs.textarea.set_code(code);
+      if (code !== undefined && code.length) {
+        this.$refs.container.expand();
+      }
     }
   },
   template: `
-    <content-container no_padding="true" overflow="true">
+    <content-container no_padding="true" overflow="true" ref="container">
       <template v-slot:summary>
         Editor
       </template>

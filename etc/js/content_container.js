@@ -2,14 +2,14 @@
 Vue.component('content-container', {
     props: ['disable', 'no_padding', 'overflow'],
     methods: {
-      expand: function() {
-        this.$refs.toggle.expand();
+      expand: function(arg) {
+        this.$refs.toggle.expand(arg);
       }
     },
     computed: {
       wrapper_css: function() {
         let result = "content-container-wrapper";
-        if (this.overflow) {
+        if (true) {
           result += " content-container-wrapper-overflow";
         }
         return result;
