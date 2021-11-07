@@ -21,6 +21,7 @@
 #include <time.h>
 #include <ctype.h>
 #include <math.h>
+#include <stddef.h>
 
 #ifdef _MSC_VER
 //FIXME
@@ -596,6 +597,7 @@ extern "C" {
 #define ECS_ecs_world_t_MAGIC     (0x65637377)
 #define ECS_ecs_stage_t_MAGIC     (0x65637373)
 #define ECS_ecs_query_t_MAGIC     (0x65637371)
+#define ECS_ecs_rule_t_MAGIC      (0x65637375)
 #define ECS_ecs_table_t_MAGIC     (0x65637374)
 #define ECS_ecs_filter_t_MAGIC    (0x65637366)
 #define ECS_ecs_trigger_t_MAGIC   (0x65637372)
@@ -605,6 +607,7 @@ extern "C" {
 typedef enum ecs_mixin_kind_t {
     EcsMixinWorld,
     EcsMixinObservable,
+    EcsMixinIterable,
     EcsMixinBase,        /* If mixin can't be found in object, look in base */
     EcsMixinMax
 } ecs_mixin_kind_t;
@@ -626,7 +629,6 @@ extern ecs_mixins_t ecs_query_t_mixins;
 
 /* Types that have no mixins */
 #define ecs_table_t_mixins (&(ecs_mixins_t){ NULL })
-
 
 /** Type used for internal string hashmap */
 typedef struct ecs_hashed_string_t {
@@ -896,9 +898,6 @@ struct ecs_query_t {
     /* Query filter */
     ecs_filter_t filter;
 
-    /* Reference to world */
-    ecs_world_t *world;
-
     /* Tables matched with query */
     ecs_table_cache_t cache;
 
@@ -933,8 +932,11 @@ struct ecs_query_t {
     int32_t cascade_by;         /* Identify cascade column */
     int32_t match_count;        /* How often have tables been (un)matched */
     int32_t prev_match_count;   /* Used to track if sorting is needed */
-
     bool constraints_satisfied; /* Are all term constraints satisfied */
+
+    /* Mixins */
+    ecs_world_t *world;
+    ecs_iterable_t iterable;
 };
 
 /** All triggers for a specific (component) id */
@@ -1111,6 +1113,7 @@ struct ecs_world_t {
     /* -- Mixins -- */
     ecs_world_t *self;
     ecs_observable_t observable;
+    ecs_iterable_t iterable;
 
     /* Unique id per generated event used to prevent duplicate notifications */
     int32_t event_id;
@@ -1907,7 +1910,7 @@ void flecs_increase_timer_resolution(
 ////////////////////////////////////////////////////////////////////////////////
 
 /* Initialize object header & mixins for specified type */
-void _ecs_poly_init(
+void* _ecs_poly_init(
     ecs_poly_t *object,
     int32_t kind,
     ecs_size_t size,
@@ -1926,7 +1929,7 @@ void _ecs_poly_fini(
 
 /* Utility functions for creating an object on the heap */
 #define ecs_poly_new(type)\
-    ecs_poly_init(ecs_os_calloc_t(type), type)
+    (type*)ecs_poly_init(ecs_os_calloc_t(type), type)
 
 #define ecs_poly_free(obj, type)\
     ecs_poly_fini(obj, type);\
@@ -1954,6 +1957,9 @@ bool _ecs_poly_is(
     _ecs_poly_is(object, ECS_##type##_MAGIC)
 
 /* Utility functions for getting a mixin from an object */
+ecs_iterable_t* ecs_get_iterable(
+    const ecs_poly_t *poly);
+
 ecs_observable_t* ecs_get_observable(
     const ecs_poly_t *object);
 
@@ -2044,6 +2050,12 @@ int flecs_entity_compare(
 int flecs_entity_compare_qsort(
     const void *e1,
     const void *e2);
+
+/* Convert floating point to string */
+char * ecs_ftoa(
+    double f, 
+    char * buf, 
+    int precision);
 
 uint64_t flecs_string_hash(
     const void *ptr);
@@ -4207,12 +4219,12 @@ void* ecs_record_get_column(
 
     return ECS_OFFSET(array, size * row);
 }
-#include <stddef.h>
 
 static const char* mixin_kind_str[] = {
     [EcsMixinBase] = "base (should never be requested by application)",
     [EcsMixinWorld] = "world",
     [EcsMixinObservable] = "observable",
+    [EcsMixinIterable] = "iterable",
     [EcsMixinMax] = "max (should never be requested by application)"
 };
 
@@ -4220,7 +4232,8 @@ ecs_mixins_t ecs_world_t_mixins = {
     .type_name = "ecs_world_t",
     .elems = {
         [EcsMixinWorld] = offsetof(ecs_world_t, self),
-        [EcsMixinObservable] = offsetof(ecs_world_t, observable)
+        [EcsMixinObservable] = offsetof(ecs_world_t, observable),
+        [EcsMixinIterable] = offsetof(ecs_world_t, iterable)
     }
 };
 
@@ -4235,7 +4248,15 @@ ecs_mixins_t ecs_stage_t_mixins = {
 ecs_mixins_t ecs_query_t_mixins = {
     .type_name = "ecs_query_t",
     .elems = {
-        [EcsMixinWorld] = offsetof(ecs_query_t, world)
+        [EcsMixinWorld] = offsetof(ecs_query_t, world),
+        [EcsMixinIterable] = offsetof(ecs_query_t, iterable)
+    }
+};
+
+ecs_mixins_t ecs_filter_t_mixins = {
+    .type_name = "ecs_filter_t",
+    .elems = {
+        [EcsMixinIterable] = offsetof(ecs_filter_t, iterable)
     }
 };
 
@@ -4299,7 +4320,7 @@ void* assert_mixin(
     return ptr;
 }
 
-void _ecs_poly_init(
+void* _ecs_poly_init(
     ecs_poly_t *poly,
     int32_t type,
     ecs_size_t size,
@@ -4313,6 +4334,8 @@ void _ecs_poly_init(
     hdr->magic = ECS_OBJECT_MAGIC;
     hdr->type = type;
     hdr->mixins = mixins;
+
+    return poly;
 }
 
 void _ecs_poly_fini(
@@ -4358,6 +4381,12 @@ bool _ecs_poly_is(
     const ecs_header_t *hdr = poly;
     ecs_assert(hdr->magic == ECS_OBJECT_MAGIC, ECS_INVALID_PARAMETER, NULL);
     return hdr->type == type;    
+}
+
+ecs_iterable_t* ecs_get_iterable(
+    const ecs_poly_t *poly)
+{
+    return (ecs_iterable_t*)assert_mixin(poly, EcsMixinIterable);
 }
 
 ecs_observable_t* ecs_get_observable(
@@ -4454,7 +4483,8 @@ void* get_base_component(
     /* Should always be an id record for IsA, otherwise a table with a 
      * HasBase flag set should not exist. */
     if (!table_index_isa) {
-        ecs_id_record_t *idr = flecs_get_id_record(world, ecs_pair(EcsIsA, EcsWildcard));
+        ecs_id_record_t *idr = flecs_get_id_record(
+            world, ecs_pair(EcsIsA, EcsWildcard));
         ecs_assert(idr != NULL, ECS_INTERNAL_ERROR, NULL);
         table_index_isa = idr;
     }
@@ -4484,8 +4514,16 @@ void* get_base_component(
             continue;
         }
 
-        const ecs_table_record_t *tr = flecs_id_record_table(
-            table_index, table);
+        const ecs_table_record_t *tr = NULL;
+
+        ecs_table_t *storage_table = table->storage_table;
+        if (storage_table) {
+            tr = flecs_id_record_table(table_index, storage_table);
+        } else {
+            ecs_assert(!ecs_owns_id(world, base, id), 
+                ECS_NOT_A_COMPONENT, NULL);
+        }
+
         if (!tr) {
             ptr = get_base_component(world, table, id, table_index, 
                 table_index_isa, recur_depth + 1);
@@ -5767,7 +5805,7 @@ ecs_entity_t ecs_set_with(
     return prev;
 }
 
-ecs_entity_t ecs_get_with(
+ecs_id_t ecs_get_with(
     const ecs_world_t *world)
 {
     const ecs_stage_t *stage = flecs_stage_from_readonly_world(world);
@@ -5791,7 +5829,7 @@ ecs_entity_t ecs_new_low_id(
             ECS_INVALID_WHILE_ITERATING, NULL);
     }
 
-    ecs_entity_t id;
+    ecs_entity_t id = 0;
 
     if (unsafe_world->stats.last_component_id < ECS_HI_COMPONENT_ID) {
         do {
@@ -6350,10 +6388,10 @@ ecs_entity_t ecs_component_init(
         ptr->size = flecs_from_size_t(desc->size);
         ptr->alignment = flecs_from_size_t(desc->alignment);
         if (!ptr->size) {
-            ecs_trace("#[green]tag#[reset] %s registered", 
+            ecs_trace("#[green]tag#[reset] %s created", 
                 ecs_get_name(world, result));
         } else {
-            ecs_trace("#[green]component#[reset] %s registered", 
+            ecs_trace("#[green]component#[reset] %s created", 
                 ecs_get_name(world, result));
         }
     } else {
@@ -7795,41 +7833,6 @@ bool ecs_defer_end(
     return flecs_defer_flush(world, stage);
 }
 
-static
-size_t append_to_str(
-    char **buffer,
-    const char *str,
-    size_t bytes_left,
-    size_t *required)
-{
-    char *ptr = NULL;
-    if (buffer) {
-        ptr = *buffer;
-    }
-
-    size_t len = strlen(str);
-    size_t to_write;
-    if (bytes_left < len) {
-        to_write = bytes_left;
-        bytes_left = 0;
-    } else {
-        to_write = len;
-        bytes_left -= len;
-    }
-    
-    if (to_write && ptr) {
-        ecs_os_memcpy(ptr, str, to_write);
-    }
-
-    (*required) += len;
-
-    if (buffer) {
-        (*buffer) += to_write;
-    }
-
-    return bytes_left;
-}
-
 const char* ecs_role_str(
     ecs_entity_t entity)
 {
@@ -7864,27 +7867,18 @@ const char* ecs_role_str(
     }
 }
 
-size_t ecs_id_str_w_buf(
+void ecs_id_str_buf(
     const ecs_world_t *world,
     ecs_id_t id,
-    char *buffer,
-    size_t buffer_len)
+    ecs_strbuf_t *buf)
 {
     ecs_assert(world != NULL, ECS_INVALID_PARAMETER, NULL);
 
     world = ecs_get_world(world);
 
-    char *ptr = buffer;
-    char **pptr = NULL;
-    if (ptr) {
-        pptr = &ptr;
-    }
-
-    size_t bytes_left = buffer_len - 1, required = 0;
     if (id & ECS_ROLE_MASK && !ECS_HAS_ROLE(id, PAIR)) {
-        const char *role = ecs_role_str(id);
-        bytes_left = append_to_str(pptr, role, bytes_left, &required);
-        bytes_left = append_to_str(pptr, "|", bytes_left, &required);
+        ecs_strbuf_appendstr(buf, ecs_role_str(id));
+        ecs_strbuf_appendch(buf, '|');
     }
 
     if (ECS_HAS_ROLE(id, PAIR)) {
@@ -7899,39 +7893,24 @@ size_t ecs_id_str_w_buf(
             obj = e;
         }
 
-        char *rel_str = ecs_get_fullpath(world, rel);
-        bytes_left = append_to_str(pptr, "(", bytes_left, &required);
-        bytes_left = append_to_str(pptr, rel_str, bytes_left, &required);
-        ecs_os_free(rel_str);
-        bytes_left = append_to_str(pptr, ",", bytes_left, &required);
-
-        char *obj_str = ecs_get_fullpath(world, obj);
-        bytes_left = append_to_str(pptr, obj_str, bytes_left, &required);
-        ecs_os_free(obj_str);
-
-        append_to_str(pptr, ")", bytes_left, &required);
+        ecs_strbuf_appendch(buf, '(');
+        ecs_get_path_w_sep_buf(world, 0, rel, NULL, NULL, buf);
+        ecs_strbuf_appendch(buf, ',');
+        ecs_get_path_w_sep_buf(world, 0, obj, NULL, NULL, buf);
+        ecs_strbuf_appendch(buf, ')');
     } else {
         ecs_entity_t e = id & ECS_COMPONENT_MASK;
-        char *path = ecs_get_fullpath(world, e);
-        append_to_str(pptr, path, bytes_left, &required);
-        ecs_os_free(path);
+        ecs_get_path_w_sep_buf(world, 0, e, NULL, NULL, buf);
     }
-
-    if (ptr) {
-        ptr[0] = '\0';
-    }
-    
-    return required;
 }
 
 char* ecs_id_str(
     const ecs_world_t *world,
     ecs_id_t id)
 {
-    size_t size = ecs_id_str_w_buf(world, id, NULL, 0);
-    char *result = ecs_os_malloc(flecs_from_size_t(size) + 1);
-    ecs_id_str_w_buf(world, id, result, size + 1);
-    return result;
+    ecs_strbuf_t buf = ECS_STRBUF_INIT;
+    ecs_id_str_buf(world, id, &buf);
+    return ecs_strbuf_get(&buf);
 }
 
 static
@@ -10903,6 +10882,101 @@ void flecs_bitset_swap(
     flecs_bitset_set(bs, elem_b, a);
 }
 
+/**
+ *  stm32tpl --  STM32 C++ Template Peripheral Library
+ *  Visit https://github.com/antongus/stm32tpl for new versions
+ *
+ *  Copyright (c) 2011-2020 Anton B. Gusev aka AHTOXA
+ */
+
+#define MAX_PRECISION	(10)
+static const double rounders[MAX_PRECISION + 1] =
+{
+	0.5,				// 0
+	0.05,				// 1
+	0.005,				// 2
+	0.0005,				// 3
+	0.00005,			// 4
+	0.000005,			// 5
+	0.0000005,			// 6
+	0.00000005,			// 7
+	0.000000005,		// 8
+	0.0000000005,		// 9
+	0.00000000005		// 10
+};
+
+static
+int ecs_strbuf_ftoa(
+    ecs_strbuf_t *out, 
+    double f, 
+    int precision)
+{
+    char buf[64];
+	char * ptr = buf;
+	char * p1;
+	char c;
+	int64_t intPart;
+
+	if (precision > MAX_PRECISION) {
+		precision = MAX_PRECISION;
+    }
+
+	if (f < 0) {
+		f = -f;
+		*ptr++ = '-';
+	}
+
+	if (precision < 0) {
+		if (f < 1.0) precision = 6;
+		else if (f < 10.0) precision = 5;
+		else if (f < 100.0) precision = 4;
+		else if (f < 1000.0) precision = 3;
+		else if (f < 10000.0) precision = 2;
+		else if (f < 100000.0) precision = 1;
+		else precision = 0;
+	}
+
+	if (precision) {
+		f += rounders[precision];
+    }
+
+	intPart = (int64_t)f;
+	f -= (double)intPart;
+
+	if (!intPart) {
+		*ptr++ = '0';
+    } else {
+		char *p = ptr;
+		while (intPart) {
+			*p++ = (char)('0' + intPart % 10);
+			intPart /= 10;
+		}
+
+		p1 = p;
+
+		while (p > ptr) {
+			c = *--p;
+			*p = *ptr;
+			*ptr++ = c;
+		}
+		ptr = p1;
+	}
+
+	if (precision) {
+		*ptr++ = '.';
+		while (precision--) {
+			f *= 10.0;
+			c = (char)f;
+			*ptr++ = (char)('0' + c);
+			f -= c;
+		}
+	}
+	*ptr = 0;
+    
+    return ecs_strbuf_appendstrn(out, buf, (int32_t)(ptr - buf));
+}
+
+
 /* Add an extra element to the buffer */
 static
 void ecs_strbuf_grow(
@@ -11126,6 +11200,32 @@ bool appendstr(
     return ecs_strbuf_memLeft(b) > 0;
 }
 
+static
+bool appendch(
+    ecs_strbuf_t *b,
+    char ch)
+{
+    ecs_strbuf_init(b);
+
+    int32_t memLeftInElement = ecs_strbuf_memLeftInCurrentElement(b);
+    int32_t memLeft = ecs_strbuf_memLeft(b);
+    if (memLeft <= 0) {
+        return false;
+    }
+
+    if (memLeftInElement) {
+        /* Element was large enough to fit string */
+        ecs_strbuf_ptr(b)[0] = ch;
+        b->current->pos ++;
+    } else {
+        ecs_strbuf_grow(b);
+        ecs_strbuf_ptr(b)[0] = ch;
+        b->current->pos ++;
+    }
+
+    return ecs_strbuf_memLeft(b) > 0;
+}
+
 bool ecs_strbuf_vappend(
     ecs_strbuf_t *b,
     const char* fmt,
@@ -11167,7 +11267,15 @@ bool ecs_strbuf_appendch(
     char ch)
 {
     ecs_assert(b != NULL, ECS_INVALID_PARAMETER, NULL); 
-    return ecs_strbuf_appendstrn(b, &ch, 1);
+    return appendch(b, ch);
+}
+
+bool ecs_strbuf_appendflt(
+    ecs_strbuf_t *b,
+    double flt)
+{
+    ecs_assert(b != NULL, ECS_INVALID_PARAMETER, NULL); 
+    return ecs_strbuf_ftoa(b, flt, 2);
 }
 
 bool ecs_strbuf_appendstr_zerocpy(
@@ -12345,18 +12453,6 @@ void ecs_log_pop(void) {
     ecs_os_api.log_indent_ --;
 }
 
-void ecs_log_set_level(
-    int level)
-{
-    ecs_os_api.log_level_ = level;
-}
-
-void ecs_log_enable_colors(
-    bool enabled)
-{
-    ecs_os_api.log_with_color_ = enabled;
-}
-
 void _ecs_parser_errorv(
     const char *name,
     const char *expr, 
@@ -12608,6 +12704,22 @@ void _ecs_assert(
 }
 
 #endif
+
+int ecs_log_set_level(
+    int level)
+{
+    int prev = level;
+    ecs_os_api.log_level_ = level;
+    return prev;
+}
+
+bool ecs_log_enable_colors(
+    bool enabled)
+{
+    bool prev = ecs_os_api.log_with_color_;
+    ecs_os_api.log_with_color_ = enabled;
+    return prev;
+}
 
 #ifdef FLECS_PIPELINE
 
@@ -14055,6 +14167,7 @@ void* win_thread_join(
 {
     HANDLE *thread = (HANDLE*)(uintptr_t)thr;
     WaitForSingleObject(thread, INFINITE);
+    ecs_os_free(thread);
     return NULL;
 }
 
@@ -15045,10 +15158,6 @@ const char* parse_stmt(
         goto term_expr;
     }
 
-    ecs_assert(ptr != NULL, ECS_INTERNAL_ERROR, NULL);
-    
-    goto done;
-
 term_expr:
     if (!ptr[0]) {
         goto done;
@@ -15585,6 +15694,8 @@ typedef struct ecs_rule_var_t {
 
 /* Top-level rule datastructure */
 struct ecs_rule_t {
+    ecs_header_t hdr;
+    
     ecs_world_t *world;         /* Ref to world so rule can be used by itself */
     ecs_rule_op_t *operations;  /* Operations array */
     ecs_rule_var_t *variables;  /* Variable array */
@@ -15597,6 +15708,17 @@ struct ecs_rule_t {
     int32_t subject_variable_count;
     int32_t frame_count;        /* Number of register frames */
     int32_t operation_count;    /* Number of operations in rule */
+
+    ecs_iterable_t iterable;    /* Iterable mixin */
+};
+
+/* ecs_rule_t mixins */
+ecs_mixins_t ecs_rule_t_mixins = {
+    .type_name = "ecs_rule_t",
+    .elems = {
+        [EcsMixinWorld] = offsetof(ecs_rule_t, world),
+        [EcsMixinIterable] = offsetof(ecs_rule_t, iterable)
+    }
 };
 
 static
@@ -17738,11 +17860,29 @@ void create_variable_name_array(
     }
 }
 
+/* Implementation for iterable mixin */
+static
+void rule_iter_init(
+    const ecs_world_t *world,
+    const ecs_poly_t *poly,
+    ecs_iter_t *iter,
+    ecs_term_t *filter)
+{
+    ecs_poly_assert(poly, ecs_rule_t);
+
+    if (filter) {
+        iter[1] = ecs_rule_iter(world, (ecs_rule_t*)poly);
+        iter[0] = ecs_term_chain_iter(&iter[1], filter);
+    } else {
+        iter[0] = ecs_rule_iter(world, (ecs_rule_t*)poly);
+    }
+}
+
 ecs_rule_t* ecs_rule_init(
     ecs_world_t *world,
     const ecs_filter_desc_t *desc)
 {
-    ecs_rule_t *result = ecs_os_calloc(ECS_SIZEOF(ecs_rule_t));
+    ecs_rule_t *result = ecs_poly_new(ecs_rule_t);
 
     ecs_filter_desc_t local_desc = *desc;
     local_desc.substitute_default = true;
@@ -17805,6 +17945,8 @@ ecs_rule_t* ecs_rule_init(
 
         result->subject_variables[i] = -1;
     }
+
+    result->iterable.init = rule_iter_init;
 
     return result;
 error:
@@ -19510,11 +19652,19 @@ ecs_entity_t ecs_module_init(
     private_desc.entity.entity = e;
     private_desc.entity.name = NULL;
 
-    ecs_entity_t result = ecs_component_init(world, &private_desc);
-    ecs_assert(result != 0, ECS_INTERNAL_ERROR, NULL);
-    ecs_assert(result == e, ECS_INTERNAL_ERROR, NULL);
+    if (desc->size) {
+        ecs_entity_t result = ecs_component_init(world, &private_desc);
+        ecs_assert(result != 0, ECS_INTERNAL_ERROR, NULL);
+        ecs_assert(result == e, ECS_INTERNAL_ERROR, NULL);
+        (void)result;
+    } else {
+        ecs_entity_t result = ecs_entity_init(world, &private_desc.entity);
+        ecs_assert(result != 0, ECS_INTERNAL_ERROR, NULL);
+        ecs_assert(result == e, ECS_INTERNAL_ERROR, NULL);
+        (void)result;
+    }
 
-    return result;
+    return e;
 }
 
 #endif
@@ -21909,10 +22059,10 @@ int expr_ser_primitive(
         ecs_strbuf_append(str, "%lld", *(int64_t*)base);
         break;
     case EcsF32:
-        ecs_strbuf_append(str, "%f", (double)*(float*)base);
+        ecs_strbuf_appendflt(str, (double)*(float*)base);
         break;
     case EcsF64:
-        ecs_strbuf_append(str, "%f", *(double*)base);
+        ecs_strbuf_appendflt(str, *(double*)base);
         break;
     case EcsIPtr:
         ecs_strbuf_append(str, "%i", *(intptr_t*)base);
@@ -22173,7 +22323,7 @@ int expr_ser_type_op(
             ECS_OFFSET(ptr, op->offset), str)) 
         {
             /* Unknown operation */
-            ecs_abort(ECS_INTERNAL_ERROR, NULL);
+            ecs_err("unknown serializer operation kind (%d)", op->kind);
             goto error;
         }
         break;
@@ -23180,8 +23330,7 @@ ecs_snapshot_t* ecs_snapshot_take(
 
 /** Create a filtered snapshot */
 ecs_snapshot_t* ecs_snapshot_take_w_iter(
-    ecs_iter_t *iter,
-    ecs_iter_next_action_t next)
+    ecs_iter_t *iter)
 {
     ecs_world_t *world = iter->world;
     ecs_assert(world != NULL, ECS_INTERNAL_ERROR, NULL);
@@ -23190,7 +23339,7 @@ ecs_snapshot_t* ecs_snapshot_take_w_iter(
         world,
         world->store.entity_index,
         iter,
-        next);
+        iter ? iter->next : NULL);
 
     result->last_id = world->stats.last_id;
 
@@ -23385,7 +23534,8 @@ ecs_iter_t ecs_snapshot_iter(
     return (ecs_iter_t){
         .world = snapshot->world,
         .table_count = ecs_vector_count(snapshot->tables),
-        .iter.snapshot = iter
+        .iter.snapshot = iter,
+        .next = ecs_snapshot_next
     };
 }
 
@@ -24062,7 +24212,7 @@ void json_number(
     ecs_strbuf_t *buf,
     double value)
 {
-    ecs_strbuf_append(buf, "%f", value);
+    ecs_strbuf_appendflt(buf, value);
 }
 
 static
@@ -24128,6 +24278,28 @@ void json_member(
 }
 
 static
+void json_path(
+    ecs_strbuf_t *buf,
+    const ecs_world_t *world,
+    ecs_entity_t e)
+{
+    ecs_strbuf_appendch(buf, '"');
+    ecs_get_fullpath_buf(world, e, buf);
+    ecs_strbuf_appendch(buf, '"');
+}
+
+static
+void json_id(
+    ecs_strbuf_t *buf,
+    const ecs_world_t *world,
+    ecs_id_t id)
+{
+    ecs_strbuf_appendch(buf, '"');
+    ecs_id_str_buf(world, id, buf);
+    ecs_strbuf_appendch(buf, '"');
+}
+
+static
 ecs_primitive_kind_t json_op_to_primitive_kind(ecs_meta_type_op_kind_t kind) {
     return kind - EcsOpPrimitive;
 }
@@ -24153,9 +24325,9 @@ int json_ser_enum(
         return -1;
     }
 
-    ecs_strbuf_appendstr(str, "\"");
+    ecs_strbuf_appendch(str, '"');
     ecs_strbuf_appendstr(str, ecs_get_name(world, constant->constant));
-    ecs_strbuf_appendstr(str, "\"");
+    ecs_strbuf_appendch(str, '"');
 
     return 0;
 }
@@ -24176,7 +24348,7 @@ int json_ser_bitmask(
     ecs_bitmask_constant_t *constant;
 
     if (!value) {
-        ecs_strbuf_appendstr(str, "0");
+        ecs_strbuf_appendch(str, '0');
         return 0;
     }
 
@@ -24333,7 +24505,7 @@ int json_ser_type_op(
     case EcsOpEntity: {
         ecs_entity_t e = *(ecs_entity_t*)ptr;
         if (!e) {
-            ecs_strbuf_appendstr(str, "0");
+            ecs_strbuf_appendch(str, '0');
         } else {
             char *path = ecs_get_fullpath(world, e);
             ecs_assert(path != NULL, ECS_INTERNAL_ERROR, NULL);
@@ -24726,9 +24898,7 @@ void serialize_id(
     ecs_id_t id,
     ecs_strbuf_t *buf) 
 {
-    char *id_str = ecs_id_str(world, id);
-    json_string(buf, id_str);
-    ecs_os_free(id_str);
+    json_id(buf, world, id);
 }
 
 static
@@ -24807,10 +24977,8 @@ void serialize_iter_result_subjects(
     for (int i = 0; i < it->term_count; i ++) {
         json_next(buf);
         ecs_entity_t subj = it->subjects[i];
-        if (subj) {
-            char *path = ecs_get_fullpath(world, subj);
-            json_string(buf, path);
-            ecs_os_free(path);
+        if (subj) {            
+            json_path(buf, world, subj);
         } else {
             json_literal(buf, "0");
         }
@@ -24861,9 +25029,7 @@ void serialize_iter_result_variables(
         }
 
         ecs_strbuf_list_next(buf);
-        char *path = ecs_get_fullpath(world, variables[i]);
-        json_string(buf, path);
-        ecs_os_free(path);
+        json_path(buf, world, variables[i]);
     }
 
     if (actual_count) {
@@ -24888,10 +25054,8 @@ void serialize_iter_result_entities(
     ecs_entity_t *entities = it->entities;
 
     for (int i = 0; i < count; i ++) {
-        char *path = ecs_get_fullpath(world, entities[i]);
         json_next(buf);
-        json_string(buf, path);
-        ecs_os_free(path);
+        json_path(buf, world, entities[i]);
     }
 
     json_array_pop(buf);
@@ -25307,6 +25471,7 @@ bool rest_reply(
             }
 
             ecs_dbg("rest: request query '%s'", q);
+            bool prev_color = ecs_log_enable_colors(false);
             ecs_os_api_log_t prev_log_ = ecs_os_api.log_;
             ecs_os_api.log_ = rest_capture_log;
 
@@ -25326,6 +25491,7 @@ bool rest_reply(
             }
 
             ecs_os_api.log_ = prev_log_;
+            ecs_log_enable_colors(prev_color);
 
             return true;
         }
@@ -25386,6 +25552,12 @@ void on_set_rest(
 static
 void dequeue_rest(ecs_iter_t *it) {
     EcsRest *rest = ecs_term(it, EcsRest, 1);
+
+    if (it->delta_system_time > (FLECS_FLOAT)1.0) {
+        ecs_warn(
+            "detected large progress interval (%.2fs), REST request may timeout",
+            (double)it->delta_system_time);
+    }
 
     int32_t i;
     for(i = 0; i < it->count; i ++) {
@@ -27169,7 +27341,7 @@ const char* parse_arguments(
                 return NULL;
             }
 
-            ecs_term_id_t *term_id;
+            ecs_term_id_t *term_id = NULL;
 
             if (arg == 0) {
                 term_id = &term->subj;
@@ -28513,9 +28685,9 @@ int ecs_app_set_frame_action(
 #endif
 
 /* Roles */
-const ecs_id_t ECS_CASE =  (ECS_ROLE | (0x7Cull << 56));
-const ecs_id_t ECS_SWITCH =  (ECS_ROLE | (0x7Bull << 56));
-const ecs_id_t ECS_PAIR =  (ECS_ROLE | (0x7Aull << 56));
+const ecs_id_t ECS_CASE =      (ECS_ROLE | (0x7Cull << 56));
+const ecs_id_t ECS_SWITCH =    (ECS_ROLE | (0x7Bull << 56));
+const ecs_id_t ECS_PAIR =      (ECS_ROLE | (0x7Aull << 56));
 const ecs_id_t ECS_OVERRIDE =  (ECS_ROLE | (0x75ull << 56));
 const ecs_id_t ECS_DISABLED =  (ECS_ROLE | (0x74ull << 56));
 
@@ -28527,6 +28699,7 @@ const ecs_entity_t ecs_id(EcsIdentifier) =         4;
 const ecs_entity_t ecs_id(EcsTrigger) =            5;
 const ecs_entity_t ecs_id(EcsQuery) =              6;
 const ecs_entity_t ecs_id(EcsObserver) =           7;
+const ecs_entity_t ecs_id(EcsIterable) =           8;
 
 /* System module component ids */
 const ecs_entity_t ecs_id(EcsSystem) =             10;
@@ -28862,6 +29035,43 @@ void fini_store(ecs_world_t *world) {
     flecs_hashmap_free(world->store.table_map);
 }
 
+/* Implementation for iterable mixin */
+static
+bool world_iter_next(
+    ecs_iter_t *it)
+{
+    if (it->is_valid) {
+        return it->is_valid = false;
+    }
+
+    ecs_world_t *world = it->real_world;
+    ecs_sparse_t *entity_index = world->store.entity_index;
+    it->entities = (ecs_entity_t*)flecs_sparse_ids(entity_index);
+    it->count = flecs_sparse_count(entity_index);
+    return it->is_valid = true;
+}
+
+static
+void world_iter_init(
+    const ecs_world_t *world,
+    const ecs_poly_t *poly,
+    ecs_iter_t *iter,
+    ecs_term_t *filter)
+{
+    ecs_poly_assert(poly, ecs_world_t);
+    (void)poly;
+
+    if (filter) {
+        iter[0] = ecs_term_iter(world, filter);
+    } else {
+        iter[0] = (ecs_iter_t){
+            .world = (ecs_world_t*)world,
+            .real_world = (ecs_world_t*)ecs_get_world(world),
+            .next = world_iter_next
+        };
+    }
+}
+
 static
 void log_addons(void) {
     ecs_trace("addons included in build:");
@@ -28973,6 +29183,7 @@ ecs_world_t *ecs_mini(void) {
     world->type_info = flecs_sparse_new(ecs_type_info_t);
     world->id_index = ecs_map_new(ecs_id_record_t, 8);
     flecs_observable_init(&world->observable);
+    world->iterable.init = world_iter_init;
 
     world->queries = flecs_sparse_new(ecs_query_t);
     world->triggers = flecs_sparse_new(ecs_trigger_t);
@@ -31005,6 +31216,24 @@ int ecs_filter_finalize(
     return 0;
 }
 
+/* Implementation for iterable mixin */
+static
+void filter_iter_init(
+    const ecs_world_t *world,
+    const ecs_poly_t *poly,
+    ecs_iter_t *iter,
+    ecs_term_t *filter)
+{
+    ecs_poly_assert(poly, ecs_filter_t);
+
+    if (filter) {
+        iter[1] = ecs_filter_iter(world, (ecs_filter_t*)poly);
+        iter[0] = ecs_term_chain_iter(&iter[1], filter);
+    } else {
+        iter[0] = ecs_filter_iter(world, (ecs_filter_t*)poly);
+    }
+}
+
 int ecs_filter_init(
     const ecs_world_t *stage,
     ecs_filter_t *filter_out,
@@ -31021,12 +31250,12 @@ int ecs_filter_init(
     const char *name = desc->name;
     const char *expr = desc->expr;
 
-    ecs_filter_t f = {
-        /* Temporarily set the fields to the values provided in desc, until the
-         * filter has been validated. */
-        .name = (char*)name,
-        .expr = (char*)expr
-    };
+    /* Temporarily set the fields to the values provided in desc, until the
+     * filter has been validated. */
+    ecs_filter_t f;
+    ecs_poly_init(&f, ecs_filter_t);
+    f.name = (char*)name;
+    f.expr = (char*)expr;
 
     if (terms) {
         terms = desc->terms_buffer;
@@ -31134,6 +31363,8 @@ int ecs_filter_init(
     ecs_assert(!filter_out->term_cache_used || 
         filter_out->terms == filter_out->term_cache,
         ECS_INTERNAL_ERROR, NULL);
+
+    filter_out->iterable.init = filter_iter_init;
 
     return 0;
 error:
@@ -31696,6 +31927,35 @@ ecs_iter_t ecs_term_iter(
     return it;
 }
 
+ecs_iter_t ecs_term_chain_iter(
+    const ecs_iter_t *chain_it,
+    ecs_term_t *term)
+{
+    ecs_assert(chain_it != NULL, ECS_INVALID_PARAMETER, NULL);
+    ecs_assert(term != NULL, ECS_INVALID_PARAMETER, NULL);
+
+    ecs_world_t *world = chain_it->real_world;
+    ecs_assert(world != NULL, ECS_INVALID_PARAMETER, NULL);
+
+    if (ecs_term_finalize(world, NULL, term)) {
+        /* Invalid term */
+        ecs_abort(ECS_INVALID_PARAMETER, NULL);
+    }
+
+    ecs_iter_t it = {
+        .chain_it = (ecs_iter_t*)chain_it,
+        .real_world = (ecs_world_t*)world,
+        .world = chain_it->world,
+        .terms = term,
+        .term_count = 1,
+        .next = ecs_term_next
+    };
+
+    term_iter_init(world, term, &it.iter.term);
+
+    return it;
+}
+
 static
 const ecs_table_record_t *next_table(
     ecs_term_iter_t *iter)
@@ -31814,45 +32074,69 @@ bool ecs_term_next(
     ecs_term_t *term = &iter->term;
     ecs_world_t *world = it->real_world;
 
-    ecs_entity_t source = 0;
-    ecs_table_record_t tr = term_iter_next(world, iter, &source, false, false);
-    ecs_table_t *table = tr.table;
-    if (!table) {
-        it->is_valid = false;
-        return false;
-    }
-
-    /* Source must either be 0 (EcsThis) or nonzero in case of substitution */
-    ecs_assert(source || iter->cur != iter->set_index, ECS_INTERNAL_ERROR, NULL);
-    ecs_assert(table != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    it->table = table;
-    it->type = table->type;
     it->ids = &iter->id;
     it->columns = &iter->column;
     it->subjects = &iter->subject;
     it->sizes = &iter->size;
     it->ptrs = &iter->ptr;
 
-    it->count = ecs_table_count(table);
-    it->entities = ecs_vector_first(table->storage.entities, ecs_entity_t);
-    it->is_valid = true;
+    ecs_iter_t *chain_it = it->chain_it;
+    if (chain_it) {
+        ecs_iter_next_action_t next = chain_it->next;
+        ecs_table_t *table;
+        bool match;
 
-    bool has_data = populate_from_column(world, table, 0, term->id, tr.column, 
-        source, &iter->id, &iter->subject, &iter->size, 
-        &iter->ptr);
+        do {
+            if (!next(chain_it)) {
+                goto done;
+            }
 
-    if (!source) {
-        if (has_data) {
-            iter->column = tr.column + 1;
-        } else {
-            iter->column = 0;
-        }
+            table = chain_it->table;
+            match = flecs_term_match_table(world, term, table, table->type,
+                0, it->ids, it->columns, it->subjects, it->sizes, 
+                it->ptrs, it->match_indices, true);
+        } while (!match);
+
+        populate_from_table(it, table);
+        goto yield;
+
     } else {
-        iter->column = -1; /* Point to ref */
+        ecs_entity_t source = 0;
+        ecs_table_record_t tr = term_iter_next(
+            world, iter, &source, false, false);
+        ecs_table_t *table = tr.table;
+        if (!table) {
+            it->is_valid = false;
+            goto done;
+        }
+
+        /* Source must either be 0 (EcsThis) or nonzero in case of substitution */
+        ecs_assert(source || iter->cur != iter->set_index, 
+            ECS_INTERNAL_ERROR, NULL);
+        ecs_assert(table != NULL, ECS_INTERNAL_ERROR, NULL);
+
+        populate_from_table(it, table);
+
+        bool has_data = populate_from_column(world, table, 0, term->id, 
+            tr.column, source, &iter->id, &iter->subject, &iter->size, 
+            &iter->ptr);
+
+        if (!source) {
+            if (has_data) {
+                iter->column = tr.column + 1;
+            } else {
+                iter->column = 0;
+            }
+        } else {
+            iter->column = -1; /* Point to ref */
+        }
     }
 
+yield:
+    it->is_valid = true;
     return true;
+done:
+    return false;
 }
 
 static
@@ -31966,11 +32250,11 @@ ecs_iter_t ecs_filter_iter(
 }
 
 ecs_iter_t ecs_filter_chain_iter(
-    ecs_iter_t *chain_it,
+    const ecs_iter_t *chain_it,
     const ecs_filter_t *filter)
 {
     ecs_iter_t it = {
-        .chain_it = chain_it,
+        .chain_it = (ecs_iter_t*)chain_it,
         .next = ecs_filter_next,
         .world = chain_it->world,
         .real_world = chain_it->real_world
@@ -31982,7 +32266,7 @@ ecs_iter_t ecs_filter_chain_iter(
     iter->kind = EcsFilterIterEvalChain;
 
     if (filter->terms == filter->term_cache) {
-        /* See ecs_filter_iter*/
+        /* See ecs_filter_iter */
         iter->filter.terms = NULL;
     }
 
@@ -32009,7 +32293,24 @@ bool ecs_filter_next(
 
     flecs_iter_init(it);
 
-    if (iter->kind == EcsFilterIterEvalIndex) {
+    ecs_iter_t *chain_it = it->chain_it;
+    if (chain_it) {
+        ecs_iter_next_action_t next = chain_it->next;
+
+        do {
+            if (!next(chain_it)) {
+                goto done;
+            }
+
+            table = chain_it->table;
+            match = flecs_filter_match_table(world, filter, table, table->type,
+                0, it->ids, it->columns, it->subjects, it->sizes, 
+                it->ptrs, it->match_indices, NULL, true, -1);
+        } while (!match);
+
+        populate_from_table(it, table);
+        goto yield;
+    } else if (iter->kind == EcsFilterIterEvalIndex) {
         ecs_term_iter_t *term_iter = &iter->term_iter;
         ecs_term_t *term = &term_iter->term;
         int32_t term_index = term->index;
@@ -32070,27 +32371,6 @@ bool ecs_filter_next(
         populate_from_table(it, table);
         goto yield;
 
-    } else if (iter->kind == EcsFilterIterEvalChain) {
-        ecs_iter_t *chain_it = it->chain_it;
-        ecs_iter_next_action_t next = chain_it->next;
-
-        /* If this is a chain iterator, the input iterator must be set */
-        ecs_assert(chain_it != NULL, ECS_INVALID_PARAMETER, NULL);
-
-        do {
-            if (!next(chain_it)) {
-                goto done;
-            }
-
-            table = chain_it->table;
-
-            match = flecs_filter_match_table(world, filter, table, table->type,
-                0, it->ids, it->columns, it->subjects, it->sizes, 
-                it->ptrs, it->match_indices, NULL, true, -1);
-        } while (!match);
-
-        populate_from_table(it, table);
-        goto yield;
     }
 
 done:
@@ -32897,38 +33177,26 @@ char* ecs_type_str(
         return ecs_os_strdup("");
     }
 
-    ecs_vector_t *chbuf = ecs_vector_new(char, 32);
-    char *dst;
-
-    ecs_entity_t *entities = ecs_vector_first(type, ecs_entity_t);
+    ecs_strbuf_t buf = ECS_STRBUF_INIT;
+    ecs_entity_t *ids = ecs_vector_first(type, ecs_entity_t);
     int32_t i, count = ecs_vector_count(type);
 
     for (i = 0; i < count; i ++) {
-        ecs_entity_t e = entities[i];
-        char buffer[256];
-        ecs_size_t len;
+        ecs_entity_t id = ids[i];
 
         if (i) {
-            *(char*)ecs_vector_add(&chbuf, char) = ',';
-            *(char*)ecs_vector_add(&chbuf, char) = ' ';
+            ecs_strbuf_appendch(&buf, ',');
+            ecs_strbuf_appendch(&buf, ' ');
         }
 
-        if (e == 1) {
-            ecs_os_strcpy(buffer, "EcsComponent");
-            len = ecs_os_strlen("EcsComponent");
+        if (id == 1) {
+            ecs_strbuf_appendstr(&buf, "Component");
         } else {
-            len = flecs_from_size_t(ecs_id_str_w_buf(world, e, buffer, 256));
+            ecs_id_str_buf(world, id, &buf);
         }
-
-        dst = ecs_vector_addn(&chbuf, char, len);
-        ecs_os_memcpy(dst, buffer, len);
     }
 
-    *(char*)ecs_vector_add(&chbuf, char) = '\0';
-
-    char* result = ecs_os_strdup(ecs_vector_first(chbuf, char));
-    ecs_vector_free(chbuf);
-    return result;
+    return ecs_strbuf_get(&buf);
 }
 
 void ecs_os_api_impl(ecs_os_api_t *api);
@@ -35442,6 +35710,24 @@ void query_group_by(
     query->groups = ecs_map_new(ecs_query_table_list_t, 16);
 }
 
+/* Implementation for iterable mixin */
+static
+void query_iter_init(
+    const ecs_world_t *world,
+    const ecs_poly_t *poly,
+    ecs_iter_t *iter,
+    ecs_term_t *filter)
+{
+    ecs_poly_assert(poly, ecs_query_t);
+
+    if (filter) {
+        iter[1] = ecs_query_iter(world, (ecs_query_t*)poly);
+        iter[0] = ecs_term_chain_iter(&iter[1], filter);
+    } else {
+        iter[0] = ecs_query_iter(world, (ecs_query_t*)poly);
+    }
+}
+
 
 /* -- Public API -- */
 
@@ -35463,6 +35749,7 @@ ecs_query_t* ecs_query_init(
     }
 
     result->world = world;
+    result->iterable.init = query_iter_init;
     result->system = desc->system;
     result->prev_match_count = -1;
 
@@ -36508,7 +36795,7 @@ ecs_table_t *create_table(
 
 #ifndef NDEBUG
     char *expr = ecs_type_str(world, result->type);
-    ecs_dbg_1("#[green]table#[normal] [%s] created", expr);
+    ecs_dbg_1("#[green]table#[normal] [%s] created with id %d", expr, result->id);
     ecs_os_free(expr);
 #endif
     ecs_log_push();
@@ -37211,6 +37498,11 @@ void flecs_init_root_table(
     };
 
     init_table(world, &world->store.root, &entities);
+
+    /* Ensure table indices start at 1, as 0 is reserved for the root */
+    uint64_t new_id = flecs_sparse_new_id(world->store.tables);
+    ecs_assert(new_id == 0, ECS_INTERNAL_ERROR, NULL);
+    (void)new_id;
 }
 
 void flecs_table_clear_edges(
@@ -37671,6 +37963,24 @@ char* ecs_iter_str(
     return ecs_strbuf_get(&buf);
 }
 
+void ecs_iter_poly(
+    const ecs_world_t *world,
+    const ecs_poly_t *poly,
+    ecs_iter_t *iter_out,
+    ecs_term_t *filter)
+{
+    ecs_iterable_t *iterable = ecs_get_iterable(poly);
+    iterable->init(world, poly, iter_out, filter);
+}
+
+bool ecs_iter_next(
+    ecs_iter_t *iter)
+{
+    ecs_assert(iter != NULL, ECS_INVALID_PARAMETER, NULL);
+    ecs_assert(iter->next != NULL, ECS_INVALID_PARAMETER, NULL);
+    return iter->next(iter);
+}
+
 static
 int32_t count_events(
     const ecs_entity_t *events) 
@@ -38072,6 +38382,37 @@ void notify_triggers_for_id(
     }
 }
 
+static
+void trigger_yield_existing(
+    ecs_world_t *world,
+    ecs_trigger_t *trigger)
+{
+    ecs_iter_action_t callback = trigger->action;
+
+    /* If yield existing is enabled, trigger for each thing that matches
+     * the event, if the event is iterable. */
+    int i, count = trigger->event_count;
+    for (i = 0; i < count; i ++) {
+        ecs_entity_t evt = trigger->events[i];
+        const EcsIterable *iterable = ecs_get(world, evt, EcsIterable);
+        if (!iterable) {
+            continue;
+        }
+
+        ecs_iter_t it;
+        iterable->init(world, world, &it, &trigger->term);
+        it.system = trigger->entity;
+        it.ctx = trigger->ctx;
+        it.binding_ctx = trigger->binding_ctx;
+
+        ecs_iter_next_action_t next = it.next;
+        ecs_assert(next != NULL, ECS_INTERNAL_ERROR, NULL);
+        while (next(&it)) {
+            callback(&it);
+        }
+    }
+}
+
 void flecs_triggers_notify(
     ecs_world_t *world,
     ecs_poly_t *observable,
@@ -38247,8 +38588,12 @@ ecs_entity_t ecs_trigger_init(
         ecs_term_fini(&term);
 
         if (desc->entity.name) {
-            ecs_trace("#[green]observer#[reset] %s created", 
+            ecs_trace("#[green]trigger#[reset] %s created", 
                 ecs_get_name(world, entity));
+        }
+
+        if (desc->yield_existing) {
+            trigger_yield_existing(world, trigger);
         }
     } else {
         ecs_assert(comp->trigger != NULL, ECS_INTERNAL_ERROR, NULL);
@@ -38582,7 +38927,6 @@ void flecs_os_time_sleep(
 #endif
 }
 
-
 #if defined(_WIN32)
 
 static ULONG win32_current_resolution;
@@ -38851,6 +39195,8 @@ ecs_table_t* ecs_table_from_str(
     return result;
 }
 
+/* -- Component lifecycle -- */
+
 /* Component lifecycle actions for EcsIdentifier */
 static ECS_CTOR(EcsIdentifier, ptr, {
     ptr->value = NULL;
@@ -38936,6 +39282,9 @@ static ECS_MOVE(EcsObserver, dst, src, {
     src->observer = NULL;
 })
 
+
+/* -- Builtin triggers -- */
+
 static
 void register_on_delete(ecs_iter_t *it) {
     ecs_world_t *world = it->world;
@@ -38997,6 +39346,22 @@ void ensure_module_tag(ecs_iter_t *it) {
         }
     }
 }
+
+
+/* -- Iterable mixins -- */
+
+static
+void on_event_iterable_init(
+    const ecs_world_t *world,
+    const ecs_poly_t *poly, /* Observable */
+    ecs_iter_t *it,
+    ecs_term_t *filter)
+{
+    ecs_iter_poly(world, poly, it, filter);
+    it->event = EcsOnAdd;
+    it->event_id = filter->id;
+}
+
 
 /* -- Bootstrapping -- */
 
@@ -39138,6 +39503,7 @@ void flecs_bootstrap(
     bootstrap_component(world, table, EcsQuery);
     bootstrap_component(world, table, EcsTrigger);
     bootstrap_component(world, table, EcsObserver);
+    bootstrap_component(world, table, EcsIterable);
 
     ecs_set_component_actions(world, EcsComponent, { .ctor = ecs_default_ctor });
 
@@ -39244,6 +39610,10 @@ void flecs_bootstrap(
     ecs_add_id(world, EcsOnDelete, EcsFinal);
     ecs_add_id(world, EcsOnDeleteObject, EcsFinal);
     ecs_add_id(world, EcsDefaultChildComponent, EcsFinal);
+
+    /* Make EcsOnAdd, EcsOnSet events iterable to enable .yield_existing */
+    ecs_set(world, EcsOnAdd, EcsIterable, { .init = on_event_iterable_init });
+    ecs_set(world, EcsOnSet, EcsIterable, { .init = on_event_iterable_init });
 
     /* Define triggers for when relationship cleanup rules are assigned */
     ecs_trigger_init(world, &(ecs_trigger_desc_t){
@@ -39583,19 +39953,21 @@ void flecs_bootstrap_hierarchy(ecs_world_t *world) {
     ecs_trigger_init(world, &(ecs_trigger_desc_t){
         .term = {.id = ecs_pair(ecs_id(EcsIdentifier), EcsSymbol)},
         .callback = on_set_symbol,
-        .events = {EcsOnSet}
+        .events = {EcsOnSet},
+        .yield_existing = true
     });
 }
 
 
 /* Public functions */
 
-char* ecs_get_path_w_sep(
+void ecs_get_path_w_sep_buf(
     const ecs_world_t *world,
     ecs_entity_t parent,
     ecs_entity_t child,
     const char *sep,
-    const char *prefix)
+    const char *prefix,
+    ecs_strbuf_t *buf)
 {
     ecs_assert(world != NULL, ECS_INTERNAL_ERROR, NULL);
     world = ecs_get_world(world);
@@ -39604,14 +39976,22 @@ char* ecs_get_path_w_sep(
         sep = ".";
     }
 
-    ecs_strbuf_t buf = ECS_STRBUF_INIT;
-
     if (!child || parent != child) {
-        path_append(world, parent, child, sep, prefix, &buf);
+        path_append(world, parent, child, sep, prefix, buf);
     } else {
-        ecs_strbuf_appendstr(&buf, "");
+        ecs_strbuf_appendstr(buf, "");
     }
+}
 
+char* ecs_get_path_w_sep(
+    const ecs_world_t *world,
+    ecs_entity_t parent,
+    ecs_entity_t child,
+    const char *sep,
+    const char *prefix)
+{
+    ecs_strbuf_t buf = ECS_STRBUF_INIT;
+    ecs_get_path_w_sep_buf(world, parent, child, sep, prefix, &buf);
     return ecs_strbuf_get(&buf);
 }
 

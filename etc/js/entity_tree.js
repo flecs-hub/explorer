@@ -89,7 +89,10 @@ Vue.component('entity-tree-item', {
       </template>
 
       <entity-icon :x="x + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
+
       <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity}}</text>
+      <rect :x="165" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
+
       <image v-if="entity_data.is_component && !entity_data.is_module"
         href="img/search.png" 
         :x="170" :y="y - 12" height="13px"
@@ -249,6 +252,7 @@ Vue.component('entity-tree-list', {
 });
 
 Vue.component('entity-tree', {
+  props: ['valid'],
   methods: {
     update_scope: function(scope, data) {
       // Store entities in new scope, so that deleted entities are automatically
@@ -366,6 +370,14 @@ Vue.component('entity-tree', {
       });
     },
     select: function(entity) {
+      if (!entity) {
+        if (this.selection) {
+          this.selection.selected = false;
+        }
+        this.$emit('select');
+        return;
+      }
+
       const elems = entity.split('.');
       let cur = this.root;
 
@@ -420,10 +432,17 @@ Vue.component('entity-tree', {
     },
     tree_top_margin: function() {
       return top_margin;
+    },
+    css: function() {
+      let result = "entity-tree";
+      if (!this.valid) {
+        result += " invalid";
+      }
+      return result;
     }
   },
   template: `
-    <div class="entity-tree">
+    <div :class="css">
       <svg :height="tree_height" width="100%">
         <entity-tree-list :entities="root.entities" :x="0" :y="tree_top_margin" 
           v-on:toggle="toggle"

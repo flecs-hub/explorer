@@ -1,17 +1,44 @@
 
 Vue.config.devtools = true;
 
-const example_query = "Position, Velocity"
+// Track state of connection to remote app
+const ConnectionState = {
+  Initializing:     Symbol('Initializing'),
+  Local:            Symbol('Local'),
+  Connecting:       Symbol('Connecting'),
+  RetryConnecting:  Symbol('RetryConnecting'),
+  Remote:           Symbol('Remote'),
+  ConnectionFailed: Symbol('ConnectionFailed')
+};
 
+// Short initial timeout to detect remote app. Should be long enough for
+// an app to respond, but not too long to delay page load time.
+const INITIAL_REQUEST_TIMEOUT = 300;
+
+// App will only retry connection when in explicit remote mode.
+const INITIAL_REQUEST_RETRY_INTERVAL = 200;
+
+// Interval at which the UI will poll the remote app.
+const REFRESH_INTERVAL = 1000;
+
+// Default port for the REST interface
+const DEFAULT_PORT = "27750";
+const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
+
+// Example content for local demo
+const example_selected = "Bob";
+const example_query = "Position, Velocity"
 const example_plecs = `using flecs.meta
 
-Struct(Vec2) {
+Struct(Position) {
   x = {f32}
   y = {f32}
 }
 
-Position : Vec2
-Velocity : Vec2
+Struct(Velocity) {
+  x = {f32}
+  y = {f32}
+}
 
 with Position {
   Bob   = {1, 1}
@@ -28,8 +55,6 @@ with Velocity {
 }
 `
 
-const example_selected = "Bob";
-
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
   var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
@@ -42,126 +67,284 @@ function getParameterByName(name, url = window.location.href) {
 var app = new Vue({
   el: '#app',
 
+  mounted: function() {
+    this.is_mounted = true;
+    if (this.is_initialized) {
+      this.ready();
+    }
+  },
+
   methods: {
-    request(method, url, recv, err) {
+    initialized() {
+      this.is_initialized = true;
+      if (this.is_mounted) {
+        this.ready();
+      }
+    },
+
+    is_local() {
+      return this.connection == ConnectionState.Local;
+    },
+    is_remote() {
+      return this.connection == ConnectionState.Remote;
+    },
+
+    // Utility for sending HTTP requests
+    http_request(method, host, path, recv, err, timeout, retry_interval) {
       const Request = new XMLHttpRequest();
-      
-      Request.open(method, window.location.protocol + "//" + url);
-      Request.send();
+      const url = host + "/" + path;
+
+      Request.open(method, "http://" + url);
+    
+      if (timeout) {
+        Request.timeout = timeout;
+      }
+
       Request.onreadystatechange = (reply) => {
         if (Request.readyState == 4) {
           if (Request.status == 0) {
-            if (err) {
-              err();
+            this.retry_count ++;
+
+            // Retry if the server did not respond to request
+            if (retry_interval) {
+              retry_interval *= 1.3;
+              if (retry_interval > 1000) {
+                retry_interval = 1000;
+              }
+
+              this.$refs.terminal.clear();
+
+              // No point in timing out sooner than retry interval
+              if (timeout < retry_interval) {
+                timeout = retry_interval;
+              }
+
+              this.$refs.terminal.err("request to " + host + " failed, " +
+                "ensure app is running and REST is enabled " +
+                "(retried " + this.retry_count + " times)");
+
+              window.setTimeout(() => {
+                this.http_request(method, host, path, recv, err, 
+                  timeout, retry_interval);
+              }, retry_interval);
+            } else {
+              if (err) err();
+
+              // If error callback did not set the connection state back to
+              // local, treat this as a loss of connection event.
+              if (this.connection != ConnectionState.Local) {
+                this.connect();
+              }
             }
-          } else if (Request.status < 200 || Request.status >= 300) {
-            if (err) {
-              err();
-            }
-          } else if (Request.responseText && Request.responseText.length) {
-            if (recv) {
-              recv(Request.responseText);
+          } else {
+            this.retry_count = 0;
+
+            if (Request.status < 200 || Request.status >= 300) {
+              if (err) {
+                err();
+              }
+            } else if (Request.responseText && Request.responseText.length) {
+              if (recv) {
+                recv(Request.responseText);
+              }
             }
           }
         }
       }
+
+      Request.send();
     },
 
-    remote_request(method, path, recv, err) {
-      const url = window.location.hostname + ":27750/" + path;
-      this.request(method, url, (r) => {
+    // Utility for sending HTTP requests that have a JSON reply
+    json_request(method, host, path, recv, err, timeout, retry_interval) {
+      this.http_request(method, host, path, (r) => {
         const reply = JSON.parse(r);
         recv(reply);
-      }, err);
+      }, err, timeout, retry_interval);
+    },
+
+    // Utility for sending HTTP requests to a remote app
+    request(method, path, recv, err) {
+      this.json_request(method, this.host, path, recv, err);
     },
 
     // Data access
     request_entity: function(path, recv, err) {
-      if (!this.remote) {
+      if (this.is_local()) {
           const r = wq_get_entity(path);
           const reply = JSON.parse(r);
           recv(reply);
-      } else {
-        this.remote_request("GET", "entity/" + path.replaceAll('.', '/'), recv, err);
+      } else if (this.is_remote()) {
+        this.request("GET", "entity/" + path.replaceAll('.', '/'), recv, err);
       }
     },
 
     request_query: function(q, recv, err) {
-      if (!this.remote) {
+      if (this.is_local()) {
           const r = wq_query(q);
           const reply = JSON.parse(r);
           recv(reply);
-      } else {
-        this.remote_request("GET", "query?q=" + encodeURIComponent(q), 
+      } else if (this.is_remote()) {
+        this.request("GET", "query?q=" + encodeURIComponent(q), 
           recv, err);
       }
     },
 
     insert_code: function(code, recv) {
-      if (!this.remote) {
+      if (this.is_local()) {
         const r = wq_run(code);
         const reply = JSON.parse(r);
         recv(reply);
       }
     },
 
-    // Called when app is ready
-    ready() {
-      app.remote_request("GET", "entity/flecs/core/World", (reply) => {
-        for (var i = 0; i < reply.type.length; i ++) {
-          const elem = reply.type[i];
-          if (elem.pred == "flecs.doc.Description" && elem.obj == "Name") {
-            this.title = elem.value.value;
-            break;
+    ready_remote(reply) {
+      // Get application name from reply
+      for (var i = 0; i < reply.type.length; i ++) {
+        const elem = reply.type[i];
+        if (elem.pred == "flecs.doc.Description" && elem.obj == "Name") {
+          this.title = elem.value.value;
+          break;
+        }
+      }
+
+      this.$refs.tree.update();
+
+      // Refresh UI periodically
+      this.refresh_timer = window.setInterval(() => {
+        this.refresh_query();
+        this.refresh_entity();
+        this.refresh_tree();
+      }, REFRESH_INTERVAL);
+    },
+
+    ready_local() {
+      const q_encoded = getParameterByName("q");
+      const p_encoded = getParameterByName("p");
+      var selected = getParameterByName("s");
+      var p, q;
+
+      if (p_encoded) {
+        p = wq_decode(p_encoded);
+      }
+      if (q_encoded) {
+        q = wq_decode(q_encoded);
+      }
+      if (selected === undefined && !p_encoded && !q_encoded) {
+        selected = example_selected;
+      }
+
+      if (!p && !p_encoded) {
+        p = example_plecs;
+      }
+      if (!q && !q_encoded) {
+        q = example_query;
+      }
+
+      if (p) {
+        this.$refs.plecs.set_code(p);
+        this.$refs.plecs.run();
+      }
+      if (selected) {
+        this.$refs.tree.select(selected);
+      }
+      if (q) {
+        this.$refs.query.set_query(q);
+      }
+
+      this.$refs.tree.update();
+    },
+
+    // Connect to a remote host
+    connect() {
+      if (this.connection == ConnectionState.Remote) {
+        this.connection = ConnectionState.RetryConnecting;
+      } else if (this.connection != ConnectionState.Connecting &&
+          this.connection != ConnectionState.RetryConnecting) {
+        this.connection = ConnectionState.Connecting;
+      } else {
+        // Already connecting
+        return;
+      }
+
+      // Reset application connection status
+      this.host = undefined;
+      this.retry_count = 0;
+
+      if (this.refresh_timer) {
+        window.clearInterval(this.refresh_timer);
+      }
+
+      // Retry interval (only when forcing remote mode)
+      let retry_interval = 0;
+
+      // Optional parameters for selecting host & port.
+      let host = getParameterByName("host");
+      let port = getParameterByName("port");
+
+      // If remote param is provided, don't go to local mode
+      let remote = getParameterByName("remote");
+
+      // If local param is provided, don't connect to remote
+      let local = getParameterByName("local");
+
+      // Can't set both local and remote
+      if (remote && local || host && local) {
+        console.err("invalid combination of URL params, starting in local mode");
+        this.ready_local();
+      }
+
+      // If we are reconnecting, use same paramaters. This also ensures that
+      // once connected, the UI stays in remote mode.
+      if (this.connection == ConnectionState.RetryConnecting) {
+        host = this.host;
+        remote = true;
+      }
+
+      // Check if a host is provided as parameter
+      if (!local) {
+        if (!host) {
+          host = DEFAULT_HOST;
+        } else {
+          remote = true;
+        }
+      } else {
+        remote = false;
+      }
+
+      if (host) {
+        if (host.indexOf(':') == -1) {
+          if (!port) {
+            port = DEFAULT_PORT;
           }
+          host += ":" + port;
         }
 
-        this.remote = true;
-        this.$refs.tree.update();
-
-        this.refresh_timer = window.setInterval(() => {
-          this.refresh_query();
-          this.refresh_entity();
-          this.refresh_tree();
-        }, 500);
-      }, () => {
-        console.warn("flecs: unable to connect to remote, running explorer in local mode");
-
-        const q_encoded = getParameterByName("q");
-        const p_encoded = getParameterByName("p");
-        var selected = getParameterByName("s");
-        var p, q;
-
-        if (p_encoded) {
-          p = wq_decode(p_encoded);
-        }
-        if (q_encoded) {
-          q = wq_decode(q_encoded);
-        }
-        if (selected === undefined && !p_encoded && !q_encoded) {
-          selected = example_selected;
+        if (remote) {
+          retry_interval = INITIAL_REQUEST_RETRY_INTERVAL;
         }
 
-        if (!p && !p_encoded) {
-          p = example_plecs;
-        }
-        if (!q && !q_encoded) {
-          q = example_query;
-        }
+        app.json_request("GET", host, "entity/flecs/core/World", (reply) => {
+          this.host = host;
+          this.connection = ConnectionState.Remote;
+          this.ready_remote(reply);
+        }, () => {
+          if (!remote) {
+            this.connection = ConnectionState.Local;
+            this.ready_local();
+          } else {
+            console.warn("flecs: unable to connect to remote, running explorer in local mode");
+            this.connection = ConnectionState.ConnectionFailed;
+          }
+        }, INITIAL_REQUEST_TIMEOUT, retry_interval);
+      } else {
+        this.connection = ConnectionState.Local;
+        this.ready_local();
+      }
+    },
 
-        if (p) {
-          this.$refs.plecs.set_code(p);
-          this.$refs.plecs.run();
-        }
-        if (selected) {
-          this.$refs.tree.select(selected);
-        }
-        if (q) {
-          this.$refs.query.set_query(q);
-        }
-
-        this.$refs.tree.update();
-      });
+    ready() {
+      this.connect();
     },
 
     refresh_terminal() {
@@ -218,7 +401,6 @@ var app = new Vue({
             this.$refs.inspector.expand();
           }
         }, () => {
-          this.entity_result = undefined;
           this.entity_error = "request for entity '" + e.path + "' failed";
         });
       }
@@ -254,7 +436,19 @@ var app = new Vue({
     },
   },
 
+  computed: {
+    valid: function() {
+      return !this.code_error &&
+        (this.connection == ConnectionState.Local ||
+          this.connection == ConnectionState.Remote ||
+            this.retry_count < 10);
+    }
+  },
+
   data: {
+    is_initialized: false,
+    is_mounted: false,
+
     title: "Flecs Explorer",
     query_error: undefined,
     entity_error: undefined,
@@ -263,7 +457,9 @@ var app = new Vue({
     entity_result: undefined,
     selected_tree_item: undefined,
     url: undefined,
-    remote: false,
+
+    connection: ConnectionState.Initializing,
+    retry_count: 0,
 
     refresh_timer: undefined
   }
