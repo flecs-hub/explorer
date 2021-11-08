@@ -32,5 +32,5 @@ using assets
 
 /// A spaceship to play around with
 my_spaceship : BattleShip {
-  (Position){10, 20
+  (Position){10, 20}
 }

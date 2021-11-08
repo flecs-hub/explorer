@@ -22,8 +22,6 @@ void capture_log(int32_t level, const char *file, int32_t line, const char *msg)
         ecs_strbuf_appendstr(&err_buf, msg);
         str_set = true;
     }
-
-    printf("flecs: %*s%s\n", ecs_os_api.log_indent_, "", msg);
 }
 
 static
@@ -180,6 +178,11 @@ int main(int argc, char *argv[]) {
     init();
 
     ecs_plecs_from_file(world, "etc/assets/db.plecs");
+
+    ecs_entity_t e = ecs_new_id(world);
+    ecs_entity_t obj = ecs_new_id(world);
+    ecs_add_id(world, e, EcsFinal);
+    ecs_add_pair(world, obj, EcsIsA, e);
 
     while (1) {
         char str[1024];

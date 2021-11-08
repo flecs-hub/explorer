@@ -31,10 +31,16 @@
 #define FLECS_SANITIZE
 #endif
 
-/* FLECS_CUSTOM_BUILD should be defined when manually selecting features */
+/* FLECS_SOFT_ASSERT disables aborting for recoverable errors */
+// #define FLECS_SOFT_ASSERT
+
+/* FLECS_KEEP_ASSERT keeps asserts in release mode. */
+// #define FLECS_KEEP_ASSERT
+
+/* FLECS_CUSTOM_BUILD should be defined when manually selecting addons */
 // #define FLECS_CUSTOM_BUILD
 
-/* If this is a regular, non-custom build, build all addons. */
+/* If this is a regular, non-custom build, include all addons. */
 #ifndef FLECS_CUSTOM_BUILD
 // #define FLECS_C          /* C API convenience macro's, always enabled */
 #define FLECS_CPP           /* C++ API */
@@ -257,6 +263,7 @@ typedef int32_t ecs_size_t;
 #define ecs_entity_t_comb(lo, hi) ((ECS_CAST(uint64_t, hi) << 32) + ECS_CAST(uint32_t, lo))
 
 #define ecs_pair(pred, obj) (ECS_PAIR | ecs_entity_t_comb(obj, pred))
+#define ecs_case(pred, obj) (ECS_CASE | ecs_entity_t_comb(obj, pred))
 
 /* Get object from pair with the correct (current) generation count */
 #define ecs_pair_relation(world, pair) ecs_get_alive(world, ECS_PAIR_RELATION(pair))
@@ -397,51 +404,6 @@ typedef int32_t ecs_size_t;
 
 
 ////////////////////////////////////////////////////////////////////////////////
-//// Error codes
-////////////////////////////////////////////////////////////////////////////////
-
-#define ECS_INVALID_OPERATION (1)
-#define ECS_INVALID_PARAMETER (2)
-#define ECS_INVALID_DELETE (3)
-#define ECS_OUT_OF_MEMORY (4)
-#define ECS_OUT_OF_RANGE (5)
-#define ECS_UNSUPPORTED (6)
-#define ECS_INTERNAL_ERROR (7)
-#define ECS_ALREADY_DEFINED (8)
-#define ECS_MISSING_OS_API (9)
-#define ECS_THREAD_ERROR (10)
-#define ECS_CYCLE_DETECTED (11)
-
-#define ECS_INCONSISTENT_NAME (20)
-#define ECS_NAME_IN_USE (21)
-#define ECS_NOT_A_COMPONENT (22)
-#define ECS_INVALID_COMPONENT_SIZE (23)
-#define ECS_INVALID_COMPONENT_ALIGNMENT (24)
-#define ECS_COMPONENT_NOT_REGISTERED (25)
-#define ECS_INCONSISTENT_COMPONENT_ID (26)
-#define ECS_INCONSISTENT_COMPONENT_ACTION (27)
-#define ECS_MODULE_UNDEFINED (28)
-
-#define ECS_COLUMN_ACCESS_VIOLATION (40)
-#define ECS_COLUMN_INDEX_OUT_OF_RANGE (41)
-#define ECS_COLUMN_IS_NOT_SHARED (42)
-#define ECS_COLUMN_IS_SHARED (43)
-#define ECS_COLUMN_HAS_NO_DATA (44)
-#define ECS_COLUMN_TYPE_MISMATCH (45)
-#define ECS_NO_OUT_COLUMNS (46)
-
-#define ECS_TYPE_NOT_AN_ENTITY (60)
-#define ECS_TYPE_CONSTRAINT_VIOLATION (61)
-#define ECS_TYPE_INVALID_CASE (62)
-
-#define ECS_INVALID_WHILE_ITERATING (70)
-#define ECS_LOCKED_STORAGE (71)
-#define ECS_INVALID_FROM_WORKER (72)
-
-#define ECS_DESERIALIZE_FORMAT_ERROR (80)
-
-
-////////////////////////////////////////////////////////////////////////////////
 //// Deprecated constants
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -487,23 +449,16 @@ typedef int32_t ecs_size_t;
 #ifndef FLECS_LOG_H
 #define FLECS_LOG_H
 
-#ifdef FLECS_LOG
-
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#ifdef FLECS_LOG
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Tracing
 ////////////////////////////////////////////////////////////////////////////////
 
-FLECS_API
-void _ecs_log(
-    int32_t level,
-    const char *file,
-    int32_t line,
-    const char *fmt,
-    ...);
 
 FLECS_API
 void _ecs_deprecated(
@@ -527,64 +482,11 @@ FLECS_API
 const char* ecs_strerror(
     int32_t error_code);
 
-/** Abort */
-FLECS_API
-void _ecs_abort(
-    int32_t error_code,
-    const char *file,
-    int32_t line,
-    const char *fmt,
-    ...);
-
-/** Assert */
-FLECS_API
-void _ecs_assert(
-    bool condition,
-    int32_t error_code,
-    const char *condition_str,
-    const char *file,
-    int32_t line,
-    const char *fmt,
-    ...);
-
-/** Parser error.
- * This function is used by parsers, and includes additional information such
- * as the failed expression, position in the expression and the name of the
- * expression/script being parsed. */
-FLECS_API
-void _ecs_parser_error(
-    const char *name,
-    const char *expr, 
-    int64_t column,
-    const char *fmt,
-    ...);
-
-FLECS_API
-void _ecs_parser_errorv(
-    const char *name,
-    const char *expr, 
-    int64_t column,
-    const char *fmt,
-    va_list args);
-
-#ifdef __cplusplus
-}
-#endif
-
 #else // FLECS_LOG
 
-
 ////////////////////////////////////////////////////////////////////////////////
-//// Functions/macro's that do nothing when logging is disabled
+//// Dummy macro's for when logging is disabled
 ////////////////////////////////////////////////////////////////////////////////
-
-FLECS_API
-void _ecs_log(
-    int32_t level,
-    const char *file,
-    int32_t line,
-    const char *fmt,
-    ...);
 
 #define _ecs_deprecated(file, line, msg)\
     (void)file;\
@@ -597,6 +499,21 @@ void _ecs_log(
 #define ecs_strerror(error_code)\
     (void)error_code
 
+#endif // FLECS_LOG
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// Logging functions (do nothing when logging is enabled)
+////////////////////////////////////////////////////////////////////////////////
+
+FLECS_API
+void _ecs_log(
+    int32_t level,
+    const char *file,
+    int32_t line,
+    const char *fmt,
+    ...);
+
 FLECS_API
 void _ecs_abort(
     int32_t error_code,
@@ -606,7 +523,7 @@ void _ecs_abort(
     ...);
 
 FLECS_API
-void _ecs_assert(
+bool _ecs_assert(
     bool condition,
     int32_t error_code,
     const char *condition_str,
@@ -630,8 +547,6 @@ void _ecs_parser_errorv(
     int64_t column,
     const char *fmt,
     va_list args);
-
-#endif // FLECS_LOG
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -712,17 +627,72 @@ void _ecs_parser_errorv(
 
 #define ecs_dbg ecs_dbg_1 /* Default debug tracing is at level 1 */
 
-#ifdef NDEBUG
+/** Abort 
+ * Unconditionally aborts process. */
+#define ecs_abort(error_code, ...)\
+    _ecs_abort(error_code, __FILE__, __LINE__, __VA_ARGS__);\
+    ecs_os_abort(); abort(); /* satisfy compiler/static analyzers */
+
+/** Assert 
+ * Aborts if condition is false, disabled in debug mode. */
+#if defined(NDEBUG) && !defined(FLECS_KEEP_ASSERT)
 #define ecs_assert(condition, error_code, ...)
 #else
 #define ecs_assert(condition, error_code, ...)\
-    _ecs_assert(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__);\
-    assert(condition)
+    if (!_ecs_assert(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__)) {\
+        ecs_os_abort();\
+    }\
+    assert(condition) /* satisfy compiler/static analyzers */
 #endif // NDEBUG
 
-#define ecs_abort(error_code, ...)\
-    _ecs_abort(error_code, __FILE__, __LINE__, __VA_ARGS__); abort()
+/** Debug assert 
+ * Assert that is only valid in debug mode (ignores FLECS_KEEP_ASSERT) */
+#ifndef NDEBUG
+#define ecs_dbg_assert(condition, error_code, ...) ecs_assert(condition, error_code, __VA_ARGS__)
+#else
+#define ecs_dbg_assert(condition, error_code, ...)
+#endif
 
+/* Silence dead code/unused label warnings when compiling without checks. */
+#define ecs_dummy_check\
+    if ((false)) {\
+        goto error;\
+    }
+
+/** Check
+ * goto error if condition is false. */
+#if defined(NDEBUG) && !defined(FLECS_KEEP_ASSERT)
+#define ecs_check(condition, error_code, ...) ecs_dummy_check
+#else
+#ifdef FLECS_SOFT_ASSERT
+#define ecs_check(condition, error_code, ...)\
+    if (!_ecs_assert(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__)) {\
+        goto error;\
+    }
+#else // FLECS_SOFT_ASSERT
+#define ecs_check(condition, error_code, ...)\
+    ecs_assert(condition, error_code, __VA_ARGS__);\
+    ecs_dummy_check
+#endif
+#endif // NDEBUG
+
+/** Throw
+ * goto error when FLECS_SOFT_ASSERT is defined, otherwise abort */
+#if defined(NDEBUG) && !defined(FLECS_KEEP_ASSERT)
+#define ecs_throw(error_code, ...) ecs_dummy_check
+#else
+#ifdef FLECS_SOFT_ASSERT
+#define ecs_throw(error_code, ...)\
+    _ecs_abort(error_code, __FILE__, __LINE__, __VA_ARGS__);\
+    goto error;
+#else
+#define ecs_throw(error_code, ...)\
+    ecs_abort(error_code, __VA_ARGS__);\
+    ecs_dummy_check
+#endif
+#endif // NDEBUG
+
+/** Parser error */
 #define ecs_parser_error(name, expr, column, ...)\
     _ecs_parser_error(name, expr, column, __VA_ARGS__)
 
@@ -735,10 +705,6 @@ void _ecs_parser_errorv(
 ////////////////////////////////////////////////////////////////////////////////
 //// Functions that are always available
 ////////////////////////////////////////////////////////////////////////////////
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /** Enable or disable tracing.
  * This will enable builtin tracing. For tracing to work, it will have to be
@@ -772,9 +738,52 @@ FLECS_API
 bool ecs_log_enable_colors(
     bool enabled);
 
-#ifdef __cplusplus
-}
-#endif
+/** Get last logged error code.
+ * Calling this operation resets the error code.
+ *
+ * @return Last error, 0 if none was logged since last call to last_error.
+ */
+FLECS_API
+int ecs_log_last_error(void);
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// Error codes
+////////////////////////////////////////////////////////////////////////////////
+
+#define ECS_INVALID_OPERATION (1)
+#define ECS_INVALID_PARAMETER (2)
+#define ECS_CONSTRAINT_VIOLATED (3)
+#define ECS_OUT_OF_MEMORY (4)
+#define ECS_OUT_OF_RANGE (5)
+#define ECS_UNSUPPORTED (6)
+#define ECS_INTERNAL_ERROR (7)
+#define ECS_ALREADY_DEFINED (8)
+#define ECS_MISSING_OS_API (9)
+#define ECS_OPERATION_FAILED (10)
+
+#define ECS_INCONSISTENT_NAME (20)
+#define ECS_NAME_IN_USE (21)
+#define ECS_NOT_A_COMPONENT (22)
+#define ECS_INVALID_COMPONENT_SIZE (23)
+#define ECS_INVALID_COMPONENT_ALIGNMENT (24)
+#define ECS_COMPONENT_NOT_REGISTERED (25)
+#define ECS_INCONSISTENT_COMPONENT_ID (26)
+#define ECS_INCONSISTENT_COMPONENT_ACTION (27)
+#define ECS_MODULE_UNDEFINED (28)
+
+#define ECS_COLUMN_ACCESS_VIOLATION (40)
+#define ECS_COLUMN_INDEX_OUT_OF_RANGE (41)
+#define ECS_COLUMN_IS_NOT_SHARED (42)
+#define ECS_COLUMN_IS_SHARED (43)
+#define ECS_COLUMN_TYPE_MISMATCH (45)
+
+#define ECS_TYPE_INVALID_CASE (62)
+
+#define ECS_INVALID_WHILE_ITERATING (70)
+#define ECS_LOCKED_STORAGE (71)
+#define ECS_INVALID_FROM_WORKER (72)
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Used when logging with colors is enabled
@@ -791,6 +800,10 @@ bool ecs_log_enable_colors(
 #define ECS_GREY    "\033[0;37m"
 #define ECS_NORMAL  "\033[0;49m"
 #define ECS_BOLD    "\033[1;49m"
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // FLECS_LOG_H
 
@@ -1293,7 +1306,6 @@ public:
     }
 
     T& get(int32_t index) {
-        ecs_assert(index < ecs_vector_count(m_vector), ECS_OUT_OF_RANGE, NULL);
         return *static_cast<T*>(_ecs_vector_get(m_vector, ECS_VECTOR_T(T), index));
     }
 
@@ -1797,7 +1809,7 @@ int32_t ecs_strbuf_written(
 #endif
 /**
  * @file os_api.h
- * @brief Operationg system abstractions.
+ * @brief Operating system abstraction API.
  *
  * This file contains the operating system abstraction API. The flecs core 
  * library avoids OS/runtime specific API calls as much as possible. Instead it
@@ -2057,6 +2069,9 @@ typedef struct ecs_os_api_t {
     /* Trace indentation */
     int32_t log_indent_;
 
+    /* Last error code */
+    int32_t log_last_error_;
+
     /* Enable tracing with color */
     bool log_with_color_;
 } ecs_os_api_t;
@@ -2192,7 +2207,7 @@ void ecs_os_set_api_defaults(void);
 #define ecs_os_sleep(sec, nanosec) ecs_os_api.sleep_(sec, nanosec)
 #define ecs_os_get_time(time_out) ecs_os_api.get_time_(time_out)
 
-/* Logging (use functions to avoid using variadic macro arguments) */
+/* Logging */
 FLECS_API
 void ecs_os_dbg(const char *file, int32_t line, const char *msg);
 
@@ -2494,10 +2509,11 @@ typedef struct ecs_iterable_t {
 
 /** Specify read/write access for term */
 typedef enum ecs_inout_kind_t {
-    EcsInOutDefault,
-    EcsInOut,
-    EcsIn,
-    EcsOut
+    EcsInOutDefault,  /* InOut for regular terms, In for shared terms */
+    EcsInOutFilter,   /* Term is neither read nor written */
+    EcsInOut,         /* Term is both read and written */
+    EcsIn,            /* Term is only read */
+    EcsOut,           /* Term is only written */
 } ecs_inout_kind_t;
 
 /** Specifies whether term identifier is a variable or entity */
@@ -2576,6 +2592,8 @@ struct ecs_filter_t {
     bool match_only_this;      /* Has only terms that match EcsThis */
     bool match_prefab;         /* Does filter match prefabs */
     bool match_disabled;       /* Does filter match disabled entities */
+
+    bool filter;               /* When true, data fields won't be populated */
     
     char *name;                /* Name of filter (optional) */
     char *expr;                /* Expression of filter (if provided) */
@@ -2954,6 +2972,7 @@ struct ecs_iter_t {
     int32_t total_count;          /* Total number of entities in table */
 
     bool is_valid;                /* Set to true after first next() */
+    bool is_filter;               /* When true, data fields are not set */
 
     ecs_ids_t *triggered_by;      /* Component(s) that triggered the system */
     ecs_entity_t interrupted_by;  /* When set, system execution is interrupted */
@@ -3287,6 +3306,11 @@ typedef struct ecs_filter_desc_t {
      * filter will determine based on whether the predicate is transitive and/or
      * final whether IsA substitution is required. */
     bool substitute_default;
+
+    /* When true, don't populate data fields of iterator. This is useful for
+     * filters that are only interested in finding the set of matching tables or
+     * entities, and not in the component data. */
+    bool filter;
 
     /* Filter expression. Should not be set at the same time as terms array */
     const char *expr;
@@ -3637,7 +3661,7 @@ FLECS_API extern const ecs_entity_t EcsThis;
 FLECS_API extern const ecs_entity_t EcsTransitive;
 
 /* Can be added to transitive relation to indicate it is inclusive. */
-FLECS_API extern const ecs_entity_t EcsInclusive;
+FLECS_API extern const ecs_entity_t EcsTransitiveSelf;
 
 /* Can be added to component/relation to indicate it is final. Final components/
  * relations cannot be derived from using an IsA relationship. Queries will not
@@ -3648,6 +3672,10 @@ FLECS_API extern const ecs_entity_t EcsFinal;
 /* Can be added to relation to indicate that it should never hold data, even
  * when it or the relation object is a component. */
 FLECS_API extern const ecs_entity_t EcsTag;
+
+/* Can be added to relation to indicate that the relationship can only occur
+ * once on an entity. Adding a 2nd instance will replace the 1st. */
+FLECS_API extern const ecs_entity_t EcsExclusive;
 
 /* Tag to indicate name identifier */
 FLECS_API extern const ecs_entity_t EcsName;
@@ -3720,7 +3748,7 @@ FLECS_API extern const ecs_entity_t EcsOnDelete;
 FLECS_API extern const ecs_entity_t EcsOnTableEmpty;
 
 /* Event. Triggers when a table becomes non-empty. */
-FLECS_API extern const ecs_entity_t EcsOnTableNonEmpty;
+FLECS_API extern const ecs_entity_t EcsOnTableFilled;
 
 /* Event. Triggers when a trigger is created. */
 // FLECS_API extern const ecs_entity_t EcsOnCreateTrigger;
@@ -5652,7 +5680,7 @@ bool ecs_query_next_worker(
  */
 FLECS_API
 bool ecs_query_changed(
-    ecs_query_t *query);
+    const ecs_query_t *query);
 
 /** Returns whether query is orphaned.
  * When the parent query of a subquery is deleted, it is left in an orphaned
@@ -5836,6 +5864,21 @@ void ecs_iter_poly(
  */
 FLECS_API
 bool ecs_iter_next(
+    ecs_iter_t *it);
+
+/** Count number of matched entities in query.
+ * This operation returns the number of matched entities. If a query contains no
+ * matched entities but still yields results (e.g. it has no terms with This
+ * subjects) the operation will return 0.
+ * 
+ * To determine the number of matched entities, the operation iterates the
+ * iterator until it yields no more results.
+ * 
+ * @param it The iterator.
+ * @return True if iterator has more results, false if not.
+ */
+FLECS_API
+bool ecs_iter_count(
     ecs_iter_t *it);
 
 /** Obtain data for a query term.
@@ -9113,6 +9156,10 @@ typedef struct ecs_pipeline_stats_t {
     /** Map with system statistics. For each system in the systems vector, an
      * entry in the map exists of type ecs_system_stats_t. */
     ecs_map_t *system_stats;
+
+    int32_t system_count; /* Number of systems in pipeline */
+    int32_t active_system_count; /* Number of active systems in pipeline */
+    int32_t rebuild_count; /* Number of times pipeline has rebuilt */
 } ecs_pipeline_stats_t;
 
 /** Get world statistics.
@@ -9122,7 +9169,8 @@ typedef struct ecs_pipeline_stats_t {
  * @param world The world.
  * @param stats Out parameter for statistics.
  */
-FLECS_API void ecs_get_world_stats(
+FLECS_API 
+void ecs_get_world_stats(
     const ecs_world_t *world,
     ecs_world_stats_t *stats);
 
@@ -9133,7 +9181,8 @@ FLECS_API void ecs_get_world_stats(
  * @param world The world.
  * @param stats The statistics to print.
  */
-FLECS_API void ecs_dump_world_stats(
+FLECS_API 
+void ecs_dump_world_stats(
     const ecs_world_t *world,
     const ecs_world_stats_t *stats);
 
@@ -9144,7 +9193,8 @@ FLECS_API void ecs_dump_world_stats(
  * @param query The query.
  * @param stats Out parameter for statistics.
  */
-FLECS_API void ecs_get_query_stats(
+FLECS_API 
+void ecs_get_query_stats(
     const ecs_world_t *world,
     const ecs_query_t *query,
     ecs_query_stats_t *stats);
@@ -9158,7 +9208,8 @@ FLECS_API void ecs_get_query_stats(
  * @param stats Out parameter for statistics.
  * @return true if success, false if not a system.
  */
-FLECS_API bool ecs_get_system_stats(
+FLECS_API 
+bool ecs_get_system_stats(
     const ecs_world_t *world,
     ecs_entity_t system,
     ecs_system_stats_t *stats);
@@ -9173,13 +9224,24 @@ FLECS_API bool ecs_get_system_stats(
  * @param stats Out parameter for statistics.
  * @return true if success, false if not a pipeline.
  */
-FLECS_API bool ecs_get_pipeline_stats(
+FLECS_API 
+bool ecs_get_pipeline_stats(
     ecs_world_t *world,
     ecs_entity_t pipeline,
     ecs_pipeline_stats_t *stats);
+
+/** Free pipeline stats.
+ * 
+ * @param stats The stats to free.
+ */
+FLECS_API
+void ecs_pipeline_stats_fini(
+    ecs_pipeline_stats_t *stats);
+
 #endif
 
-FLECS_API void ecs_gauge_reduce(
+FLECS_API 
+void ecs_gauge_reduce(
     ecs_gauge_t *dst,
     int32_t t_dst,
     ecs_gauge_t *src,
@@ -10036,6 +10098,7 @@ using ComponentLifecycle = EcsComponentLifecycle;
 
 enum inout_kind_t {
     InOutDefault = EcsInOutDefault,
+    InOutFilter = EcsInOutFilter,
     InOut = EcsInOut,
     In = EcsIn,
     Out = EcsOut
@@ -10180,9 +10243,10 @@ static const flecs::entity_t World = EcsWorld;
 static const flecs::entity_t Wildcard = EcsWildcard;
 static const flecs::entity_t This = EcsThis;
 static const flecs::entity_t Transitive = EcsTransitive;
-static const flecs::entity_t Inclusive = EcsInclusive;
+static const flecs::entity_t TransitiveSelf = EcsTransitiveSelf;
 static const flecs::entity_t Final = EcsFinal;
 static const flecs::entity_t Tag = EcsTag;
+static const flecs::entity_t Exclusive = EcsExclusive;
 
 /* Builtin relationships */
 static const flecs::entity_t IsA = EcsIsA;
@@ -10192,7 +10256,7 @@ static const flecs::entity_t ChildOf = EcsChildOf;
 static const flecs::entity_t Name = EcsName;
 static const flecs::entity_t Symbol = EcsSymbol;
 
-/* Cleanup rules */
+/* Cleanup policies */
 static const flecs::entity_t OnDelete = EcsOnDelete;
 static const flecs::entity_t OnDeleteObject = EcsOnDeleteObject;
 static const flecs::entity_t Remove = EcsRemove;
@@ -15570,6 +15634,8 @@ public:
      * not an entity type (e.g. returned from entity::type). */
     Base& id(const flecs::type& type);
 
+    Base& id(const flecs::type& type, id_t id);
+
     /** Set (component) id to pair derived from relation id / object id */
     Base& id(id_t r, id_t o) {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
@@ -15984,6 +16050,12 @@ public:
     Base& term(const flecs::type& type) {
         this->term();
         *this->m_term = flecs::term(world()).id(type).move();
+        return *this;
+    }
+
+    Base& term(const flecs::type& type, flecs::id_t o) {
+        this->term();
+        *this->m_term = flecs::term(world()).id(type, o).move();
         return *this;
     }
 
@@ -17889,6 +17961,9 @@ inline void entity_view::each(const Func& func) const {
 
 template <typename Func>
 inline void entity_view::each(flecs::id_t pred, flecs::id_t obj, const Func& func) const {
+    flecs::world_t *real_world = const_cast<flecs::world_t*>(
+        ecs_get_world(m_world));
+
     const ecs_table_t *table = ecs_get_table(m_world, m_id);
     if (!table) {
         return;
@@ -17909,7 +17984,7 @@ inline void entity_view::each(flecs::id_t pred, flecs::id_t obj, const Func& fun
         _ecs_vector_first(type, ECS_VECTOR_T(ecs_id_t)));
     
     while (-1 != (cur = ecs_type_match(
-        m_world, table, type, cur, pattern, 0, 0, 0, NULL, NULL))) 
+        real_world, table, type, cur, pattern, 0, 0, 0, NULL, NULL))) 
     {
         flecs::id ent(m_world, ids[cur]);
         func(ent);
@@ -18331,6 +18406,15 @@ template<typename Base>
 inline Base& term_builder_i<Base>::id(const flecs::type& type) {
     ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
     m_term->pred.entity = type.id();
+    return *this;
+}
+
+template<typename Base>
+inline Base& term_builder_i<Base>::id(const flecs::type& type, id_t o) {
+    ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
+    m_term->pred.entity = type.id();
+    m_term->obj.entity = o;
+    m_term->role = ECS_PAIR;
     return *this;
 }
 

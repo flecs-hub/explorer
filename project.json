@@ -4,5 +4,11 @@
     "value": {
         "author": "Jane Doe",
         "description": "A simple hello world flecs application"
+    },
+    "lang.c": {
+        "${os linux}": {
+            "lib": ["rt", "pthread"],
+            "defines": ["FLECS_SOFT_ASSERT", "FLECS_KEEP_ASSERT"]
+        }
     }
 }

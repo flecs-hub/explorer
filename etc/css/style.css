@@ -87,7 +87,6 @@ span.icon-hide div {
 }
 
 div.follow {
-  content: url('../img/follow.png');
   background-image: url('../img/follow.png');
   background-size: contain;
   background-position: center center;
@@ -98,7 +97,6 @@ div.follow {
 }
 
 div.connecting {
-  content: url('../img/connecting.png');
   background-image: url('../img/connecting.png');
   background-size: contain;
   background-position: center center;
@@ -106,7 +104,6 @@ div.connecting {
 }
 
 div.connected {
-  content: url('../img/connected.png');
   background-image: url('../img/connected.png');
   background-size: contain;
   background-position: center center;
@@ -114,7 +111,6 @@ div.connected {
 }
 
 div.error {
-  content: url('../img/error.png');
   background-image: url('../img/error.png');
   background-size: contain;
   background-position: center center;
@@ -122,21 +118,18 @@ div.error {
 }
 
 div.search {
-  content: url('../img/search.png');
   background-image: url('../img/search.png');
   background-size: contain;
   background-position: center center;
 }
 
 div.nav {
-  content: url('../img/nav-right.png');
   background-image: url('../img/nav-right.png');
   background-size: contain;
   background-position: center center;
 }
 
 div.close {
-  content: url('../img/close.png');
   background-image: url('../img/close.png');
   background-size: contain;
   background-position: center center;

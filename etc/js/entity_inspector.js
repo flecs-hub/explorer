@@ -50,7 +50,7 @@ Vue.component('entity-property-value-full', {
         </div>
       </template>
       <template v-else>
-        <template v-if="prop_key"><span class="entity-property-key">{{prop_key}}</span></template><scalar-value :css="value_css" :value="value"/>
+        <template v-if="prop_key !== undefined "><span class="entity-property-key">{{prop_key}}</span></template><scalar-value :css="value_css" :value="value"/>
       </template>
     </div>
     `
@@ -78,6 +78,9 @@ Vue.component('inspector-value', {
     is_object: function() {
       return (typeof this.value) === "object";
     },
+    is_array: function() {
+      return Array.isArray(this.value);
+    },
     has_objects: function() {
       for (let k in this.value) {
         const v = this.value[k];
@@ -102,7 +105,12 @@ Vue.component('inspector-value', {
   template: `
     <div :class="css">
       <template v-if="is_object">
-        <div class="entity-property" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><entity-property-value :prop_key="k" :value="v" :list="list"/></div>
+        <template v-if="is_array">
+          <div class="entity-property" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><entity-property-value :value="v" :list="list"/></div>
+        </template>
+        <template v-else>
+          <div class="entity-property" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><entity-property-value :prop_key="k" :value="v" :list="list"/></div>
+        </template>
       </template>
       <template v-else>
         <div class="entity-property">
