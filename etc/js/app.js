@@ -268,7 +268,6 @@ var app = new Vue({
       }
 
       // Reset application connection status
-      this.host = undefined;
       this.retry_count = 0;
 
       if (this.refresh_timer) {
