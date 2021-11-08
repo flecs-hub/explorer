@@ -17,6 +17,9 @@ Vue.component('terminal', {
       msg.text = msg.text.split('\n')[0];
       this.messages.push(msg);
     },
+    err(msg) {
+      this.log({text: msg, kind: "command-error"});
+    },
     css_from_kind(msg) {
       if (msg.kind == "ok") {
         return "terminal-ok";

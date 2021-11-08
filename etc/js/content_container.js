@@ -1,18 +1,17 @@
 
 Vue.component('content-container', {
-    props: ['disable', 'no_padding', 'overflow'],
+    props: ['disable', 'no_padding', 'closable'],
     methods: {
       expand: function(arg) {
         this.$refs.toggle.expand(arg);
+      },
+      evt_close: function() {
+        this.$emit('close');
       }
     },
     computed: {
       wrapper_css: function() {
-        let result = "content-container-wrapper";
-        if (true) {
-          result += " content-container-wrapper-overflow";
-        }
-        return result;
+        return "content-container-wrapper  content-container-wrapper-overflow";
       },
       detail_css: function() {
         let result = "content-detail ";
@@ -30,6 +29,11 @@ Vue.component('content-container', {
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>
               </span>
+              <icon src="close" v-if="closable" 
+                :rotate="disable" 
+                :hide="disable"
+                v-on:click.stop="evt_close">
+              </icon>
             </template>
             <template v-slot:detail>
               <div :class="detail_css" ref="detail">

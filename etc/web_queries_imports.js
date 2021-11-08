@@ -15,5 +15,5 @@ Module['onRuntimeInitialized'] = function() {
 
   wq_init();
 
-  app.ready();
+  app.initialized();
 }

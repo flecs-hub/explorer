@@ -17,7 +17,11 @@
       <!-- Top bar -->
       <div class="top-box">
         <div class="top-content">
-          <app-title ref="title" :value="title" :remote="remote"></app-title>
+          <app-title ref="title" 
+            :value="title" 
+            :connection="connection"
+            :retry_count="retry_count">
+          </app-title>
           <div class="play-button-box">
             <a href="https://github.com/SanderMertens/flecs" target="_blank">
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
@@ -31,7 +35,10 @@
 
       <!-- Tree view -->
       <div class="tree-box">
-        <entity-tree ref="tree" v-on:select="evt_entity_changed" v-on:select_query="evt_select_query"/>
+        <entity-tree ref="tree" 
+          :valid="valid"
+          v-on:select="evt_entity_changed" 
+          v-on:select_query="evt_select_query"/>
       </div>
 
       <!-- Application box -->
@@ -39,7 +46,7 @@
 
         <!-- Query results & Entity inspector -->
         <div class="left-column">
-          <query :valid="code_error === undefined" ref="query"
+          <query :valid="valid" ref="query"
             v-on:select-entity="evt_follow_ref"
             v-on:changed="evt_query_changed"/>
         </div>
@@ -52,7 +59,7 @@
           <inspector 
             :entity="entity_result" 
             :selection="selected_tree_item" 
-            :valid="entity_error === undefined && code_error === undefined"
+            :valid="valid"
             v-on:select-entity="evt_follow_ref" 
             v-on:select-query="evt_select_query"
             ref="inspector"></inspector>
@@ -68,7 +75,7 @@
       <url-modal ref="url" :url="url"/>
     </div>
 
-    <script src="deps/vue.js"></script>
+    <script src="deps/vue.min.js"></script>
     <script src="deps/Keybinder.js"></script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>

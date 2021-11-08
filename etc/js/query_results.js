@@ -118,7 +118,7 @@ Vue.component('query-results', {
       css: function() {
         let result = "query-results";
         if (this.data && !this.valid) {
-          result += " query-results-invalid";
+          result += " invalid";
         }
         return result;
       }

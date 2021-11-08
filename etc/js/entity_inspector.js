@@ -217,6 +217,9 @@ Vue.component('inspector', {
     },
     select_query: function() {
       this.$emit('select-query', this.selection.path);
+    },
+    evt_close: function() {
+      this.$emit('select-entity');
     }
   },
   computed: {
@@ -265,14 +268,19 @@ Vue.component('inspector', {
     },
     content_css: function() {
       if (!this.valid) {
-        return "entity-inspector-disabled";
+        return "invalid";
       } else {
         return "";
       }
     }
   },
   template: `
-    <content-container :disable="!entity || !selection" ref="container">
+    <content-container 
+      ref="container" 
+      :disable="!entity || !selection" 
+      closable="true" 
+      v-on:close="evt_close">
+      
       <template v-slot:summary>
         <template v-if="entity && selection">
           <div class="inspector-name">
