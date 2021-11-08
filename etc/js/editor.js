@@ -42,6 +42,9 @@ Vue.component('editor-textarea', {
     <textarea 
       id="plecs-editor" 
       class="editor-textarea" 
+      autocorrect="off" 
+      autocapitalize="off" 
+      spellcheck="false" 
       v-model="code" 
       v-on:keyup="run"
       v-on:keydown.tab.prevent="tab_pressed($event)">
