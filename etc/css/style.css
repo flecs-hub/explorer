@@ -57,8 +57,6 @@ pre span {
 span.icon {
   display: inline-flex;
   position: relative;
-  margin-left: 3px;
-  margin-right: 3px;
 }
 
 span.icon > * {
@@ -373,7 +371,7 @@ div.inspector-components-nested {
 div.entity-component {
   display: flex;
   flex-direction: column;
-  margin-bottom: 15px;
+  margin-bottom: 8px;
 }
 
 div.entity-component:last-child {
@@ -411,13 +409,13 @@ span.inspector-header:first-child {
 div.inspector-value {
   display: flex;
   flex-wrap: wrap;
-  margin-left: 26px;
-  margin-bottom: 10px;
+  margin-left: 24px;
+  margin-bottom: 4px;
 }
 
 div.inspector-value-vertical {
   flex-direction: column;
-  margin-left: 10px;
+  margin-left: 24px;
 }
 
 div.inspector-value-list {
@@ -431,8 +429,8 @@ div.entity-property-value {
 
 div.entity-property {
   display: flex;
-  margin-left: 1px;
-  margin-bottom: 1px; /* for when row collapses */
+  margin-right: 2px;
+  margin-bottom: 2px; /* for when row collapses */
 }
 
 span.entity-property-key, span.entity-property-value {
@@ -815,6 +813,7 @@ div.content-container-wrapper-overflow div.content-container div.detail-toggle {
 }
 
 div.content-container > div.detail-toggle > div.detail-toggle-summary {
+  padding: 4px;
   background-color: #232833;
 }
 
@@ -831,7 +830,6 @@ span.content-summary {
   font-size: 13px;
   color: #BDC1CC;
   width: 100%;
-  height: 30px;
   align-items: center;
 }
 
@@ -840,12 +838,10 @@ div.content-detail {
   flex-direction: column;
   overflow-x: auto;
   max-width: 100%;
+  padding: 8px;
 }
 
 div.content-detail-padding {
-  padding-top: 5px;
-  padding-bottom: 10px;
-  padding-left: 10px;
 }
 
 div.content-detail ecs-value {
@@ -926,7 +922,11 @@ div.detail-toggle {
 div.detail-toggle-summary {
   display: flex;
   flex-direction: row;
-  padding-right: 10px;
+}
+
+div.detail-toggle-summary > *:not(:first-child) {
+  /* Every item except for first in flex-row has left margin space */
+  margin-left: 2px;
 }
 
 div.detail-toggle-detail {
@@ -935,9 +935,7 @@ div.detail-toggle-detail {
   flex-direction: inherit;
   overflow: hidden;
   opacity: 1;
-
-  padding-top: 5px;
-  transition: padding-top 0.1s ease-out, opacity 0.12s ease-out;;
+  transition: padding-top 0.1s ease-out, opacity 0.12s ease-out;
 }
 
 div.detail-toggle-detail-hide {
