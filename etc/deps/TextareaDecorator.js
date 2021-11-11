@@ -89,10 +89,8 @@ function TextareaDecorator( textarea, parser ){
 
 	// detect all changes to the textarea,
 	// including keyboard input, cut/copy/paste, drag & drop, etc
-	if( textarea.addEventListener ){
-		// standards browsers: oninput event
-		textarea.addEventListener( "input", api.update, false );
-	} else {
+	// Non-MSIE update event is handled by Vue component in editor.js
+	if( !textarea.addEventListener ){
 		// MSIE: detect changes to the 'value' property
 		textarea.attachEvent( "onpropertychange",
 			function(e){
