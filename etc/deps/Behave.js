@@ -251,15 +251,41 @@ Behave = Behave || function (userOpts) {
               }
           },
           editor: {
-              getLines: function(textVal){
-            return (textVal).split("\n").length;
-          },
+            getLines: function(textVal){
+              return (textVal).split("\n").length;
+            },
             get: function(){
-                  return defaults.textarea.value.replace(/\r/g,'');
-              },
-              set: function(data){
-                  defaults.textarea.value = data;
+              return defaults.textarea.value.replace(/\r/g,'');
+            },
+            set: function(data){
+                // Old way of inserting data
+                // Doesn't allow for undo/redo history
+                defaults.textarea.value = data;
+            },
+            insert: function(data) {
+              if ( document.queryCommandSupported('insertText') ) {
+                document.execCommand('insertText', false, data)
+              } else {
+                throw new QueryCommandException('insertText');
               }
+            },
+            delete: function(deletebehind = 0, deleteahead = 0) {
+              if ( document.queryCommandSupported ('delete') ) {
+                document.execCommand('delete', false);
+                if (deletebehind > 0) {
+                  document.execCommand('delete', false)
+                }
+                if (deleteahead > 0) {
+                  for (var d = 0; d < deleteahead; d++) {
+                    var pos = utils.cursor.get();
+                    utils.cursor.set(pos + 1);
+                    document.execCommand('delete', false);
+                  }
+                }
+              } else {
+                throw new QueryCommandException('delete');
+              }
+            }
           },
           fenceRange: function(){
               if(typeof defaults.fence == "string"){
@@ -380,52 +406,74 @@ Behave = Behave || function (userOpts) {
                       val = utils.editor.get();
 
                   if(selection){
-                      
-                      var tempStart = selection.start;
-                      while(tempStart--){
-                          if(val.charAt(tempStart)=="\n"){
-                              selection.start = tempStart + 1;
-                              break;
-                          }
-                      }
+                      // var tempStart = selection.start;
+                      // while(tempStart--){
+                      //     // Rewinds selection start pos to beginning of line
+                      //     if(val.charAt(tempStart)=="\n"){
+                      //         selection.start = tempStart + 1;
+                      //         break;
+                      //     }
+                      // }
 
-                      var toIndent = val.substring(selection.start, selection.end),
-                          lines = toIndent.split("\n"),
-                          i;
+                      // var toIndent = val.substring(selection.start, selection.end),
+                      //     lines = toIndent.split("\n"),
+                      //     i;
 
-                      if(e.shiftKey){
-                          for(i = 0; i<lines.length; i++){
-                              if(lines[i].substring(0,tab.length) == tab){
-                                  lines[i] = lines[i].substring(tab.length);
-                              }
-                          }
-                          toIndent = lines.join("\n");
-                          
-                          utils.editor.set( val.substring(0,selection.start) + toIndent + val.substring(selection.end) );
-                          utils.cursor.set(selection.start, selection.start+toIndent.length);
+                      // if(e.shiftKey){
+                      //     for(i = 0; i<lines.length; i++){
+                      //         if(lines[i].substring(0,tab.length) == tab){
+                      //             lines[i] = lines[i].substring(tab.length);
+                      //         }
+                      //     }
+                      //     toIndent = lines.join("\n");
 
-                      } else {
-                          for(i in lines){
-                              lines[i] = tab + lines[i];
-                          }
-                          toIndent = lines.join("\n");
+                      //     try {
+                      //       console.trace();
+                      //       utils.editor.insert(toIndent);
+                      //     } catch(e) {
+                      //       console.warn(e);
+                      //       utils.editor.set( val.substring(0,selection.start) + toIndent + val.substring(selection.end) );
+                      //     }
+                      //     utils.cursor.set(selection.start, selection.start+toIndent.length);
 
-                          utils.editor.set( val.substring(0,selection.start) + toIndent + val.substring(selection.end) );
-                          utils.cursor.set(selection.start, selection.start+toIndent.length);
-                      }
+                      // } else {
+                      //     for(i in lines){
+                      //         lines[i] = tab + lines[i];
+                      //     }
+                      //     toIndent = lines.join("\n");
+
+                      //     try {
+                      //       console.trace();
+                      //       console.log("i> " + toIndent);
+                      //       utils.editor.insert(tab);
+                      //     } catch(e) {
+                      //       console.warn(e);
+                      //       utils.editor.set( val.substring(0,selection.start) + toIndent + val.substring(selection.end) );
+                      //     }
+                      // }
                   } else {
                       var left = val.substring(0, pos),
-                          right = val.substring(pos),
-                          edited = left + tab + right;
+                          right = val.substring(pos), edited = left + tab + right
 
+                          
                       if(e.shiftKey){
                           if(val.substring(pos-tab.length, pos) == tab){
-                              edited = val.substring(0, pos-tab.length) + right;
-                              utils.editor.set(edited);
+                              try {
+                                utils.editor.delete(2);
+                              } catch(e) {
+                                console.warn(e);
+                                edited = val.substring(0, pos-tab.length) + right;
+                                utils.editor.set(edited)
+                              }
                               utils.cursor.set(pos-tab.length);
                           }
                       } else {
-                          utils.editor.set(edited);
+                          try {
+                            utils.editor.insert(tab);
+                          } catch(e) {
+                            console.warn(e);
+                            utils.editor.set(edited);
+                          }
                           utils.cursor.set(pos + tab.length);
                           toReturn = false;
                       }
@@ -470,9 +518,15 @@ Behave = Behave || function (userOpts) {
                       }
                       
                   }
-
-                  var edited = left + newLine + ourIndent + closingBreak + (ourIndent.substring(0, ourIndent.length-tab.length) ) + right;
-                  utils.editor.set(edited);
+                  try {
+                    utils.editor.insert(
+                      newLine + ourIndent + closingBreak + (ourIndent.substring(0, ourIndent.length-tab.length) )
+                    )
+                  } catch(e) {
+                    console.warn(e);
+                    var edited = left + newLine + ourIndent + closingBreak + (ourIndent.substring(0, ourIndent.length-tab.length) ) + right;
+                    utils.editor.set(edited);
+                  }
                   utils.cursor.set(pos + finalCursorPos);
                   utils._callHook('enter:after');
               }
@@ -497,20 +551,36 @@ Behave = Behave || function (userOpts) {
                 if( utils.cursor.selection() === false ){
                     for(i=0; i<charSettings.keyMap.length; i++) {
                         if (charSettings.keyMap[i].open == leftChar && charSettings.keyMap[i].close == rightChar) {
+                          try {
+                            utils.editor.delete(0, 1);
+                          } catch {
                             var edited = val.substring(0,pos-1) + val.substring(pos+1);
                             utils.editor.set(edited);
                             utils.cursor.set(pos - 1);
+                          } finally {
                             return;
+                          }
                         }
                     }
-                    var edited = val.substring(0,pos-1) + val.substring(pos);
-                    utils.editor.set(edited);
+                    try {
+                      utils.editor.delete();
+                    } catch(e) {
+                      console.warn(e);
+                      var edited = val.substring(0,pos-1) + val.substring(pos);
+                      utils.editor.set(edited);
+                    }
                     utils.cursor.set(pos - 1);
                 } else {
-                  var sel = utils.cursor.selection(),
-                    edited = val.substring(0,sel.start) + val.substring(sel.end);
+                  // Selection deletion
+                  var sel = utils.cursor.selection()
+                  try {
+                    utils.editor.delete();
+                  } catch(e) {
+                    console.warn(e);
+                    var edited = val.substring(0,sel.start) + val.substring(sel.end);
                     utils.editor.set(edited);
-                    utils.cursor.set(pos);
+                  }
+                  // utils.cursor.set(pos);
                 }
                 
                 utils._callHook('delete:after');
@@ -522,13 +592,18 @@ Behave = Behave || function (userOpts) {
           openedChar: function (_char, e) {
               utils.preventDefaultEvent(e);
               utils._callHook('openChar:before');
-              var pos = utils.cursor.get(),
-                  val = utils.editor.get(),
+              var pos = utils.cursor.get();
+
+              try {
+                utils.editor.insert(_char.open + _char.close);
+              } catch(e) {
+                console.warn(e);
+                var val = utils.editor.get(),
                   left = val.substring(0, pos),
                   right = val.substring(pos),
                   edited = left + _char.open + _char.close + right;
-
-              defaults.textarea.value = edited;
+                defaults.textarea.value = edited;
+              }
               utils.cursor.set(pos + 1);
               utils._callHook('openChar:after');
           },
@@ -630,6 +705,9 @@ Behave = Behave || function (userOpts) {
       });
   }
 
-  console.log("Behaving");
-
 }).call(this);
+
+function QueryCommandException(querycommand) {
+  this.message = querycommand;
+  this.name = 'QueryCommandException';
+}

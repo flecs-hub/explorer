@@ -24,7 +24,7 @@ Vue.component('editor-textarea', {
         ldtbehave.update();
       })
     });
-    BehaveHooks.add('keydown', function(data){
+    BehaveHooks.add('keyup', function(data){
       setTimeout(function(){
         ldtbehave.update();
       })
