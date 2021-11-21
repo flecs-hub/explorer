@@ -250,6 +250,78 @@
                             };
                         }
                     },
+                    helper: {
+                        indentLines: function (e) {
+                            var selection = utils.cursor.selection(),
+                                val = utils.editor.get();
+
+                            var leftBound = selection.start,
+                            rightBound = selection.end;
+
+                            while (val.charAt(leftBound-1) != "\n" && leftBound != 0) {
+                                leftBound--;
+                            }
+
+                            while (val.charAt(rightBound) != "\n" && rightBound < val.length) {
+                                rightBound++;
+                            }
+                            
+                            // Indent
+                            utils.preventDefaultEvent(e);
+                            var expandedSelection = val.substring(leftBound, rightBound);
+
+                            var splitSelection = expandedSelection.split("\n");
+                            var indentedSelection = splitSelection.map(line => "  " + line).join("\n");
+
+                            utils.cursor.set(rightBound);
+                            utils.editor.delete(expandedSelection.length - 1);
+                            utils.editor.insert(indentedSelection);
+                            utils.cursor.set(selection.start + 2, selection.end + splitSelection.length * 2);
+
+                            return;
+                        },
+                        unindentLines: function (e) {
+                            var selection = utils.cursor.selection(),
+                                val = utils.editor.get();
+
+                            var leftBound = selection.start,
+                            rightBound = selection.end;
+
+                            while (val.charAt(leftBound-1) != "\n" && leftBound != 0) {
+                            leftBound--;
+                            }
+
+                            while (val.charAt(rightBound) != "\n" && rightBound < val.length) {
+                            rightBound++;
+                            }
+
+                            // Unindent
+                            utils.preventDefaultEvent(e);
+                            let expandedSelection = val.substring(leftBound, rightBound);
+                            let unindentCount = 0;
+
+                            let splitSelection = expandedSelection.split("\n");
+                            let indentedSelection = splitSelection.map((line) => {
+                                if(line.match(/^[ \t]{2,}/)) {
+                                    unindentCount++;
+                                    return line.substring(2);
+                                } else {
+                                    return line;
+                                }
+                            }).join("\n");
+
+                            utils.cursor.set(rightBound);
+                            utils.editor.delete(expandedSelection.length - 1);
+                            utils.editor.insert(indentedSelection);
+
+                            // To know if the first line (leftBound) has hit the end or not.
+                            let firstLineUnindent = (splitSelection[0].match(/^[ \t]{2,}/)) ? 2 : 0;
+                            
+                            utils.cursor.set(selection.start - firstLineUnindent, selection.end - unindentCount*2);
+
+                            return;
+                        }
+                    },
                     editor: {
                         getLines: function (textVal) {
                             return (textVal).split("\n").length;
@@ -438,51 +510,11 @@
                                 val = utils.editor.get();
 
                             if (selection) {
-                                // var tempStart = selection.start;
-                                // while(tempStart--){
-                                //     // Rewinds selection start pos to beginning of line
-                                //     if(val.charAt(tempStart)=="\n"){
-                                //         selection.start = tempStart + 1;
-                                //         break;
-                                //     }
-                                // }
-
-                                // var toIndent = val.substring(selection.start, selection.end),
-                                //     lines = toIndent.split("\n"),
-                                //     i;
-
-                                // if(e.shiftKey){
-                                //     for(i = 0; i<lines.length; i++){
-                                //         if(lines[i].substring(0,tab.length) == tab){
-                                //             lines[i] = lines[i].substring(tab.length);
-                                //         }
-                                //     }
-                                //     toIndent = lines.join("\n");
-
-                                //     try {
-                                //       console.trace();
-                                //       utils.editor.insert(toIndent);
-                                //     } catch(e) {
-                                //       console.warn(e);
-                                //       utils.editor.set( val.substring(0,selection.start) + toIndent + val.substring(selection.end) );
-                                //     }
-                                //     utils.cursor.set(selection.start, selection.start+toIndent.length);
-
-                                // } else {
-                                //     for(i in lines){
-                                //         lines[i] = tab + lines[i];
-                                //     }
-                                //     toIndent = lines.join("\n");
-
-                                //     try {
-                                //       console.trace();
-                                //       console.log("i> " + toIndent);
-                                //       utils.editor.insert(tab);
-                                //     } catch(e) {
-                                //       console.warn(e);
-                                //       utils.editor.set( val.substring(0,selection.start) + toIndent + val.substring(selection.end) );
-                                //     }
-                                // }
+                                if (e.shiftKey) {
+                                    utils.helper.unindentLines(e);
+                                } else {
+                                    utils.helper.indentLines(e);
+                                }
                             } else {
                                 var left = val.substring(0, pos),
                                     right = val.substring(pos), edited = left + tab + right
@@ -503,7 +535,6 @@
                                     }
                                 } else {
                                     try {
-                                        console.trace();
                                         utils.editor.insert(tab);
                                     } catch (e) {
                                         console.warn(e);
@@ -622,13 +653,10 @@
                                     || cursorChar == "\r") {
                                         deletionLength = left.match(regexWhitespace)[0].length;
                                 } else {
-                                    console.log(cursorChar.match(regexAlphanumericSingle));
                                     if(cursorChar.match(regexAlphanumericSingle)) {
                                         // Alphanumeric
-                                        console.log(left.match(regexAlphanumeric)[0]);
                                         deletionLength = left.match(regexAlphanumeric)[0].length;
                                     } else {
-                                        console.log(left.match(regexNonalphanumeric)[0]);
                                         deletionLength = left.match(regexNonalphanumeric)[0].length;
                                     }
                                 }
@@ -684,6 +712,58 @@
 
                             utils._callHook('delete:after');
 
+                        }
+                    },
+                    ctrlKey: function (e) {
+                        if (!utils.fenceRange()) { return; }
+
+                        if (utils.client.os.isMacOS && e.metaKey ||
+                            utils.client.os.isWindows && e.ctrlKey) {
+
+                            var selection = utils.cursor.selection(),
+                                pos = utils.cursor.get(),
+                                val = utils.editor.get(),
+                                left = val.substring(0, pos),
+                                right = val.substring(pos);
+
+                            if (selection) {
+                                if (e.keyCode == 221) {
+                                    utils.preventDefaultEvent(e);
+                                    utils.helper.indentLines(e);
+                                }
+
+                                if (e.keyCode == 219) {
+                                    utils.preventDefaultEvent(e);
+                                    utils.helper.unindentLines(e);
+                                }
+                            } else {
+                                // Single line
+                                var leftBound = pos;
+
+                                while (val.charAt(leftBound-1) != "\n" && leftBound != 0) {
+                                    leftBound--;
+                                }
+
+                                if (e.keyCode == 219) {
+                                    // Unindent
+                                    utils.preventDefaultEvent(e);
+                                    if (val.substring(leftBound, pos).match(/^[ \t]{2,}/)) {
+                                        // Check if line is indented
+                                        utils.cursor.set(leftBound+2);
+                                        utils.editor.delete(1);
+                                        utils.cursor.set(pos-2);
+                                    }
+                                }
+    
+                                if (e.keyCode == 221) {
+                                    // Indent
+                                    utils.preventDefaultEvent(e);
+                                    utils.cursor.set(leftBound);
+                                    utils.editor.insert(tab);
+                                    utils.cursor.set(pos+2)
+                                };
+                            }
+                            return;
                         }
                     }
                 },
@@ -750,6 +830,7 @@
                         if (defaults.replaceTab) { utils.addEvent(defaults.textarea, 'keydown', intercept.tabKey); }
                         if (defaults.autoIndent) { utils.addEvent(defaults.textarea, 'keydown', intercept.enterKey); }
                         if (defaults.autoStrip) { utils.addEvent(defaults.textarea, 'keydown', intercept.deleteKey); }
+                        if (defaults.autoStrip) { utils.addEvent(defaults.textarea, 'keydown', intercept.ctrlKey); }
 
                         utils.addEvent(defaults.textarea, 'keypress', action.filter);
 
@@ -782,6 +863,7 @@
                 utils.removeEvent(defaults.textarea, 'keydown', intercept.tabKey);
                 utils.removeEvent(defaults.textarea, 'keydown', intercept.enterKey);
                 utils.removeEvent(defaults.textarea, 'keydown', intercept.deleteKey);
+                utils.removeEvent(defaults.textarea, 'keydown', intercept.ctrlKey);
                 utils.removeEvent(defaults.textarea, 'keypress', action.filter);
             };
 
