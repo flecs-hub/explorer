@@ -252,11 +252,20 @@
                     },
                     helper: {
                         indentLines: function (e) {
-                            var selection = utils.cursor.selection(),
+
+                            utils.preventDefaultEvent(e);
+
+                            // Can indent one or multiple lines
+                            // Either cursor or selection
+
+                            let selection = utils.cursor.selection(),
+                                pos = utils.cursor.get(),
                                 val = utils.editor.get();
 
-                            var leftBound = selection.start,
-                            rightBound = selection.end;
+                            let leftBound = selection ? selection.start : pos,
+                            rightBound = selection ? selection.end : pos;
+
+                            let endCursorPos = {start: leftBound, end: rightBound};
 
                             while (val.charAt(leftBound-1) != "\n" && leftBound != 0) {
                                 leftBound--;
@@ -266,37 +275,59 @@
                                 rightBound++;
                             }
                             
-                            // Indent
-                            utils.preventDefaultEvent(e);
-                            var expandedSelection = val.substring(leftBound, rightBound);
+                            let expandedSelection = val.substring(leftBound, rightBound);
+                            let splitSelection = expandedSelection.split("\n");
+                            let indentedSelection = splitSelection.map(line => "  " + line).join("\n");
 
-                            var splitSelection = expandedSelection.split("\n");
-                            var indentedSelection = splitSelection.map(line => "  " + line).join("\n");
+                            // Calculate final cursor selection positions
+                            if (selection) {
+                                endCursorPos.start = selection.start + 2;
+                                endCursorPos.end = selection.end + splitSelection.length * 2;
+                            } else {
+                                endCursorPos.start = pos + 2;
+                                endCursorPos.end = pos + 2;
+                            }
 
-                            utils.cursor.set(rightBound);
-                            utils.editor.delete(expandedSelection.length - 1);
-                            utils.editor.insert(indentedSelection);
-                            utils.cursor.set(selection.start + 2, selection.end + splitSelection.length * 2);
-
-                            return;
+                            try {
+                                // utils.cursor.set(rightBound);
+                                // utils.editor.delete(expandedSelection.length - 1);
+                                utils.cursor.set(leftBound, rightBound);
+                                utils.editor.insert(indentedSelection)
+                            } catch(e) {
+                                console.warn(e);
+                                let left = val.substring(0, leftBound),
+                                    right = val.substring(rightBound);
+                                utils.editor.set(left + indentedSelection + right);
+                            } finally {
+                                utils.cursor.set(endCursorPos.start, endCursorPos.end);
+                                utils._callHook('indent:after');
+                                return;
+                            }
                         },
                         unindentLines: function (e) {
-                            var selection = utils.cursor.selection(),
-                                val = utils.editor.get();
 
-                            var leftBound = selection.start,
-                            rightBound = selection.end;
+                            utils.preventDefaultEvent(e);
+
+                            // Can unindent one or multiple lines
+                            // Either cursor or selection
+
+                            let selection = utils.cursor.selection(),
+                                val = utils.editor.get(),
+                                pos = utils.cursor.get();
+
+                            let leftBound = selection ? selection.start : pos,
+                            rightBound = selection ? selection.end : pos;
+
+                            let endCursorPos = {start: leftBound, end: rightBound};
 
                             while (val.charAt(leftBound-1) != "\n" && leftBound != 0) {
-                            leftBound--;
+                                leftBound--;
                             }
 
                             while (val.charAt(rightBound) != "\n" && rightBound < val.length) {
-                            rightBound++;
+                                rightBound++;
                             }
 
-                            // Unindent
-                            utils.preventDefaultEvent(e);
                             let expandedSelection = val.substring(leftBound, rightBound);
                             let unindentCount = 0;
 
@@ -310,16 +341,40 @@
                                 }
                             }).join("\n");
 
-                            utils.cursor.set(rightBound);
-                            utils.editor.delete(expandedSelection.length - 1);
-                            utils.editor.insert(indentedSelection);
+                            // Calculate final cursor selection positions
+                            if (selection) {
+                                endCursorPos.end = selection.end - unindentCount*2;
 
-                            // To know if the first line (leftBound) has hit the end or not.
-                            let firstLineUnindent = (splitSelection[0].match(/^[ \t]{2,}/)) ? 2 : 0;
-                            
-                            utils.cursor.set(selection.start - firstLineUnindent, selection.end - unindentCount*2);
+                                if (splitSelection[0].match(/^[ \t]{2,}/)) {
+                                    if (val.charAt(selection.start - 1) != "\n") endCursorPos.start = selection.start - 2;
+                                    if (val.charAt(selection.start - 2) == "\n") endCursorPos.start = selection.start - 1;
+                                } else {
+                                    endCursorPos.start = selection.start;
+                                }
+                            } else {
+                                if (unindentCount > 0) {
+                                    endCursorPos.start = pos - 2;
+                                    endCursorPos.end = pos - 2;
+                                }
+                            }
 
-                            return;
+                            try {
+                                // utils.cursor.set(rightBound);
+                                // utils.editor.delete(expandedSelection.length - 1);
+                                utils.cursor.set(leftBound, rightBound);
+                                utils.editor.insert(indentedSelection);
+                            } catch(e) {
+                                console.warn(e);
+                                let left = val.substring(0, leftBound),
+                                    right = val.substring(rightBound);
+                                utils.editor.set(left + indentedSelection + right);
+                            } finally {
+                                // To know if the first line (leftBound) has hit the end or not.
+                                utils.cursor.set(endCursorPos.start, endCursorPos.end);
+                                utils._callHook('indent:after');
+                                return;
+                            }
+
                         }
                     },
                     editor: {
@@ -500,7 +555,6 @@
                         if (!utils.fenceRange()) { return; }
 
                         if (e.keyCode == 9) {
-                            utils.preventDefaultEvent(e);
 
                             var toReturn = true;
                             utils._callHook('tab:before');
@@ -520,20 +574,9 @@
                                     right = val.substring(pos), edited = left + tab + right
 
                                 if (e.shiftKey) {
-                                    console.trace();
-                                    if (val.substring(pos - tab.length, pos) == tab) {
-                                        try {
-                                            utils.editor.delete(1);
-                                        } catch (e) {
-                                            console.warn(e);
-                                            edited = val.substring(0, pos - tab.length) + right;
-                                            utils.editor.set(edited)
-                                        } finally {
-                                            utils.cursor.set(pos - tab.length);
-                                            return;
-                                        }
-                                    }
+                                    utils.helper.unindentLines(e);
                                 } else {
+                                    utils.preventDefaultEvent(e);
                                     try {
                                         utils.editor.insert(tab);
                                     } catch (e) {
@@ -718,22 +761,19 @@
                         if (!utils.fenceRange()) { return; }
 
                         if (utils.client.os.isMacOS && e.metaKey ||
-                            utils.client.os.isWindows && e.ctrlKey) {
+                            utils.client.os.isWindows && e.ctrlKey ||
+                            utils.client.os.isLinux && e.ctrlKey) {
 
                             var selection = utils.cursor.selection(),
                                 pos = utils.cursor.get(),
-                                val = utils.editor.get(),
-                                left = val.substring(0, pos),
-                                right = val.substring(pos);
+                                val = utils.editor.get();
 
                             if (selection) {
                                 if (e.keyCode == 221) {
-                                    utils.preventDefaultEvent(e);
                                     utils.helper.indentLines(e);
                                 }
 
                                 if (e.keyCode == 219) {
-                                    utils.preventDefaultEvent(e);
                                     utils.helper.unindentLines(e);
                                 }
                             } else {
@@ -746,21 +786,12 @@
 
                                 if (e.keyCode == 219) {
                                     // Unindent
-                                    utils.preventDefaultEvent(e);
-                                    if (val.substring(leftBound, pos).match(/^[ \t]{2,}/)) {
-                                        // Check if line is indented
-                                        utils.cursor.set(leftBound+2);
-                                        utils.editor.delete(1);
-                                        utils.cursor.set(pos-2);
-                                    }
+                                    utils.helper.unindentLines(e);
                                 }
     
                                 if (e.keyCode == 221) {
                                     // Indent
-                                    utils.preventDefaultEvent(e);
-                                    utils.cursor.set(leftBound);
-                                    utils.editor.insert(tab);
-                                    utils.cursor.set(pos+2)
+                                    utils.helper.indentLines(e);
                                 };
                             }
                             return;
