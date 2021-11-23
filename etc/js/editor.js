@@ -16,16 +16,12 @@ Vue.component('editor-textarea', {
       fence: false
     });
 
+
+    // Behavejs' event listeners  override some of LDT's, so we use Behavehooks to hook LDT updating to Behavejs' event listeners.
+    // BehaveHooks are only used when doc query commands are unsupported, to force ldt update.
     if (!document.queryCommandSupported('insertText')) {
-      // Behavejs' event listeners  override some of LDT's, so we use Behavehooks to hook LDT updating to Behavejs' event listeners.
-      // BehaveHooks are only used when doc query commands are unsupported, to force ldt update.
       BehaveHooks.add('keydown', (data) => {
-        setTimeout(function(){
-          this.ldt.update();
-        })
-      });
-      BehaveHooks.add('keyup', (data) => {
-        setTimeout(function(){
+        setTimeout(() => {
           this.ldt.update();
         })
       });
