@@ -448,7 +448,7 @@ var app = new Vue({
     is_initialized: false,
     is_mounted: false,
 
-    title: "Flecs Explorer",
+    title: "Flecs",
     query_error: undefined,
     entity_error: undefined,
     code_error: undefined,

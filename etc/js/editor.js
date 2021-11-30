@@ -1,11 +1,11 @@
 
 Vue.component('editor-textarea', {
   mounted: function() {
-    this.ldt = new TextareaDecorator( 
-      document.getElementById('plecs-editor'), syntax_highlighter );
+    const el = document.getElementById('plecs-editor');
+    this.ldt = new TextareaDecorator(el, syntax_highlighter );
 
-    var editor = new Behave({
-      textarea: document.getElementById('plecs-editor'),
+    new Behave({
+      textarea: el,
       replaceTab: true,
       softTabs: true,
       tabSize: 2,
@@ -16,9 +16,9 @@ Vue.component('editor-textarea', {
       fence: false
     });
 
-
-    // Behavejs' event listeners  override some of LDT's, so we use Behavehooks to hook LDT updating to Behavejs' event listeners.
-    // BehaveHooks are only used when doc query commands are unsupported, to force ldt update.
+    // Behavejs' event listeners  override some of LDT's, so we use Behavehooks 
+    // to hook LDT updating to Behavejs' event listeners. BehaveHooks are only 
+    // used when doc query commands are unsupported, to force ldt update.
     if (!document.queryCommandSupported('insertText')) {
       BehaveHooks.add('keydown', (data) => {
         setTimeout(() => {
@@ -31,7 +31,6 @@ Vue.component('editor-textarea', {
         })
       });
     }
-
   },
   updated: function() {
     this.ldt.update();

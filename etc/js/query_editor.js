@@ -3,7 +3,7 @@ Vue.component('query-editor', {
   props: ['error'],
   mounted: function() {
     this.ldt = new TextareaDecorator( 
-      document.getElementById('query-editor'), syntax_highlighter );
+      document.getElementById('query-editor'), syntax_highlighter);
   },
   updated: function() {
     this.ldt.update();
@@ -27,6 +27,9 @@ Vue.component('query-editor', {
       this.last_query = this.query;
     },
     set_query(expr) {
+      if (expr === undefined) {
+        expr = "";
+      }
       this.query = expr;
       this.$emit('changed', expr);
     },
@@ -38,17 +41,24 @@ Vue.component('query-editor', {
     },
     evt_focus(focus) {
       this.focus = focus;
+    },
+    set_focus() {
+      this.$refs.input.focus();
+      this.$refs.input.select();
     }
   },
   computed: {
     query_class() {
+      let result = "ecs-query";
       if (this.error) {
-        return "ecs-query ecs-query-error";
+        result += " ecs-query-error";
       } else if (this.focus) {
-        return "ecs-query ecs-query-ok";
-      } else {
-        return "ecs-query";
+        result += " ecs-query-ok";
       }
+      if (!this.query.length) {
+        result += " ecs-query-empty";
+      }
+      return result;
     },
   },
   template: `
@@ -60,7 +70,9 @@ Vue.component('query-editor', {
         v-on:keyup="changed"
         v-on:focus="evt_focus(true)"
         v-on:blur="evt_focus(false)">
-      </textarea>
+      </textarea>&nbsp;
+      <div class="query-default-text" v-if="!query.length" v-on:click.stop="set_focus">Search</div>
+      <icon src="search" v-on:click.stop="set_focus"/>
     </div>
     `
 });

@@ -1,10 +1,11 @@
+#include "web_queries.h"
+
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #else
 #define EMSCRIPTEN_KEEPALIVE
 #endif
 
-#include "flecs.h"
 #include "base64.h"
 #include "fastlz.h"
 

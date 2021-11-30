@@ -18,7 +18,7 @@
 #define WEB_QUERIES_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
-/* No dependencies */
+#include "../../deps/flecs.h"
 
 #endif
 

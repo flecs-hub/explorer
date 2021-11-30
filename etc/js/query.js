@@ -70,11 +70,10 @@ Vue.component('query', {
       v-on:close="evt_close">
 
       <template v-slot:summary>
-        Query&nbsp;&nbsp;<query-editor
+        <query-editor
           ref="editor"
           :error="query_error"
-          v-on:changed="evt_query_changed"/>&nbsp;
-          <span class="query-result-count" v-if="count">({{count}}&nbsp;results)</span>
+          v-on:changed="evt_query_changed"/>
       </template>
 
       <template v-slot:detail>

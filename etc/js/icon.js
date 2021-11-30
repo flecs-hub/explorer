@@ -11,11 +11,15 @@ Vue.component('icon', {
         result += " icon-hide";
       }
       return result;
+    },
+    div_css: function() {
+      let result = "noselect icon clickable " + this.src;
+      return result;
     }
   },
   template: `
     <span :class="css">
-      <div :class="'noselect icon clickable ' + src" v-on="$listeners"> </div>
+      <div :class="div_css" v-on="$listeners"> </div>
     </span>
     `
 });
