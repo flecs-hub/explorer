@@ -583,6 +583,7 @@ div.ecs-query {
   
   padding-top: 2px;
   padding-left: 5px;
+  margin-left: -5px; /* offset padding */
 
   font-family: Menlo, Monaco, "Courier New", monospace;
   font-size: 13px;
@@ -599,6 +600,7 @@ div.ecs-query {
 
 div.ecs-query div.ldt {
   min-width: 36px;
+  min-height: 19px;
 }
 
 div.ecs-query-empty div.ldt {
