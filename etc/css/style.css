@@ -443,7 +443,17 @@ div.inspector-prop-object {
   margin-top: 5px;
 }
 
+div.inspector-props-list span.inspector-value {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+
 span.inspector-key, span.inspector-value {
+  padding: 6px;
+  color: #b4b4b4;
+}
+
+span.inspector-separator {
   padding: 6px;
   color: #b4b4b4;
 }

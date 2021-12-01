@@ -18,7 +18,7 @@ Vue.component('inspector-key', {
 
 // Single scalar value
 Vue.component('inspector-value', {
-  props: ['type', 'value'],
+  props: ['type', 'value', 'separator'],
   computed: {
     formatted_value: function() {
       const type = this.type ? this.type[0] : undefined;
@@ -59,12 +59,12 @@ Vue.component('inspector-value', {
       return result;
     }
   },
-  template: `<span :class="css">{{formatted_value}}</span>`
+  template: `<span :class="css"><template v-if="separator">,&nbsp;</template>{{formatted_value}}</span>`
 });
 
 // Key-value pair (as shown in entity inspector)
 Vue.component('inspector-kv', {
-  props: ['prop_key', 'type', 'value', 'list'],
+  props: ['prop_key', 'type', 'value', 'list', 'first'],
   computed: {
     is_object: function() {
       return inspector_is_object(this.type, this.value);
@@ -93,7 +93,7 @@ Vue.component('inspector-kv', {
         </template>
       </template>
       <template v-else>
-        <inspector-value :type="type" :value="value"></inspector-value>
+        <inspector-value :type="type" :value="value" :separator="!first"></inspector-value>
       </template>
     </div>
     `
@@ -146,7 +146,7 @@ Vue.component('inspector-props', {
           <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :type="prop_type(k)" ":value="v" :list="list"/></div>
         </template>
         <template v-else>
-          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :prop_key="k" :type="prop_type(k)" :value="v" :list="list"/></div>
+          <div class="inspector-prop" v-for="(v, k, i) in value"><inspector-kv :prop_key="k" :type="prop_type(k)" :value="v" :list="list" :first="i == 0"/></div>
         </template>
       </template>
       <template v-else>
