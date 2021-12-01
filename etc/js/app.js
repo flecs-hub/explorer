@@ -224,7 +224,7 @@ var app = new Vue({
         }
       }
 
-      this.$refs.tree.update();
+      this.$refs.tree.update_expanded();
 
       // Refresh UI periodically
       this.refresh_timer = window.setInterval(() => {
@@ -269,7 +269,7 @@ var app = new Vue({
         this.$refs.query.set_query(q);
       }
 
-      this.$refs.tree.update();
+      this.$refs.tree.update_expanded();
 
       this.parse_interval = 150;
     },
@@ -387,7 +387,7 @@ var app = new Vue({
     },
 
     refresh_tree() {
-      this.$refs.tree.update();
+      this.$refs.tree.update_expanded();
     },
 
     // Query changed event
@@ -401,11 +401,11 @@ var app = new Vue({
         this.code_error = reply.error;
         if (reply.error === undefined) {
           this.refresh_query();
-          this.$refs.tree.update();
+          this.$refs.tree.update_expanded();
           this.refresh_entity();
+          this.refresh_terminal();
         }
       }, this.parse_interval);
-      this.refresh_terminal();
     },
 
     // Entity selected
