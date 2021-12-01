@@ -10,7 +10,7 @@ Vue.component('query-result', {
       <entity-reference :entity="variable" :show_name="true" v-on="$listeners"/>
     </td>
     <td v-for="value in result.values" v-if="value !== 0">
-      <inspector-value :value="value[index]" :list="true"/>
+      <inspector-props :value="value[index]" :list="true"/>
     </td>
     <td v-if="show_terms" v-for="term in result.terms" class="content-container-term">
       {{term}}

@@ -175,7 +175,9 @@ var app = new Vue({
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        this.request("GET", "entity/" + path.replaceAll('.', '/'), recv, err);
+        this.request("GET", 
+          "entity/" + path.replaceAll('.', '/') + "&type_info=true", 
+          recv, err);
       }
     },
 
@@ -185,16 +187,30 @@ var app = new Vue({
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        this.request("GET", "query?q=" + encodeURIComponent(q), 
+        this.request(
+          "GET", "query?q=" + encodeURIComponent(q), 
           recv, err);
       }
     },
 
-    insert_code: function(code, recv) {
+    insert_code: function(code, recv, timeout) {
       if (this.is_local()) {
-        const r = wq_run(code);
-        const reply = JSON.parse(r);
-        recv(reply);
+        if (this.parse_timer) {
+          clearTimeout(this.parse_timer);
+        }
+
+        const func = () => {
+          const r = wq_run(code);
+          const reply = JSON.parse(r);
+          recv(reply);
+          this.parse_timer = undefined;
+        };
+
+        if (timeout) {
+          this.parse_timer = setTimeout(func, timeout);
+        } else {
+          func();
+        }
       }
     },
 
@@ -245,6 +261,7 @@ var app = new Vue({
         this.$refs.plecs.set_code(p);
         this.$refs.plecs.run();
       }
+
       if (selected) {
         this.$refs.tree.select(selected);
       }
@@ -253,6 +270,8 @@ var app = new Vue({
       }
 
       this.$refs.tree.update();
+
+      this.parse_interval = 150;
     },
 
     // Connect to a remote host
@@ -385,7 +404,7 @@ var app = new Vue({
           this.$refs.tree.update();
           this.refresh_entity();
         }
-      });
+      }, this.parse_interval);
       this.refresh_terminal();
     },
 
@@ -460,6 +479,8 @@ var app = new Vue({
     connection: ConnectionState.Initializing,
     retry_count: 0,
 
-    refresh_timer: undefined
+    refresh_timer: undefined,
+    parse_timer: undefined,
+    parse_interval: 0
   }
 });

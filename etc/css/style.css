@@ -329,6 +329,11 @@ rect.entity-tree-selected {
   fill: #333A4B;
 }
 
+/* -- begin of inspector -- */
+div.inspector  {
+  padding: 5px;
+}
+
 div.inspector-name {
   display: flex;
   flex-direction: row;
@@ -363,26 +368,24 @@ div.inspector-components-nested {
   margin-left: 10px;
 }
 
-div.entity-component {
+div.inspector-component {
   display: flex;
   flex-direction: column;
   margin-bottom: 15px;
-}
-
-div.entity-component:last-child {
-  margin-bottom: 0px;
+  padding-top: 5px;
+  padding-right: 5px;
 }
 
 div.inspector-component-name {
   display: flex;
 }
 
-div.entity-component-name {
+div.inspector-component-name {
   color: #DDE0E6;
   font-weight: 500;
 }
 
-div.entity-component-overridden {
+div.inspector-component-overridden {
   display: flex;
   color: #4F5565;
   text-decoration: line-through;
@@ -391,7 +394,6 @@ div.entity-component-overridden {
 
 span.inspector-header {
   position: relative;
-  font-style: italic;
   color: #47B576;
   font-weight: 500;
   white-space: nowrap;
@@ -401,65 +403,89 @@ span.inspector-header:first-child {
   margin-top: 10px;
 }
 
-div.inspector-value {
+div.inspector-props {
   display: flex;
   flex-wrap: wrap;
-  margin-left: 26px;
-  margin-bottom: 10px;
-}
-
-div.inspector-value-vertical {
-  flex-direction: column;
   margin-left: 10px;
+  flex-direction: column;
+  
+  border-style: solid;
+  border-width: 0px;
+  border-left-width: 1px;
+  border-color: #232833;
 }
 
-div.inspector-value-list {
+div.inspector-props-list {
   display: inline-flex;
 }
 
-div.entity-property-value {
+div.inspector-kv {
   display: flex;
+  position: relative;
   margin-right: 1px;
+  width: 100%;
+  justify-content: right;
 }
 
-div.entity-property {
-  display: flex;
-  margin-left: 1px;
-  margin-bottom: 1px; /* for when row collapses */
-}
-
-span.entity-property-key, span.entity-property-value {
-  padding: 6px;
-  border-radius: 6px;
-}
-
-span.entity-property-key {
-  background-color: #333A4B;
-  cursor: default;
-  border-top-right-radius: 0px !important;
-  border-bottom-right-radius: 0px !important;
-}
-
-span.entity-property-value {
-  background-color: #4F5565;
-}
-
-span.entity-property-value-after-key {
+span.inspector-kv-after-key {
   border-top-left-radius: 0px !important;
   border-bottom-left-radius: 0px !important;
 }
 
-div.entity-property-object {
+div.inspector-prop {
   display: flex;
+  margin-bottom: 1px; /* for when row collapses */
 }
 
-div.entity-component-expand-nodata {
-  width: 20px;
+div.inspector-prop-object {
+  display: flex;
+  width: 100%;
+  margin-top: 5px;
+}
+
+span.inspector-key, span.inspector-value {
+  padding: 6px;
+  color: #b4b4b4;
+}
+
+div.inspector-props span.inspector-key {
+  right: 220px;
+  cursor: default;
+  color: #47B576;
+}
+
+div.inspector-props span.inspector-value {
+  width: 200px;
+  background-color: #000;
+}
+
+span.inspector-value-bool {
+  color: #4981B5;
+}
+
+span.inspector-value-int {
+  color: #A2D8B4;
+}
+
+span.inspector-value-float {
+  color: #A2D8B4;
+}
+
+span.inspector-value-text {
+  color: #B5894B;
+}
+
+span.inspector-value-enum, span.inspector-value-bitmask {
+  color: #7D67B5;
+}
+
+div.inspector-component-expand-nodata {
+  width: 10px;
   text-align: center;
   color: #b4b4b4;
 }
 
-div.entity-component-expand-nodata span {
+div.inspector-component-expand-nodata span {
   text-align: center;
 }
 
@@ -490,6 +516,8 @@ span.inspector-link a {
 span.entity-reference span {
   white-space: nowrap;
 }
+
+/* -- end of inspector -- */
 
 div.url-modal {
   position: absolute;
@@ -933,7 +961,7 @@ div.detail-toggle-detail {
   opacity: 1;
 
   padding-top: 5px;
-  transition: padding-top 0.1s ease-out, opacity 0.12s ease-out;;
+  transition: padding-top 0.1s ease-out, opacity 0.06s ease-out;;
 }
 
 div.detail-toggle-detail-hide {

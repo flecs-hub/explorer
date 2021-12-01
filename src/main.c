@@ -67,9 +67,9 @@ char* query(char *q) {
     }
 
     ecs_iter_t it = ecs_rule_iter(world, r);
-    if (ecs_iter_to_json_buf(world, &it, &reply, &(ecs_iter_to_json_desc_t) {
-        .measure_eval_duration = true
-    }) != 0) {
+    ecs_iter_to_json_desc_t desc = ECS_ITER_TO_JSON_INIT;
+    desc.measure_eval_duration = true;
+    if (ecs_iter_to_json_buf(world, &it, &reply, &desc) != 0) {
         ecs_strbuf_reset(&reply);
         goto error;
     }
@@ -89,7 +89,10 @@ char* get_entity(char *path) {
 
     ecs_entity_t ent = ecs_lookup_path(world, 0, path);
 
-    if (ecs_entity_to_json_buf(world, ent, &reply) != 0) {
+    ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
+    desc.serialize_type_info = true;
+
+    if (ecs_entity_to_json_buf(world, ent, &reply, &desc) != 0) {
         ecs_strbuf_reset(&reply);
         return ecs_os_strdup("{\"error\": \"failed to serialize entity\"}");
     }

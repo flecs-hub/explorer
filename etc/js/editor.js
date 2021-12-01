@@ -15,22 +15,6 @@ Vue.component('editor-textarea', {
       autoIndent: true,
       fence: false
     });
-
-    // Behavejs' event listeners  override some of LDT's, so we use Behavehooks 
-    // to hook LDT updating to Behavejs' event listeners. BehaveHooks are only 
-    // used when doc query commands are unsupported, to force ldt update.
-    if (!document.queryCommandSupported('insertText')) {
-      BehaveHooks.add('keydown', (data) => {
-        setTimeout(() => {
-          this.ldt.update();
-        })
-      });
-      BehaveHooks.add('keypress', (data) => {
-        setTimeout(function(){
-          this.ldt.update();
-        })
-      });
-    }
   },
   updated: function() {
     this.ldt.update();
@@ -38,34 +22,7 @@ Vue.component('editor-textarea', {
   methods: {
     run() {      
       if (this.code != this.last_code) {
-
-        if(this.last_key_event) 
-        {
-          this.key_events_since_emit++;
-          this.last_key_event = Date.now();
-
-          var callback_time = 600;
-          if (this.key_events_since_emit == 1) {
-            // Make single, unchained key events feel fast
-            callback_time = 250;
-          }
-
-          setTimeout(() => {
-            var time_delta = Date.now() - this.last_key_event;
-            if (
-              time_delta >= 600
-              || this.key_events_since_emit == 1 && time_delta >= 250
-              ) {
-              this.$emit('run-code', this.code); 
-              this.key_events_since_emit = 0;
-            }
-          }, callback_time);
-        } else {
-          // First code set
-
-          this.last_key_event = Date.now();
-          this.$emit('run-code', this.code); 
-        }
+        this.$emit('run-code', this.code);
         this.last_code = this.code;
       }
     },

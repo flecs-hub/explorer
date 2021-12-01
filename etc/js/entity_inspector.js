@@ -1,10 +1,43 @@
-Vue.component('scalar-value', {
-  props: ['value', 'css'],
+// Utility to check if type/value is object
+function inspector_is_object(type, value) {
+  if (type) {
+    if (Array.isArray(type)) {
+      return false;
+    } else {
+      return (typeof type) === "object";
+    }
+  }
+  return (typeof value) === "object";
+}
+
+// Key (property name)
+Vue.component('inspector-key', {
+  props: ['prop_key'],
+  template: `<span v-if="prop_key !== undefined" class="inspector-key">{{prop_key}}</span>`
+});
+
+// Single scalar value
+Vue.component('inspector-value', {
+  props: ['type', 'value'],
   computed: {
     formatted_value: function() {
-      let value = this.value;
-      let str = value.toString();
-      if (typeof value === 'number') {
+      const type = this.type ? this.type[0] : undefined;
+      const value = this.value;
+
+      if (!type) {
+        return value;
+      }
+
+      if (type === "text") {
+        if (value) {
+          return "\"" + value + "\"";
+        } else {
+          return "";
+        }
+      }
+
+      if (type === "float") {
+        let str = value.toString();
         if (str.indexOf('.') == -1) {
           return value;
         } else {
@@ -15,68 +48,72 @@ Vue.component('scalar-value', {
           return value.toFixed(num);
         }
       }
+
       return value;
+    },
+    css: function() {
+      let result = "inspector-value ";
+      if (this.type) {
+        result += "inspector-value-" + this.type[0];
+      }
+      return result;
     }
   },
   template: `<span :class="css">{{formatted_value}}</span>`
 });
 
-Vue.component('entity-property-value-full', {
-  props: ['prop_key', 'value'],
+// Key-value pair (as shown in entity inspector)
+Vue.component('inspector-kv', {
+  props: ['prop_key', 'type', 'value', 'list'],
   computed: {
     is_object: function() {
-      return (typeof this.value) === "object";
+      return inspector_is_object(this.type, this.value);
     },
     value_css: function() {
-      let result = "entity-property-value";
-      if (this.prop_key !== undefined) {
-        result += " entity-property-value-after-key";
-      }
-      return result;
+      return "inspector-kv-value";
     }
   },
   template: `
-    <div class="entity-property-value">
-      <template v-if="is_object">
-        <div class="entity-property-object">
-          <detail-toggle>
-            <template v-slot:summary>
-              <span>{{prop_key}}</span>
-            </template>
-            <template v-slot:detail>
-              <inspector-value :value="value"></inspector-value>
-            </template>
-          </detail-toggle>
-        </div>
+    <div class="inspector-kv">
+      <template v-if="!list">
+        <template v-if="is_object">
+          <div class="inspector-prop-object">
+            <detail-toggle summary_toggle="true">
+              <template v-slot:summary>
+                <span>{{prop_key}}</span>
+              </template>
+              <template v-slot:detail>
+                <inspector-props :type="type" :value="value"></inspector-props>
+              </template>
+            </detail-toggle>
+          </div>
+        </template>
+        <template v-else>
+          <inspector-key :prop_key="prop_key"/><inspector-value :css="value_css" :type="type" :value="value"/>
+        </template>
       </template>
       <template v-else>
-        <template v-if="prop_key !== undefined "><span class="entity-property-key">{{prop_key}}</span></template><scalar-value :css="value_css" :value="value"/>
+        <inspector-value :type="type" :value="value"></inspector-value>
       </template>
     </div>
     `
 });
 
-Vue.component('entity-property-value', {
-  props: ['prop_key', 'value', 'list'],
-  computed: {
-    is_object: function() {
-      return (typeof this.value) === "object";
+// Component properties
+Vue.component('inspector-props', {
+  props: ['value', 'type', 'list'],
+  methods: {
+    prop_type: function(prop_name) {
+      if (this.type) {
+        return this.type[prop_name];
+      } else {
+        return undefined;
+      }
     }
   },
-  template: `
-    <div><template v-if="!list">
-      <entity-property-value-full :prop_key="prop_key" :value="value"/>
-    </template>
-    <template v-else><scalar-value :value="value"></scalar-value></template>
-    </div>
-    `
-});
-
-Vue.component('inspector-value', {
-  props: ['value', 'list'],
   computed: {
     is_object: function() {
-      return (typeof this.value) === "object";
+      return inspector_is_object(this.type, this.value);
     },
     is_array: function() {
       return Array.isArray(this.value);
@@ -91,12 +128,12 @@ Vue.component('inspector-value', {
       return false;
     },
     css: function() {
-      let result = "inspector-value";
+      let result = "inspector-props";
       if (this.list) {
         result += "-list"
       } else {
         if (this.has_objects) {
-          result += " inspector-value-vertical";
+          result += " inspector-props-vertical";
         }
       }
       return result;
@@ -106,53 +143,53 @@ Vue.component('inspector-value', {
     <div :class="css">
       <template v-if="is_object">
         <template v-if="is_array">
-          <div class="entity-property" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><entity-property-value :value="v" :list="list"/></div>
+          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :type="prop_type(k)" ":value="v" :list="list"/></div>
         </template>
         <template v-else>
-          <div class="entity-property" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><entity-property-value :prop_key="k" :value="v" :list="list"/></div>
+          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :prop_key="k" :type="prop_type(k)" :value="v" :list="list"/></div>
         </template>
       </template>
       <template v-else>
-        <div class="entity-property">
-          <entity-property-value :value="value" :list="list"/>
+        <div class="inspector-prop">
+          <inspector-kv :type="type" :value="value" :list="list"/>
         </div>
       </template>
     </div>
     `
 });
 
-Vue.component('entity-component', {
-  props: ['prop'],
+// Component
+Vue.component('inspector-component', {
+  props: ['elem'],
   computed: {
     name_css: function() {
-      if (this.prop.hidden) {
-        return "entity-component-name entity-component-overridden";
+      if (this.elem.hidden) {
+        return "inspector-component-name inspector-component-overridden";
       } else {
-        return "entity-component-name";
+        return "inspector-component-name";
       }
     },
     hide_property: function() {
-      if (this.prop.pred == "flecs.doc.Description" || this.prop.pred == "Identifier") {
+      if (this.elem.pred == "flecs.doc.Description" || this.elem.pred == "Identifier") {
         return true;
       }
       return false;
     }
   },
+
   template: `
-    <div class="entity-component" v-if="!hide_property">
+    <div class="inspector-component" v-if="!hide_property">
       <div class="inspector-component-name">
-        <detail-toggle :disable="prop.value == undefined" summary_toggle="true">
+        <detail-toggle :disable="elem.value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="prop.pred" show_name="true" v-on="$listeners"></entity-reference>
-              <template v-if="prop.obj">, <entity-reference :entity="prop.obj" :show_name="true" v-on="$listeners"></entity-reference>
-              </template>
+              <entity-reference :entity="elem.pred" :disabled="true" show_name="true"/><template v-if="elem.obj">, {{elem.obj}}</template>
             </div>
           </template>
-
           <template v-slot:detail>
-            <inspector-value v-if="prop.value !== undefined" :value="prop.value">
-            </inspector-value>
+            <inspector-props v-if="elem.value !== undefined" 
+              :type="elem.type_info" 
+              :value="elem.value"/>
           </template>
         </detail-toggle>
       </div>
@@ -160,6 +197,7 @@ Vue.component('entity-component', {
     `
 });
 
+// Components of entity and/or base entities
 Vue.component('inspector-components', {
   props: ['entity', 'path', 'type', 'show_header'],
   computed: {
@@ -200,7 +238,7 @@ Vue.component('inspector-components', {
               :label="entity == undefined ? 'inherited from' : ''" 
               :entity="path" 
               show_name="true" 
-              :disabled="entity != undefined" 
+              :disabled="true" 
               icon_link="true" 
               v-on="$listeners"/>
           </span>
@@ -208,7 +246,7 @@ Vue.component('inspector-components', {
         <template v-slot:detail>
           <div :class="detail_css">
             <div class="inspector-components-content">
-              <entity-component v-for="(prop, k) in entity_type" :prop="prop" :key="k" v-on="$listeners"/>
+              <inspector-component v-for="(elem, k) in entity_type" :elem="elem" :key="k" v-on="$listeners"/>
             </div>
           </div>
         </template>
@@ -217,6 +255,7 @@ Vue.component('inspector-components', {
     `
 });
 
+// Top level inspector
 Vue.component('inspector', {
   props: ['entity', 'selection', 'valid'],
   methods: {
@@ -276,9 +315,9 @@ Vue.component('inspector', {
     },
     content_css: function() {
       if (!this.valid) {
-        return "invalid";
+        return "inspector invalid";
       } else {
-        return "";
+        return "inspector";
       }
     }
   },
@@ -286,6 +325,7 @@ Vue.component('inspector', {
     <content-container 
       ref="container" 
       :disable="!entity || !selection" 
+      no_padding="true"
       closable="true" 
       v-on:close="evt_close">
       
