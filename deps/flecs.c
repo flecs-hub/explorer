@@ -15111,8 +15111,29 @@ bool pred_is_subj(
     return true;
 }
 
+/* Set masks aren't useful in plecs, so translate them back to entity names */
 static
-int create_term(
+const char* plecs_set_mask_to_name(
+    ecs_flags32_t flags) 
+{
+    if (flags == EcsSelf) {
+        return "self";
+    } else if (flags == EcsAll) {
+        return "all";
+    } else if (flags == EcsSuperSet) {
+        return "super";
+    } else if (flags == EcsSubSet) {
+        return "sub";
+    } else if (flags == EcsCascade || flags == (EcsSuperSet|EcsCascade)) {
+        return "cascade";
+    } else if (flags == EcsParent) {
+        return "parent";
+    }
+    return NULL;
+}
+
+static
+int plecs_create_term(
     ecs_world_t *world, 
     ecs_term_t *term,
     const char *name,
@@ -15124,6 +15145,17 @@ int create_term(
     state->last_predicate = 0;
     state->last_object = 0;
     state->last_assign_id = 0;
+
+    const char *pred_name = term->pred.name;
+    const char *subj_name = term->subj.name;
+    const char *obj_name = term->obj.name;
+
+    if (!subj_name) {
+        subj_name = plecs_set_mask_to_name(term->subj.set.mask);
+    }
+    if (!obj_name) {
+        obj_name = plecs_set_mask_to_name(term->obj.set.mask);
+    }
 
     if (!ecs_term_id_is_set(&term->pred)) {
         ecs_parser_error(name, expr, column, "missing predicate in expression");
@@ -15138,12 +15170,12 @@ int create_term(
 
     bool pred_as_subj = pred_is_subj(term, state);
 
-    ecs_entity_t pred = ensure_entity(world, state, term->pred.name, pred_as_subj); 
-    ecs_entity_t subj = ensure_entity(world, state, term->subj.name, true);
+    ecs_entity_t pred = ensure_entity(world, state, pred_name, pred_as_subj); 
+    ecs_entity_t subj = ensure_entity(world, state, subj_name, true);
     ecs_entity_t obj = 0;
 
     if (ecs_term_id_is_set(&term->obj)) {
-        obj = ensure_entity(world, state, term->obj.name, 
+        obj = ensure_entity(world, state, obj_name, 
             state->assign_stmt == false);
     }
 
@@ -15619,7 +15651,7 @@ const char *parse_plecs_term(
         state->assign_stmt = true;
         state->assign_to = scope;
     }
-    if (create_term(world, &term, name, expr, (ptr - expr), state)) {
+    if (plecs_create_term(world, &term, name, expr, (ptr - expr), state)) {
         ecs_term_fini(&term);
         return NULL; /* Failed to create term */
     }
