@@ -30,15 +30,13 @@ const example_selected = "Bob";
 const example_query = "Position, Velocity"
 const example_plecs = `using flecs.meta
 
-Struct(Position) {
+Struct(Vec2) {
   x = {f32}
   y = {f32}
 }
 
-Struct(Velocity) {
-  x = {f32}
-  y = {f32}
-}
+Position : Vec2
+Velocity : Vec2
 
 with Position {
   Bob   = {1, 1}
@@ -68,20 +66,14 @@ var app = new Vue({
   el: '#app',
 
   mounted: function() {
-    this.is_mounted = true;
-    if (this.is_initialized) {
-      this.ready();
-    }
+    this.$nextTick(() => {
+      web_queries.then(() => {
+        this.ready();
+      });
+    });
   },
 
   methods: {
-    initialized() {
-      this.is_initialized = true;
-      if (this.is_mounted) {
-        this.ready();
-      }
-    },
-
     is_local() {
       return this.connection == ConnectionState.Local;
     },
@@ -342,7 +334,7 @@ var app = new Vue({
           retry_interval = INITIAL_REQUEST_RETRY_INTERVAL;
         }
 
-        app.json_request("GET", host, "entity/flecs/core/World", (reply) => {
+        this.json_request("GET", host, "entity/flecs/core/World", (reply) => {
           this.host = host;
           this.connection = ConnectionState.Remote;
           this.ready_remote(reply);
@@ -403,8 +395,8 @@ var app = new Vue({
           this.refresh_query();
           this.$refs.tree.update_expanded();
           this.refresh_entity();
-          this.refresh_terminal();
         }
+        this.refresh_terminal();
       }, this.parse_interval);
     },
 
@@ -464,9 +456,6 @@ var app = new Vue({
   },
 
   data: {
-    is_initialized: false,
-    is_mounted: false,
-
     title: "Flecs",
     query_error: undefined,
     entity_error: undefined,
