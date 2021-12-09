@@ -598,7 +598,7 @@ div.editor-textarea {
   border: none;
   resize: none;
   color: #DDE0E6;
-  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-family: "Roboto Mono", Menlo, Monaco, "Courier New", monospace;
   font-size: 13px;
   letter-spacing: 0.0px;
 }
@@ -623,7 +623,7 @@ div.ecs-query {
   padding-left: 5px;
   margin-left: -5px; /* offset padding */
 
-  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-family: "Roboto Mono", Menlo, Monaco, "Courier New", monospace;
   font-size: 13px;
   letter-spacing: 0.0px;
 
@@ -686,7 +686,7 @@ div.terminal {
   position: relative;
   top: 5px;
   height: calc(100% - 5px);
-  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-family: "Roboto Mono", Menlo, Monaco, "Courier New", monospace;
   font-size: 12px;
 }
 
