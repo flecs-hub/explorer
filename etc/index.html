@@ -13,7 +13,7 @@
   <body>
     <!-- <script src="js/event_listener.js"></script> -->
 
-    <div id="app">
+    <div id="app" ref="app">
       <!-- Top bar -->
       <div class="top-box">
         <div class="top-content">
@@ -34,25 +34,34 @@
       </div>
 
       <!-- Tree view -->
-      <div class="tree-box">
-        <entity-tree ref="tree" 
-          :valid="valid"
-          v-on:select="evt_entity_changed" 
-          v-on:select_query="evt_select_query"/>
-      </div>
 
       <!-- Application box -->
-      <div class="app-box">
+      <app-frame-container ref="appFrameContainer">
 
-        <!-- Query results & Entity inspector -->
-        <div class="left-column">
-          <query :valid="valid" ref="query"
-            v-on:select-entity="evt_follow_ref"
-            v-on:changed="evt_query_changed"/>
-        </div>
+        <app-frame ref="leftframe" :width="13">
+          <div class="tree-box">
+            <entity-tree ref="tree" 
+              :valid="valid"
+              v-on:select="evt_entity_changed" 
+              v-on:select_query="evt_select_query"/>
+          </div>
+        </app-frame>
 
-        <!-- Editor -->
-        <div class="right-column">
+        <app-frame :width="43.5">
+          <!-- Query results & Entity inspector -->
+          <div>
+            <query :valid="valid" ref="query"
+              v-on:select-entity="evt_follow_ref"
+              v-on:changed="evt_query_changed"/>
+          </div>
+          <!-- Terminal -->
+          <div class="terminal-box">
+            <terminal ref="terminal"/>
+          </div>
+        </app-frame>
+
+        <app-frame :width="43.5">
+          <!-- Editor -->
           <editor 
             ref="plecs"
             v-on:run-code="evt_code_changed"></editor>
@@ -63,13 +72,8 @@
             v-on:select-entity="evt_follow_ref" 
             v-on:select-query="evt_select_query"
             ref="inspector"></inspector>
-        </div>
-      </div>
-
-      <!-- Terminal -->
-      <div class="terminal-box">
-        <terminal ref="terminal"/>
-      </div>
+        </app-frame>
+      </app-frame-container>
 
       <!-- URL modal -->
       <url-modal ref="url" :url="url"/>
@@ -112,6 +116,8 @@
     <script src="js/icon.js"></script>
     <script src="js/detail_toggle.js"></script>
     <script src="js/content_container.js"></script>
+    <script src="js/components/app_frame_handle.js" type="module"></script>
+    <script src="js/app_frame_container.js" type="module"></script>
 
     <script src="js/entity_icon.js"></script>
     <script src="js/entity_reference.js"></script>
