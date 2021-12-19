@@ -22,6 +22,9 @@ Vue.component('query-result', {
 
 Vue.component('query-results', {
     props: ['data', 'valid'],
+    mounted: function() {
+      if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+    },
     data: function() {
       return {
         show_terms: false

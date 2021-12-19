@@ -253,6 +253,9 @@ Vue.component('entity-tree-list', {
 
 Vue.component('entity-tree', {
   props: ['valid'],
+  mounted: function() {
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+  },
   methods: {
     update_scope: function(scope, data) {
       // Store entities in new scope, so that deleted entities are automatically

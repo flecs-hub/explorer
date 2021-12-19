@@ -1,3 +1,5 @@
+import { debug } from "../utils.js";
+
 export default {
   name: 'app-frame-handle',
   props: {
@@ -7,23 +9,25 @@ export default {
   mounted: function() {
     const el = this.$el;
 
-
     // Find px pos, then convert to vw pos
     let left_vw = parseFloat((this.rightNode.$el.getBoundingClientRect().x - 3) / window.innerWidth * 100);
 
-    this.originLeft = el.style.left = left_vw;
+    this.element_originX_px = left_vw;
+    el.style.left = left_vw + "vw";
     this.set_left_vw(left_vw);
 
     window.addEventListener("resize", this.resnapHandle());
   },
-  data() {
+  data() {  
     return {
       moving: false,
-      originLeft: 0,
-      startX: 0,
-      lastX: 0,
+      element_originX_px: 0,
+      cursor_originX_px: 0,
+      cursor_previousX_px: 0,
       deltaX_px: 0,
+      margin: 2,
       frameOriginWidths: {left: 0, right: 0},
+      DEBUG_OBJS: {},
     }
   },
   methods: {
@@ -36,84 +40,103 @@ export default {
     resnapHandle: function() {
       let left_vw = parseFloat((this.rightNode.$el.getBoundingClientRect().x - 3) / window.innerWidth * 100);
 
-      this.originLeft = left_vw;
+      this.element_originX_px = left_vw;
       this.set_left_vw(left_vw);
     },
-    checkHandleCollision: function() {
-      const otherHandles = app.$refs.appFrameContainer.handleInstances.filter(handle => handle != this);
-      const margin = 1;
-
-      // Check collision with other handles
-      for (const handle of otherHandles) {
-        if (Math.abs(this.get_left_vw() - handle.get_left_vw()) <= margin) {
-          return false;
-        }
-      }
-
-      // Check collision with inner window
-      if (this.get_left_vw() <= margin ||
-          this.get_left_vw() >= (100 - margin)) {
-            return false;
-      }
-      return true;
-    },
     is_cursor_in_bounds: function(cursor_x_pos_vw) {
-      const margin = 1;
+      const margin = this.margin;
       let cursor_pos_vw = event.pageX / window.innerWidth * 100;
 
-      let left_bound = this.leftNode.get_left_boundary_vw();
-      let right_bound = this.rightNode.get_right_boundary_vw();
+      let left_bound_vw = this.leftNode.get_left("vw");
+      let right_bound_vw = this.rightNode.get_right("vw");
 
-      if (cursor_pos_vw > left_bound + margin &&
-        cursor_pos_vw < right_bound - margin) {
-          return true;
-        } else {
-          return false;
-        }
+      if (cursor_pos_vw >= left_bound_vw + margin &&
+          cursor_pos_vw <= right_bound_vw - margin) {
+        return "IN";
+      } else if (cursor_pos_vw < left_bound_vw + margin) {
+        return "LEFT";
+      } else if (cursor_pos_vw > right_bound_vw - margin) {
+        return "RIGHT";
+      } else {
+        throw new Error("Invalid cursor position value.");
+      }
     },
     mousedown: function(event) {
       event.preventDefault();
       this.moving = true;
 
       // Set handle origin
-      this.startX = event.pageX;
+      this.cursor_originX_px = event.pageX;
 
-      this.frameOriginWidths.left = this.leftNode.get_width_vw();
-      this.frameOriginWidths.right = this.rightNode.get_width_vw();
+      this.frameOriginWidths.left = this.leftNode.get_width("vw");
+      this.frameOriginWidths.right = this.rightNode.get_width("vw");
 
       app.$refs.app.addEventListener("mousemove", this.mousemove);
       app.$refs.app.addEventListener("mouseup", this.mouseup);
       app.$refs.app.style.cursor = "col-resize";
+
+      // Shared debug coords
+      let cursor_originX_vw = this.cursor_originX_px / window.innerWidth * 100;
+
+      if (DEBUG_MODE && DEBUG_OPTIONS.ui) {
+        // Create gridlines
+        this.DEBUG_OBJS.leftBoundary = debug.createRuler(this.leftNode.get_left("vw") + 2, "vw", "left @ " + (this.leftNode.get_left("vw") + 1));
+        this.DEBUG_OBJS.rightBoundary = debug.createRuler(this.rightNode.get_right("vw") - 2, "vw", "right @ " + (this.rightNode.get_right("vw") - 1));
+        this.DEBUG_OBJS.cursorOrigin = debug.createRuler(cursor_originX_vw, "vw", "origin @ " + cursor_originX_vw);
+        
+        // Create dimensions
+        this.DEBUG_OBJS.leftDimension = debug.annotateDimension(this.leftNode.get_left("vw") + 1, cursor_originX_vw, "vw");
+        this.DEBUG_OBJS.rightDimension = debug.annotateDimension(this.rightNode.get_right("vw") - 1, cursor_originX_vw, "vw");
+      }
     },
     mousemove: function(event) {
       event.preventDefault();
       
       if (this.moving 
-          && this.lastX != event.pageX 
+          && this.cursor_previousX_px != event.pageX 
           && event.pageX != 0) {
 
         let cursor_x_pos_vw = event.pageX / window.innerWidth * 100;
+        let element_originX_vw = (this.cursor_originX_px / window.innerWidth * 100);
 
-        if (this.is_cursor_in_bounds(cursor_x_pos_vw)) {
+        let cursor_boundary_status = this.is_cursor_in_bounds(cursor_x_pos_vw);
 
-          // Calculate delta X by px
-          this.deltaX_px = this.startX - event.pageX;
-          let deltaX_vw = (this.deltaX_px / window.innerWidth) * 100;
+        if (cursor_boundary_status == "IN") {
+          // Cursor is in valid bounds
 
-          // Move handle
-          setTimeout(() => {
-            this.set_left_vw(parseFloat((this.rightNode.$el.getBoundingClientRect().x - 3)/ window.innerWidth * 100));
-          }, 1);
+          // // Calculate delta X by px
+          // this.deltaX_px = this.cursor_originX_px - event.pageX;
+          // let deltaX_vw = (this.deltaX_px / window.innerWidth) * 100;
           
           // Resize panels
-          this.leftNode.set_width_vw(this.frameOriginWidths.left - deltaX_vw);
-          this.rightNode.set_width_vw(this.frameOriginWidths.right + deltaX_vw);
+            // Old way of resizing -> archived
+          // this.leftNode.set_width_vw(this.frameOriginWidths.left - deltaX_vw);
+          // this.rightNode.set_width(this.frameOriginWidths.right + deltaX_vw, "vw");
+            // New way of resizing
+          this.rightNode.set_left_dimension_vw(cursor_x_pos_vw);
+          this.leftNode.set_right_dimension_vw(cursor_x_pos_vw);
+        } else if (cursor_boundary_status == "LEFT") {
+          // Cursor is left of bounds
+          let left_boundary_vw = this.leftNode.get_left("vw") + this.margin;
 
-          // Chrome will fire an erroneous 0-data mousemove event, so lastX captures and ignores it.
-          this.lastX = event.pageX;
+          this.rightNode.set_left_dimension_vw(left_boundary_vw);
+          this.leftNode.set_right_dimension_vw(left_boundary_vw);
+        } else {
+          // Cursor is right of bounds
+          let right_boundary_vw = this.rightNode.get_right("vw") - this.margin;
 
+          this.rightNode.set_left_dimension_vw(right_boundary_vw);
+          this.leftNode.set_right_dimension_vw(right_boundary_vw);
         }
-      }
+
+        // Move handle
+        setTimeout(() => {
+          this.set_left(parseFloat((this.rightNode.$el.getBoundingClientRect().x - 3)/ window.innerWidth * 100), "vw");
+        }, 10);
+
+        // Chrome will fire an erroneous 0-data mousemove event, so cursor_previousX_px captures and ignores it.
+        this.cursor_previousX_px = event.pageX;
+      };
     },
     mouseup: function(event) {
       event.preventDefault();
@@ -121,20 +144,22 @@ export default {
 
       this.resnapHandle();
 
+      // Naturally due to rounding, successive computations will cause float drift.
+
       let float_entropy = app.$refs.appFrameContainer.calculate_layout_float_entropy();
 
-      if (this.leftNode.get_width_vw() > this.frameOriginWidths.left) {
-        this.leftNode.set_width_vw(this.leftNode.get_width_vw() + float_entropy);
-        this.rightNode.set_width_vw(this.rightNode.get_width_vw());
+      if (this.leftNode.get_width("vw") > this.frameOriginWidths.left) {
+        this.leftNode.set_width(this.leftNode.get_width("vw") + float_entropy, "vw");
+        this.rightNode.set_width(this.rightNode.get_width("vw"), "vw");
       } else {
-        this.leftNode.set_width_vw(this.leftNode.get_width_vw());
-        this.rightNode.set_width_vw(this.rightNode.get_width_vw() + float_entropy);
+        this.leftNode.set_width(this.leftNode.get_width("vw"), "vw");
+        this.rightNode.set_width(this.rightNode.get_width("vw") + float_entropy, "vw");
       }
 
       // Save to localStorage
       try {
-        localStorage.setItem(this.leftNode.frameName, this.leftNode.get_width_vw());
-        localStorage.setItem(this.rightNode.frameName, this.rightNode.get_width_vw());
+        localStorage.setItem(this.leftNode.frameName, this.leftNode.get_width("vw"));
+        localStorage.setItem(this.rightNode.frameName, this.rightNode.get_width("vw"));
       } catch (exception) {
         // User has localStorage disabled
         console.warn(exception);
@@ -144,12 +169,19 @@ export default {
       app.$refs.app.removeEventListener("mouseup", this.mouseup);
       app.$refs.app.style.cursor = "auto";
 
-      console.log(app.$refs.appFrameContainer.validate_current_layout());
+
+      if (DEBUG_MODE && DEBUG_OPTIONS.ui) {
+        /// Delete all annotative objects
+        for (const [key, value] of Object.entries(this.DEBUG_OBJS)) {
+          this.DEBUG_OBJS[key].delete();
+        }
+      }
     }
   },
   template: `
   <template>
   <div class="app-frame-handle"
+    v-bind:class="{ 'app-frame-handle-active' : moving }"
     @mousedown="mousedown"
     @mousemove="mousemove"
     @mouseup="mouseup"

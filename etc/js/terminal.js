@@ -4,6 +4,9 @@ Vue.component('terminal', {
     var div = document.getElementById("terminal");
     div.scrollTop = div.scrollHeight - div.clientHeight;
   },
+  mounted: function() {
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+  },
   data: function() {
     return {
       messages: []

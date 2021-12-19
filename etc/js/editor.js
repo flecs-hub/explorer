@@ -1,4 +1,3 @@
-
 Vue.component('editor-textarea', {
   mounted: function() {
     const el = document.getElementById('plecs-editor');
@@ -15,6 +14,8 @@ Vue.component('editor-textarea', {
       autoIndent: true,
       fence: false
     });
+
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
   },
   updated: function() {
     this.ldt.update();
@@ -32,6 +33,8 @@ Vue.component('editor-textarea', {
     set_code(code) {
       this.code = code;
       this.run();
+    
+      if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log("%c code set", "color: #00d404"); };
     },
     tab_pressed (event) { }
   },

@@ -258,6 +258,9 @@ Vue.component('inspector-components', {
 // Top level inspector
 Vue.component('inspector', {
   props: ['entity', 'selection', 'valid'],
+  mounted: function() {
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+  },
   methods: {
     expand: function() {
       this.$refs.container.expand();

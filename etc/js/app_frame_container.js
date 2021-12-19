@@ -1,5 +1,5 @@
 import appFrameHandle from "./components/app_frame_handle.js";
-import { browser } from "./utils.js";
+import { debug } from "./utils.js";
 
 Vue.component('app-frame-container', {
   data: function() {
@@ -66,10 +66,12 @@ Vue.component('app-frame', {
       el.appendChild(appFrameHandleInstance.$el);
     }
 
-    let real_width = this.get_width_vw();
+    let real_width = this.get_width("vw");
     this.set_width_vw(real_width);
 
-    // console.log(this.frameName, "mounted:", "declared", this.get_declared_width_vw(), "vw", "actual:", this.get_width_vw(), "vw");
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) {
+      debug.component(this);
+    }
   },
   methods: {
     set_frame_index: function() {
@@ -78,8 +80,20 @@ Vue.component('app-frame', {
     set_width_vw: function(val) {
       this.$el.style.width = val + "vw";
     },
-    get_width_vw: function() {
-      return parseFloat((this.$el.getBoundingClientRect().width / window.innerWidth * 100));
+    set_right_dimension_vw: function(target_right_dimension_vw) {
+      let current_right_dimension_vw = this.get_right("vw");
+      let current_width_vw = this.get_width("vw");
+      let width_diff_vw = target_right_dimension_vw - current_right_dimension_vw;
+      this.set_width_vw(current_width_vw + width_diff_vw);
+    },
+    set_left_dimension_vw: function(target_left_dimension_vw) {
+      let current_right_dimension_vw = this.get_right("vw");
+      // spacing_vw accounts for 1px margin gap between frames which falls outside DOM elem boundaries
+      let spacing_vw = 1 / window.innerWidth * 100;
+      let target_width_vw = current_right_dimension_vw - (target_left_dimension_vw + spacing_vw);
+
+      this.$el.style.left = target_left_dimension_vw + "vw";
+      this.set_width(target_width_vw, "vw");
     },
     get_declared_width_vw: function() {
       return parseFloat(this.$el.style.width.replace('vw', ''));
@@ -88,7 +102,7 @@ Vue.component('app-frame', {
       return parseFloat(this.$el.getBoundingClientRect().x / window.innerWidth * 100);
     },
     get_right_boundary_vw: function() {
-      return parseFloat(this.get_left_boundary_vw() + this.get_width_vw());
+      return parseFloat(this.get_left_boundary_vw() + this.get_width("vw"));
     }
   },
   data: function() {
@@ -103,7 +117,9 @@ Vue.component('app-frame', {
   },
   template: `
   <div class="app-frame">
-    <slot></slot>
+    <div class="app-frame-inner">
+      <slot></slot>
+    </div>
   </div>
   `
 });
