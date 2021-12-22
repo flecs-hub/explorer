@@ -1,3 +1,5 @@
+@import "panel.css";
+
 /* HTML element styling */
 
 body {
@@ -8,7 +10,7 @@ body {
   color: #DDE0E6;
   margin: 0px;
 
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 input {
@@ -609,6 +611,7 @@ div.url-modal h1 {
 }
 
 div.editor {
+  height: min-content;
   padding-left: 10px;
   padding-bottom: 3px;
 }
@@ -994,16 +997,10 @@ div.detail-toggle-detail {
   position: relative;
   flex-direction: inherit;
   overflow: hidden;
-  opacity: 1;
-
-  padding-top: 5px;
-  transition: padding-top 0.1s ease-out, opacity 0.06s ease-out;;
 }
 
 div.detail-toggle-detail-hide {
-  padding-top: 0px;
-  height: 0px;
-  opacity: 0;
+  display: none;
 }
 
 div.detail-toggle-detail-disable {

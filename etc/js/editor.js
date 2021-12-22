@@ -71,7 +71,7 @@ Vue.component('editor-textarea', {
 
 Vue.component('editor', {
   mounted: function() {
-    this.$refs.container.expand(false);
+    // this.$refs.container.expand(false);
   },
   methods: {
     run() {
@@ -83,22 +83,34 @@ Vue.component('editor', {
     set_code(code) {
       this.$refs.textarea.set_code(code);
       if (code !== undefined && code.length) {
-        this.$refs.container.expand();
+        // this.$refs.container.force_expand();
       }
     }
   },
   template: `
-    <content-container no_padding="true" overflow="true" ref="container">
-      <template v-slot:summary>
-        Editor
-      </template>
-
-      <template v-slot:detail>
+    <collapsible-panel 
+      ref="container" 
+      name="editor">
+      <template v-slot:title>Editor</template>
+      <template v-slot:content>
         <div class="editor">
           <editor-textarea ref="textarea" v-on="$listeners">
           </editor-textarea>
         </div>
       </template>
-    </content-container>
-    `
+    </collapsible-panel>
+  `
 });
+
+// <content-container no_padding="true" overflow="true" ref="container">
+//       <template v-slot:summary>
+//         Editor
+//       </template>
+
+//       <template v-slot:detail>
+//         <div class="editor">
+//           <editor-textarea ref="textarea" v-on="$listeners">
+//           </editor-textarea>
+//         </div>
+//       </template>
+//     </content-container>

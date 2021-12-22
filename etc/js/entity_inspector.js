@@ -197,6 +197,7 @@ Vue.component('inspector-component', {
     `
 });
 
+
 // Components of entity and/or base entities
 Vue.component('inspector-components', {
   props: ['entity', 'path', 'type', 'show_header'],
@@ -263,7 +264,8 @@ Vue.component('inspector', {
   },
   methods: {
     expand: function() {
-      this.$refs.container.expand();
+      this.$refs.container.force_expand();
+      console.trace();
     },
     select_query: function() {
       this.$emit('select-query', this.selection.path);
@@ -325,14 +327,14 @@ Vue.component('inspector', {
     }
   },
   template: `
-    <content-container 
+    <collapsible-panel 
+      name="inspector"
       ref="container" 
-      :disable="!entity || !selection" 
-      no_padding="true"
+      :disabled="!entity || !selection" 
       closable="true" 
       v-on:close="evt_close">
       
-      <template v-slot:summary>
+      <template v-slot:title>
         <template v-if="entity && selection">
           <div class="inspector-name">
             <div class="inspector-icon">
@@ -349,7 +351,7 @@ Vue.component('inspector', {
           Entity inspector
         </template>
       </template>
-      <template v-slot:detail v-if="entity && selection">
+      <template v-slot:content v-if="entity && selection">
         <div :class="content_css">
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
@@ -373,6 +375,6 @@ Vue.component('inspector', {
           </div>
         </div>
       </template>
-    </content-container>
+    </collapsible-panel>
     `
 });

@@ -92,7 +92,9 @@
 }
 
 .ldt pre {
-	margin: 0;
+	/* 0 margin results in Safari rendering bug */
+	margin-top: 2px;
+	margin-bottom: 2px;
 	overflow: initial;
 }
 
