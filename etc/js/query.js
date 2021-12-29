@@ -42,6 +42,9 @@ Vue.component('query', {
     },
     result_count() {
       return this.$refs.results.count();
+    },
+    dosomething: function() {
+      console.log("ok!");
     }
   },
   computed: {
@@ -65,6 +68,7 @@ Vue.component('query', {
   template: `
     
     <collapsible-panel 
+      ref="container"
       name="query_result"
       closable="true"
       :disabled="query_result === undefined" 

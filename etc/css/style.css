@@ -1,4 +1,5 @@
 @import "panel.css";
+@import "layout.css";
 
 /* HTML element styling */
 
@@ -171,35 +172,11 @@ div.top-content {
   justify-content: center;
 }
 
-div.app-frame-container {
-  display: flex;
-  flex-direction: row;
-  width: 100vw;
-  height: calc(100% - 40px);
-}
-
-div.app-frame {
-  margin-left: 1px;
-  flex: auto 0 0;
-}
-
-div.app-frame:first-child {
-  margin-left: 0px;
-}
-
-.app-frame-inner {
-  width: 100%;
-  height: 100%;
-  margin-left: 1px;
-}
-
-
-.app-frame-handle {
+.app-panel-handle {
   position: absolute;
-  top: 40px;
 
-  width: 5px;
-  height: calc(100% - 40px);
+  width: 100%;
+  height: 5px;
   background-color: #4F95FF;
   border-radius: 2px;
   opacity: 0;
@@ -208,14 +185,14 @@ div.app-frame:first-child {
   overflow: hidden;
 }
 
-.app-frame-handle:hover {
-  cursor: col-resize;
+.app-panel-handle:hover {
+  cursor: row-resize;
   transition: opacity 0.5s;
   opacity: 0.4;
 }
 
-.app-frame-handle:active,
-.app-frame-handle-active {
+.app-panel-handle:active,
+.app-panel-handle-active {
   transition: opacity 0.5s;
   opacity: 1;
 }
@@ -1029,23 +1006,42 @@ div.detail-toggle-divider {
 
 
 
-.annotative-gridline-container {
+.annotative-gridline-vertical,
+.annotative-gridline-horizontal {
   position: absolute;
   display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  top: 0px;
   z-index: 10;
 }
 
 .annotative-gridline-vertical {
+  top: 0;
+  height: 100vh;
+  flex-direction: column;
+}
+
+.annotative-gridline-horizontal {
+  left: 0;
+  width: 100vw;
+  flex-direction: row;
+}
+
+.annotative-gridline-line {
   background-color: #FF0000;
-  flex-grow: 0;
+  flex-grow: 1;
   flex-shrink: 0;
-  flex-basis: 2px;
   opacity: 1;
+}
+
+.annotative-gridline-vertical .annotative-gridline-line {
+  flex-basis: 2px;
   width: 2px;
   height: 100vh;
+}
+
+.annotative-gridline-horizontal .annotative-gridline-line {
+  flex-basis: 2px;
+  width: 100vw;
+  height: 2px;
 }
 
 .annotative-gridline-label {

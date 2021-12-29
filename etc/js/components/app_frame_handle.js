@@ -16,7 +16,10 @@ export default {
     el.style.left = left_vw + "vw";
     this.set_left_vw(left_vw);
 
-    window.addEventListener("resize", this.resnapHandle());
+    // When layout shifts, recalibrate self
+    emitter.on("layout_changed", () => {
+      this.resnapHandle();
+    });
   },
   data() {  
     return {
@@ -43,7 +46,7 @@ export default {
       this.element_originX_px = left_vw;
       this.set_left_vw(left_vw);
     },
-    is_cursor_in_bounds: function(cursor_x_pos_vw) {
+    is_cursor_in_bounds: function(event) {
       const margin = this.margin;
       let cursor_pos_vw = event.pageX / window.innerWidth * 100;
 
@@ -68,9 +71,11 @@ export default {
       // Set handle origin
       this.cursor_originX_px = event.pageX;
 
+
       this.frameOriginWidths.left = this.leftNode.get_width("vw");
       this.frameOriginWidths.right = this.rightNode.get_width("vw");
 
+      // Add event listeners to entire application frame so the handle can move anywhere
       app.$refs.app.addEventListener("mousemove", this.mousemove);
       app.$refs.app.addEventListener("mouseup", this.mouseup);
       app.$refs.app.style.cursor = "col-resize";
@@ -80,13 +85,13 @@ export default {
 
       if (DEBUG_MODE && DEBUG_OPTIONS.ui) {
         // Create gridlines
-        this.DEBUG_OBJS.leftBoundary = debug.createRuler(this.leftNode.get_left("vw") + 2, "vw", "left @ " + (this.leftNode.get_left("vw") + 1));
-        this.DEBUG_OBJS.rightBoundary = debug.createRuler(this.rightNode.get_right("vw") - 2, "vw", "right @ " + (this.rightNode.get_right("vw") - 1));
-        this.DEBUG_OBJS.cursorOrigin = debug.createRuler(cursor_originX_vw, "vw", "origin @ " + cursor_originX_vw);
+        this.DEBUG_OBJS.leftBoundary = debug.createVerticalGridline(this.leftNode.get_left("vw") + 2, "vw", "left @ " + (this.leftNode.get_left("vw") + 2));
+        this.DEBUG_OBJS.rightBoundary = debug.createVerticalGridline(this.rightNode.get_right("vw") - 2, "vw", "right @ " + (this.rightNode.get_right("vw") - 2));
+        this.DEBUG_OBJS.cursorOrigin = debug.createVerticalGridline(cursor_originX_vw, "vw", "origin @ " + cursor_originX_vw);
         
         // Create dimensions
-        this.DEBUG_OBJS.leftDimension = debug.annotateDimension(this.leftNode.get_left("vw") + 1, cursor_originX_vw, "vw");
-        this.DEBUG_OBJS.rightDimension = debug.annotateDimension(this.rightNode.get_right("vw") - 1, cursor_originX_vw, "vw");
+        this.DEBUG_OBJS.leftDimension = debug.annotateDimension(this.leftNode.get_left("vw") + 2, cursor_originX_vw, "vw");
+        this.DEBUG_OBJS.rightDimension = debug.annotateDimension(this.rightNode.get_right("vw") - 2, cursor_originX_vw, "vw");
       }
     },
     mousemove: function(event) {
@@ -99,7 +104,7 @@ export default {
         let cursor_x_pos_vw = event.pageX / window.innerWidth * 100;
         let element_originX_vw = (this.cursor_originX_px / window.innerWidth * 100);
 
-        let cursor_boundary_status = this.is_cursor_in_bounds(cursor_x_pos_vw);
+        let cursor_boundary_status = this.is_cursor_in_bounds(event);
 
         if (cursor_boundary_status == "IN") {
           // Cursor is in valid bounds
@@ -142,6 +147,7 @@ export default {
       event.preventDefault();
       this.moving = false;
 
+      // When interaction finishes, ensure that handle is positioned correctly
       this.resnapHandle();
 
       // Naturally due to rounding, successive computations will cause float drift.
@@ -158,8 +164,8 @@ export default {
 
       // Save to localStorage
       try {
-        localStorage.setItem(this.leftNode.frameName, this.leftNode.get_width("vw"));
-        localStorage.setItem(this.rightNode.frameName, this.rightNode.get_width("vw"));
+        localStorage.setItem(this.leftNode.frameName + "_width_vw", this.leftNode.get_width("vw"));
+        localStorage.setItem(this.rightNode.frameName + "_width_vw", this.rightNode.get_width("vw"));
       } catch (exception) {
         // User has localStorage disabled
         console.warn(exception);

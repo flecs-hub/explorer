@@ -2,6 +2,9 @@ import appFrameHandle from "./components/app_frame_handle.js";
 import { debug } from "./utils.js";
 
 Vue.component('app-frame-container', {
+  mounted: function() {
+    window.addEventListener("resize", this.emit_resize());
+  },
   data: function() {
     return {
       frameInstances: [],
@@ -39,19 +42,22 @@ Vue.component('app-frame', {
     width: {type: Number},
   },
   mounted: function() {
-
     const el = this.$el;
     this.set_frame_index();
+    
+    // expects app-frame-container as parent
     this.$parent.frameInstances.push(this);
-
-    if (localStorage.getItem(this.frameName)) {
-      el.style.width = this.set_width_vw(localStorage.getItem(this.frameName));
+    
+    // Retrieve previous configuration if it exists
+    let saved_width = parseFloat(localStorage.getItem(this.frameName + "_width_vw"));
+    if (saved_width) {
+      el.style.width = this.set_width(saved_width, "vw");
     } else {
       // not previously defined or localStorage is disabled by user
-      this.set_width_vw(this.width);
+      this.set_width(this.width, "vw");
     }
-
-    // Instantiating resizer handles
+    
+    // Instantiate and initialize horizontal resize handle
     if (el.nextSibling) {
       var appFrameHandleClass = Vue.extend(appFrameHandle);
       var appFrameHandleInstance = new appFrameHandleClass({
@@ -60,14 +66,17 @@ Vue.component('app-frame', {
           rightNode: this.$parent.$children[this.frameIndex+1],
         }
       });
-
+      
       appFrameHandleInstance.$mount();
       this.$parent.handleInstances.push(appFrameHandleInstance);
       el.appendChild(appFrameHandleInstance.$el);
     }
-
+    
     let real_width = this.get_width("vw");
     this.set_width_vw(real_width);
+    
+    // Notify rest of app when this element changes size
+    this.resizeObserver = new ResizeObserver(this.emit_resize).observe(this.$el);
 
     if (DEBUG_MODE && DEBUG_OPTIONS.mounting) {
       debug.component(this);
@@ -108,6 +117,8 @@ Vue.component('app-frame', {
   data: function() {
     return {
       frameIndex: undefined,
+      resizeObserver: undefined,
+      panelInstances: [],
     }
   },
   computed: {

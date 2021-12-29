@@ -1,0 +1,87 @@
+
+.app-frame-container {
+  display: flex;
+  flex-direction: row;
+  width: 100vw;
+  height: calc(100% - 40px);
+}
+
+.app-frame {
+  margin-left: 1px;
+  flex: auto 0 0;
+}
+
+.app-frame:first-child {
+  margin-left: 0px;
+}
+
+.app-frame-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  margin-left: 1px;
+}
+
+.app-frame-handle {
+  position: absolute;
+  top: 40px;
+
+  width: 5px;
+  height: calc(100% - 40px);
+  background-color: #4F95FF;
+  border-radius: 2px;
+  opacity: 0;
+
+  z-index: 10;
+  overflow: hidden;
+}
+
+.app-frame-handle:hover {
+  cursor: col-resize;
+  transition: opacity 0.5s;
+  opacity: 0.4;
+}
+
+.app-frame-handle:active,
+.app-frame-handle-active {
+  transition: opacity 0.5s;
+  opacity: 1;
+}
+
+.app-panel {
+  padding-bottom: 1px;
+}
+
+.app-panel-collapsed {
+  flex-grow: 0;
+  height: min-content !important;
+}
+
+.app-panel-expanded {
+  flex-grow: 1;
+}
+
+.app-panel-handle {
+  position: absolute;
+
+  width: 100%;
+  height: 5px;
+  background-color: #4F95FF;
+  border-radius: 2px;
+  opacity: 0;
+
+  z-index: 10;
+}
+
+.app-panel-handle:hover {
+  cursor: row-resize;
+  transition: opacity 0.5s;
+  opacity: 0.4;
+}
+
+.app-panel-handle:active,
+.app-panel-handle-active {
+  transition: opacity 0.5s;
+  opacity: 1;
+}

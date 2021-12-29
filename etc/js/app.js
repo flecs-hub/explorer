@@ -61,7 +61,7 @@ function getParameterByName(name, url = window.location.href) {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-const VALID_UNITS = ["px", "vw", "vh"];
+const VALID_UNITS = ["px", "vw", "vh", "%"];
 
 Vue.mixin({
   data: function() {
@@ -88,6 +88,9 @@ Vue.mixin({
       } else {
         throw TypeError;
       }
+    },
+    emit_resize: function() {
+      emitter.emit("layout_changed");
     },
     get_left: function(unit = "px") {
       let position;
@@ -182,8 +185,15 @@ Vue.mixin({
         this.$el.style.left = target_left_value + unit;
       } else { throw TypeError; }
     },
+    set_top: function(target_top_value, unit = "px") {
+      if (typeof(target_top_value == "number") && typeof(unit) == "string" && VALID_UNITS.includes(unit)) {
+        this.$el.style.top = target_top_value + unit;
+      } else { throw TypeError; }
+    },
   }
 });
+
+const emitter = mitt();
 
 var app = new Vue({
   el: '#app',

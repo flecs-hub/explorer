@@ -25,13 +25,34 @@ var debug = {
       console.log(component.$options.name, "mounted")
     }
   },
-  createRuler: function(left, unit = "px", label) {
+  createVerticalGridline: function(left, unit = "px", label) {
     try {
       let annotativeGridlineClass = Vue.extend(annotativeGridline);
       let annotativeGridlineInstance = new annotativeGridlineClass({
         propsData: {
-          left: left,
+          position: left,
           unit: unit, 
+          orientation: "vertical",
+          label: label,
+        }
+      });
+      annotativeGridlineInstance.$mount();
+      app.$refs.app.appendChild(annotativeGridlineInstance.$el);
+
+      return annotativeGridlineInstance;
+      // returned instance has delete() method.
+    } catch (e) {
+      console.warn(e);
+    }
+  },
+  createHorizontalGridline: function(top, unit = "px", label) {
+    try {
+      let annotativeGridlineClass = Vue.extend(annotativeGridline);
+      let annotativeGridlineInstance = new annotativeGridlineClass({
+        propsData: {
+          position: top,
+          unit: unit,
+          orientation: "horizontal",
           label: label,
         }
       });

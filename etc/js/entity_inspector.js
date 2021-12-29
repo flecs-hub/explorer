@@ -265,7 +265,6 @@ Vue.component('inspector', {
   methods: {
     expand: function() {
       this.$refs.container.force_expand();
-      console.trace();
     },
     select_query: function() {
       this.$emit('select-query', this.selection.path);

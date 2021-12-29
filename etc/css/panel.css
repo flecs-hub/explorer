@@ -2,8 +2,20 @@
   display: flex;
   flex-direction: column;
   width: 100%;
+  /* height is determined by state */
   overflow: hidden;
 }
+/* when is a collapsible-panel is collapsed, it should reduce its bounding box, thereby triggering its resize observer */
+.panel-state-collapsed {
+  height: min-content;
+}
+
+/* when is a collapsible-panel is expanded, it should take the full height of its parent app-panel */
+.panel-state-expanded {
+  height: 100%;
+}
+
+/* title area */
 
 .collapsible-panel-title {
   user-select: none;
@@ -14,11 +26,6 @@
 
 .collapsible-panel-title-inner {
   background-color: #232833;
-  
-  border-style: solid;
-  border-width: 0px;
-  border-bottom-width: 1px;
-  border-bottom-color: #000;
   
   display: flex;
   font-weight: 600;
@@ -35,27 +42,29 @@
   background-color: #272c38;
 }
 
+/* content area */
+
 .collapsible-panel-content {
+  background-color: #101115;
   opacity: 1;
   max-height: 100vh;
-  transition: all 0.15s ease-out;
-  transform-origin: center top;
-  transform: scale(1);
+  flex-grow: 1;
+  flex-shrink: 1;
+  transition: all 0.1s ease-out;
 
-  overflow: hidden;
+  overflow: scroll;
 }
 
 .panel-state-collapsed .collapsible-panel-content {
-  opacity: 0.5;
+  opacity: 1;
   max-height: 0vh;
 }
 
 .panel-state-collapsed .collapsible-panel-title {
-  opacity: 0.8;
+  opacity: 1;
 }
 
 .collapsible-panel-content-inner {
-  background-color: #101115;
   padding: 8px;
-  margin-bottom: 1px;
+  height: max-content;
 }
