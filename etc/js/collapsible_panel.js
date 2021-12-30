@@ -78,7 +78,7 @@ template: `
 
         <slot name="title"></slot>
 
-        <icon src="close" v-if="closable" 
+        <icon class="btn_close" src="close" v-if="closable" 
           :rotate="disabled" 
           :hide="disabled"
           v-on:click.stop="evt_close">

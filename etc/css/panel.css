@@ -42,6 +42,11 @@
   background-color: #272c38;
 }
 
+.btn_close {
+  margin-left: auto !important;
+  padding-right: 4px;
+}
+
 /* content area */
 
 .collapsible-panel-content {
@@ -53,6 +58,8 @@
   transition: all 0.1s ease-out;
 
   overflow: scroll;
+  padding-bottom: 1px;
+  border-bottom: 4px solid #232833;
 }
 
 .panel-state-collapsed .collapsible-panel-content {
