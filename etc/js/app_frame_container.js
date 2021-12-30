@@ -39,7 +39,15 @@ Vue.component('app-frame-container', {
 
 Vue.component('app-frame', {
   props: {
-    width: {type: Number},
+    initwidth: {type: Number},
+  },
+  data: function() {
+    return {
+      width: 0,
+      frameIndex: undefined,
+      resizeObserver: undefined,
+      panelInstances: [],
+    }
   },
   mounted: function() {
     const el = this.$el;
@@ -51,9 +59,13 @@ Vue.component('app-frame', {
     // Retrieve previous configuration if it exists
     let saved_width = parseFloat(localStorage.getItem(this.frameName + "_width_vw"));
     if (saved_width) {
-      el.style.width = this.set_width(saved_width, "vw");
+      this.set_width(saved_width, "vw");
     } else {
       // not previously defined or localStorage is disabled by user
+
+      // Copy initialization width to internal width data
+      this.width = this.initwidth;
+
       this.set_width(this.width, "vw");
     }
     
@@ -112,13 +124,21 @@ Vue.component('app-frame', {
     },
     get_right_boundary_vw: function() {
       return parseFloat(this.get_left_boundary_vw() + this.get_width("vw"));
-    }
-  },
-  data: function() {
-    return {
-      frameIndex: undefined,
-      resizeObserver: undefined,
-      panelInstances: [],
+    },
+    validate_layout: function() {
+      let combined_panel_heights = 0;
+      for (const panel of this.panelInstances) {
+        combined_panel_heights += panel.get_height_pc();
+      }
+      return combined_panel_heights;
+    },
+    balance_layout: function() {
+      const panel_count = this.panelInstances.length;
+      const new_height = 100 / panel_count;
+
+      for (const panel of this.panelInstances) {
+        panel.set_height(new_height, "%")
+      }
     }
   },
   computed: {

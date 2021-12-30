@@ -39,7 +39,7 @@
       <!-- Application box -->
       <app-frame-container ref="appFrameContainer">
 
-        <app-frame :width="13">
+        <app-frame :initwidth="13">
           <div class="tree-box">
             <entity-tree ref="tree" 
               :valid="valid"
@@ -48,7 +48,7 @@
           </div>
         </app-frame>
 
-        <app-frame :width="43.5" ref="tf1">
+        <app-frame :initwidth="43.5" ref="tf1">
           <!-- Query results & Entity inspector -->
           <app-panel panelid="query" :initheight="65" ref="testquery">
             <query :valid="valid" ref="query"
@@ -63,7 +63,7 @@
           </app-panel>
         </app-frame>
 
-        <app-frame :width="43.5" ref="tf2">
+        <app-frame :initwidth="43.5" ref="tf2">
           <app-panel panelid="editor" :initheight="50">
             <!-- Editor -->
             <editor 

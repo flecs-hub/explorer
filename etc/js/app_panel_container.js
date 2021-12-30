@@ -13,9 +13,22 @@ Vue.component('app-panel', {
     initheight: Number,
     panelid: String,
   },
+  data: function() {
+    return {
+      height: 0, /* is watched */
+      panelIndex: undefined,
+      resizeObserver: undefined,
+      panel_state: true,
+    }
+  },
   provide: function() {
     return {
       panelid: this.panelid,
+    }
+  },
+  watch: {
+    height: function() {
+      this.set_height(this.height, "%");
     }
   },
   mounted: function() {
@@ -25,16 +38,15 @@ Vue.component('app-panel', {
     // expects app-frame as parent
     this.$parent.panelInstances.push(this);
 
-    // Copy initialization height to internal height data
-    this.height = this.initheight;
-
     // Retrieve previous configuration if it exists
     let saved_height = parseFloat(localStorage.getItem(this.panelid + "_height_pc"));
     if (saved_height) {
-      el.style.height = this.set_height(saved_height, "%");
+      this.height = saved_height;
     } else {
       // not previously defined or localStorage is disabled by user
-      this.set_height(this.height, "%");
+
+      // Copy initialization height to internal height data
+      this.height = this.initheight;
     }
 
     // Instantiate and initialize vertical resize handle
@@ -77,11 +89,6 @@ Vue.component('app-panel', {
       this.$el.style.border = "1px solid rgba(255,0,0,0.5)";
     }
   },
-  watch: {
-    height: function() {
-      this.set_height(this.height, "%");
-    }
-  },
   methods: {
     set_panel_index: function() {
       this.panelIndex = Array.from(this.$el.parentNode.children).indexOf(this.$el);
@@ -99,14 +106,6 @@ Vue.component('app-panel', {
     shrink_by: function(shrink_amount_px) {
       let height_px = this.$el.offsetHeight;
       this.height = (height_px - shrink_amount_px) / this.get_parent_frame_height() * 100;
-    }
-  },
-  data: function() {
-    return {
-      height: 0,
-      panelIndex: undefined,
-      resizeObserver: undefined,
-      panel_state: true,
     }
   },
   template: `
