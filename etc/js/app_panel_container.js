@@ -10,7 +10,7 @@ import { debug } from "./utils.js";
 
 Vue.component('app-panel', {
   props: {
-    height: Number,
+    initheight: Number,
     panelid: String,
   },
   provide: function() {
@@ -24,6 +24,9 @@ Vue.component('app-panel', {
 
     // expects app-frame as parent
     this.$parent.panelInstances.push(this);
+
+    // Copy initialization height to internal height data
+    this.height = this.initheight;
 
     // Retrieve previous configuration if it exists
     let saved_height = parseFloat(localStorage.getItem(this.panelid + "_height_pc"));
@@ -100,6 +103,7 @@ Vue.component('app-panel', {
   },
   data: function() {
     return {
+      height: 0,
       panelIndex: undefined,
       resizeObserver: undefined,
       panel_state: true,

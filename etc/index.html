@@ -48,29 +48,29 @@
           </div>
         </app-frame>
 
-        <app-frame :width="43.5">
+        <app-frame :width="43.5" ref="tf1">
           <!-- Query results & Entity inspector -->
-          <app-panel panelid="query" :height="65" ref="testquery">
+          <app-panel panelid="query" :initheight="65" ref="testquery">
             <query :valid="valid" ref="query"
               v-on:select-entity="evt_follow_ref"
               v-on:changed="evt_query_changed"/>
           </app-panel>
           <!-- Terminal -->
-          <app-panel panelid="terminal" :height="35">
+          <app-panel panelid="terminal" :initheight="35">
             <div class="terminal-box">
               <terminal ref="terminal"/>
             </div>
           </app-panel>
         </app-frame>
 
-        <app-frame :width="43.5" ref="test">
-          <app-panel panelid="editor" :height="50">
+        <app-frame :width="43.5" ref="tf2">
+          <app-panel panelid="editor" :initheight="50">
             <!-- Editor -->
             <editor 
               ref="plecs"
               v-on:run-code="evt_code_changed"></editor>
           </app-panel>
-          <app-panel panelid="inspector" :height="50" ref="testinspector">
+          <app-panel panelid="inspector" :initheight="50" ref="testinspector">
             <inspector 
               :entity="entity_result" 
               :selection="selected_tree_item" 
