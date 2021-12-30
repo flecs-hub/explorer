@@ -224,7 +224,7 @@ div.terminal-box {
   border-top-width: 1px;
 
   width: 100%;
-  height: 100px;
+  height: 100%;
   left: 200px;
   bottom: 0px;
 }
