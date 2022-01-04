@@ -1,7 +1,4 @@
-import { debug } from "../utils.js";
-
-export default {
-  name: 'app-frame-handle',
+const appFrameHandle = Vue.component('app-frame-handle', {
   props: {
     leftNode: Object,
     rightNode: Object,
@@ -195,4 +192,4 @@ export default {
     draggable="false"> </div>
   </template>
   `
-}
+})
