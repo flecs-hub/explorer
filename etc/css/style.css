@@ -839,10 +839,6 @@ div.content-container-wrapper-overflow div.content-container {
   width: 100%;
 }
 
-div.content-container-wrapper-overflow div.content-container div.detail-toggle {
-  width: 100%;
-}
-
 div.content-container > div.detail-toggle > div.detail-toggle-summary {
   background-color: #232833;
 }
@@ -950,6 +946,7 @@ table td {
 div.detail-toggle {
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 div.detail-toggle-summary {
