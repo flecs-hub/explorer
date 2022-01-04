@@ -1,7 +1,4 @@
-import { debug } from "../utils.js";
-
-export default {
-  name: 'app-panel-handle',
+const appPanelHandle = Vue.component('app-panel-handle', {
   props: {
     topNode: Object,
     bottomNode: Object,
@@ -156,4 +153,4 @@ export default {
       draggable="false"> </div>
   </template>
   `
-}
+});

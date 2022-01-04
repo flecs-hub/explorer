@@ -1,6 +1,3 @@
-import appFrameHandle from "./components/app_frame_handle.js";
-import { debug } from "./utils.js";
-
 Vue.component('app-frame-container', {
   mounted: function() {
     window.addEventListener("resize", this.emit_resize());
@@ -83,7 +80,7 @@ Vue.component('app-frame', {
       this.$parent.handleInstances.push(appFrameHandleInstance);
       el.appendChild(appFrameHandleInstance.$el);
     }
-    
+
     let real_width = this.get_width("vw");
     this.set_width_vw(real_width);
     

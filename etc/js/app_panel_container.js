@@ -5,9 +5,6 @@ It is not a collapsible-panel, though it may contain one.
 In the future, app-panel will be movable.
 */
 
-import appPanelHandle from "./components/app_panel_handle.js";
-import { debug } from "./utils.js";
-
 Vue.component('app-panel', {
   props: {
     initheight: Number,

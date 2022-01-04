@@ -69,7 +69,6 @@ Vue.component('query', {
     
     <collapsible-panel 
       ref="container"
-      name="query_result"
       closable="true"
       :disabled="query_result === undefined" 
       v-on:close="evt_close">

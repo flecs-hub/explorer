@@ -89,8 +89,7 @@ Vue.component('editor', {
   },
   template: `
     <collapsible-panel 
-      ref="container" 
-      name="editor">
+      ref="container">
       <template v-slot:title>Editor</template>
       <template v-slot:content>
         <div class="editor">
