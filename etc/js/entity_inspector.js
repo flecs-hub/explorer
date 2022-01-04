@@ -327,7 +327,6 @@ Vue.component('inspector', {
   },
   template: `
     <collapsible-panel 
-      name="inspector"
       ref="container" 
       :disabled="!entity || !selection" 
       closable="true" 

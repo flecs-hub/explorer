@@ -50,13 +50,13 @@
 
         <app-frame :initwidth="43.5" ref="tf1">
           <!-- Query results & Entity inspector -->
-          <app-panel panelid="query" :initheight="65" ref="testquery">
+          <app-panel panelid="query" :initheight="80" ref="testquery">
             <query :valid="valid" ref="query"
               v-on:select-entity="evt_follow_ref"
               v-on:changed="evt_query_changed"/>
           </app-panel>
           <!-- Terminal -->
-          <app-panel panelid="terminal" :initheight="35">
+          <app-panel panelid="terminal" :initheight="20">
             <div class="terminal-box">
               <terminal ref="terminal"/>
             </div>
