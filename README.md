@@ -35,11 +35,13 @@ You can now go to https://flecs.dev/explorer which should automatically connect 
 
 Note that _no_ data is sent from your application to a remote machine. The explorer runs 100% in the browser, so any information sent to the explorer uses a local loopback interface (in other words, no information leaves your machine).
 
-The following browsers have known policies that prevent connecting to a port on local host:
+The following browsers have known policies that prevent connecting to localhost from a remote URL:
  - Safari
  - Brave (can be overridden by configuring "Shield" to be down)
 
-### Hosting the explorer locally
+To get around this, you can:
+
+### Host the explorer locally
 If your browser does not support connecting to localhost from a remote URL, or you just prefer to host the explorer yourself, first clone the repository:
 
 ```
