@@ -55,6 +55,8 @@ cd explorer/etc
 python3 -m http.server
 ```
 
+You can now go to http://localhost:8000 to open the explorer.
+
 ### URL options
 The following options can be added to the URL:
 
