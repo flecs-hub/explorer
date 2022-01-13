@@ -1,8 +1,8 @@
-#ifndef WEB_QUERIES_H
-#define WEB_QUERIES_H
+#ifndef FLECS_EXPLORER_H
+#define FLECS_EXPLORER_H
 
 /* This generated file contains includes for project dependencies */
-#include "web_queries/bake_config.h"
+#include "flecs-explorer/bake_config.h"
 
 #ifdef __cplusplus
 extern "C" {

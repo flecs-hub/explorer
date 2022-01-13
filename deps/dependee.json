@@ -1,1 +1,10 @@
-{"lang.c":{"${os linux}":{"lib":["rt","pthread"]}}}
+{
+    "lang.c": {
+        "${os linux}": {
+            "lib": [
+                "rt",
+                "pthread"
+            ]
+        }
+    }
+}

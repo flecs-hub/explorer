@@ -67,7 +67,7 @@ var app = new Vue({
 
   mounted: function() {
     this.$nextTick(() => {
-      web_queries.then(() => {
+      flecs_explorer.then(() => {
         this.ready();
       });
     });

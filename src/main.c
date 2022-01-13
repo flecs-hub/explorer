@@ -1,4 +1,5 @@
-#include "web_queries.h"
+#include "flecs_explorer.h"
+#include "stdio.h"
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -36,15 +37,15 @@ char* get_error() {
 
 EMSCRIPTEN_KEEPALIVE
 void init() {
-    // Capture error messages so we can send it to the client
-    ecs_os_set_api_defaults();
-    ecs_os_api_t api = ecs_os_api;
-    api.log_ = capture_log;
-    ecs_os_set_api(&api);
+    // // Capture error messages so we can send it to the client
+    // ecs_os_set_api_defaults();
+    // ecs_os_api_t api = ecs_os_api;
+    // api.log_ = capture_log;
+    // ecs_os_set_api(&api);
 
-    // Only enable errors, don't insert color codes
-    ecs_log_set_level(-1);
-    ecs_log_enable_colors(false);
+    // // Only enable errors, don't insert color codes
+    // ecs_log_set_level(-1);
+    // ecs_log_enable_colors(false);
 
     world = ecs_mini();
     if (!world) {
@@ -182,11 +183,6 @@ int main(int argc, char *argv[]) {
     init();
 
     ecs_plecs_from_file(world, "etc/assets/db.plecs");
-
-    ecs_entity_t e = ecs_new_id(world);
-    ecs_entity_t obj = ecs_new_id(world);
-    ecs_add_id(world, e, EcsFinal);
-    ecs_add_pair(world, obj, EcsIsA, e);
 
     while (1) {
         char str[1024];
