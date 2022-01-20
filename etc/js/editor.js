@@ -68,7 +68,7 @@ Vue.component('editor-textarea', {
 
 Vue.component('editor', {
   mounted: function() {
-    this.$refs.container.expand(false);
+    // this.$refs.container.expand(false);
   },
   methods: {
     run() {
