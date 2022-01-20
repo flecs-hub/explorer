@@ -1,11 +1,8 @@
 
-LocatedIn = Final, Transitive
-UnitedStates = (LocatedIn, NorthAmerica)
+
+LocatedIn = Transitive, Reflexive
+
+Bob = (LocatedIn, SanFrancisco)
 SanFrancisco = (LocatedIn, UnitedStates)
-
-PartOf = Final, Transitive, Reflexive
-Trunk = (PartOf, Tree), Wood
-Branch = (PartOf, Tree), Wood
-Leaf = (PartOf, Tree)
-
+UnitedStates.= (LocatedIn, NorthAmerica)
 
