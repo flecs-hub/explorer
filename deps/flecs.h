@@ -1017,6 +1017,20 @@ void* _ecs_vector_add(
 #define ecs_vector_add_t(vector, size, alignment) \
     _ecs_vector_add(vector, ECS_VECTOR_U(size, alignment))
 
+/** Insert element to vector. */
+FLECS_API
+void* _ecs_vector_insert_at(
+    ecs_vector_t **array_inout,
+    ecs_size_t elem_size,
+    int16_t offset,
+    int32_t index);
+
+#define ecs_vector_insert_at(vector, T, index) \
+    ((T*)_ecs_vector_insert_at(vector, ECS_VECTOR_T(T), index))
+
+#define ecs_vector_insert_at_t(vector, size, alignment, index) \
+    _ecs_vector_insert_at(vector, ECS_VECTOR_U(size, alignment), index)
+
 /** Add n elements to the vector. */
 FLECS_API
 void* _ecs_vector_addn(
@@ -2110,14 +2124,14 @@ void ecs_os_set_api_defaults(void);
 #define ecs_os_memcmp(ptr1, ptr2, num) memcmp(ptr1, ptr2, static_cast<size_t>(num))
 #define ecs_os_memcpy(ptr1, ptr2, num) memcpy(ptr1, ptr2, static_cast<size_t>(num))
 #define ecs_os_memset(ptr, value, num) memset(ptr, value, static_cast<size_t>(num))
-#define ecs_os_memmove(ptr, value, num) memmove(ptr, value, static_cast<size_t>(num))
+#define ecs_os_memmove(dst, src, size) memmove(dst, src, static_cast<size_t>(size))
 #else
 #define ecs_os_strlen(str) (ecs_size_t)strlen(str)
 #define ecs_os_strncmp(str1, str2, num) strncmp(str1, str2, (size_t)(num))
 #define ecs_os_memcmp(ptr1, ptr2, num) memcmp(ptr1, ptr2, (size_t)(num))
 #define ecs_os_memcpy(ptr1, ptr2, num) memcpy(ptr1, ptr2, (size_t)(num))
 #define ecs_os_memset(ptr, value, num) memset(ptr, value, (size_t)(num))
-#define ecs_os_memmove(ptr, value, num) memmove(ptr, value, (size_t)(num))
+#define ecs_os_memmove(dst, src, size) memmove(dst, src, (size_t)(size))
 #endif
 
 #define ecs_os_memcpy_t(ptr1, ptr2, T) ecs_os_memcpy(ptr1, ptr2, ECS_SIZEOF(T))
@@ -4016,8 +4030,11 @@ FLECS_API extern const ecs_entity_t EcsFlecsHidden;
 /* Entity associated with world (used for "attaching" components to world) */
 FLECS_API extern const ecs_entity_t EcsWorld;
 
-/* Wildcard entity ("*"), Used in expressions to indicate wildcard matching */
+/* Wildcard entity ("*"). Matches any id, returns all matches. */
 FLECS_API extern const ecs_entity_t EcsWildcard;
+
+/* Any entity ("_"). Matches any id, returns only the first. */
+FLECS_API extern const ecs_entity_t EcsAny;
 
 /* This entity (".", "This"). Used in expressions to indicate This entity */
 FLECS_API extern const ecs_entity_t EcsThis;
@@ -4028,11 +4045,11 @@ FLECS_API extern const ecs_entity_t EcsThis;
  */
 FLECS_API extern const ecs_entity_t EcsTransitive;
 
-/* Can be added to transitive relation to indicate it should match itself.
+/* Marks a relatoinship as reflexive.
  * Behavior: 
  *   R(X, X) == true
  */
-FLECS_API extern const ecs_entity_t EcsTransitiveSelf;
+FLECS_API extern const ecs_entity_t EcsReflexive;
 
 /* Can be added to component/relation to indicate it is final. Final components/
  * relations cannot be derived from using an IsA relationship. Queries will not
@@ -4060,6 +4077,14 @@ FLECS_API extern const ecs_entity_t EcsExclusive;
 
 /* Marks a relation as acyclic. Acyclic relations may not form cycles. */
 FLECS_API extern const ecs_entity_t EcsAcyclic;
+
+/* Ensure that a component always is added together with another component.
+ * 
+ * Behavior:
+ *   If With(R, O) and R(X) then O(X)
+ *   If With(R, O) and R(X, Y) then O(X, Y)
+ */
+FLECS_API extern const ecs_entity_t EcsWith;
 
 /* Can be added to relation to indicate that it should never hold data, even
  * when it or the relation object is a component. */
@@ -11611,12 +11636,13 @@ static const flecs::entity_t World = EcsWorld;
 static const flecs::entity_t Wildcard = EcsWildcard;
 static const flecs::entity_t This = EcsThis;
 static const flecs::entity_t Transitive = EcsTransitive;
-static const flecs::entity_t TransitiveSelf = EcsTransitiveSelf;
+static const flecs::entity_t Reflexive = EcsReflexive;
 static const flecs::entity_t Final = EcsFinal;
 static const flecs::entity_t Tag = EcsTag;
 static const flecs::entity_t Exclusive = EcsExclusive;
 static const flecs::entity_t Acyclic = EcsAcyclic;
 static const flecs::entity_t Symmetric = EcsSymmetric;
+static const flecs::entity_t With = EcsWith;
 
 /* Builtin relationships */
 static const flecs::entity_t IsA = EcsIsA;
@@ -16990,7 +17016,7 @@ struct cpp_type_impl {
             } else {
                 // If an explicit id is provided but it has no name, inherit
                 // the name from the type.
-                if (!ecs_get_name(world, id)) {
+                if (!ecs_is_valid(world, id) || !ecs_get_name(world, id)) {
                     name = strip_module(world);
                 }
             }
@@ -17254,7 +17280,7 @@ struct component : untyped_component {
             id = _::cpp_type<T>::id_explicit(world, name, allow_tag, id);
 
             /* If entity has a name check if it matches */
-            if (ecs_get_name(world, id) != nullptr) {
+            if (ecs_is_valid(world, id) && ecs_get_name(world, id) != nullptr) {
                 if (!implicit_name && id >= EcsFirstUserComponentId) {
 #                   ifndef NDEBUG
                     char *path = ecs_get_path_w_sep(
@@ -17268,9 +17294,14 @@ struct component : untyped_component {
 #                   endif
                 }
             } else {
+                /* Ensure that the entity id valid */
+                if (!ecs_is_alive(world, id)) {
+                    ecs_ensure(world, id);
+                }
+
                 /* Register name with entity, so that when the entity is created the
                 * correct id will be resolved from the name. Only do this when the
-                * entity is empty.*/
+                * entity is empty. */
                 ecs_add_path_w_sep(world, id, 0, n, "::", "::");
             }
 

@@ -37,15 +37,17 @@ char* get_error() {
 
 EMSCRIPTEN_KEEPALIVE
 void init() {
-    // // Capture error messages so we can send it to the client
-    // ecs_os_set_api_defaults();
-    // ecs_os_api_t api = ecs_os_api;
-    // api.log_ = capture_log;
-    // ecs_os_set_api(&api);
+    // Capture error messages so we can send it to the client
+#ifdef __EMSCRIPTEN__
+    ecs_os_set_api_defaults();
+    ecs_os_api_t api = ecs_os_api;
+    api.log_ = capture_log;
+    ecs_os_set_api(&api);
 
-    // // Only enable errors, don't insert color codes
-    // ecs_log_set_level(-1);
-    // ecs_log_enable_colors(false);
+    // Only enable errors, don't insert color codes
+    ecs_log_set_level(-1);
+    ecs_log_enable_colors(false);
+#endif
 
     world = ecs_mini();
     if (!world) {
@@ -67,6 +69,12 @@ char* query(char *q) {
         goto error;
     }
 
+#ifndef __EMSCRIPTEN__
+    char *r_str = ecs_rule_str(r);
+    printf("%s\n", r_str);
+    ecs_os_free(r_str);
+#endif
+
     ecs_iter_t it = ecs_rule_iter(world, r);
     ecs_iter_to_json_desc_t desc = ECS_ITER_TO_JSON_INIT;
     desc.measure_eval_duration = true;
@@ -74,6 +82,15 @@ char* query(char *q) {
         ecs_strbuf_reset(&reply);
         goto error;
     }
+
+#ifndef __EMSCRIPTEN__
+    it = ecs_rule_iter(world, r);
+    while (ecs_rule_next(&it)) {
+        char *it_str = ecs_iter_str(&it);
+        printf("%s\n", it_str);
+        ecs_os_free(it_str);
+    }
+#endif
 
     return ecs_strbuf_get(&reply);
 error: {
