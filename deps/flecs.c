@@ -19986,7 +19986,7 @@ bool eval_each(
 
         /* Skip builtin entities that could confuse operations */
         e = entities[row];
-        while (e == EcsWildcard || e == EcsThis) {
+        while (e == EcsWildcard || e == EcsThis || e == EcsAny) {
             row ++;
             if (row == count) {
                 return false;
@@ -35636,7 +35636,10 @@ void ecs_os_set_api_defaults(void)
     ecs_os_api.abort_ = abort;
 
 #   ifdef FLECS_OS_API_IMPL
+    /* Initialize defaults to OS API IMPL addon, but still allow for overriding
+     * by the application */
     ecs_set_os_api_impl();
+    ecs_os_api_initialized = false;
 #   endif
 
     ecs_os_api_initializing = false;
