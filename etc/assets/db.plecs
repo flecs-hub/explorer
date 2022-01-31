@@ -1,8 +1,5 @@
 
-
-LocatedIn = Transitive, Reflexive
-
-Bob = (LocatedIn, SanFrancisco)
-SanFrancisco = (LocatedIn, UnitedStates)
-UnitedStates.= (LocatedIn, NorthAmerica)
-
+Painted = Final
+Painting = (IsA, Artwork), Painted
+Portrait = (IsA, Painting)
+MonaLisa = (IsA, Portrait)
