@@ -161,6 +161,16 @@ Vue.component('inspector-props', {
 // Component
 Vue.component('inspector-component', {
   props: ['elem'],
+  methods: {
+    search_component() {
+      console.log("search");
+      if (this.elem.obj) {
+        this.$emit('select-query', '(' + this.elem.pred + "," + this.elem.obj + ')');
+      } else {
+        this.$emit('select-query', this.elem.pred);
+      }
+    }
+  },
   computed: {
     name_css: function() {
       if (this.elem.hidden) {
@@ -183,7 +193,8 @@ Vue.component('inspector-component', {
         <detail-toggle :disable="elem.value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">, <entity-reference :entity="elem.obj" show_name="true" v-on="$listeners"/></template>
+              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">, <entity-reference :entity="elem.obj" show_name="true" disabled="true" v-on="$listeners"/></template>
+              <icon src="search" v-on:click="search_component"/>
             </div>
           </template>
           <template v-slot:detail>
