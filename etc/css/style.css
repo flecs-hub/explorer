@@ -198,6 +198,7 @@ div.left-column {
 div.right-column {
   display: flex;
   flex-direction: column;
+  min-width: 400px;
   height: 100%;
   border-style: solid;
   border-width: 0px;
