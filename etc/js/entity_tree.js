@@ -91,7 +91,7 @@ Vue.component('entity-tree-item', {
       <entity-icon :x="x + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
       <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity}}</text>
-      <rect :x="165" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
+      <rect :x="185" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
 
       <image v-if="entity_data.is_component && !entity_data.is_module"
         href="img/search.png" 
