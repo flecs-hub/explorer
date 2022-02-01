@@ -163,9 +163,8 @@ Vue.component('inspector-component', {
   props: ['elem'],
   methods: {
     search_component() {
-      console.log("search");
       if (this.elem.obj) {
-        this.$emit('select-query', '(' + this.elem.pred + "," + this.elem.obj + ')');
+        this.$emit('select-query', '(' + this.elem.pred + ", " + this.elem.obj + ')');
       } else {
         this.$emit('select-query', this.elem.pred);
       }
@@ -194,7 +193,7 @@ Vue.component('inspector-component', {
           <template v-slot:summary>
             <div :class="name_css">
               <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">, <entity-reference :entity="elem.obj" show_name="true" disabled="true" v-on="$listeners"/></template>
-              <icon src="search" v-on:click="search_component"/>
+              <icon src="search" v-on:click.stop="search_component"/>
             </div>
           </template>
           <template v-slot:detail>

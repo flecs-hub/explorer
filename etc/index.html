@@ -53,9 +53,12 @@
 
         <!-- Editor -->
         <div class="right-column">
-          <editor 
-            ref="plecs"
-            v-on:run-code="evt_code_changed"></editor>
+          <template v-if="connection != ConnectionState.Remote">
+            <editor 
+              ref="plecs"
+              v-on:run-code="evt_code_changed">
+            </editor>
+          </template>
           <inspector 
             :entity="entity_result" 
             :selection="selected_tree_item" 

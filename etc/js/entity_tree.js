@@ -2,6 +2,7 @@
 const top_margin = 20;
 const item_height = 24;
 const indent_width = 9;
+const tree_width = 215;
 
 function subtree_height(entity_data) {
   let result = item_height;
@@ -39,7 +40,6 @@ Vue.component('entity-tree-item', {
       this.$emit('select', this.entity_data);
     },
     search_x: function() {
-      console.log(this.$refs.item_text);
       return 50;
     }
   },
@@ -52,7 +52,7 @@ Vue.component('entity-tree-item', {
       }
     },
     width_select_box: function() {
-      return 195 - this.x - 30;
+      return tree_width - this.x - 30;
     },
     css_text: function() {
       if (this.entity_data.selected) {
@@ -95,7 +95,7 @@ Vue.component('entity-tree-item', {
 
       <image v-if="entity_data.is_component && !entity_data.is_module"
         href="img/search.png" 
-        :x="170" :y="y - 12" height="13px"
+        :x="190" :y="y - 12" height="13px"
         v-on:click="search" class="entity-tree-icon">
       </image>
     </svg>`

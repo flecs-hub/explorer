@@ -38,9 +38,19 @@ Vue.component('query-results', {
         }
         return false;
       },
-      term_id(term) {
-        const elems = this.data.ids[term].split('.');
+      id_elem(str) {
+        const elems = str.split('.');
         return elems[elems.length - 1];
+      },
+      term_id(term) {
+        const pair = this.data.ids[term].split(',');
+        if (pair.length == 1) {
+          return this.id_elem(pair[0]);
+        } else {
+          const first = this.id_elem(pair[0].slice(1));
+          const second = this.id_elem(pair[1].slice(0, -1));
+          return "(" + first + ", " + second + ")";
+        }
       }
     },
     computed: {

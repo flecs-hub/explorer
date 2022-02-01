@@ -392,19 +392,20 @@ struct ecs_data_t {
 /** Flags for quickly checking for special properties of a table. */
 #define EcsTableHasBuiltins         1u    /* Does table have builtin components */
 #define EcsTableIsPrefab            2u    /* Does the table store prefabs */
-#define EcsTableHasIsA              4u    /* Does the table type has IsA */
-#define EcsTableHasPairs            8u    /* Does the table type have pairs */
-#define EcsTableHasModule           16u   /* Does the table have module data */
-#define EcsTableHasXor              32u   /* Does the table type has XOR */
-#define EcsTableIsDisabled          64u   /* Does the table type has EcsDisabled */
-#define EcsTableHasCtors            128u
-#define EcsTableHasDtors            256u
-#define EcsTableHasCopy             512u
-#define EcsTableHasMove             1024u
-#define EcsTableHasOnAdd            2048u
-#define EcsTableHasOnRemove         4096u
-#define EcsTableHasOnSet            8192u
-#define EcsTableHasUnSet            16384u
+#define EcsTableHasIsA              4u    /* Does the table have IsA relation */
+#define EcsTableHasChildOf          8u    /* Does the table type ChildOf relation */
+#define EcsTableHasPairs            16u   /* Does the table type have pairs */
+#define EcsTableHasModule           32u   /* Does the table have module data */
+#define EcsTableHasXor              64u   /* Does the table type has XOR */
+#define EcsTableIsDisabled          128u   /* Does the table type has EcsDisabled */
+#define EcsTableHasCtors            256u
+#define EcsTableHasDtors            512u
+#define EcsTableHasCopy             1024u
+#define EcsTableHasMove             2048u
+#define EcsTableHasOnAdd            4096u
+#define EcsTableHasOnRemove         8192u
+#define EcsTableHasOnSet            16384u
+#define EcsTableHasUnSet            32768u
 #define EcsTableHasSwitch           65536u
 #define EcsTableHasDisabled         131072u
 
@@ -712,7 +713,6 @@ struct ecs_stage_t {
     ecs_vector_t *post_frame_actions;
 
     /* Namespacing */
-    ecs_table_t *scope_table;    /* Table for current scope */
     ecs_entity_t scope;          /* Entity of current scope */
     ecs_entity_t with;           /* Id to add by default to new entities */
     ecs_entity_t base;           /* Currently instantiated top-level base */
@@ -6074,7 +6074,6 @@ int traverse_add(
         }
     }
 
-
     /* Find destination table */
     ecs_table_diff_t diff = ECS_TABLE_DIFF_INIT;
 
@@ -6102,6 +6101,9 @@ int traverse_add(
     const ecs_id_t *ids = desc->add;
     while ((i < ECS_MAX_ADD_REMOVE) && (id = ids[i ++])) {
         table = table_append(world, table, id, &diff);
+        if (ECS_HAS_ROLE(id, PAIR) && ECS_PAIR_RELATION(id) == EcsChildOf) {
+            scope = ECS_PAIR_OBJECT(id);
+        }
     }
 
     /* Add components from the 'add_expr' expression */
@@ -6180,6 +6182,9 @@ void deferred_add_remove(
     const ecs_id_t *ids = desc->add;
     while ((i < ECS_MAX_ADD_REMOVE) && (id = ids[i ++])) {
         ecs_add_id(world, entity, id);
+        if (ECS_HAS_ROLE(id, PAIR) && ECS_PAIR_RELATION(id) == EcsChildOf) {
+            scope = ECS_PAIR_OBJECT(id);
+        }
     }
 
     /* Add components from the 'add_expr' expression */
@@ -6213,7 +6218,7 @@ ecs_entity_t ecs_entity_init(
     ecs_check(desc->_canary == 0, ECS_INVALID_PARAMETER, NULL);
 
     ecs_stage_t *stage = flecs_stage_from_world(&world);
-    ecs_entity_t scope = ecs_get_scope(world);
+    ecs_entity_t scope = stage->scope;
     ecs_id_t with = ecs_get_with(world);
 
     const char *name = desc->name;
@@ -14741,7 +14746,7 @@ char* ecs_cpp_get_type_name(
     const char *func_name,
     size_t len)
 {
-    memcpy(type_name, func_name + ECS_FUNC_NAME_FRONT("type_name"), len);
+    memcpy(type_name, func_name + ECS_FUNC_NAME_FRONT(const char*, type_name), len);
     type_name[len] = '\0';
     ecs_cpp_trim_type_name(type_name);
     return type_name;
@@ -15025,6 +15030,15 @@ ecs_entity_t ecs_cpp_enum_constant_register(
 {
     ecs_suspend_readonly_state_t readonly_state;
     world = flecs_suspend_readonly(world, &readonly_state);
+
+    const char *parent_name = ecs_get_name(world, parent);
+    ecs_size_t parent_name_len = ecs_os_strlen(parent_name);
+    if (!ecs_os_strncmp(name, parent_name, parent_name_len)) {
+        name += parent_name_len;
+        if (name[0] == '_') {
+            name ++;
+        }
+    }
 
     ecs_entity_t prev = ecs_set_scope(world, parent);
     id = ecs_entity_init(world, &(ecs_entity_desc_t) {
@@ -28844,7 +28858,7 @@ void FlecsDocImport(
 #define TOK_PARENT "parent"
 #define TOK_ALL "all"
 
-#define TOK_OWNED "OVERRIDE"
+#define TOK_OVERRIDE "OVERRIDE"
 
 #define TOK_ROLE_PAIR "PAIR"
 #define TOK_ROLE_AND "AND"
@@ -29154,7 +29168,7 @@ ecs_entity_t parse_role(
         return ECS_SWITCH;
     } else if (!ecs_os_strcmp(token, TOK_ROLE_CASE)) {
         return ECS_CASE;
-    } else if (!ecs_os_strcmp(token, TOK_OWNED)) {
+    } else if (!ecs_os_strcmp(token, TOK_OVERRIDE)) {
         return ECS_OVERRIDE;
     } else if (!ecs_os_strcmp(token, TOK_ROLE_DISABLED)) {
         return ECS_DISABLED;        
@@ -33108,7 +33122,14 @@ int finalize_term_identifiers(
     /* By default select supersets for subjects. For example, when an entity has
      * (IsA, SpaceShip), also search the components of SpaceShip. */
     if (term->subj.set.mask == EcsDefaultSet) {
-        term->subj.set.mask = EcsSelf|EcsSuperSet;
+        ecs_entity_t e = term_id_entity(world, &term->pred);
+
+        /* If the component has the DontInherit tag, use EcsSelf */
+        if (!e || !ecs_has_id(world, e, EcsDontInherit)) {
+            term->subj.set.mask = EcsSelf|EcsSuperSet;
+        } else {
+            term->subj.set.mask = EcsSelf;
+        }
     }
 
     /* By default select self for objects. */
@@ -33384,6 +33405,17 @@ int verify_term_consistency(
                     return -1;
                 }
             }
+        }
+    }
+
+    if (term->subj.set.relation && !term->subj.set.max_depth) {
+        if (!ecs_has_id(world, term->subj.set.relation, EcsAcyclic)) {
+            char *r_str = ecs_get_fullpath(world, term->subj.set.relation);
+            term_error(world, term, name, 
+                "relation '%s' is used with SuperSet/SubSet but is not acyclic", 
+                    r_str);
+            ecs_os_free(r_str);
+            return -1;
         }
     }
 
@@ -39825,6 +39857,11 @@ void init_flags(
             table->flags |= EcsTableHasIsA;
         }
 
+        /* Does table have ChildOf relations */
+        if (ECS_HAS_RELATION(id, EcsChildOf)) {
+            table->flags |= EcsTableHasChildOf;
+        }
+
         /* Does table have switch columns */
         if (ECS_HAS_ROLE(id, SWITCH)) {
             table->flags |= EcsTableHasSwitch;
@@ -40264,7 +40301,8 @@ void compute_table_diff(
     added_count += next_count - i_next;
     removed_count += node_count - i_node;
 
-    trivial_edge &= (added_count + removed_count) <= 1;
+    trivial_edge &= (added_count + removed_count) <= 1 && 
+        !ecs_id_is_wildcard(id);
 
     if (trivial_edge) {
         /* If edge is trivial there's no need to create a diff element for it.
@@ -41825,7 +41863,6 @@ void init_iter(
     it->ids[0] = it->event_id;
 
     ecs_assert(it->table != NULL, ECS_INTERNAL_ERROR, NULL);
-    ecs_assert(!it->world->is_readonly, ECS_INTERNAL_ERROR, NULL);
     ecs_assert(!it->count || it->offset < ecs_table_count(it->table), 
         ECS_INTERNAL_ERROR, NULL);
     ecs_assert((it->offset + it->count) <= ecs_table_count(it->table), 
@@ -43781,14 +43818,6 @@ ecs_entity_t ecs_set_scope(
 
     ecs_entity_t cur = stage->scope;
     stage->scope = scope;
-
-    if (scope) {
-        ecs_id_t id = ecs_pair(EcsChildOf, scope);
-        stage->scope_table = flecs_table_traverse_add(
-            world, &world->store.root, &id, NULL);
-    } else {
-        stage->scope_table = &world->store.root;
-    }
 
     return cur;
 error:
