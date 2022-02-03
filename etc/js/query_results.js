@@ -3,8 +3,8 @@ Vue.component('query-result', {
   props: ['result', 'entity', 'index', 'show_terms'],
   template: `
   <tr>
-    <td v-if="entity">
-      <entity-reference :entity="entity" :show_name="true" v-on="$listeners"/>
+    <td class="query-result-entity" v-if="entity">
+      <entity-reference :entity="entity" :show_name="true" :show_parent="true" v-on="$listeners"/>
     </td>
     <td v-for="variable in result.vars">
       <entity-reference :entity="variable" :show_name="true" v-on="$listeners"/>

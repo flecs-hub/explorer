@@ -428,15 +428,24 @@ var app = new Vue({
 
     show_url() {
       const query = this.$refs.query.get_query();
-      const plecs = this.$refs.plecs.get_code();
+      
+      let plecs;
+      let plecs_encoded;
+      if (this.$refs.plecs) {
+        plecs = this.$refs.plecs.get_code();
+        plecs_encoded = wq_encode(plecs);
+      }
 
       const query_encoded = wq_encode(query);
-      const plecs_encoded = wq_encode(plecs);
-      
+    
       this.url = window.location.protocol + '//' + 
                  window.location.host + 
                  window.location.pathname +
-                 "?q=" + query_encoded + "&p=" + plecs_encoded;
+                 "?q=" + query_encoded;
+
+      if (plecs_encoded) {
+        this.url += "&p=" + plecs_encoded;
+      }
 
       if (this.selected_tree_item) {
         this.url += "&s=" + this.selected_tree_item.path;

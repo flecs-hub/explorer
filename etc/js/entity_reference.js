@@ -1,6 +1,6 @@
 
 Vue.component('entity-reference', {
-    props: ['entity', 'show_name', 'disabled', 'label'],
+    props: ['entity', 'show_name', 'show_parent', 'disabled', 'label'],
     methods: {
       icon_clicked: function() {
         this.$emit('select-entity', this.entity);
@@ -17,8 +17,7 @@ Vue.component('entity-reference', {
     },
     template: `
       <span class="entity-reference">
-        {{label}}&nbsp;<span>{{name}}</span>
-        <icon src="follow" v-on:click.stop="icon_clicked" v-if="!disabled"/>
+        <template v-if="label && label.length">{{label}}&nbsp;</template><span>{{name}}</span><template v-if="show_parent">&nbsp;-&nbsp;<entity-parent :entity="entity"/></template><icon src="follow" v-on:click.stop="icon_clicked" v-if="!disabled"/>
       </span>
       `
   });

@@ -280,13 +280,8 @@ Vue.component('inspector', {
     }
   },
   computed: {
-    parent: function() {
-      const pos = this.selection.path.lastIndexOf(".");
-      if (pos != -1) {
-        return this.selection.path.slice(0, pos);
-      } else {
-        return "";
-      }
+    has_parent: function() {
+      return this.selection.path.lastIndexOf(".") != -1;
     },
     brief: function() {
       if (!this.entity) {
@@ -347,9 +342,9 @@ Vue.component('inspector', {
             </div>
             {{selection.name}}
             <icon src="search" v-if="selection.is_component" v-on:click.stop="select_query"/>
-            <span class="inspector-parent" v-if="parent.length">
-            - <entity-reference :entity="parent" v-on="$listeners"/>
-            </span>
+            <template v-if="has_parent">
+              -&nbsp;<entity-parent :entity="selection.path" v-on="$listeners"/>
+            </template>
           </div>
         </template>
         <template v-else>

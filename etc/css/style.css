@@ -501,8 +501,6 @@ div.inspector-component-expand-nodata span {
 }
 
 span.inspector-parent {
-  font-size: 12px;
-  color: #47B576;
   margin-left: 5px;
 }
 
@@ -526,6 +524,11 @@ span.inspector-link a {
 
 span.entity-reference span {
   white-space: nowrap;
+}
+
+span.entity-parent {
+  font-size: 12px;
+  color: #47B576;
 }
 
 /* -- end of inspector -- */
@@ -938,6 +941,10 @@ td.query-results-squeeze {
   padding: 0px;
   margin: 0px;
   min-width: 0px;
+}
+
+td.query-result-entity {
+  white-space: nowrap;
 }
 
 table td {
