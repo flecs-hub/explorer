@@ -53,7 +53,7 @@
 
         <!-- Editor -->
         <div class="right-column">
-          <template v-if="connection != ConnectionState.Remote">
+          <template v-if="!remote_mode">
             <editor 
               ref="plecs"
               v-on:run-code="evt_code_changed">

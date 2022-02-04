@@ -143,7 +143,7 @@ Vue.component('query-results', {
           <table v-if="data">
             <thead>
               <tr>
-                <th v-if="has_this">Entities</th>
+                <th v-if="has_this">Entity</th>
                 <th v-for="var_name in variables" class="query-results-header">
                   {{var_name}}
                 </th>

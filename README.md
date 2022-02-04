@@ -65,6 +65,11 @@ The following options can be added to the URL:
 ?remote=true
 ```
 
+**Always connect to app on same URL as explorer (will keep trying to connect to url:27750)**
+```
+?remote_self=true
+```
+
 **Never connect to remote app (will always use the webasm version of flecs that runs in the browser)**
 ```
 ?local=true

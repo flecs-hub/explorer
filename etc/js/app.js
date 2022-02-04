@@ -249,7 +249,7 @@ var app = new Vue({
         q = example_query;
       }
 
-      if (p) {
+      if (p && !this.remote_mode) {
         this.$refs.plecs.set_code(p);
         this.$refs.plecs.run();
       }
@@ -295,8 +295,29 @@ var app = new Vue({
       // If remote param is provided, don't go to local mode
       let remote = getParameterByName("remote");
 
+      // remote_self is the same as remote, but will always connect to the URL
+      // of the explorer, instead of defaulting to localhost
+      let remote_self = getParameterByName("remote_self");
+
       // If local param is provided, don't connect to remote
       let local = getParameterByName("local");
+
+      // Store URL parameters so they can be added to shared URL
+      this.params.host = host;
+      this.params.port = port;
+      this.params.remote = remote;
+      this.params.remote_self = remote_self;
+      this.params.local = local;
+
+      // Make sure that if both remote_self and host are specified they match
+      if (remote_self) {
+        if (host != undefined && host != window.location.hostname) {
+          console.err("remote_self conflicts with value of host param, starting in local mode");
+          this.ready_local();
+        }
+        remote = true;
+        host = window.location.hostname;
+      }
 
       // Can't set both local and remote
       if (remote && local || host && local) {
@@ -437,18 +458,50 @@ var app = new Vue({
       }
 
       const query_encoded = wq_encode(query);
+      let sep = "?";
     
       this.url = window.location.protocol + '//' + 
                  window.location.host + 
-                 window.location.pathname +
-                 "?q=" + query_encoded;
+                 window.location.pathname;
+
+      if (this.params.host) {
+        this.url += sep + "host=" + this.params.host;
+        sep = "&";
+      }
+
+      if (this.params.port) {
+        this.url += sep + "port=" + this.params.port;
+        sep = "&";
+      }
+
+      if (this.params.remote) {
+        this.url += sep + "remote=true";
+        sep = "&";
+      }
+
+      if (this.params.remote_self) {
+        this.url += sep + "remote_self=true";
+        sep = "&";
+      }
+
+      if (this.params.local) {
+        this.url += sep + "local=true";
+        sep = "&";
+      }
+
+      if (query_encoded) {
+        this.url += sep + "q=" + query_encoded;
+        sep = "&";
+      }
 
       if (plecs_encoded) {
-        this.url += "&p=" + plecs_encoded;
+        this.url += sep + "p=" + plecs_encoded;
+        sep = "&";
       }
 
       if (this.selected_tree_item) {
-        this.url += "&s=" + this.selected_tree_item.path;
+        this.url += sep + "s=" + this.selected_tree_item.path;
+        sep = "&";
       }
 
       this.$refs.url.show();
@@ -461,6 +514,10 @@ var app = new Vue({
         (this.connection == ConnectionState.Local ||
           this.connection == ConnectionState.Remote ||
             this.retry_count < 10);
+    },
+    remote_mode: function() {
+      return this.connection == ConnectionState.Remote || this.params.remote ||
+        this.params.remote_self || this.params.host;
     }
   },
 
@@ -473,8 +530,10 @@ var app = new Vue({
     entity_result: undefined,
     selected_tree_item: undefined,
     url: undefined,
+    params: {},
 
     connection: ConnectionState.Initializing,
+    host: undefined,
     retry_count: 0,
 
     refresh_timer: undefined,
