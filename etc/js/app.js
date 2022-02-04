@@ -216,7 +216,7 @@ var app = new Vue({
       }
 
       if (selected) {
-        this.$refs.tree.select(selected);
+        this.selected_entity = selected;
       }
       if (q) {
         this.$refs.query.set_query(q);
@@ -417,7 +417,11 @@ var app = new Vue({
     },
 
     refresh_entity() {
-      this.evt_entity_changed(this.selected_tree_item);
+      if (this.selected_tree_item) {
+        this.evt_entity_changed(this.selected_tree_item);
+      } else if (this.selected_entity) {
+        this.$refs.tree.select(this.selected_entity);
+      }
     },
 
     refresh_tree() {
@@ -549,6 +553,7 @@ var app = new Vue({
     code_error: undefined,
     query_result: undefined,
     entity_result: undefined,
+    selected_entity: undefined,
     selected_tree_item: undefined,
     url: undefined,
     params: {},

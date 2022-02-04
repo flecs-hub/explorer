@@ -267,7 +267,7 @@ Vue.component('inspector-components', {
 
 // Top level inspector
 Vue.component('inspector', {
-  props: ['entity', 'selection', 'valid'],
+  props: ['entity', 'selection', 'entity_name', 'valid'],
   methods: {
     expand: function() {
       this.$refs.container.expand();
@@ -346,6 +346,9 @@ Vue.component('inspector', {
               -&nbsp;<entity-parent :entity="selection.path" v-on="$listeners"/>
             </template>
           </div>
+        </template>
+        <template v-else-if="entity_name">
+          {{entity_name}}
         </template>
         <template v-else>
           Entity inspector
