@@ -453,6 +453,7 @@ var app = new Vue({
     evt_entity_changed(e) {
       this.selected_tree_item = e;
       if (e) {
+        this.selected_entity = e.path;
         this.request_entity(e.path, (reply) => {
           this.entity_error = reply.error;
           if (this.entity_error === undefined) {
@@ -462,6 +463,8 @@ var app = new Vue({
         }, () => {
           this.entity_error = "request for entity '" + e.path + "' failed";
         });
+      } else {
+        this.selected_entity = undefined;
       }
       this.refresh_terminal();
     },
