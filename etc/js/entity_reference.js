@@ -13,11 +13,18 @@ Vue.component('entity-reference', {
         } else {
           return this.entity;
         }
+      },
+      has_parent: function() {
+        if (!this.show_parent) {
+          return false;
+        } else {
+          return this.entity.lastIndexOf(".") != -1;
+        }
       }
     },
     template: `
       <span class="entity-reference">
-        <template v-if="label && label.length">{{label}}&nbsp;</template><span>{{name}}</span><template v-if="show_parent">&nbsp;-&nbsp;<entity-parent :entity="entity"/></template><icon src="follow" v-on:click.stop="icon_clicked" v-if="!disabled"/>
+        <template v-if="label && label.length">{{label}}&nbsp;</template><span>{{name}}</span><template v-if="has_parent">&nbsp;-&nbsp;<entity-parent :entity="entity"/></template><icon src="follow" v-on:click.stop="icon_clicked" v-if="!disabled"/>
       </span>
       `
   });

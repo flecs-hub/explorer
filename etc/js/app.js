@@ -419,7 +419,7 @@ var app = new Vue({
       this.$refs.query.refresh();
     },
 
-    refresh_entity() {
+    refresh_entity(entity) {
       if (this.selected_tree_item) {
         this.evt_entity_changed(this.selected_tree_item);
       } else if (this.selected_entity) {
@@ -449,20 +449,25 @@ var app = new Vue({
       }, this.parse_interval);
     },
 
+    // Set inspector to entity by pathname
+    set_entity(path) {
+      this.selected_entity = path;
+      this.request_entity(path, (reply) => {
+        this.entity_error = reply.error;
+        if (this.entity_error === undefined) {
+          this.entity_result = reply;
+          this.$refs.inspector.expand();
+        }
+      }, () => {
+        this.entity_error = "request for entity '" + path + "' failed";
+      });
+    },
+
     // Entity selected
     evt_entity_changed(e) {
       this.selected_tree_item = e;
       if (e) {
-        this.selected_entity = e.path;
-        this.request_entity(e.path, (reply) => {
-          this.entity_error = reply.error;
-          if (this.entity_error === undefined) {
-            this.entity_result = reply;
-            this.$refs.inspector.expand();
-          }
-        }, () => {
-          this.entity_error = "request for entity '" + e.path + "' failed";
-        });
+        this.set_entity(e.path);
       } else {
         this.selected_entity = undefined;
       }
