@@ -374,7 +374,10 @@ var app = new Vue({
           retry_interval = INITIAL_REQUEST_RETRY_INTERVAL;
         }
 
-        this.init_remote();
+        if (this.connection != ConnectionState.RetryConnecting) {
+          /* When not reconnecting initialize app from URL arguments */
+          this.init_remote();
+        }
 
         this.json_request("GET", host, "entity/flecs/core/World", (reply) => {
           this.host = host;
