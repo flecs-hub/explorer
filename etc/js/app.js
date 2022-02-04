@@ -206,6 +206,23 @@ var app = new Vue({
       }
     },
 
+    init_remote() {
+      const q_encoded = getParameterByName("q");
+      var selected = getParameterByName("s");
+      var q;
+
+      if (q_encoded) {
+        q = wq_decode(q_encoded);
+      }
+
+      if (selected) {
+        this.$refs.tree.select(selected);
+      }
+      if (q) {
+        this.$refs.query.set_query(q);
+      }
+    },
+
     ready_remote(reply) {
       // Get application name from reply
       for (var i = 0; i < reply.type.length; i ++) {
@@ -215,6 +232,8 @@ var app = new Vue({
           break;
         }
       }
+
+      this.parse_interval = 150;
 
       this.$refs.tree.update_expanded();
 
@@ -354,6 +373,8 @@ var app = new Vue({
         if (remote) {
           retry_interval = INITIAL_REQUEST_RETRY_INTERVAL;
         }
+
+        this.init_remote();
 
         this.json_request("GET", host, "entity/flecs/core/World", (reply) => {
           this.host = host;
