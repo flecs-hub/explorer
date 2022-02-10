@@ -17,6 +17,11 @@ Vue.component('query', {
             this.query_result = reply;
           }
           this.$emit('changed');
+        }, undefined, {
+          ids: false, 
+          subjects: false,
+          entity_labels: true,
+          variable_labels: true
         });
       } else {
         this.query_result = undefined;

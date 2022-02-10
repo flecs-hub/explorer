@@ -322,7 +322,9 @@ Vue.component('entity-tree', {
         values: false, 
         ids: false, 
         term_ids: false, 
-        subjects: false
+        subjects: false,
+        entity_labels: true,
+        variable_labels: true
       });
     },
     update_expanded: function(container) {
