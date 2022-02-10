@@ -182,8 +182,8 @@ div.app-box {
   display: flex;
   position: relative;
   top: 41px;
-  left: 220px;
-  width: calc(100% - 210px);
+  left: 214px;
+  width: calc(100% - 214px);
   height: calc(100vh - 141px);
 }
 
@@ -219,7 +219,7 @@ div.terminal-box {
   border-top-width: 1px;
 
   position: absolute;
-  width: calc(100% - 200px);
+  width: calc(100% - 220px);
   height: 100px;
   left: 220px;
   bottom: 0px;
