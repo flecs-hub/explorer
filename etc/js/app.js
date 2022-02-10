@@ -173,14 +173,20 @@ var app = new Vue({
       }
     },
 
-    request_query: function(q, recv, err) {
+    request_query: function(q, recv, err, params) {
       if (this.is_local()) {
           const r = wq_query(q);
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
+        let url_params = "";
+        if (params) {
+          for (var k in params) {
+            url_params += "&" + k + "=" + params[k];
+          }
+        }
         this.request(
-          "GET", "query?q=" + encodeURIComponent(q), 
+          "GET", "query?q=" + encodeURIComponent(q) + url_params,
           recv, err);
       }
     },

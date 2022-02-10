@@ -78,6 +78,8 @@ char* query(char *q) {
     ecs_iter_t it = ecs_rule_iter(world, r);
     ecs_iter_to_json_desc_t desc = ECS_ITER_TO_JSON_INIT;
     desc.measure_eval_duration = true;
+    desc.serialize_entity_labels = true;
+    desc.serialize_variable_labels = true;
     if (ecs_iter_to_json_buf(world, &it, &reply, &desc) != 0) {
         ecs_strbuf_reset(&reply);
         goto error;

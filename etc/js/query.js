@@ -65,7 +65,7 @@ Vue.component('query', {
   template: `
     <content-container 
       ref="container" 
-      :disable="query_result === undefined" 
+      :disable="query_result === undefined && query_error === undefined" 
       closable="true" 
       v-on:close="evt_close">
 

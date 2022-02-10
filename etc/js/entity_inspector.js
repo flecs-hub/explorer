@@ -192,7 +192,7 @@ Vue.component('inspector-component', {
         <detail-toggle :disable="elem.value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">, <entity-reference :entity="elem.obj" show_name="true" disabled="true" v-on="$listeners"/></template>
+              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">,&nbsp;<entity-reference :entity="elem.obj" show_name="true" disabled="true" v-on="$listeners"/></template>
               <icon src="search" v-on:click.stop="search_component"/>
             </div>
           </template>
@@ -329,7 +329,7 @@ Vue.component('inspector', {
   template: `
     <content-container 
       ref="container" 
-      :disable="!entity || !selection" 
+      :disable="!entity_name && !selection" 
       no_padding="true"
       closable="true" 
       v-on:close="evt_close">

@@ -1,13 +1,31 @@
 
 Vue.component('query-result', {
   props: ['result', 'entity', 'index', 'show_terms'],
+  methods: {
+    var_label: function(var_index) {
+      if (this.result.var_labels) {
+        return this.result.var_labels[var_index];
+      } else {
+        return this.vars[var_index];
+      }
+    }
+  },
+  computed: {
+    entity_label: function() {
+      if (this.result.entity_labels) {
+        return this.result.entity_labels[this.index];
+      } else {
+        return this.entity;
+      }
+    }
+  },
   template: `
   <tr>
     <td class="query-result-entity" v-if="entity">
-      <entity-reference :entity="entity" :show_name="true" :show_parent="true" v-on="$listeners"/>
+      <entity-reference :entity="entity" :name="entity_label" :show_name="true" :show_parent="true" v-on="$listeners"/>
     </td>
-    <td v-for="variable in result.vars">
-      <entity-reference :entity="variable" :show_name="true" v-on="$listeners"/>
+    <td v-for="(variable, index) in result.vars">
+      <entity-reference :entity="variable" :name="var_label(index)" :show_name="true" v-on="$listeners"/>
     </td>
     <td v-for="value in result.values" v-if="value !== 0">
       <inspector-props :value="value[index]" :list="true"/>

@@ -267,7 +267,10 @@ Vue.component('entity-tree', {
           for (var e = 0; e < elem.entities.length; e ++) {
             let path = elem.entities[e];
             let name = this.get_name(path);
-            let label = elem.values[6].value;
+            let label;
+            if (elem.entity_labels) {
+              label = elem.entity_labels[e];
+            }
             if (!label) {
               label = name;
             }
@@ -277,7 +280,6 @@ Vue.component('entity-tree', {
               entity = {
                 expand: false,
                 name: name,
-                label: label,
                 path: path,
                 entities: {},
                 selected: false,
@@ -285,6 +287,7 @@ Vue.component('entity-tree', {
               };
             }
 
+            entity.label = label;
             entity.has_children = elem.is_set[1];
             entity.is_module = elem.is_set[2];
             entity.is_component = elem.is_set[3] || elem.is_set[4];
@@ -309,12 +312,17 @@ Vue.component('entity-tree', {
         container = this.root;
       }
 
-      const q = "(ChildOf, " + container.path + "), ?ChildOf(*, This), ?Module, ?Component, ?Tag, ?Prefab, ?(flecs.doc.Description, Name)";
+      const q = "(ChildOf, " + container.path + "), ?ChildOf(*, This), ?Module, ?Component, ?Tag, ?Prefab";
       app.request_query(q, (reply) => {
         container.entities = this.update_scope(container.entities, reply);
         if (onready) {
           onready();
         }
+      }, undefined, {
+        values: false, 
+        ids: false, 
+        term_ids: false, 
+        subjects: false
       });
     },
     update_expanded: function(container) {

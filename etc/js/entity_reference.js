@@ -1,15 +1,19 @@
 
 Vue.component('entity-reference', {
-    props: ['entity', 'show_name', 'show_parent', 'disabled', 'label'],
+    props: ['entity', 'name', 'show_name', 'show_parent', 'disabled', 'label'],
     methods: {
       icon_clicked: function() {
         this.$emit('select-entity', this.entity);
       }
     },
     computed: {
-      name: function() {
+      entity_name: function() {
         if (this.show_name) {
-          return this.entity.split('.').pop();
+          if (this.name) {
+            return this.name;
+          } else {
+            return this.entity.split('.').pop();
+          }
         } else {
           return this.entity;
         }
@@ -24,7 +28,7 @@ Vue.component('entity-reference', {
     },
     template: `
       <span class="entity-reference">
-        <template v-if="label && label.length">{{label}}&nbsp;</template><span>{{name}}</span><template v-if="has_parent">&nbsp;-&nbsp;<entity-parent :entity="entity"/></template><icon src="follow" v-on:click.stop="icon_clicked" v-if="!disabled"/>
+        <template v-if="label && label.length">{{label}}&nbsp;</template><span>{{entity_name}}</span><template v-if="has_parent">&nbsp;-&nbsp;<entity-parent :entity="entity"/></template><icon src="follow" v-on:click.stop="icon_clicked" v-if="!disabled"/>
       </span>
       `
   });

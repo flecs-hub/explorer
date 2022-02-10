@@ -8668,12 +8668,14 @@ typedef struct ecs_iter_to_json_desc_t {
     bool serialize_is_set;      /* Include is_set (for optional terms) */
     bool serialize_values;      /* Include component values */
     bool serialize_entities;    /* Include entities (for This terms) */
+    bool serialize_entity_labels; /* Include doc name for entities */
+    bool serialize_variable_labels; /* Include doc name for variables */
     bool measure_eval_duration; /* Include evaluation duration */
     bool serialize_type_info;   /* Include type information */
 } ecs_iter_to_json_desc_t;
 
 #define ECS_ITER_TO_JSON_INIT (ecs_iter_to_json_desc_t) {\
-    true, true, true, true, true, true, true, false, false }
+    true, true, true, true, true, true, true, false, false, false, false }
 
 /** Serialize iterator into JSON string.
  * This operation will iterate the contents of the iterator and serialize them
@@ -12697,6 +12699,7 @@ static const flecs::entity_t Iptr = ecs_id(ecs_iptr_t);
 static const flecs::entity_t F32 = ecs_id(ecs_f32_t);
 static const flecs::entity_t F64 = ecs_id(ecs_f64_t);
 static const flecs::entity_t String = ecs_id(ecs_string_t);
+static const flecs::entity_t Entity = ecs_id(ecs_entity_t);
 
 static const flecs::entity_t Constant = EcsConstant;
 
