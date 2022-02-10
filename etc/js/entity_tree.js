@@ -18,7 +18,7 @@ function subtree_height(entity_data) {
 }
 
 Vue.component('entity-tree-item', {
-  props: ['x', 'y', 'entity', 'entity_data'],
+  props: ['x', 'y', 'entity_data'],
   mounted: function() {
     this.expand = this.entity_data.expand;
   },
@@ -90,8 +90,8 @@ Vue.component('entity-tree-item', {
 
       <entity-icon :x="x + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
-      <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity}}</text>
-      <rect :x="185" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
+      <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
+      <rect :x="183" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
 
       <image v-if="entity_data.is_component && !entity_data.is_module"
         href="img/search.png" 
@@ -199,7 +199,6 @@ Vue.component('entity-tree-list', {
           props: {
             x: this.x,
             y: height,
-            entity: entity_data.name,
             entity_data: entity_data
           },
   
@@ -254,6 +253,9 @@ Vue.component('entity-tree-list', {
 Vue.component('entity-tree', {
   props: ['valid'],
   methods: {
+    get_name: function(path) {
+      return path.split('.').pop();
+    },
     update_scope: function(scope, data) {
       // Store entities in new scope, so that deleted entities are automatically
       // cleaned up
@@ -264,13 +266,18 @@ Vue.component('entity-tree', {
           const elem = data.results[r];
           for (var e = 0; e < elem.entities.length; e ++) {
             let path = elem.entities[e];
-            let name = path.split('.').pop();
+            let name = this.get_name(path);
+            let label = elem.values[6].value;
+            if (!label) {
+              label = name;
+            }
 
             let entity = scope[name];
             if (!entity) {
               entity = {
                 expand: false,
                 name: name,
+                label: label,
                 path: path,
                 entities: {},
                 selected: false,
@@ -302,7 +309,7 @@ Vue.component('entity-tree', {
         container = this.root;
       }
 
-      const q = "(ChildOf, " + container.path + "), ?ChildOf(*, This), ?Module, ?Component, ?Tag, ?Prefab";
+      const q = "(ChildOf, " + container.path + "), ?ChildOf(*, This), ?Module, ?Component, ?Tag, ?Prefab, ?(flecs.doc.Description, Name)";
       app.request_query(q, (reply) => {
         container.entities = this.update_scope(container.entities, reply);
         if (onready) {

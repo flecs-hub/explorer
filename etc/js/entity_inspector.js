@@ -340,7 +340,7 @@ Vue.component('inspector', {
             <div class="inspector-icon">
               <entity-icon x="0" y="0" :entity_data="selection"/>
             </div>
-            {{selection.name}}
+            {{selection.label}}
             <icon src="search" v-if="selection.is_component" v-on:click.stop="select_query"/>
             <template v-if="has_parent">
               -&nbsp;<entity-parent :entity="selection.path" v-on="$listeners"/>
@@ -356,6 +356,9 @@ Vue.component('inspector', {
       </template>
       <template v-slot:detail v-if="entity && selection">
         <div :class="content_css">
+          <div class="inspector-entity-name" v-if="selection.label != selection.name">
+            Name:&nbsp;<span class="inspector-entity-name">{{selection.name}}</span>
+          </div>
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
               {{brief}}

@@ -182,8 +182,8 @@ div.app-box {
   display: flex;
   position: relative;
   top: 41px;
-  left: 214px;
-  width: calc(100% - 214px);
+  left: 220px;
+  width: calc(100% - 220px);
   height: calc(100vh - 141px);
 }
 
@@ -520,6 +520,17 @@ span.inspector-link a {
   color: #47B576;
   text-decoration: none;
   cursor: pointer;
+}
+
+div.inspector-entity-name {
+  display: flex;
+  margin-left: 15px;
+  margin-bottom: 15px;
+}
+
+span.inspector-entity-name {
+  color: #BDC1CC;
+  margin-right: 5px;
 }
 
 span.entity-reference span {

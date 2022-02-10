@@ -246,6 +246,8 @@ var app = new Vue({
     },
 
     ready_local() {
+      this.selected_entity = undefined;
+
       const q_encoded = getParameterByName("q");
       const p_encoded = getParameterByName("p");
       var selected = getParameterByName("s");
@@ -419,7 +421,7 @@ var app = new Vue({
       this.$refs.query.refresh();
     },
 
-    refresh_entity(entity) {
+    refresh_entity() {
       if (this.selected_tree_item) {
         this.evt_entity_changed(this.selected_tree_item);
       } else if (this.selected_entity) {
