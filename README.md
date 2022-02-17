@@ -6,7 +6,7 @@ Web-based UI for monitoring Flecs applications, trying out queries &amp; learnin
 A live version of the explorer is running @ https://flecs.dev/explorer
 
 ## Usage
-The flecs explorer can be used in standalone mode (default) or remote mode. In standalone mode, the application runs 100% in the browser with a webasm build of Flecs. In remote mode, the explorer connects to a runningn flecs application.
+The flecs explorer can be used in standalone mode (default) or remote mode. In standalone mode, the application runs 100% in the browser with a webasm build of Flecs. In remote mode, the explorer connects to a running flecs application.
 
 ### Connecting to a running Flecs application
 Before connecting the explorer to an application, first make sure that the REST interface is enabled:
@@ -31,7 +31,14 @@ world.set<flecs::Rest>({});
 When the application is running, verify that the server works by going to:
 http://localhost:27750/entity/flecs
 
-You can now go to https://flecs.dev/explorer which should automatically connect to your application.
+This should return a JSON string that looks similar to:
+```json
+{"path":"flecs", "type":[{"pred":"Module"}, {"pred":"Identifier", "obj":"Name"}, {"pred":"flecs.doc.Description", "obj":"flecs.doc.Brief", "value":{"value":"Flecs root module"}}, {"pred":"flecs.doc.Description", "obj":"flecs.doc.Link", "value":{"value":"https://github.com/SanderMertens/flecs"}}]}
+```
+
+You can now go to https://flecs.dev/explorer which should automatically connect to your application. 
+
+The explorer sends a request with a short timeout to determine if a running application can be found. In some cases this timeout is too short, which can cause the explorer to sometimes not connect. To fix this, add `?remote=true` to the URL (See URL options).
 
 Note that _no_ data is sent from your application to a remote machine. The explorer runs 100% in the browser, so any information sent to the explorer uses a local loopback interface (in other words, no information leaves your machine).
 
