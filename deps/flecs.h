@@ -278,16 +278,18 @@ typedef int32_t ecs_size_t;
 #define ECS_GENERATION_INC(e)         ((e & ~ECS_GENERATION_MASK) | ((0xFFFF & (ECS_GENERATION(e) + 1)) << 32))
 #define ECS_COMPONENT_MASK            (~ECS_ROLE_MASK)
 #define ECS_HAS_ROLE(e, role)         ((e & ECS_ROLE_MASK) == ECS_##role)
-#define ECS_PAIR_RELATION(e)          (ecs_entity_t_hi(e & ECS_COMPONENT_MASK))
-#define ECS_PAIR_OBJECT(e)            (ecs_entity_t_lo(e))
-#define ECS_HAS_RELATION(e, rel)      (ECS_HAS_ROLE(e, PAIR) && (ECS_PAIR_RELATION(e) == rel))
+#define ECS_PAIR_FIRST(e)             (ecs_entity_t_hi(e & ECS_COMPONENT_MASK))
+#define ECS_PAIR_SECOND(e)            (ecs_entity_t_lo(e))
+#define ECS_PAIR_RELATION             ECS_PAIR_FIRST
+#define ECS_PAIR_OBJECT               ECS_PAIR_SECOND
+#define ECS_HAS_RELATION(e, rel)      (ECS_HAS_ROLE(e, PAIR) && (ECS_PAIR_FIRST(e) == rel))
 
 #define ECS_HAS_PAIR_OBJECT(e, rel, obj)\
-    (ECS_HAS_RELATION(e, rel) && ECS_PAIR_OBJECT(e) == obj)
+    (ECS_HAS_RELATION(e, rel) && ECS_PAIR_SECOND(e) == obj)
 
 #define ECS_HAS(id, has_id)(\
     (id == has_id) ||\
-    (ECS_HAS_PAIR_OBJECT(id, ECS_PAIR_RELATION(has_id), ECS_PAIR_OBJECT(has_id))))
+    (ECS_HAS_PAIR_OBJECT(id, ECS_PAIR_FIRST(has_id), ECS_PAIR_SECOND(has_id))))
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -342,9 +344,10 @@ typedef int32_t ecs_size_t;
 #define ecs_case(pred, obj) (ECS_CASE | ecs_entity_t_comb(obj, pred))
 
 /* Get object from pair with the correct (current) generation count */
-#define ecs_pair_relation(world, pair) ecs_get_alive(world, ECS_PAIR_RELATION(pair))
-#define ecs_pair_object(world, pair) ecs_get_alive(world, ECS_PAIR_OBJECT(pair))
-
+#define ecs_pair_first(world, pair) ecs_get_alive(world, ECS_PAIR_FIRST(pair))
+#define ecs_pair_second(world, pair) ecs_get_alive(world, ECS_PAIR_SECOND(pair))
+#define ecs_pair_relation ecs_pair_first
+#define ecs_pair_object ecs_pair_second
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Debug macro's
@@ -2172,6 +2175,7 @@ void ecs_os_set_api_defaults(void);
 
 #define ecs_os_memcpy_t(ptr1, ptr2, T) ecs_os_memcpy(ptr1, ptr2, ECS_SIZEOF(T))
 #define ecs_os_memcpy_n(ptr1, ptr2, T, count) ecs_os_memcpy(ptr1, ptr2, ECS_SIZEOF(T) * count)
+#define ecs_os_memcmp_t(ptr1, ptr2, T) ecs_os_memcmp(ptr1, ptr2, ECS_SIZEOF(T))
 
 #define ecs_os_strcmp(str1, str2) strcmp(str1, str2)
 #define ecs_os_memset_t(ptr, value, T) ecs_os_memset(ptr, value, ECS_SIZEOF(T))
@@ -2668,7 +2672,7 @@ struct ecs_trigger_t {
     ecs_entity_t events[ECS_TRIGGER_DESC_EVENT_COUNT_MAX];
     int32_t event_count;
 
-    ecs_iter_action_t action;   /* Callback */
+    ecs_iter_action_t callback; /* Callback */
 
     void *ctx;                  /* Callback context */
     void *binding_ctx;          /* Binding context (for language bindings) */
@@ -2700,8 +2704,7 @@ struct ecs_observer_t {
     ecs_entity_t events[ECS_TRIGGER_DESC_EVENT_COUNT_MAX];
     int32_t event_count;   
     
-    ecs_iter_action_t action;   /* See ecs_observer_desc_t::callback */
-
+    ecs_iter_action_t callback; /* See ecs_observer_desc_t::callback */
     ecs_run_action_t run;       /* See ecs_observer_desc_t::run */
 
     void *ctx;                  /* Callback context */
@@ -4329,6 +4332,15 @@ FLECS_API
 int ecs_fini(
     ecs_world_t *world);
 
+/** Returns whether the world is being deleted.
+ *
+ * @param world The world.
+ * @return True if being deleted, false if not.
+ */
+FLECS_API
+bool ecs_is_fini(
+    const ecs_world_t *world);
+
 /** Register action to be executed when world is destroyed.
  * Fini actions are typically used when a module needs to clean up before a
  * world shuts down.
@@ -5732,6 +5744,45 @@ const char* ecs_set_name_prefix(
     ecs_world_t *world,
     const char *prefix);    
 
+/** Set search path for lookup operations.
+ * This operation accepts an array of entity ids that will be used as search
+ * scopes by lookup operations. The operation returns the current search path.
+ * It is good practice to restore the old search path.
+ * 
+ * The search path will be evaluated starting from the last element.
+ * 
+ * The default search path includes flecs.core. When a custom search path is
+ * provided it overwrites the existing search path. Operations that rely on
+ * looking up names from flecs.core without providing the namespace may fail if
+ * the custom search path does not include flecs.core (EcsFlecsCore).
+ * 
+ * The search path array is not copied into managed memory. The application must
+ * ensure that the provided array is valid for as long as it is used as the
+ * search path.
+ * 
+ * The provided array must be terminated with a 0 element. This enables an
+ * application to push/pop elements to an existing array without invoking the
+ * ecs_set_lookup_path operation again.
+ * 
+ * @param world The world.
+ * @param lookup_path 0-terminated array with entity ids for the lookup path.
+ * @return Current lookup path array.
+ */
+FLECS_API
+ecs_entity_t* ecs_set_lookup_path(
+    ecs_world_t *world,
+    const ecs_entity_t *lookup_path);
+
+/** Get current lookup path.
+ * Returns value set by ecs_set_lookup_path.
+ * 
+ * @param world The world.
+ * @return The current lookup path.
+ */
+FLECS_API
+ecs_entity_t* ecs_get_lookup_path(
+    const ecs_world_t *world);
+
 /** @} */
 
 
@@ -6424,6 +6475,19 @@ ecs_entity_t ecs_observer_init(
     ecs_world_t *world,
     const ecs_observer_desc_t *desc);
 
+/** Default run action for observer.
+ * This function can be called from a custom observer run action (see 
+ * ecs_observer_desc_t::run for more details). This function ensures that the 
+ * observer's filter is applied to the iterator's table, filters out duplicate 
+ * events and implements EcsMonitor logic.
+ * 
+ * @param it The iterator.
+ * @return True if the observer was invoked.
+ */
+FLECS_API
+bool ecs_observer_default_run_action(
+    ecs_iter_t *it);
+
 FLECS_API
 void* ecs_get_observer_ctx(
     const ecs_world_t *world,
@@ -6516,6 +6580,22 @@ void ecs_iter_fini(
  */
 FLECS_API
 bool ecs_iter_count(
+    ecs_iter_t *it);
+
+/** Test if iterator is true.
+ * This operation will return true if the iterator returns at least one result.
+ * This is especially useful in combination with fact-checking rules (see the
+ * rules addon).
+ * 
+ * The operation requires a valid iterator. After the operation is invoked, the
+ * application should no longer invoke next on the iterator and should treat it
+ * as if the iterator is iterated until completion.
+ * 
+ * @param it The iterator.
+ * @return true if the iterator returns at least one result.
+ */
+FLECS_API
+bool ecs_iter_is_true(
     ecs_iter_t *it);
 
 /** Create a paged iterator.
@@ -8075,13 +8155,29 @@ typedef struct ecs_system_desc_t {
     /* System query parameters */
     ecs_query_desc_t query;
 
-    /* System callback, invoked when system is ran */
+    /* Callback that is invoked when a system is ran. When left to NULL, the
+     * default system runner is used, which calls the "callback" action for each
+     * result returned from the system's query. 
+     * 
+     * It should not be assumed that the input iterator can always be iterated
+     * with ecs_query_next. When a system is multithreaded and/or paged, the
+     * iterator can be either a worker or paged iterator. Future use cases may
+     * introduce additional inputs for a system, such as rules and filters. The
+     * correct function to use for iteration is ecs_iter_next.
+     * 
+     * An implementation can test whether the iterator is a query iterator by
+     * testing whether the it->next value is equal to ecs_query_next. */
+    ecs_run_action_t run;
+
+    /* Callback that is ran for each result returned by the system's query. This
+     * means that this callback can be invoked multiple times per system per
+     * frame, typically once for each matching table. */
     ecs_iter_action_t callback;
 
     /* System status callback, invoked when system status changes */
     ecs_system_status_action_t status_callback;
 
-    /* Associate with entity */
+    /* Associate with entity. */
     ecs_entity_t self;    
 
     /* Context to be passed to callback (as ecs_iter_t::param) */
@@ -9141,6 +9237,18 @@ int ecs_meta_set_null(
 
 
 /** API functions for creating meta types */
+
+/** Used with ecs_primitive_init. */
+typedef struct ecs_primitive_desc_t {
+    ecs_entity_desc_t entity;
+    ecs_primitive_kind_t kind;
+} ecs_primitive_desc_t;
+
+/** Create a new primitive type */
+FLECS_API
+ecs_entity_t ecs_primitive_init(
+    ecs_world_t *world,
+    const ecs_primitive_desc_t *desc);
 
 /** Used with ecs_enum_init. */
 typedef struct ecs_enum_desc_t {
@@ -10423,6 +10531,7 @@ typedef enum {
     EcsHttpPost,
     EcsHttpPut,
     EcsHttpDelete,
+    EcsHttpOptions,
     EcsHttpMethodUnsupported
 } ecs_http_method_t;
 
@@ -11821,7 +11930,7 @@ namespace _ {
 #elif defined(__clang__)
 #define ECS_SIZE_T_STR "size_t"
 #else
-#define ECS_SIZE_T_STR "size_t; size_t = long unsigned int"
+#define ECS_SIZE_T_STR "constexpr size_t; size_t = long unsigned int"
 #endif
 
 template <typename E>
@@ -11846,7 +11955,7 @@ constexpr bool enum_constant_is_valid() {
 #elif defined(__GNUC__)
 template <typename E, E C>
 constexpr bool enum_constant_is_valid() {
-    return (ECS_FUNC_NAME[ECS_FUNC_NAME_FRONT(bool, enum_constant_is_valid) +
+    return (ECS_FUNC_NAME[ECS_FUNC_NAME_FRONT(constepxr bool, enum_constant_is_valid) +
         enum_type_len<E>() + 8 /* ', E C = ' */] != '(');
 }
 #else
@@ -11903,11 +12012,18 @@ struct enum_type {
     }
 
     void init(flecs::world_t *world, flecs::entity_t id) {
+#if !defined(__clang__) && defined(__GNUC__)
+        ecs_assert(__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 5), 
+            ECS_UNSUPPORTED, "enum component types require gcc 7.5 or higher");
+#endif
+
+        ecs_log_push();
         ecs_add_id(world, id, flecs::Exclusive);
         ecs_add_id(world, id, flecs::Tag);
         data.id = id;
         data.min = FLECS_ENUM_MAX(int);
         init< enum_last<E>::value >(world);
+        ecs_log_pop();
     }
 
 private:
@@ -12239,6 +12355,11 @@ struct id {
         return (m_id & ECS_ROLE_MASK) == flecs::Case;
     }
 
+    /* Test if id is entity */
+    bool is_entity() const {
+        return !(m_id & ECS_ROLE_MASK);
+    }
+
     /* Return id as entity (only allowed when id is valid entity) */
     flecs::entity entity() const;
 
@@ -12271,7 +12392,7 @@ struct id {
         if (!is_pair()) {
             return false;
         }
-        return ECS_PAIR_RELATION(m_id) == relation;
+        return ECS_PAIR_FIRST(m_id) == relation;
     }
 
     /** Get first element from a pair.
@@ -12810,6 +12931,13 @@ inline void enable_colors(bool enabled) {
     ecs_log_enable_colors(enabled);
 }
 
+inline void dbg(const char *fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    ecs_logv(1, fmt, args);
+    va_end(args);
+}
+
 inline void trace(const char *fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -12829,6 +12957,14 @@ inline void err(const char *fmt, ...) {
     va_start(args, fmt);
     ecs_logv(-3, fmt, args);
     va_end(args);
+}
+
+inline void push() {
+    ecs_log_push();
+}
+
+inline void pop() {
+    ecs_log_pop();
 }
 
 }
@@ -13880,19 +14016,28 @@ struct world {
      *
      * @param scope The scope to set.
      * @return The current scope;
+     * @see ecs_set_scope
      */
     flecs::entity set_scope(const flecs::entity_t scope) const;
 
     /** Get current scope.
      *
      * @return The current scope.
+     * * @see ecs_get_scope
      */
     flecs::entity get_scope() const;
 
     /** Same as set_scope but with type.
+     * * @see ecs_set_scope
      */
     template <typename T>
     flecs::entity set_scope() const;
+
+    /** Set search path.
+     */
+    flecs::entity_t* set_lookup_path(const flecs::entity_t *search_path) {
+        return ecs_set_lookup_path(m_world, search_path);
+    }
 
     /** Lookup entity by name.
      * 
@@ -15716,6 +15861,8 @@ struct entity_view : public id {
         return stats->delta_time;
     }
 
+    flecs::entity clone(bool clone_value = true, flecs::entity_t dst_id = 0) const;
+
     /** Return mutable entity handle for current stage 
      * When an entity handle created from the world is used while the world is
      * in staged mode, it will only allow for readonly operations since 
@@ -17214,7 +17361,7 @@ struct iterable {
     /** Create iterator.
      * Create an iterator object that can be modified before iterating.
      */
-    iter_iterable<Components...> iter();
+    iter_iterable<Components...> iter() const;
 
     /** Page iterator.
      * Create an iterator that limits the returned entities with offset/limit.
@@ -17332,7 +17479,7 @@ private:
 };
 
 template <typename ... Components>
-iter_iterable<Components...> iterable<Components...>::iter() 
+iter_iterable<Components...> iterable<Components...>::iter() const
 {
     return iter_iterable<Components...>(this);
 }
@@ -18096,7 +18243,7 @@ inline flecs::entity id::role() const {
 inline flecs::entity id::first() const {
     ecs_assert(is_pair(), ECS_INVALID_OPERATION, NULL);
 
-    flecs::entity_t e = ECS_PAIR_RELATION(m_id);
+    flecs::entity_t e = ECS_PAIR_FIRST(m_id);
     if (m_world) {
         return flecs::entity(m_world, ecs_get_alive(m_world, e));
     } else {
@@ -18105,7 +18252,7 @@ inline flecs::entity id::first() const {
 }
 
 inline flecs::entity id::second() const {
-    flecs::entity_t e = ECS_PAIR_OBJECT(m_id);
+    flecs::entity_t e = ECS_PAIR_SECOND(m_id);
     if (m_world) {
         return flecs::entity(m_world, ecs_get_alive(m_world, e));
     } else {
@@ -18377,6 +18524,16 @@ inline bool entity_view::get(const Func& func) const {
 inline flecs::entity entity_view::lookup(const char *path) const {
     auto id = ecs_lookup_path_w_sep(m_world, m_id, path, "::", "::", false);
     return flecs::entity(m_world, id);
+}
+
+inline flecs::entity entity_view::clone(bool copy_value, flecs::entity_t dst_id) const {
+    if (!dst_id) {
+        dst_id = ecs_new_id(m_world);
+    }
+
+    flecs::entity dst = flecs::entity(m_world, dst_id);
+    ecs_clone(m_world, dst_id, m_id, copy_value);
+    return dst;
 }
 
 // Entity mixin implementation

@@ -1,5 +1,9 @@
+ContainedBy = Final
 
-Painted = Final
-Painting = (IsA, Artwork), Painted
-Portrait = (IsA, Painting)
-MonaLisa = (IsA, Portrait)
+Sword = Item, Attacks, TakesDamage
+
+WoodenSword : Sword
+
+with (ContainedBy, Player) {
+  WoodenSword
+}
