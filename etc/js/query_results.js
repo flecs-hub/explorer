@@ -8,6 +8,15 @@ Vue.component('query-result', {
       } else {
         return this.vars[var_index];
       }
+    },
+    get_value(value, index) {
+      if (Array.isArray(value)) {
+        // Owned
+        return value[index];
+      } else {
+        // Shared
+        return value;
+      }
     }
   },
   computed: {
@@ -28,7 +37,7 @@ Vue.component('query-result', {
       <entity-reference :entity="variable" :name="var_label(index)" :show_name="true" v-on="$listeners"/>
     </td>
     <td v-for="value in result.values" v-if="value !== 0">
-      <inspector-props :value="value[index]" :list="true"/>
+      <inspector-props :value="get_value(value, index)" :list="true"/>
     </td>
     <td v-if="show_terms" v-for="term in result.terms" class="content-container-term">
       {{term}}
