@@ -7675,6 +7675,11 @@ ecs_entity_t ecs_set_name(
     ecs_entity_t entity,
     const char *name)
 {
+    if (!entity) {
+        return ecs_entity_init(world, &(ecs_entity_desc_t) {
+            .name = name
+        });
+    }
     return set_identifier(world, entity, EcsName, name);
 }
 
@@ -15132,7 +15137,8 @@ ecs_entity_t ecs_cpp_component_register_explicit(
     const char *type_name,
     const char *symbol,
     size_t size,
-    size_t alignment)
+    size_t alignment,
+    bool is_component)
 {
     // If an explicit id is provided, it is possible that the symbol and
     // name differ from the actual type, as the application may alias
@@ -15151,15 +15157,26 @@ ecs_entity_t ecs_cpp_component_register_explicit(
         }
     }
 
-    ecs_entity_t entity = ecs_component_init(world, &(ecs_component_desc_t){
-        .entity.entity = s_id,
-        .entity.name = name,
-        .entity.sep = "::",
-        .entity.root_sep = "::",
-        .entity.symbol = symbol,
-        .size = size,
-        .alignment = alignment
-    });
+    ecs_entity_t entity;
+    if (is_component || size != 0) {
+        entity = ecs_component_init(world, &(ecs_component_desc_t){
+            .entity.entity = s_id,
+            .entity.name = name,
+            .entity.sep = "::",
+            .entity.root_sep = "::",
+            .entity.symbol = symbol,
+            .size = size,
+            .alignment = alignment
+        });
+    } else {
+        entity = ecs_entity_init(world, &(ecs_entity_desc_t){
+            .entity = s_id,
+            .name = name,
+            .sep = "::",
+            .root_sep = "::",
+            .symbol = symbol
+        });
+    }
 
     ecs_assert(entity != 0, ECS_INTERNAL_ERROR, NULL);
     ecs_assert(!s_id || s_id == entity, ECS_INTERNAL_ERROR, NULL);
@@ -25647,7 +25664,7 @@ ecs_entity_t ecs_run_intern(
     qit.ctx = system_data->ctx;
     qit.binding_ctx = system_data->binding_ctx;
     
-    ecs_iter_action_t run = system_data->run;
+    ecs_run_action_t run = system_data->run;
     if (run) {
         run(it);
     } else {
@@ -26713,6 +26730,13 @@ int append_type(
             pred = id & ECS_COMPONENT_MASK;
             if (id & ECS_ROLE_MASK) {
                 role = id & ECS_ROLE_MASK;
+            }
+        }
+
+        if (!desc || !desc->serialize_private) {
+            if (ecs_has_id(world, pred, EcsPrivate)) {
+                /* Skip private components */
+                continue;
             }
         }
 
@@ -27856,6 +27880,7 @@ void rest_parse_json_ser_entity_params(
     rest_bool_param(req, "path", &desc->serialize_path);
     rest_bool_param(req, "base", &desc->serialize_base);
     rest_bool_param(req, "values", &desc->serialize_values);
+    rest_bool_param(req, "private", &desc->serialize_private);
     rest_bool_param(req, "type_info", &desc->serialize_type_info);
 }
 
@@ -27885,6 +27910,13 @@ bool rest_reply(
 {
     ecs_rest_ctx_t *impl = ctx;
     ecs_world_t *world = impl->world;
+
+    if (req->path == NULL) {
+        ecs_dbg("rest: bad request received (no URL)");
+        reply_error(reply, "bad request");
+        reply->code = 400;
+        return false;
+    }
 
     ecs_strbuf_appendstr(&reply->headers, "Access-Control-Allow-Origin: *\r\n");
 
@@ -28410,17 +28442,20 @@ ecs_http_socket_t http_accept(
 
 static 
 void reply_free(ecs_http_reply_t* response) {
+    ecs_assert(response != NULL, ECS_INTERNAL_ERROR, NULL);
     ecs_os_free(response->body.content);
 }
 
 static
 void request_free(ecs_http_request_impl_t *req) {
+    ecs_assert(req != NULL, ECS_INTERNAL_ERROR, NULL);
     ecs_os_free(req->res);
     flecs_sparse_remove(req->pub.conn->server->requests, req->pub.id);
 }
 
 static
 void connection_free(ecs_http_connection_impl_t *conn) {
+    ecs_assert(conn != NULL, ECS_INTERNAL_ERROR, NULL);
     if (conn->sock) {
         http_close(conn->sock);
     }
@@ -28915,8 +28950,10 @@ int accept_connections(
             &remote_addr_len);
 
         if (sock_conn == -1) {
-            ecs_dbg("http: connection attempt failed: %s", 
-                ecs_os_strerror(errno));
+            if (srv->should_run) {
+                ecs_dbg("http: connection attempt failed: %s", 
+                    ecs_os_strerror(errno));
+            }
             continue;
         }
 
@@ -28926,6 +28963,9 @@ int accept_connections(
     if (srv->sock && errno != EBADF) {
         http_close(srv->sock);
     }
+
+    ecs_trace("http: no longer accepting connections on '%s:%s'",
+        addr_host, addr_port);
 
     return 0;
 }
@@ -29102,18 +29142,18 @@ void ecs_http_server_stop(
 
     ecs_os_thread_join(srv->thread);
 
-    /* Close all connections */
-    int i, count = flecs_sparse_count(srv->connections);
-    for (i = count - 1; i >= 0; i --) {
-        connection_free(flecs_sparse_get_dense(
-            srv->connections, ecs_http_connection_impl_t, i));
-    }
-
     /* Cleanup all outstanding requests */
-    count = flecs_sparse_count(srv->requests);
+    int i, count = flecs_sparse_count(srv->requests);
     for (i = count - 1; i >= 0; i --) {
         request_free(flecs_sparse_get_dense(
             srv->requests, ecs_http_request_impl_t, i));
+    }
+
+    /* Close all connections */
+    count = flecs_sparse_count(srv->connections);
+    for (i = count - 1; i >= 0; i --) {
+        connection_free(flecs_sparse_get_dense(
+            srv->connections, ecs_http_connection_impl_t, i));
     }
 
     ecs_assert(flecs_sparse_count(srv->connections) == 0, 
@@ -31205,7 +31245,12 @@ int default_run_action(
 
     int result;
     while ((result = ecs_app_run_frame(world, desc)) == 0) { }
-    return result;
+
+    if (result == 1) {
+        return 0; /* Normal exit */
+    } else {
+        return result; /* Error code */
+    }
 }
 
 static
@@ -31326,8 +31371,9 @@ const ecs_entity_t EcsFlecs =                 ECS_HI_COMPONENT_ID + 1;
 const ecs_entity_t EcsFlecsCore =             ECS_HI_COMPONENT_ID + 2;
 const ecs_entity_t EcsFlecsHidden =           ECS_HI_COMPONENT_ID + 3;
 const ecs_entity_t EcsModule =                ECS_HI_COMPONENT_ID + 4;
-const ecs_entity_t EcsPrefab =                ECS_HI_COMPONENT_ID + 5;
-const ecs_entity_t EcsDisabled =              ECS_HI_COMPONENT_ID + 6;
+const ecs_entity_t EcsPrivate =               ECS_HI_COMPONENT_ID + 5;
+const ecs_entity_t EcsPrefab =                ECS_HI_COMPONENT_ID + 6;
+const ecs_entity_t EcsDisabled =              ECS_HI_COMPONENT_ID + 7;
 
 /* Relation properties */
 const ecs_entity_t EcsWildcard =              ECS_HI_COMPONENT_ID + 10;
@@ -33610,6 +33656,15 @@ int finalize_term_var(
     {
         term_error(world, term, name, "Invalid Nothing with entity");
         return -1;
+    }
+
+    if (identifier->var == EcsVarIsEntity) {
+        if (identifier->entity && !ecs_is_alive(world, identifier->entity)) {
+            term_error(world, term, name, 
+                "cannot use not alive entity %u in query",
+                (uint32_t)identifier->entity);
+            return -1;
+        }
     }
 
     return 0;
@@ -43811,6 +43866,7 @@ void flecs_bootstrap(
     flecs_bootstrap_tag(world, EcsSymbol);
 
     flecs_bootstrap_tag(world, EcsModule);
+    flecs_bootstrap_tag(world, EcsPrivate);
     flecs_bootstrap_tag(world, EcsPrefab);
     flecs_bootstrap_tag(world, EcsDisabled);
 

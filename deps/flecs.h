@@ -4176,6 +4176,9 @@ FLECS_API extern const ecs_entity_t EcsIsA;
 /* Tag added to module entities */
 FLECS_API extern const ecs_entity_t EcsModule;
 
+/* Tag to indicate an entity/component/system is private to a module */
+FLECS_API extern const ecs_entity_t EcsPrivate;
+
 /* Tag added to prefab entities. Any entity with this tag is automatically
  * ignored by filters/queries, unless EcsPrefab is explicitly added. */
 FLECS_API extern const ecs_entity_t EcsPrefab;
@@ -7521,6 +7524,10 @@ int ecs_app_set_frame_action(
  *      Add component values.
  *        Default: true
  * 
+ *    - private : bool
+ *      Add private components.
+ *        Default: false
+ * 
  *    - type_info : bool
  *      Add reflection data for component types. Requires values=true.
  *        Default: false
@@ -8717,12 +8724,13 @@ int ecs_type_info_to_json_buf(
 typedef struct ecs_entity_to_json_desc_t {
     bool serialize_path;       /* Serialize full pathname */
     bool serialize_base;       /* Serialize base components */
+    bool serialize_private;    /* Serialize private components */
     bool serialize_values;     /* Serialize component values */
     bool serialize_type_info;  /* Serialize type info (requires serialize_values) */
 } ecs_entity_to_json_desc_t;
 
 #define ECS_ENTITY_TO_JSON_INIT (ecs_entity_to_json_desc_t) {\
-    true, true, true, false }
+    true, true, false, true, false }
 
 /** Serialize entity into JSON string.
  * This creates a JSON object with the entity's (path) name, which components
@@ -11321,7 +11329,8 @@ ecs_entity_t ecs_cpp_component_register_explicit(
     const char *type_name,
     const char *symbol,
     size_t size,
-    size_t alignment);
+    size_t alignment,
+    bool is_component);
 
 FLECS_API
 ecs_entity_t ecs_cpp_enum_constant_register(
@@ -11458,6 +11467,7 @@ static const uint8_t Nothing = EcsNothing;
 static const uint8_t Parent = EcsParent;
 
 /* Builtin tag ids */
+static const flecs::entity_t Private = EcsPrivate;
 static const flecs::entity_t Module = EcsModule;
 static const flecs::entity_t Prefab = EcsPrefab;
 static const flecs::entity_t Disabled = EcsDisabled;
@@ -12916,6 +12926,66 @@ using entity_to_json_desc_t = ecs_entity_to_json_desc_t;
 using iter_to_json_desc_t = ecs_iter_to_json_desc_t;
 
 }
+
+#endif
+#ifdef FLECS_APP
+#pragma once
+
+#pragma once
+
+namespace flecs {
+
+// App builder interface
+struct app_builder {
+    app_builder(flecs::world_t *world)
+        : m_world(world)
+        , m_desc{}
+    {
+        m_desc.target_fps = 60;
+    }
+
+    app_builder& target_fps(FLECS_FLOAT value) {
+        m_desc.target_fps = value;
+        return *this;
+    }
+
+    app_builder& delta_time(FLECS_FLOAT value) {
+        m_desc.delta_time = value;
+        return *this;
+    }
+
+    app_builder& threads(int32_t value) {
+        m_desc.threads = value;
+        return *this;
+    }
+
+    app_builder& enable_rest(bool value = true) {
+        m_desc.enable_rest = value;
+        return *this;
+    }
+
+    app_builder& init(ecs_app_init_action_t value) {
+        m_desc.init = value;
+        return *this;
+    }
+
+    app_builder& ctx(void *value) {
+        m_desc.ctx = value;
+        return *this;
+    }
+
+    int run() {
+        return ecs_app_run(m_world, &m_desc);
+    }
+
+private:
+    flecs::world_t *m_world;
+    ecs_app_desc_t m_desc;
+};
+
+}
+
+
 
 #endif
 
@@ -14707,6 +14777,13 @@ flecs::string to_json(const T* value) {
 }
 
 #   endif
+#   ifdef FLECS_APP
+
+flecs::app_builder app() const {
+    return flecs::app_builder(m_world);
+}
+
+#   endif
 
 public:
     void init_builtin_components();
@@ -15911,6 +15988,25 @@ flecs::string to_json(const flecs::entity_to_json_desc_t *desc = nullptr) {
 }
 
 #   endif
+#   ifdef FLECS_DOC
+
+const char* doc_name() {
+    return ecs_doc_get_name(m_world, m_id);
+}
+
+const char* doc_brief() {
+    return ecs_doc_get_brief(m_world, m_id);
+}
+
+const char* doc_detail() {
+    return ecs_doc_get_detail(m_world, m_id);
+}
+
+const char* doc_link() {
+    return ecs_doc_get_link(m_world, m_id);
+}
+
+#   endif
 
 private:
     flecs::entity set_stage(world_t *stage);
@@ -16519,6 +16615,30 @@ struct entity_builder : entity_view {
         return to_base();
     }
 
+#   ifdef FLECS_DOC
+
+Self& set_doc_name(const char *name) {
+    ecs_doc_set_name(m_world, m_id, name);
+    return to_base();
+}
+
+Self& set_doc_brief(const char *brief) {
+    ecs_doc_set_brief(m_world, m_id, brief);
+    return to_base();
+}
+
+Self& set_doc_detail(const char *detail) {
+    ecs_doc_set_detail(m_world, m_id, detail);
+    return to_base();
+}
+
+Self& set_doc_link(const char *link) {
+    ecs_doc_set_link(m_world, m_id, link);
+    return to_base();
+}
+
+#   endif
+
 protected:
     Self& to_base() {
         return *static_cast<Self*>(this);
@@ -16575,6 +16695,7 @@ struct entity : entity_builder<entity>
         ecs_entity_desc_t desc = {};
         desc.name = name;
         desc.sep = "::";
+        desc.root_sep = "::";
         m_id = ecs_entity_init(world, &desc);
     }
 
@@ -17709,7 +17830,8 @@ struct cpp_type_impl {
 
     // Obtain a component identifier for explicit component registration.
     static entity_t id_explicit(world_t *world = nullptr, 
-        const char *name = nullptr, bool allow_tag = true, flecs::id_t id = 0)
+        const char *name = nullptr, bool allow_tag = true, flecs::id_t id = 0,
+        bool is_component = true)
     {
         if (!s_id) {
             // If no world was provided the component cannot be registered
@@ -17733,8 +17855,8 @@ struct cpp_type_impl {
             init(world, s_id, allow_tag);
 
             entity_t entity = ecs_cpp_component_register_explicit(
-                world, s_id, id, name, type_name<T>(), symbol_name<T>(), 
-                    s_size, s_alignment);
+                    world, s_id, id, name, type_name<T>(), symbol_name<T>(), 
+                        s_size, s_alignment, is_component);
 
             s_id = entity;
 
@@ -17756,7 +17878,7 @@ struct cpp_type_impl {
     // state of the world, so that the component is not implicitly created with
     // the scope/with of the code it happens to be first used by.
     static id_t id(world_t *world = nullptr, const char *name = nullptr, 
-        bool allow_tag = true) 
+        bool allow_tag = true)
     {
         // If no id has been registered yet, do it now.
         if (!registered() || (world && !ecs_exists(world, s_id))) {
@@ -18550,7 +18672,8 @@ inline flecs::entity world::id(E value) const {
 
 template <typename T>
 inline flecs::entity world::entity(const char *name) const {
-    return flecs::component<T>(m_world, name, true);
+    return flecs::entity(m_world, 
+        _::cpp_type<T>::id_explicit(m_world, name, true, 0, false) );
 }
 
 template <typename... Args>
