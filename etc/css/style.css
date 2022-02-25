@@ -812,6 +812,10 @@ div.query-result-no {
   color: #B5494B; 
 }
 
+span.query-result-no {
+  color: #B5494B; 
+}
+
 div.query-results {
   position: relative;
 }

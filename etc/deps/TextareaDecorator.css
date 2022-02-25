@@ -62,11 +62,11 @@
 }
 
 .ldt pre span.variable {
-    color: #4981B5;
+    color: #51CC84;
 }
 
 .ldt pre span.builtin_variable {
-    color: #4981B5;
+    color: #51CC84;
 }
 
 .ldt pre span.keyword {
