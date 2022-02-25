@@ -6263,8 +6263,12 @@ void deferred_add_remove(
     /* Currently it's not supported to set the symbol from a deferred context */
     if (desc->symbol) {
         const char *sym = ecs_get_symbol(world, entity);
-        ecs_assert(!ecs_os_strcmp(sym, desc->symbol), ECS_UNSUPPORTED, NULL);
-        (void)sym;
+        if (!sym || ecs_os_strcmp(sym, desc->symbol)) {
+            ecs_suspend_readonly_state_t state;
+            ecs_world_t *real_world = flecs_suspend_readonly(world, &state);
+            ecs_set_symbol(world, entity, desc->symbol);
+            flecs_resume_readonly(real_world, &state);
+        }
     }
 }
 
@@ -26202,9 +26206,9 @@ void json_string(
     ecs_strbuf_t *buf,
     const char *value)
 {
-    ecs_strbuf_appendstr(buf, "\"");
+    ecs_strbuf_appendch(buf, '"');
     ecs_strbuf_appendstr(buf, value);
-    ecs_strbuf_appendstr(buf, "\"");
+    ecs_strbuf_appendch(buf, '"');
 }
 
 void json_member(
@@ -26222,7 +26226,7 @@ void json_path(
     ecs_entity_t e)
 {
     ecs_strbuf_appendch(buf, '"');
-    ecs_get_fullpath_buf(world, e, buf);
+    ecs_get_path_w_sep_buf(world, 0, e, ".", "", buf);
     ecs_strbuf_appendch(buf, '"');
 }
 
@@ -26506,10 +26510,7 @@ int json_ser_type_op(
         if (!e) {
             ecs_strbuf_appendch(str, '0');
         } else {
-            char *path = ecs_get_fullpath(world, e);
-            ecs_assert(path != NULL, ECS_INTERNAL_ERROR, NULL);
-            ecs_strbuf_append(str, "\"%s\"", path);
-            ecs_os_free(path);
+            json_path(str, world, e);
         }
         break;
     }
@@ -26744,15 +26745,10 @@ int append_type(
         json_object_push(buf);
 
         if (pred) {
-            char *str = ecs_get_fullpath(world, pred);
-            json_member(buf, "pred"); json_string(buf, str);
-            ecs_os_free(str);
+            json_member(buf, "pred"); json_path(buf, world, pred);
         }
         if (obj) {
-            char *str = ecs_get_fullpath(world, obj);
-            json_member(buf, "obj"); 
-            json_string(buf, str);
-            ecs_os_free(str);
+            json_member(buf, "obj"); json_path(buf, world, obj);
         }
         if (role) {
             json_member(buf, "obj"); 
@@ -26826,9 +26822,8 @@ int append_base(
         }
     }
 
-    char *path = ecs_get_fullpath(world, ent);
-    json_member(buf, path);
-    ecs_os_free(path);
+    json_path(buf, world, ent);
+    ecs_strbuf_appendch(buf, ':');
 
     json_object_push(buf);
 
@@ -27192,12 +27187,14 @@ void serialize_iter_result_values(
     int32_t i, term_count = it->term_count;
     for (i = 0; i < term_count; i ++) {
         ecs_strbuf_list_next(buf);
-        
+
         const void *ptr = it->ptrs[i];
         if (!ptr) {
-            /* No data in column */
-            json_literal(buf, "0");
-            continue;
+            /* No data in column. Append 0 if this is not an optional term */
+            if (ecs_term_is_set(it, i + 1)) {
+                json_literal(buf, "0");
+                continue;
+            }
         }
 
         /* Get component id (can be different in case of pairs) */
@@ -27221,6 +27218,15 @@ void serialize_iter_result_values(
         if (!ser) {
             /* Not odd, component just has no reflection data */
             json_literal(buf, "0");
+            continue;
+        }
+
+        /* If term is not set, append empty array. This indicates that the term
+         * could have had data but doesn't */
+        if (!ecs_term_is_set(it, i + 1)) {
+            ecs_assert(ptr == NULL, ECS_INTERNAL_ERROR, NULL);
+            json_array_push(buf);
+            json_array_pop(buf);
             continue;
         }
 
@@ -27849,11 +27855,26 @@ char* rest_get_captured_log(void) {
 }
 
 static
+void reply_verror(
+    ecs_http_reply_t *reply,
+    const char *fmt,
+    va_list args)
+{
+    ecs_strbuf_appendstr(&reply->body, "{\"error\":\"");
+    ecs_strbuf_vappend(&reply->body, fmt, args);
+    ecs_strbuf_appendstr(&reply->body, "\"}");
+}
+
+static
 void reply_error(
     ecs_http_reply_t *reply,
-    const char *msg)
+    const char *fmt,
+    ...)
 {
-    ecs_strbuf_append(&reply->body, "{\"error\":\"%s\"}", msg);
+    va_list args;
+    va_start(args, fmt);
+    reply_verror(reply, fmt, args);
+    va_end(args);
 }
 
 static
@@ -27912,8 +27933,8 @@ bool rest_reply(
     ecs_world_t *world = impl->world;
 
     if (req->path == NULL) {
-        ecs_dbg("rest: bad request received (no URL)");
-        reply_error(reply, "bad request");
+        ecs_dbg("rest: bad request (missing path)");
+        reply_error(reply, "bad request (missing path)");
         reply->code = 400;
         return false;
     }
@@ -27929,13 +27950,9 @@ bool rest_reply(
             ecs_entity_t e = ecs_lookup_path_w_sep(
                 world, 0, path, "/", NULL, false);
             if (!e) {
-                e = ecs_lookup_path_w_sep(
-                    world, EcsFlecsCore, path, "/", NULL, false);
-                if (!e) {
-                    ecs_dbg("rest: requested entity '%s' does not exist", path);
-                    reply_error(reply, "entity not found");
-                    return true;
-                }
+                ecs_dbg("rest: entity '%s' not found", path);
+                reply_error(reply, "entity '%s' not found", path);
+                return true;
             }
 
             ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
@@ -28264,6 +28281,9 @@ typedef int ecs_http_socket_t;
 /* Timeout (s) before connection purge */
 #define ECS_HTTP_CONNECTION_PURGE_TIMEOUT (1.0)
 
+/* Number of dequeues before purging */
+#define ECS_HTTP_CONNECTION_PURGE_RETRY_COUNT (5)
+
 /* Minimum interval between dequeueing requests (ms) */
 #define ECS_HTTP_MIN_DEQUEUE_INTERVAL (100)
 
@@ -28341,11 +28361,17 @@ typedef struct {
     ecs_http_connection_t pub;
     ecs_http_fragment_t frag;
     ecs_http_socket_t sock;
-    FLECS_FLOAT dequeue_timeout; /* used to purge inactive connections */
+
+    /* Connection is purged after both timeout expires and connection has
+     * exceeded retry count. This ensures that a connection does not immediately
+     * timeout when a frame takes longer than usual */
+    FLECS_FLOAT dequeue_timeout;
+    int32_t dequeue_retries;    
 } ecs_http_connection_impl_t;
 
 typedef struct {
     ecs_http_request_t pub;
+    uint64_t conn_id; /* for sanity check */
     void *res;
 } ecs_http_request_impl_t;
 
@@ -28449,6 +28475,10 @@ void reply_free(ecs_http_reply_t* response) {
 static
 void request_free(ecs_http_request_impl_t *req) {
     ecs_assert(req != NULL, ECS_INTERNAL_ERROR, NULL);
+    ecs_assert(req->pub.conn != NULL, ECS_INTERNAL_ERROR, NULL);
+    ecs_assert(req->pub.conn->server != NULL, ECS_INTERNAL_ERROR, NULL);
+    ecs_assert(req->pub.conn->server->requests != NULL, ECS_INTERNAL_ERROR, NULL);
+    ecs_assert(req->pub.conn->id == req->conn_id, ECS_INTERNAL_ERROR, NULL);
     ecs_os_free(req->res);
     flecs_sparse_remove(req->pub.conn->server->requests, req->pub.id);
 }
@@ -28456,10 +28486,14 @@ void request_free(ecs_http_request_impl_t *req) {
 static
 void connection_free(ecs_http_connection_impl_t *conn) {
     ecs_assert(conn != NULL, ECS_INTERNAL_ERROR, NULL);
+    ecs_assert(conn->pub.id != 0, ECS_INTERNAL_ERROR, NULL);
+    uint64_t conn_id = conn->pub.id;
+
     if (conn->sock) {
         http_close(conn->sock);
     }
-    flecs_sparse_remove(conn->pub.server->connections, conn->pub.id);
+
+    flecs_sparse_remove(conn->pub.server->connections, conn_id);
 }
 
 // https://stackoverflow.com/questions/10156409/convert-hex-string-char-to-int
@@ -28551,6 +28585,7 @@ void enqueue_request(
             ecs_http_request_impl_t *req = flecs_sparse_add(
                 srv->requests, ecs_http_request_impl_t);
             req->pub.id = flecs_sparse_last_id(srv->requests);
+            req->conn_id = conn->pub.id;
             ecs_os_mutex_unlock(srv->lock);
 
             req->pub.conn = (ecs_http_connection_t*)conn;
@@ -28581,6 +28616,7 @@ void enqueue_request(
 static
 bool parse_request(
     ecs_http_connection_impl_t *conn,
+    uint64_t conn_id,
     const char* req_frag, 
     ecs_size_t req_frag_len) 
 {
@@ -28739,7 +28775,9 @@ bool parse_request(
 
     if (frag->state == HttpFragStateDone) {
         frag->state = HttpFragStateBegin;
-        enqueue_request(conn);
+        if (conn->pub.id == conn_id) {
+            enqueue_request(conn);
+        }
         return true;
     } else {
         return false;
@@ -28815,15 +28853,30 @@ void send_reply(
 
 static
 void recv_request(
-    ecs_http_connection_impl_t *conn)
+    ecs_http_server_t *srv,
+    ecs_http_connection_impl_t *conn, 
+    uint64_t conn_id,
+    ecs_http_socket_t sock)
 {
     ecs_size_t bytes_read;
     char recv_buf[ECS_HTTP_SEND_RECV_BUFFER_SIZE];
 
     while ((bytes_read = http_recv(
-        conn->sock, recv_buf, ECS_SIZEOF(recv_buf), 0)) > 0) 
+        sock, recv_buf, ECS_SIZEOF(recv_buf), 0)) > 0) 
     {
-        if (parse_request(conn, recv_buf, bytes_read)) {
+        ecs_os_mutex_lock(srv->lock);
+        bool is_alive = conn->pub.id == conn_id;
+        if (is_alive) {
+            conn->dequeue_timeout = 0;
+            conn->dequeue_retries = 0;
+        }
+        ecs_os_mutex_unlock(srv->lock);
+
+        if (is_alive) {
+            if (parse_request(conn, conn_id, recv_buf, bytes_read)) {
+                return;
+            }
+        } else {
             return;
         }
     }
@@ -28840,7 +28893,9 @@ void init_connection(
     ecs_os_mutex_lock(srv->lock);
     ecs_http_connection_impl_t *conn = flecs_sparse_add(
         srv->connections, ecs_http_connection_impl_t);
-    conn->pub.id = flecs_sparse_last_id(srv->connections);
+    uint64_t conn_id = conn->pub.id = flecs_sparse_last_id(srv->connections);
+    conn->pub.server = srv;
+    conn->sock = sock_conn;
     ecs_os_mutex_unlock(srv->lock);
 
     char *remote_host = conn->pub.host;
@@ -28859,9 +28914,7 @@ void init_connection(
     ecs_dbg("http: connection established from '%s:%s'", 
         remote_host, remote_port);
 
-    conn->pub.server = srv;
-    conn->sock = sock_conn;
-    recv_request(conn);
+    recv_request(srv, conn, conn_id, sock_conn);
 
     ecs_dbg("http: request received from '%s:%s'", 
         remote_host, remote_port);
@@ -29018,19 +29071,23 @@ void dequeue_requests(
     ecs_os_mutex_lock(srv->lock);
 
     int32_t i, count = flecs_sparse_count(srv->requests);
-    for (i = count - 1; i >= 0; i --) {
+    for (i = count - 1; i >= 1; i --) {
         ecs_http_request_impl_t *req = flecs_sparse_get_dense(
             srv->requests, ecs_http_request_impl_t, i);
         handle_request(srv, req);
     }
 
     count = flecs_sparse_count(srv->connections);
-    for (i = count - 1; i >= 0; i --) {
+    for (i = count - 1; i >= 1; i --) {
         ecs_http_connection_impl_t *conn = flecs_sparse_get_dense(
             srv->connections, ecs_http_connection_impl_t, i);
+
         conn->dequeue_timeout += delta_time;
-        if (conn->dequeue_timeout > 
-            (FLECS_FLOAT)ECS_HTTP_CONNECTION_PURGE_TIMEOUT) 
+        conn->dequeue_retries ++;
+        
+        if ((conn->dequeue_timeout > 
+            (FLECS_FLOAT)ECS_HTTP_CONNECTION_PURGE_TIMEOUT) &&
+             (conn->dequeue_retries > ECS_HTTP_CONNECTION_PURGE_RETRY_COUNT)) 
         {
             ecs_dbg("http: purging connection '%s:%s' (sock = %d)", 
                 conn->pub.host, conn->pub.port, conn->sock);
@@ -29084,6 +29141,10 @@ ecs_http_server_t* ecs_http_server_init(
 
     srv->connections = flecs_sparse_new(ecs_http_connection_impl_t);
     srv->requests = flecs_sparse_new(ecs_http_request_impl_t);
+
+    /* Start at id 1 */
+    flecs_sparse_new_id(srv->connections);
+    flecs_sparse_new_id(srv->requests);
 
 #ifndef ECS_TARGET_WINDOWS
     /* Ignore pipe signal. SIGPIPE can occur when a message is sent to a client
@@ -44048,7 +44109,7 @@ bool path_append(
     if (ecs_is_valid(world, child)) {
         cur = ecs_get_object(world, child, EcsChildOf, 0);
         if (cur) {
-            if (cur != parent && cur != EcsFlecsCore) {
+            if (cur != parent && (cur != EcsFlecsCore || prefix != NULL)) {
                 path_append(world, parent, cur, sep, prefix, buf);
                 ecs_strbuf_appendstr(buf, sep);
             }
@@ -44350,6 +44411,19 @@ void ecs_get_path_w_sep_buf(
     ecs_check(buf != NULL, ECS_INVALID_PARAMETER, NULL);
 
     world = ecs_get_world(world);
+
+    if (child == EcsThis) {
+        ecs_strbuf_appendstr(buf, ".");
+        return;
+    }
+    if (child == EcsWildcard) {
+        ecs_strbuf_appendstr(buf, "*");
+        return;
+    }
+    if (child == EcsAny) {
+        ecs_strbuf_appendstr(buf, "_");
+        return;
+    }
 
     if (!sep) {
         sep = ".";

@@ -33,16 +33,21 @@ Vue.component('query-result', {
     <td class="query-result-entity" v-if="entity">
       <entity-reference :entity="entity" :name="entity_label" :show_name="true" :show_parent="true" v-on="$listeners"/>
     </td>
-    <td v-for="(variable, index) in result.vars">
+    <td v-for="(variable, vi) in result.vars">
         <template v-if="variable !== '*'">
-          <entity-reference :entity="variable" :name="var_label(index)" :show_name="true" v-on="$listeners"/>
+          <entity-reference :entity="variable" :name="var_label(vi)" :show_name="true" v-on="$listeners"/>
         </template>
         <template v-else>
           <span class="query-result-no">No</span>
         </template>
     </td>
-    <td v-for="value in result.values" v-if="value !== 0">
-      <inspector-props :value="get_value(value, index)" :list="true"/>
+    <td v-for="(value, vi) in result.values" v-if="value !== 0">
+      <template v-if="result.is_set[vi]">
+        <inspector-props :value="get_value(value, index)" :list="true"/>
+      </template>
+      <template v-else>
+        <span class="query-result-no">No</span>
+      </template>
     </td>
     <td v-if="show_terms" v-for="term in result.terms" class="content-container-term">
       {{term}}

@@ -370,13 +370,8 @@ Vue.component('entity-tree', {
       this.update(cur, () => {
         let next = cur.entities[elems[i]];
         if (!next) {
-          if (elems[0] != "flecs" && elems[1] != "core") {
-            this.select("flecs.core." + entity);
-            return;
-          } else {
-            console.error("entity-tree: cannot navigate to entity " + elems[i]);
-            this.collapse_all();
-          }
+          console.error("entity-tree: cannot navigate to entity " + elems[i]);
+          this.collapse_all();
         }
 
         if (i < (elems.length - 1)) {

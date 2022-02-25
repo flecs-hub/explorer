@@ -179,7 +179,7 @@ Vue.component('inspector-component', {
       }
     },
     hide_property: function() {
-      if (this.elem.pred == "flecs.doc.Description" || this.elem.pred == "Identifier") {
+      if (this.elem.pred == "flecs.doc.Description" || this.elem.pred == "flecs.core.Identifier") {
         return true;
       }
       return false;
