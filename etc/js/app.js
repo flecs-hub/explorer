@@ -1,5 +1,5 @@
 
-Vue.config.devtools = true;
+Vue.config.devtools = false;
 
 // Track state of connection to remote app
 const ConnectionState = {
@@ -120,7 +120,7 @@ var app = new Vue({
                   timeout, retry_interval);
               }, retry_interval);
             } else {
-              if (err) err();
+              if (err) err(Request.responseText);
 
               // If error callback did not set the connection state back to
               // local, treat this as a loss of connection event.
@@ -133,7 +133,7 @@ var app = new Vue({
 
             if (Request.status < 200 || Request.status >= 300) {
               if (err) {
-                err();
+                err(Request.responseText);
               }
             } else if (Request.responseText && Request.responseText.length) {
               if (recv) {
@@ -152,7 +152,12 @@ var app = new Vue({
       this.http_request(method, host, path, (r) => {
         const reply = JSON.parse(r);
         recv(reply);
-      }, err, timeout, retry_interval);
+      }, (r) => {
+        if (err) {
+          const reply = JSON.parse(r);
+          err(reply);
+        }
+      }, timeout, retry_interval);
     },
 
     // Utility for sending HTTP requests to a remote app
@@ -396,7 +401,7 @@ var app = new Vue({
             this.connection = ConnectionState.Local;
             this.ready_local();
           } else {
-            console.warn("flecs: unable to connect to remote, running explorer in local mode");
+            console.warn("remote connection failed, running explorer in local mode");
             this.connection = ConnectionState.ConnectionFailed;
           }
         }, INITIAL_REQUEST_TIMEOUT, retry_interval);

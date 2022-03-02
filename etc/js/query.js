@@ -17,7 +17,10 @@ Vue.component('query', {
             this.query_result = reply;
           }
           this.$emit('changed');
-        }, undefined, {
+        }, (err_reply) => {
+          this.query_error = err_reply.error;
+          this.$emit('changed');
+        }, {
           ids: false, 
           subjects: false,
           entity_labels: true,

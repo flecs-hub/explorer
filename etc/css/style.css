@@ -653,7 +653,9 @@ div.ecs-query {
 
 div.ecs-query div.ldt {
   min-width: 36px;
+  max-width: 100%;
   min-height: 19px;
+  overflow-x: hidden;
 }
 
 div.ecs-query-empty div.ldt {
@@ -675,6 +677,7 @@ div.ecs-query:hover {
 
 div.ecs-query pre, div.editor pre {
   min-height: 16px;
+  max-width: inherit;
 }
 
 div.ecs-query-ok {
@@ -970,7 +973,6 @@ table td {
   border-top-style: solid;
   border-top-width: 1px;
   font-size: inherit;
-  min-width: 100px;
 }
 
 /* detail toggle */
