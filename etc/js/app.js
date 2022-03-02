@@ -159,7 +159,7 @@ var app = new Vue({
         recv(reply);
       }, (r) => {
         if (err) {
-          if (r != undefined) {
+          if (r != undefined && r.length) {
             const reply = JSON.parse(r);
             err(reply);
           } else {
