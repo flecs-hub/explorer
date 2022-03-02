@@ -313,7 +313,7 @@ Vue.component('entity-tree', {
       }
 
       const q = "(ChildOf, " + container.path + "), ?ChildOf(_, This), ?Module, ?Component, ?Tag, ?Prefab";
-      app.request_query(q, (reply) => {
+      app.request_query('tree-' + container.path,  q, (reply) => {
         container.entities = this.update_scope(container.entities, reply);
         if (onready) {
           onready();

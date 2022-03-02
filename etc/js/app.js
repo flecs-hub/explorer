@@ -15,6 +15,9 @@ const ConnectionState = {
 // an app to respond, but not too long to delay page load time.
 const INITIAL_REQUEST_TIMEOUT = 300;
 
+// Longer interval when we're sure the app is in remote mode.
+const INITIAL_REMOTE_REQUEST_TIMEOUT = 10000;
+
 // App will only retry connection when in explicit remote mode.
 const INITIAL_REQUEST_RETRY_INTERVAL = 200;
 
@@ -145,11 +148,13 @@ var app = new Vue({
       }
 
       Request.send();
+
+      return Request;
     },
 
     // Utility for sending HTTP requests that have a JSON reply
     json_request(method, host, path, recv, err, timeout, retry_interval) {
-      this.http_request(method, host, path, (r) => {
+      return this.http_request(method, host, path, (r) => {
         const reply = JSON.parse(r);
         recv(reply);
       }, (r) => {
@@ -161,24 +166,33 @@ var app = new Vue({
     },
 
     // Utility for sending HTTP requests to a remote app
-    request(method, path, recv, err) {
-      this.json_request(method, this.host, path, recv, err);
+    request(id, method, path, recv, err) {
+      let existing = this.requests[id];
+      if (existing) {
+        if (existing.readyState == 4) {
+          this.requests[id] = undefined;
+        } else {
+          // Request is still in progress
+          return;
+        }
+      }
+      this.requests[id] = this.json_request(method, this.host, path, recv, err);
     },
 
     // Data access
-    request_entity: function(path, recv, err) {
+    request_entity: function(id, path, recv, err) {
       if (this.is_local()) {
           const r = wq_get_entity(path);
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        this.request("GET", 
+        this.request(id, "GET",
           "entity/" + path.replaceAll('.', '/') + "&type_info=true", 
           recv, err);
       }
     },
 
-    request_query: function(q, recv, err, params) {
+    request_query: function(id, q, recv, err, params) {
       if (this.is_local()) {
           const r = wq_query(q);
           const reply = JSON.parse(r);
@@ -190,7 +204,7 @@ var app = new Vue({
             url_params += "&" + k + "=" + params[k];
           }
         }
-        this.request(
+        this.request(id,
           "GET", "query?q=" + encodeURIComponent(q) + url_params,
           recv, err);
       }
@@ -392,6 +406,12 @@ var app = new Vue({
           this.init_remote();
         }
 
+        let timeout = INITIAL_REQUEST_TIMEOUT;
+        if (remote) {
+          /* Tolerate a larger timeout when we're guaranteed in remote mode */
+          timeout = INITIAL_REMOTE_REQUEST_TIMEOUT;
+        }
+
         this.json_request("GET", host, "entity/flecs/core/World", (reply) => {
           this.host = host;
           this.connection = ConnectionState.Remote;
@@ -404,7 +424,7 @@ var app = new Vue({
             console.warn("remote connection failed, running explorer in local mode");
             this.connection = ConnectionState.ConnectionFailed;
           }
-        }, INITIAL_REQUEST_TIMEOUT, retry_interval);
+        }, timeout, retry_interval);
       } else {
         this.connection = ConnectionState.Local;
         this.ready_local();
@@ -465,7 +485,7 @@ var app = new Vue({
     // Set inspector to entity by pathname
     set_entity(path) {
       this.selected_entity = path;
-      this.request_entity(path, (reply) => {
+      this.request_entity('inspector', path, (reply) => {
         this.entity_error = reply.error;
         if (this.entity_error === undefined) {
           this.entity_result = reply;
@@ -586,6 +606,7 @@ var app = new Vue({
     host: undefined,
     retry_count: 0,
 
+    requests: {},
     refresh_timer: undefined,
     parse_timer: undefined,
     parse_interval: 0

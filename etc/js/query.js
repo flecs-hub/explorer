@@ -4,14 +4,14 @@ Vue.component('query', {
   data: function() {
     return {
       query_result: undefined,
-      query_error: undefined
+      query_error: undefined,
     }
   },
   methods: {
     // Query changed event
     evt_query_changed(query) {
       if (query && query.length > 1) {
-        app.request_query(query, (reply) => {
+        this.request = app.request_query('query', query, (reply) => {
           this.query_error = reply.error;
           if (reply.error === undefined) {
             this.query_result = reply;
