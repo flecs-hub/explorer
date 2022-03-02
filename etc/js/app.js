@@ -238,7 +238,7 @@ var app = new Vue({
       // Get application name from reply
       for (var i = 0; i < reply.type.length; i ++) {
         const elem = reply.type[i];
-        if (elem.pred == "flecs.doc.Description" && elem.obj == "Name") {
+        if (elem.pred == "flecs.doc.Description" && elem.obj == "flecs.core.Name") {
           this.title = elem.value.value;
           break;
         }
