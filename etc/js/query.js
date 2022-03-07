@@ -10,6 +10,10 @@ Vue.component('query', {
   methods: {
     // Query changed event
     evt_query_changed(query) {
+      let r = this.request;
+      if (r) {
+        r.abort();
+      }
       if (query && query.length > 1) {
         this.request = app.request_query('query', query, (reply) => {
           this.query_error = reply.error;

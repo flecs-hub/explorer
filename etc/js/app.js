@@ -127,7 +127,7 @@ var app = new Vue({
 
               // If error callback did not set the connection state back to
               // local, treat this as a loss of connection event.
-              if (this.connection != ConnectionState.Local) {
+              if (Request.status != 0 && this.connection != ConnectionState.Local) {
                 this.connect();
               }
             }
@@ -169,6 +169,15 @@ var app = new Vue({
       }, timeout, retry_interval);
     },
 
+    // Abort request
+    request_abort(id) {
+      let r = this.requests[id];
+      if (r) {
+        r.abort();
+      }
+      this.requests[id] = undefined;
+    },
+
     // Utility for sending HTTP requests to a remote app
     request(id, method, path, recv, err) {
       let existing = this.requests[id];
@@ -180,7 +189,8 @@ var app = new Vue({
           return;
         }
       }
-      this.requests[id] = this.json_request(method, this.host, path, recv, err);
+      this.requests[id] = this.json_request(
+        method, this.host, path, recv, err);
     },
 
     // Data access
@@ -444,6 +454,30 @@ var app = new Vue({
       this.connect();
     },
 
+    // Set inspector to entity by pathname
+    set_entity(path) {
+      this.selected_entity = path;
+      this.request_entity('inspector', path, (reply) => {
+        this.entity_error = reply.error;
+        if (this.entity_error === undefined) {
+          this.entity_result = reply;
+          this.$refs.inspector.expand();
+        }
+      }, () => {
+        this.entity_error = "request for entity '" + path + "' failed";
+      });
+    },
+
+    set_entity_by_tree_item(item) {
+      this.selected_tree_item = item;
+      if (item) {
+        this.set_entity(item.path);
+      } else {
+        this.selected_entity = undefined;
+      }
+      this.refresh_terminal();
+    },
+
     refresh_terminal() {
       this.$refs.terminal.clear();
 
@@ -463,7 +497,7 @@ var app = new Vue({
 
     refresh_entity() {
       if (this.selected_tree_item) {
-        this.evt_entity_changed(this.selected_tree_item);
+        this.set_entity_by_tree_item(this.selected_tree_item);
       } else if (this.selected_entity) {
         this.$refs.tree.select(this.selected_entity);
       }
@@ -491,29 +525,11 @@ var app = new Vue({
       }, this.parse_interval);
     },
 
-    // Set inspector to entity by pathname
-    set_entity(path) {
-      this.selected_entity = path;
-      this.request_entity('inspector', path, (reply) => {
-        this.entity_error = reply.error;
-        if (this.entity_error === undefined) {
-          this.entity_result = reply;
-          this.$refs.inspector.expand();
-        }
-      }, () => {
-        this.entity_error = "request for entity '" + path + "' failed";
-      });
-    },
-
     // Entity selected
     evt_entity_changed(e) {
-      this.selected_tree_item = e;
-      if (e) {
-        this.set_entity(e.path);
-      } else {
-        this.selected_entity = undefined;
-      }
-      this.refresh_terminal();
+      this.request_abort('inspector'); // Abort outstanding requests
+      this.entity_result = undefined;
+      this.set_entity_by_tree_item(e);
     },
 
     // Follow entity reference
@@ -614,6 +630,7 @@ var app = new Vue({
     connection: ConnectionState.Initializing,
     host: undefined,
     retry_count: 0,
+    request_count: 0,
 
     requests: {},
     refresh_timer: undefined,

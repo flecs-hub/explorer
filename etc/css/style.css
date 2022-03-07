@@ -659,7 +659,7 @@ div.ecs-query div.ldt {
 }
 
 div.ecs-query-empty div.ldt {
-  min-width: 0px;
+  min-width: 1px;
 }
 
 div.query-default-text {

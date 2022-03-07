@@ -418,7 +418,7 @@ Vue.component('inspector', {
       v-on:close="evt_close">
       
       <template v-slot:summary>
-        <template v-if="entity && selection">
+        <template v-if="selection">
           <div class="inspector-name">
             <div class="inspector-icon">
               <entity-icon x="0" y="0" :entity_data="selection"/>
