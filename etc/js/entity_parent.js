@@ -1,6 +1,15 @@
 
+function parent_from_path(path) {
+  const pos = path.lastIndexOf(".");
+  if (pos != -1) {
+    return path.slice(0, pos);
+  } else {
+    return "";
+  }
+}
+
 Vue.component('entity-parent', {
-  props: ['entity'],
+  props: ['entity', 'enabled'],
   methods: {
     icon_clicked: function() {
       this.$emit('select-entity', this.entity);
@@ -8,17 +17,12 @@ Vue.component('entity-parent', {
   },
   computed: {
     parent: function() {
-      const pos = this.entity.lastIndexOf(".");
-      if (pos != -1) {
-        return this.entity.slice(0, pos);
-      } else {
-        return "";
-      }
+      return parent_from_path(this.entity);
     },
   },
   template: `
     <span class="entity-parent" v-if="parent.length">
-      <entity-reference :entity="parent" :disabled="true" v-on="$listeners"/>
+      <entity-reference :entity="parent" :disabled="!enabled" v-on="$listeners"/>
     </span>
   `
 });

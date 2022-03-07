@@ -363,8 +363,11 @@ Vue.component('inspector', {
     }
   },
   computed: {
+    parent: function() {
+      return parent_from_path(this.selection.path);
+    },
     has_parent: function() {
-      return this.selection.path.lastIndexOf(".") != -1;
+      return this.parent.length != 0;
     },
     brief: function() {
       if (!this.entity) {
@@ -424,10 +427,6 @@ Vue.component('inspector', {
               <entity-icon x="0" y="0" :entity_data="selection"/>
             </div>
             {{selection.label}}
-            <icon src="search" v-if="selection.is_component" v-on:click.stop="select_query"/>
-            <template v-if="has_parent">
-              -&nbsp;<entity-parent :entity="selection.path" v-on="$listeners"/>
-            </template>
           </div>
         </template>
         <template v-else-if="entity_name">
@@ -441,6 +440,9 @@ Vue.component('inspector', {
         <div :class="content_css">
           <div class="inspector-entity-name" v-if="selection.label != selection.name">
             Name:&nbsp;<span class="inspector-entity-name">{{selection.name}}</span>
+          </div>
+          <div class="inspector-entity-name" v-if="has_parent">
+            Parent:&nbsp;<entity-reference :entity="parent" v-on="$listeners"/>
           </div>
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
