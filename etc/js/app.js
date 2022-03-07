@@ -95,6 +95,8 @@ var app = new Vue({
         Request.timeout = timeout;
       }
 
+      Request.request_aborted = false;
+
       Request.onreadystatechange = (reply) => {
         if (Request.readyState == 4) {
           if (Request.status == 0) {
@@ -127,8 +129,10 @@ var app = new Vue({
 
               // If error callback did not set the connection state back to
               // local, treat this as a loss of connection event.
-              if (Request.status != 0 && this.connection != ConnectionState.Local) {
-                this.connect();
+              if (this.connection != ConnectionState.Local) {
+                if (!Request.request_aborted) {
+                  this.connect();
+                }
               }
             }
           } else {
@@ -173,6 +177,7 @@ var app = new Vue({
     request_abort(id) {
       let r = this.requests[id];
       if (r) {
+        r.request_aborted = true;
         r.abort();
       }
       this.requests[id] = undefined;
