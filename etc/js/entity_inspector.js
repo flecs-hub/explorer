@@ -84,25 +84,25 @@ Vue.component('inspector-value', {
       }
 
       if (unit == "flecs.units.Percentage") {
-        return fmt_percentage(value);
+        value = fmt_percentage(value);
       }
       if (unit == "flecs.units.Duration.Seconds") {
-        return fmt_duration(value);
+        value = fmt_duration(value);
       }
       if (unit == "flecs.units.Duration.Minutes") {
-        return fmt_duration(value * 60);
+        value = fmt_duration(value * 60);
       }
       if (unit == "flecs.units.Duration.Minutes") {
-        return fmt_duration(value * 60);
+        value = fmt_duration(value * 60);
       }
       if (unit == "flecs.units.Duration.Hours") {
-        return fmt_duration(value * 60 * 60);
+        value = fmt_duration(value * 60 * 60);
       }
       if (unit == "flecs.units.Duration.Days") {
-        return fmt_duration(value * 60 * 60 * 24);
+        value = fmt_duration(value * 60 * 60 * 24);
       }
       if (unit == "flecs.units.Time.Date") {
-        return fmt_date(value);
+        value = fmt_date(value);
       }
 
       if (type === "float") {
