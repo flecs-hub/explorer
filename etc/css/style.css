@@ -523,14 +523,18 @@ span.inspector-link a {
 }
 
 div.inspector-entity-name {
-  display: flex;
   margin-left: 15px;
   margin-bottom: 15px;
+  max-width: 380px;
+  overflow: hidden;
+  /* text-overflow: ellipsis; */
+  white-space: nowrap;
 }
 
 span.inspector-entity-name {
   color: #BDC1CC;
   margin-right: 5px;
+  overflow-x: hidden;
 }
 
 span.entity-reference span {
