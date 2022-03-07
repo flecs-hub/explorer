@@ -60,6 +60,9 @@ Vue.component('entity-tree-item', {
       } else {
         return "entity-tree-text noselect";
       }
+    },
+    show_search_icon: function() {
+      return this.entity_data.is_component && !this.entity_data.is_module;
     }
   },
   template: `
@@ -91,9 +94,15 @@ Vue.component('entity-tree-item', {
       <entity-icon :x="x + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
       <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
-      <rect :x="183" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
+      <rect 
+        :x="183" 
+        :y="y - 12" 
+        :width="31" 
+        height="15" 
+        :class="css_select_box"
+        v-if="show_search_icon"></rect>
 
-      <image v-if="entity_data.is_component && !entity_data.is_module"
+      <image v-if="show_search_icon"
         href="img/search.png" 
         :x="190" :y="y - 12" height="13px"
         v-on:click="search" class="entity-tree-icon">
