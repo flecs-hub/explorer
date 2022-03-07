@@ -352,6 +352,11 @@ var app = new Vue({
       // If local param is provided, don't connect to remote
       let local = getParameterByName("local");
 
+      // If a code snippet is provided, run in local mode
+      if (getParameterByName("p")) {
+        local = true;
+      }
+
       // Store URL parameters so they can be added to shared URL
       this.params.host = host;
       this.params.port = port;

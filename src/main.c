@@ -57,6 +57,7 @@ void init() {
 
     /* Import basic modules for serialization */
     ECS_IMPORT(world, FlecsMeta);
+    ECS_IMPORT(world, FlecsUnits);
     ECS_IMPORT(world, FlecsDoc);
     ECS_IMPORT(world, FlecsCoreDoc);
 }

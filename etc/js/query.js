@@ -18,7 +18,11 @@ Vue.component('query', {
           }
           this.$emit('changed');
         }, (err_reply) => {
-          this.query_error = err_reply.error;
+          if (err_reply) {
+            this.query_error = err_reply.error;
+          } else {
+            this.query_error = "request failed";
+          }
           this.$emit('changed');
         }, {
           ids: false, 

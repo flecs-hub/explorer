@@ -10,6 +10,44 @@ function inspector_is_object(type, value) {
   return (typeof value) === "object";
 }
 
+// Formatting functions for units
+function fmt_percentage(value) {
+  return value *= 100;
+}
+
+function fmt_duration(seconds) {
+  let result = "";
+
+  let days = Math.floor(seconds / (24 * 60 * 60));
+  seconds -= days * (24 * 60 * 60);
+
+  let hours = Math.floor(seconds / (60 * 60));
+  seconds -= hours * (60 * 60);
+
+  let minutes = Math.floor(seconds / 60);
+  seconds -= minutes * 60;
+  
+  if (days) {
+    result += days + "d ";
+  }
+  if (hours || (result.length && minutes && seconds)) {
+    result += hours + "h ";
+  }
+  if (minutes || (result.length && seconds)) {
+    result += minutes + "min ";
+  }
+  if (seconds) {
+    result += seconds + "s ";
+  }
+
+  return result;
+}
+
+function fmt_date(seconds) {
+  let date = new Date(seconds * 1000);
+  return date.toDateString();
+}
+
 // Key (property name)
 Vue.component('inspector-key', {
   props: ['prop_key'],
@@ -18,11 +56,20 @@ Vue.component('inspector-key', {
 
 // Single scalar value
 Vue.component('inspector-value', {
-  props: ['type', 'value', 'separator'],
+  props: ['type', 'value', 'symbol', 'separator'],
   computed: {
+    unit: function() {
+      if (this.type && this.type.length > 1) {
+        if (inspector_is_object(undefined, this.type[1])) {
+          return this.type[1].unit;
+        }
+      }
+      return undefined;
+    },
     formatted_value: function() {
       const type = this.type ? this.type[0] : undefined;
-      const value = this.value;
+      const unit = this.unit;
+      let value = this.value;
 
       if (!type) {
         return value;
@@ -34,6 +81,28 @@ Vue.component('inspector-value', {
         } else {
           return "";
         }
+      }
+
+      if (unit == "flecs.units.Percentage") {
+        return fmt_percentage(value);
+      }
+      if (unit == "flecs.units.Duration.Seconds") {
+        return fmt_duration(value);
+      }
+      if (unit == "flecs.units.Duration.Minutes") {
+        return fmt_duration(value * 60);
+      }
+      if (unit == "flecs.units.Duration.Minutes") {
+        return fmt_duration(value * 60);
+      }
+      if (unit == "flecs.units.Duration.Hours") {
+        return fmt_duration(value * 60 * 60);
+      }
+      if (unit == "flecs.units.Duration.Days") {
+        return fmt_duration(value * 60 * 60 * 24);
+      }
+      if (unit == "flecs.units.Time.Date") {
+        return fmt_date(value);
       }
 
       if (type === "float") {
@@ -51,6 +120,12 @@ Vue.component('inspector-value', {
 
       return value;
     },
+    actual_symbol: function() {
+      if (this.unit == "flecs.units.Duration.Seconds") {
+        return "";
+      }
+      return this.symbol;
+    },
     css: function() {
       let result = "inspector-value ";
       if (this.type) {
@@ -59,7 +134,7 @@ Vue.component('inspector-value', {
       return result;
     }
   },
-  template: `<span :class="css"><template v-if="separator">,&nbsp;</template>{{formatted_value}}</span>`
+  template: `<span :class="css"><template v-if="separator">,&nbsp;</template>{{formatted_value}}&nbsp;{{actual_symbol}}</span>`
 });
 
 // Key-value pair (as shown in entity inspector)
@@ -71,6 +146,14 @@ Vue.component('inspector-kv', {
     },
     value_css: function() {
       return "inspector-kv-value";
+    },
+    symbol: function() {
+      if (this.type && this.type.length > 1) {
+        if (inspector_is_object(undefined, this.type[1])) {
+          return this.type[1].symbol;
+        }
+      }
+      return "";
     }
   },
   template: `
@@ -89,7 +172,7 @@ Vue.component('inspector-kv', {
           </div>
         </template>
         <template v-else>
-          <inspector-key :prop_key="prop_key"/><inspector-value :css="value_css" :type="type" :value="value"/>
+          <inspector-key :prop_key="prop_key"/><inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol"/>
         </template>
       </template>
       <template v-else>
