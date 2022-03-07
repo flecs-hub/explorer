@@ -11525,6 +11525,17 @@ int ecs_strbuf_ftoa(
 		}
 	}
 	*ptr = 0;
+
+    /* Remove trailing 0s */
+    while ((&ptr[-1] != buf) && (ptr[-1] == '0')) {
+        if (ptr - buf >= 2) {
+            if (ptr[-2] == '.') {
+                break;
+            }
+        }
+        ptr[-1] = '\0';
+        ptr --;
+    }
     
     return ecs_strbuf_appendstrn(out, buf, (int32_t)(ptr - buf));
 }
@@ -11830,7 +11841,7 @@ bool ecs_strbuf_appendflt(
     char nan_delim)
 {
     ecs_assert(b != NULL, ECS_INVALID_PARAMETER, NULL); 
-    return ecs_strbuf_ftoa(b, flt, 2, nan_delim);
+    return ecs_strbuf_ftoa(b, flt, 10, nan_delim);
 }
 
 bool ecs_strbuf_appendstr_zerocpy(
@@ -23633,10 +23644,10 @@ const char* op_kind_str(
 /* Get current scope */
 static
 ecs_meta_scope_t* get_scope(
-    ecs_meta_cursor_t *cursor)
+    const ecs_meta_cursor_t *cursor)
 {
     ecs_check(cursor != NULL, ECS_INVALID_PARAMETER, NULL);
-    return &cursor->scope[cursor->depth];
+    return (ecs_meta_scope_t*)&cursor->scope[cursor->depth];
 error:
     return NULL;
 }
@@ -23976,14 +23987,14 @@ int ecs_meta_pop(
 }
 
 bool ecs_meta_is_collection(
-    ecs_meta_cursor_t *cursor)
+    const ecs_meta_cursor_t *cursor)
 {
     ecs_meta_scope_t *scope = get_scope(cursor);
     return scope->is_collection;
 }
 
 ecs_entity_t ecs_meta_get_type(
-    ecs_meta_cursor_t *cursor)
+    const ecs_meta_cursor_t *cursor)
 {
     ecs_meta_scope_t *scope = get_scope(cursor);
     ecs_meta_type_op_t *op = get_op(scope);
@@ -23991,7 +24002,7 @@ ecs_entity_t ecs_meta_get_type(
 }
 
 ecs_entity_t ecs_meta_get_unit(
-    ecs_meta_cursor_t *cursor)
+    const ecs_meta_cursor_t *cursor)
 {
     ecs_meta_scope_t *scope = get_scope(cursor);
     ecs_meta_type_op_t *op = get_op(scope);
@@ -23999,7 +24010,7 @@ ecs_entity_t ecs_meta_get_unit(
 }
 
 const char* ecs_meta_get_member(
-    ecs_meta_cursor_t *cursor)
+    const ecs_meta_cursor_t *cursor)
 {
     ecs_meta_scope_t *scope = get_scope(cursor);
     ecs_meta_type_op_t *op = get_op(scope);
@@ -24410,6 +24421,186 @@ int ecs_meta_set_null(
         return -1;
     }
 
+    return 0;
+}
+
+FLECS_API
+bool ecs_meta_get_bool(
+    const ecs_meta_cursor_t *cursor)
+{
+    ecs_meta_scope_t *scope = get_scope(cursor);
+    ecs_meta_type_op_t *op = get_op(scope);
+    void *ptr = get_ptr(cursor->world, scope);
+    switch(op->kind) {
+    case EcsOpBool: return *(ecs_bool_t*)ptr;
+    case EcsOpI8:   return *(ecs_i8_t*)ptr != 0;
+    case EcsOpU8:   return *(ecs_u8_t*)ptr != 0;
+    case EcsOpChar: return *(ecs_char_t*)ptr != 0;
+    case EcsOpByte: return *(ecs_u8_t*)ptr != 0;
+    case EcsOpI16:  return *(ecs_i16_t*)ptr != 0;
+    case EcsOpU16:  return *(ecs_u16_t*)ptr != 0;
+    case EcsOpI32:  return *(ecs_i32_t*)ptr != 0;
+    case EcsOpU32:  return *(ecs_u32_t*)ptr != 0;
+    case EcsOpI64:  return *(ecs_i64_t*)ptr != 0;
+    case EcsOpU64:  return *(ecs_u64_t*)ptr != 0;
+    case EcsOpIPtr: return *(ecs_iptr_t*)ptr != 0;
+    case EcsOpUPtr: return *(ecs_uptr_t*)ptr != 0;
+    case EcsOpF32:  return *(ecs_f32_t*)ptr != 0;
+    case EcsOpF64:  return *(ecs_f64_t*)ptr != 0;
+    case EcsOpString: return *(const char**)ptr != NULL;
+    case EcsOpEnum: return *(ecs_i32_t*)ptr != 0;
+    case EcsOpBitmask: return *(ecs_u32_t*)ptr != 0;
+    case EcsOpEntity: return *(ecs_entity_t*)ptr != 0;
+    default: ecs_throw(ECS_INVALID_PARAMETER, 
+                "invalid element for bool");
+    }
+error:
+    return 0;
+}
+
+FLECS_API
+char ecs_meta_get_char(
+    const ecs_meta_cursor_t *cursor)
+{
+    ecs_meta_scope_t *scope = get_scope(cursor);
+    ecs_meta_type_op_t *op = get_op(scope);
+    void *ptr = get_ptr(cursor->world, scope);
+    switch(op->kind) {
+    case EcsOpChar: return *(ecs_char_t*)ptr != 0;
+    default: ecs_throw(ECS_INVALID_PARAMETER, 
+                "invalid element for char");
+    }
+error:
+    return 0;
+}
+
+int64_t ecs_meta_get_int(
+    const ecs_meta_cursor_t *cursor)
+{
+    ecs_meta_scope_t *scope = get_scope(cursor);
+    ecs_meta_type_op_t *op = get_op(scope);
+    void *ptr = get_ptr(cursor->world, scope);
+    switch(op->kind) {
+    case EcsOpBool: return *(ecs_bool_t*)ptr;
+    case EcsOpI8:   return *(ecs_i8_t*)ptr;
+    case EcsOpU8:   return *(ecs_u8_t*)ptr;
+    case EcsOpChar: return *(ecs_char_t*)ptr;
+    case EcsOpByte: return *(ecs_u8_t*)ptr;
+    case EcsOpI16:  return *(ecs_i16_t*)ptr;
+    case EcsOpU16:  return *(ecs_u16_t*)ptr;
+    case EcsOpI32:  return *(ecs_i32_t*)ptr;
+    case EcsOpU32:  return *(ecs_u32_t*)ptr;
+    case EcsOpI64:  return *(ecs_i64_t*)ptr;
+    case EcsOpU64:  return flecs_uto(int64_t, *(ecs_u64_t*)ptr);
+    case EcsOpIPtr: return *(ecs_iptr_t*)ptr;
+    case EcsOpUPtr: return flecs_uto(int64_t, *(ecs_uptr_t*)ptr);
+    case EcsOpF32:  return (int64_t)*(ecs_f32_t*)ptr;
+    case EcsOpF64:  return (int64_t)*(ecs_f64_t*)ptr;
+    case EcsOpString: return atoi(*(const char**)ptr);
+    case EcsOpEnum: return *(ecs_i32_t*)ptr;
+    case EcsOpBitmask: return *(ecs_u32_t*)ptr;
+    case EcsOpEntity: 
+        ecs_throw(ECS_INVALID_PARAMETER, 
+            "invalid conversion from entity to int");
+        break;
+    default: ecs_throw(ECS_INVALID_PARAMETER, "invalid element for int");
+    }
+error:
+    return 0;
+}
+
+uint64_t ecs_meta_get_uint(
+    const ecs_meta_cursor_t *cursor)
+{
+    ecs_meta_scope_t *scope = get_scope(cursor);
+    ecs_meta_type_op_t *op = get_op(scope);
+    void *ptr = get_ptr(cursor->world, scope);
+    switch(op->kind) {
+    case EcsOpBool: return *(ecs_bool_t*)ptr;
+    case EcsOpI8:   return flecs_ito(uint64_t, *(ecs_i8_t*)ptr);
+    case EcsOpU8:   return *(ecs_u8_t*)ptr;
+    case EcsOpChar: return flecs_ito(uint64_t, *(ecs_char_t*)ptr);
+    case EcsOpByte: return flecs_ito(uint64_t, *(ecs_u8_t*)ptr);
+    case EcsOpI16:  return flecs_ito(uint64_t, *(ecs_i16_t*)ptr);
+    case EcsOpU16:  return *(ecs_u16_t*)ptr;
+    case EcsOpI32:  return flecs_ito(uint64_t, *(ecs_i32_t*)ptr);
+    case EcsOpU32:  return *(ecs_u32_t*)ptr;
+    case EcsOpI64:  return flecs_ito(uint64_t, *(ecs_i64_t*)ptr);
+    case EcsOpU64:  return *(ecs_u64_t*)ptr;
+    case EcsOpIPtr: return flecs_ito(uint64_t, *(ecs_i64_t*)ptr);
+    case EcsOpUPtr: return *(ecs_uptr_t*)ptr;
+    case EcsOpF32:  return flecs_ito(uint64_t, *(ecs_f32_t*)ptr);
+    case EcsOpF64:  return flecs_ito(uint64_t, *(ecs_f64_t*)ptr);
+    case EcsOpString: return flecs_ito(uint64_t, atoi(*(const char**)ptr));
+    case EcsOpEnum: return flecs_ito(uint64_t, *(ecs_i32_t*)ptr);
+    case EcsOpBitmask: return *(ecs_u32_t*)ptr;
+    case EcsOpEntity: return *(ecs_entity_t*)ptr;
+    default: ecs_throw(ECS_INVALID_PARAMETER, "invalid element for uint");
+    }
+error:
+    return 0;
+}
+
+double ecs_meta_get_float(
+    const ecs_meta_cursor_t *cursor)
+{
+    ecs_meta_scope_t *scope = get_scope(cursor);
+    ecs_meta_type_op_t *op = get_op(scope);
+    void *ptr = get_ptr(cursor->world, scope);
+    switch(op->kind) {
+    case EcsOpBool: return *(ecs_bool_t*)ptr;
+    case EcsOpI8:   return *(ecs_i8_t*)ptr;
+    case EcsOpU8:   return *(ecs_u8_t*)ptr;
+    case EcsOpChar: return *(ecs_char_t*)ptr;
+    case EcsOpByte: return *(ecs_u8_t*)ptr;
+    case EcsOpI16:  return *(ecs_i16_t*)ptr;
+    case EcsOpU16:  return *(ecs_u16_t*)ptr;
+    case EcsOpI32:  return *(ecs_i32_t*)ptr;
+    case EcsOpU32:  return *(ecs_u32_t*)ptr;
+    case EcsOpI64:  return (double)*(ecs_i64_t*)ptr;
+    case EcsOpU64:  return (double)*(ecs_u64_t*)ptr;
+    case EcsOpIPtr: return (double)*(ecs_iptr_t*)ptr;
+    case EcsOpUPtr: return (double)*(ecs_uptr_t*)ptr;
+    case EcsOpF32:  return (double)*(ecs_f32_t*)ptr;
+    case EcsOpF64:  return *(ecs_f64_t*)ptr;
+    case EcsOpString: return atof(*(const char**)ptr);
+    case EcsOpEnum: return *(ecs_i32_t*)ptr;
+    case EcsOpBitmask: return *(ecs_u32_t*)ptr;
+    case EcsOpEntity: 
+        ecs_throw(ECS_INVALID_PARAMETER, 
+            "invalid conversion from entity to float");
+        break;
+    default: ecs_throw(ECS_INVALID_PARAMETER, "invalid element for float");
+    }
+error:
+    return 0;
+}
+
+const char* ecs_meta_get_string(
+    const ecs_meta_cursor_t *cursor)
+{
+    ecs_meta_scope_t *scope = get_scope(cursor);
+    ecs_meta_type_op_t *op = get_op(scope);
+    void *ptr = get_ptr(cursor->world, scope);
+    switch(op->kind) {
+    case EcsOpString: return *(const char**)ptr;
+    default: ecs_throw(ECS_INVALID_PARAMETER, "invalid element for string");
+    }
+error:
+    return 0;
+}
+
+ecs_entity_t ecs_meta_get_entity(
+    const ecs_meta_cursor_t *cursor)
+{
+    ecs_meta_scope_t *scope = get_scope(cursor);
+    ecs_meta_type_op_t *op = get_op(scope);
+    void *ptr = get_ptr(cursor->world, scope);
+    switch(op->kind) {
+    case EcsOpEntity: return *(ecs_entity_t*)ptr;
+    default: ecs_throw(ECS_INVALID_PARAMETER, "invalid element for entity");
+    }
+error:
     return 0;
 }
 
