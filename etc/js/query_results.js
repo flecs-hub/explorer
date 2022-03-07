@@ -86,7 +86,7 @@ Vue.component('query-results', {
         } else {
           const first = this.id_elem(pair[0].slice(1));
           const second = this.id_elem(pair[1].slice(0, -1));
-          return "(" + first + ", " + second + ")";
+          return "(" + first + "," + second + ")";
         }
       }
     },

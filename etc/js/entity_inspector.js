@@ -275,7 +275,7 @@ Vue.component('inspector-component', {
         <detail-toggle :disable="elem.value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">,&nbsp;<entity-reference :entity="elem.obj" show_name="true" disabled="true" v-on="$listeners"/></template>
+              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">:&nbsp;<span class="inspector-component-object"><entity-reference :entity="elem.obj" show_name="true" v-on="$listeners"/></span></template>
               <icon src="search" v-on:click.stop="search_component"/>
             </div>
           </template>
@@ -439,10 +439,10 @@ Vue.component('inspector', {
       <template v-slot:detail v-if="entity && selection">
         <div :class="content_css">
           <div class="inspector-entity-name" v-if="selection.label != selection.name">
-            Name:&nbsp;<span class="inspector-entity-name">{{selection.name}}</span>
+            <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{selection.name}}</span>
           </div>
           <div class="inspector-entity-name" v-if="has_parent">
-            Parent:&nbsp;<entity-reference :entity="parent" v-on="$listeners"/>
+          <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-entity-name"><entity-reference :entity="parent" v-on="$listeners"/></span>
           </div>
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">

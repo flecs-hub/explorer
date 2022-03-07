@@ -386,6 +386,20 @@ div.inspector-component-name {
   font-weight: 500;
 }
 
+div.inspector-component-name div.detail-toggle-summary {
+  border-radius: 2px;
+  background-color: rgb(35, 40, 51, 0.0);
+  transition: 0.3s background-color
+}
+
+div.inspector-component-name div.detail-toggle-summary:hover {
+  background-color: rgb(35, 40, 51, 1.0);
+}
+
+span.inspector-component-object {
+  color: #47B576;
+}
+
 div.inspector-component-overridden {
   display: flex;
   color: #4F5565;
@@ -535,6 +549,10 @@ span.inspector-entity-name {
   color: #BDC1CC;
   margin-right: 5px;
   overflow-x: hidden;
+}
+
+span.inspector-entity-name-label {
+  font-weight: 500;
 }
 
 span.entity-reference span {
