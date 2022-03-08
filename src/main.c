@@ -111,6 +111,7 @@ char* get_entity(char *path) {
     ecs_entity_t ent = ecs_lookup_path(world, 0, path);
 
     ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
+    desc.serialize_label = true;
     desc.serialize_type_info = true;
 
     if (ecs_entity_to_json_buf(world, ent, &reply, &desc) != 0) {

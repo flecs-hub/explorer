@@ -37,6 +37,7 @@
       <div class="tree-box">
         <entity-tree ref="tree" 
           :valid="valid"
+          :selected_entity="selected_entity"
           v-on:select="evt_entity_changed" 
           v-on:select_query="evt_select_query"/>
       </div>
@@ -60,8 +61,7 @@
             </editor>
           </template>
           <inspector 
-            :entity="entity_result" 
-            :selection="selected_tree_item" 
+            :entity="entity_result"
             :entity_name="selected_entity"
             :valid="valid"
             v-on:select-entity="evt_follow_ref" 

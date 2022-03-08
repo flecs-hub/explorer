@@ -354,21 +354,24 @@ Vue.component('inspector-components', {
 
 // Top level inspector
 Vue.component('inspector', {
-  props: ['entity', 'selection', 'entity_name', 'valid'],
+  props: ['entity', 'entity_name', 'valid'],
   methods: {
     expand: function() {
       this.$refs.container.expand();
     },
     select_query: function() {
-      this.$emit('select-query', this.selection.path);
+      this.$emit('select-query', this.entity_name);
     },
     evt_close: function() {
       this.$emit('select-entity');
-    }
+    },
+    name_from_path: function(path) {
+      return path.split('.').pop();
+    },
   },
   computed: {
     parent: function() {
-      return parent_from_path(this.selection.path);
+      return parent_from_path(this.entity.path);
     },
     has_parent: function() {
       return this.parent.length != 0;
@@ -419,31 +422,29 @@ Vue.component('inspector', {
   template: `
     <content-container 
       ref="container" 
-      :disable="!entity_name && !selection" 
+      :disable="!entity_name" 
       no_padding="true"
       closable="true" 
       v-on:close="evt_close">
       
       <template v-slot:summary>
-        <template v-if="selection">
-          <div class="inspector-name">
-            <div class="inspector-icon">
-              <entity-icon x="0" y="0" :entity_data="selection"/>
-            </div>
-            {{selection.label}}
-          </div>
+        <template v-if="entity && entity.label">
+          {{entity.label}}
+        </template>
+        <template v-else-if="entity && entity.path">
+          {{name_from_path(entity.path)}}
         </template>
         <template v-else-if="entity_name">
-          {{entity_name}}
+          {{name_from_path(entity_name)}}
         </template>
         <template v-else>
           Entity inspector
         </template>
       </template>
-      <template v-slot:detail v-if="entity && selection">
+      <template v-slot:detail v-if="entity">
         <div :class="content_css">
-          <div class="inspector-entity-name" v-if="selection.label != selection.name">
-            <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{selection.name}}</span>
+          <div class="inspector-entity-name" v-if="entity.label != entity.name">
+            <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{name_from_path(entity.path)}}</span>
           </div>
           <div class="inspector-entity-name" v-if="has_parent">
           <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-entity-name"><entity-reference :entity="parent" v-on="$listeners"/></span>
@@ -464,7 +465,7 @@ Vue.component('inspector', {
 
             <inspector-components 
               :entity="entity" 
-              :path="selection.path" 
+              :path="entity.path" 
               :show_header="entity.is_a" 
               v-on="$listeners"/>
           </div>

@@ -8062,7 +8062,11 @@ int ecs_app_set_frame_action(
  *    - path : bool
  *      Add path (name) for entity.
  *        Default: true
- * 
+ *
+ *    - label : bool
+ *      Add label (from doc framework) for entity.
+ *        Default: false
+ *
  *    - base : bool
  *      Add base components.
  *        Default: true
@@ -8125,6 +8129,14 @@ int ecs_app_set_frame_action(
  *    - entities : bool
  *      Add result-specific "entities" array with matched entities.
  *        Default: true
+ * 
+ *    - entity_labels : bool
+ *       Include doc name for entities.
+ *        Default: false
+ * 
+ *    - variable_labels : bool
+ *       Include doc name for variables.
+ *        Default: false
  * 
  *    - duration : bool
  *      Include measurement on how long it took to serialize result.
@@ -9270,6 +9282,7 @@ int ecs_type_info_to_json_buf(
 /** Used with ecs_iter_to_json. */
 typedef struct ecs_entity_to_json_desc_t {
     bool serialize_path;       /* Serialize full pathname */
+    bool serialize_label;      /* Serialize doc name */
     bool serialize_base;       /* Serialize base components */
     bool serialize_private;    /* Serialize private components */
     bool serialize_values;     /* Serialize component values */
@@ -9277,7 +9290,7 @@ typedef struct ecs_entity_to_json_desc_t {
 } ecs_entity_to_json_desc_t;
 
 #define ECS_ENTITY_TO_JSON_INIT (ecs_entity_to_json_desc_t) {\
-    true, true, false, true, false }
+    true, false, true, false, true, false }
 
 /** Serialize entity into JSON string.
  * This creates a JSON object with the entity's (path) name, which components
@@ -9529,6 +9542,9 @@ FLECS_API extern ECS_DECLARE(EcsPercentage);
 FLECS_API extern ECS_DECLARE(EcsAngle);
 FLECS_API extern     ECS_DECLARE(EcsRadians);
 FLECS_API extern     ECS_DECLARE(EcsDegrees);
+
+FLECS_API extern ECS_DECLARE(EcsBel);
+FLECS_API extern ECS_DECLARE(EcsDeciBel);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Module
@@ -13565,6 +13581,8 @@ struct GigaBytesPerSecond { };
 };
 
 struct Percentage { };
+struct Bel { };
+struct DeciBel { };
 
 units(flecs::world& world);
 
@@ -22334,6 +22352,10 @@ inline units::units(flecs::world& world) {
 
     // Initialize percentage
     world.entity<Percentage>("::flecs::units::Percentage");
+
+    // Initialize Bel
+    world.entity<Bel>("::flecs::units::Bel");
+    world.entity<DeciBel>("::flecs::units::DeciBel");
 }
 
 }

@@ -199,15 +199,20 @@ var app = new Vue({
     },
 
     // Data access
-    request_entity: function(id, path, recv, err) {
+    request_entity: function(id, path, recv, err, params) {
       if (this.is_local()) {
           const r = wq_get_entity(path);
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
+        let url_params = "";
+        if (params) {
+          for (var k in params) {
+            url_params += "&" + k + "=" + params[k];
+          }
+        }
         this.request(id, "GET",
-          "entity/" + path.replaceAll('.', '/') + "&type_info=true", 
-          recv, err);
+          "entity/" + path.replaceAll('.', '/') + url_params, recv, err);
       }
     },
 
@@ -461,26 +466,24 @@ var app = new Vue({
 
     // Set inspector to entity by pathname
     set_entity(path) {
+      this.request_abort('inspector'); // Abort outstanding requests
+      this.entity_result = undefined;
+
       this.selected_entity = path;
-      this.request_entity('inspector', path, (reply) => {
-        this.entity_error = reply.error;
-        if (this.entity_error === undefined) {
-          this.entity_result = reply;
-          this.$refs.inspector.expand();
-        }
-      }, () => {
-        this.entity_error = "request for entity '" + path + "' failed";
-      });
+      if (!path) {
+        return;
+      }
+
+      this.refresh_entity();
+      this.refresh_terminal();
     },
 
     set_entity_by_tree_item(item) {
-      this.selected_tree_item = item;
       if (item) {
         this.set_entity(item.path);
       } else {
-        this.selected_entity = undefined;
+        this.set_entity();
       }
-      this.refresh_terminal();
     },
 
     refresh_terminal() {
@@ -501,11 +504,18 @@ var app = new Vue({
     },
 
     refresh_entity() {
-      if (this.selected_tree_item) {
-        this.set_entity_by_tree_item(this.selected_tree_item);
-      } else if (this.selected_entity) {
-        this.$refs.tree.select(this.selected_entity);
+      if (!this.selected_entity) {
+        return;
       }
+      this.request_entity('inspector', this.selected_entity, (reply) => {
+        this.entity_error = reply.error;
+        if (this.entity_error === undefined) {
+          this.entity_result = reply;
+          this.$refs.inspector.expand();
+        }
+      }, () => {
+        this.entity_error = "request for entity '" + this.selected_entity + "' failed";
+      }, {type_info: true, label: true});
     },
 
     refresh_tree() {
@@ -532,14 +542,12 @@ var app = new Vue({
 
     // Entity selected
     evt_entity_changed(e) {
-      this.request_abort('inspector'); // Abort outstanding requests
-      this.entity_result = undefined;
       this.set_entity_by_tree_item(e);
     },
 
     // Follow entity reference
     evt_follow_ref(entity) {
-      this.$refs.tree.select(entity);
+      this.set_entity(entity);
     },
 
     evt_select_query(query) {
@@ -598,8 +606,8 @@ var app = new Vue({
         sep = "&";
       }
 
-      if (this.selected_tree_item) {
-        this.url += sep + "s=" + this.selected_tree_item.path;
+      if (this.selected_entity) {
+        this.url += sep + "s=" + this.selected_entity;
         sep = "&";
       }
 
