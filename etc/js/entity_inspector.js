@@ -243,40 +243,90 @@ Vue.component('inspector-props', {
 
 // Component
 Vue.component('inspector-component', {
-  props: ['elem'],
+  props: ['entity', 'index'],
   methods: {
     search_component() {
-      if (this.elem.obj) {
-        this.$emit('select-query', '(' + this.elem.pred + ", " + this.elem.obj + ')');
+      if (this.obj) {
+        this.$emit('select-query', '(' + this.pred + ", " + this.obj + ')');
       } else {
-        this.$emit('select-query', this.elem.pred);
+        this.$emit('select-query', this.pred);
       }
     }
   },
   computed: {
+    id: function() {
+      return this.entity.ids[this.index];
+    },
+    id_label: function() {
+      if (this.entity.id_labels) {
+        return this.entity.id_labels[this.index];
+      } else {
+        if (this.obj) {
+          return [name_from_path(this.pred), name_from_path(this.obj)];
+        } else {
+          return [name_from_path(this.pred)];
+        }
+      }
+    },
+    pred: function() {
+      return this.id[0];
+    },
+    obj: function() {
+      if (this.id.length > 1) {
+        return this.id[1];
+      } else {
+        return undefined;
+      }
+    },
+    pred_label: function() {
+      return this.id_label[0];
+    },
+    obj_label: function() {
+      return this.id_label[1];
+    },
+    value: function() {
+      if (this.entity.values) {
+        let result = this.entity.values[this.index];
+        if (result !== 0) {
+          return result;
+        } else {
+          return undefined;
+        }
+      } else {
+        return undefined;
+      }
+    },
+    type_info: function() {
+      if (this.entity.type_info) {
+        return this.entity.type_info[this.index];
+      } else {
+        return 0;
+      }
+    },
+    hidden: function() {
+      if (this.entity.hidden) {
+        return this.entity.hidden[this.index];
+      } else {
+        return false;
+      }
+    },
     name_css: function() {
-      if (this.elem.hidden) {
+      if (this.hidden) {
         return "inspector-component-name inspector-component-overridden";
       } else {
         return "inspector-component-name";
       }
-    },
-    hide_property: function() {
-      if (this.elem.pred == "flecs.doc.Description" || this.elem.pred == "flecs.core.Identifier") {
-        return true;
-      }
-      return false;
     }
   },
-
   template: `
-    <div class="inspector-component" v-if="!hide_property">
+    <div class="inspector-component">
       <div class="inspector-component-name">
-        <detail-toggle :disable="elem.value == undefined" summary_toggle="true">
+        <detail-toggle :disable="value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">:&nbsp;<span class="inspector-component-object"><entity-reference 
-                :entity="elem.obj" 
+              <entity-reference :entity="pred" :label="pred_label" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="obj">:&nbsp;<span class="inspector-component-object"><entity-reference 
+                :entity="obj" 
+                :label="obj_label"
                 show_name="true" 
                 click_name="true"
                 v-on="$listeners"/></span></template>
@@ -284,9 +334,9 @@ Vue.component('inspector-component', {
             </div>
           </template>
           <template v-slot:detail>
-            <inspector-props v-if="elem.value !== undefined" 
-              :type="elem.type_info" 
-              :value="elem.value"/>
+            <inspector-props v-if="value !== undefined" 
+              :type="type_info" 
+              :value="value"/>
           </template>
         </detail-toggle>
       </div>
@@ -296,17 +346,12 @@ Vue.component('inspector-component', {
 
 // Components of entity and/or base entities
 Vue.component('inspector-components', {
-  props: ['entity', 'path', 'type', 'show_header'],
+  props: ['entity', 'show_header', 'is_base'],
   computed: {
     entity_type: function() {
-      if (this.type) {
-        return this.type;
+      if (this.entity) {
+        return this.entity.ids;
       }
-
-      if (this.entity.type) {
-        return this.entity.type;
-      }
-      
       return [];
     },
     css: function() {
@@ -332,8 +377,8 @@ Vue.component('inspector-components', {
         <template v-slot:summary>
           <span class="inspector-header" v-if="show_header">
             <entity-reference 
-              :label="entity == undefined ? 'inherited from' : ''" 
-              :entity="path" 
+              :text="is_base ? 'inherited from' : ''" 
+              :entity="entity.path" 
               show_name="true" 
               :disabled="true" 
               icon_link="true" 
@@ -343,7 +388,7 @@ Vue.component('inspector-components', {
         <template v-slot:detail>
           <div :class="detail_css">
             <div class="inspector-components-content">
-              <inspector-component v-for="(elem, k) in entity_type" :elem="elem" :key="k" v-on="$listeners"/>
+              <inspector-component v-for="(elem, k) in entity_type" :entity="entity" :index="k" :key="k" v-on="$listeners"/>
             </div>
           </div>
         </template>
@@ -366,7 +411,7 @@ Vue.component('inspector', {
       this.$emit('select-entity');
     },
     name_from_path: function(path) {
-      return path.split('.').pop();
+      return name_from_path(path);
     },
   },
   computed: {
@@ -460,12 +505,11 @@ Vue.component('inspector', {
 
           <div class="inspector-content">
             <template v-for="(v, k) in entity.is_a">
-              <inspector-components :path="k" :type="v.type" :show_header="true" v-on="$listeners"/>
+              <inspector-components :entity="v" :show_header="true" is_base="true" v-on="$listeners"/>
             </template>
 
             <inspector-components 
               :entity="entity" 
-              :path="entity.path" 
               :show_header="entity.is_a" 
               v-on="$listeners"/>
           </div>

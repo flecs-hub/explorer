@@ -274,9 +274,9 @@ var app = new Vue({
 
     ready_remote(reply) {
       // Get application name from reply
-      for (var i = 0; i < reply.type.length; i ++) {
-        const elem = reply.type[i];
-        if (elem.pred == "flecs.doc.Description" && elem.obj == "flecs.core.Name") {
+      for (var i = 0; i < reply.ids.length; i ++) {
+        const id = reply.ids[i];
+        if (id[0] == "flecs.doc.Description" && id[1] == "flecs.core.Name") {
           this.title = elem.value.value;
           break;
         }
@@ -515,7 +515,7 @@ var app = new Vue({
         }
       }, () => {
         this.entity_error = "request for entity '" + this.selected_entity + "' failed";
-      }, {type_info: true, label: true});
+      }, {type_info: true, label: true, id_labels: true});
     },
 
     refresh_tree() {

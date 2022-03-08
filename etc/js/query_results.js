@@ -31,11 +31,11 @@ Vue.component('query-result', {
   template: `
   <tr>
     <td class="query-result-entity" v-if="entity">
-      <entity-reference :entity="entity" :name="entity_label" :show_name="true" :show_parent="true" v-on="$listeners"/>
+      <entity-reference :entity="entity" :label="entity_label" :show_name="true" :show_parent="true" v-on="$listeners"/>
     </td>
     <td v-for="(variable, vi) in result.vars">
         <template v-if="variable !== '*'">
-          <entity-reference :entity="variable" :name="var_label(vi)" :show_name="true" v-on="$listeners"/>
+          <entity-reference :entity="variable" :label="var_label(vi)" :show_name="true" v-on="$listeners"/>
         </template>
         <template v-else>
           <span class="query-result-no">No</span>
