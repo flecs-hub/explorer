@@ -559,6 +559,15 @@ span.entity-reference span {
   white-space: nowrap;
 }
 
+span.entity-reference-clickable-name {
+  transition: 0.3s color;
+  cursor: pointer;
+}
+
+span.entity-reference-clickable-name:hover {
+  color: #fff;
+}
+
 span.entity-parent {
   font-size: 12px;
   color: #47B576;
