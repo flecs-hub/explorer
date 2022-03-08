@@ -443,7 +443,7 @@ Vue.component('inspector', {
       </template>
       <template v-slot:detail v-if="entity">
         <div :class="content_css">
-          <div class="inspector-entity-name" v-if="entity.label != entity.name">
+          <div class="inspector-entity-name" v-if="entity.label != name_from_path(entity.path)">
             <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{name_from_path(entity.path)}}</span>
           </div>
           <div class="inspector-entity-name" v-if="has_parent">
