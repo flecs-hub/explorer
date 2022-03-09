@@ -29,30 +29,36 @@ const DEFAULT_PORT = "27750";
 const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 
 // Example content for local demo
-const example_selected = "Bob";
-const example_query = "Position, Velocity"
+const example_selected = "Sun.Earth";
+const example_query = "OrbitalSpeed, Mass, (ChildOf, _Parent)"
 const example_plecs = `using flecs.meta
+using flecs.units.Speed
+using flecs.units.Mass
 
-Struct(Vec2) {
-  x = {f32}
-  y = {f32}
+/// OrbitalSpeed component
+Struct(OrbitalSpeed) {
+  value = {f32, unit: KiloMetersPerSecond}
 }
 
-Position : Vec2
-Velocity : Vec2
-
-with Position {
-  Bob   = {1, 1}
-  Alice = {2, 3}
-  John  = {5, 8}
-  Jane  = {13, 21}
+/// Mass component
+Struct(Mass) {
+  value = {f64, unit: KiloGrams}
 }
 
-with Velocity {
-  Bob   = {3, 1}
-  Alice = {4, 1}
-  John  = {5, 9}
-  Jane  = {2, 6}
+// The Sun
+Sun {
+
+  /// The Earth
+  Earth {
+    OrbitalSpeed = {29.7800}
+    Mass = {5.9722e24}
+    
+    /// The Moon
+    Moon {
+      OrbitalSpeed = {1.022}
+      Mass = {7.34767309e22}
+    }    
+  }
 }
 `
 

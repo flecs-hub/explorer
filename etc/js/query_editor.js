@@ -70,7 +70,7 @@ Vue.component('query-editor', {
         v-on:keyup="changed"
         v-on:focus="evt_focus(true)"
         v-on:blur="evt_focus(false)">
-      </textarea>&nbsp;
+      </textarea>
       <div class="query-default-text" v-if="!query.length" v-on:click.stop="set_focus">Search</div>
       <icon src="search" v-on:click.stop="set_focus"/>
     </div>
