@@ -426,14 +426,14 @@ Vue.component('inspector', {
         return undefined;
       }
 
-      if (!this.entity.type) {
+      if (!this.entity.ids) {
         return undefined;
       }
 
-      for (let i = 0; i < this.entity.type.length; i ++) {
-        const obj = this.entity.type[i];
-        if (obj.pred == "flecs.doc.Description" && obj.obj == "flecs.doc.Brief") {
-          return obj.value.value;
+      for (let i = 0; i < this.entity.ids.length; i ++) {
+        const id = this.entity.ids[i];
+        if (id[0] == "flecs.doc.Description" && id[1] == "flecs.doc.Brief") {
+          return this.entity.values[i].value;
         }
       }
     },
@@ -442,14 +442,14 @@ Vue.component('inspector', {
         return undefined;
       }
 
-      if (!this.entity.type) {
+      if (!this.entity.ids) {
         return undefined;
       }
 
-      for (let i = 0; i < this.entity.type.length; i ++) {
-        const obj = this.entity.type[i];
-        if (obj.pred == "flecs.doc.Description" && obj.obj == "flecs.doc.Link") {
-          return obj.value.value;
+      for (let i = 0; i < this.entity.ids.length; i ++) {
+        const id = this.entity.ids[i];
+        if (id[0] == "flecs.doc.Description" && id[1] == "flecs.doc.Link") {
+          return this.entity.values[i].value;
         }
       }
     },
