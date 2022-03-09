@@ -107,7 +107,7 @@ Vue.component('inspector-value', {
 
       if (type === "float") {
         let str = value.toString();
-        if (str.indexOf('.') == -1) {
+        if (str.indexOf('.') == -1 || str.indexOf('e') != -1) {
           return value;
         } else {
           let num = 4 - str.split('.')[0].length;
@@ -426,32 +426,14 @@ Vue.component('inspector', {
         return undefined;
       }
 
-      if (!this.entity.ids) {
-        return undefined;
-      }
-
-      for (let i = 0; i < this.entity.ids.length; i ++) {
-        const id = this.entity.ids[i];
-        if (id[0] == "flecs.doc.Description" && id[1] == "flecs.doc.Brief") {
-          return this.entity.values[i].value;
-        }
-      }
+      return this.entity.brief;
     },
     link: function() {
       if (!this.entity) {
         return undefined;
       }
 
-      if (!this.entity.ids) {
-        return undefined;
-      }
-
-      for (let i = 0; i < this.entity.ids.length; i ++) {
-        const id = this.entity.ids[i];
-        if (id[0] == "flecs.doc.Description" && id[1] == "flecs.doc.Link") {
-          return this.entity.values[i].value;
-        }
-      }
+      return this.entity.link;
     },
     has_doc: function() {
       return this.brief || this.link;
@@ -488,12 +470,6 @@ Vue.component('inspector', {
       </template>
       <template v-slot:detail v-if="entity">
         <div :class="content_css">
-          <div class="inspector-entity-name" v-if="entity.label != name_from_path(entity.path)">
-            <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{name_from_path(entity.path)}}</span>
-          </div>
-          <div class="inspector-entity-name" v-if="has_parent">
-          <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-entity-name"><entity-reference :entity="parent" v-on="$listeners"/></span>
-          </div>
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
               {{brief}}
@@ -501,6 +477,12 @@ Vue.component('inspector', {
             <span class="inspector-link" v-if="link">
               <a :href="link" target="_blank">[link]</a>
             </span>
+          </div>
+          <div class="inspector-entity-name" v-if="entity.label != name_from_path(entity.path)">
+            <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{name_from_path(entity.path)}}</span>
+          </div>
+          <div class="inspector-entity-name" v-if="has_parent">
+            <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-entity-name"><entity-reference :entity="parent" v-on="$listeners"/></span>
           </div>
 
           <div class="inspector-content">

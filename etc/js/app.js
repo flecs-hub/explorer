@@ -274,16 +274,11 @@ var app = new Vue({
 
     ready_remote(reply) {
       // Get application name from reply
-      for (var i = 0; i < reply.ids.length; i ++) {
-        const id = reply.ids[i];
-        if (id[0] == "flecs.doc.Description" && id[1] == "flecs.core.Name") {
-          this.title = reply.values[i].value;
-          break;
-        }
+      if (reply.label && reply.label != "World") {
+        this.title = reply.label;
       }
 
       this.parse_interval = 150;
-
       this.$refs.tree.update_expanded();
 
       // Refresh UI periodically
@@ -441,7 +436,7 @@ var app = new Vue({
           timeout = INITIAL_REMOTE_REQUEST_TIMEOUT;
         }
 
-        this.json_request("GET", host, "entity/flecs/core/World?values=true", (reply) => {
+        this.json_request("GET", host, "entity/flecs/core/World?label=true", (reply) => {
           this.host = host;
           this.connection = ConnectionState.Remote;
           this.ready_remote(reply);
@@ -515,7 +510,7 @@ var app = new Vue({
         }
       }, () => {
         this.entity_error = "request for entity '" + this.selected_entity + "' failed";
-      }, {type_info: true, label: true, id_labels: true, values: true});
+      }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
     },
 
     refresh_tree() {

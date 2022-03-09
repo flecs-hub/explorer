@@ -96,7 +96,7 @@
       var syntax_highlighter = new Parser(
         { whitespace: /\s+/,
           property: /[a-zA-Z_0-9]+(?=:)/,
-          number: /\b[0-9]+\b/,
+          number: /\b[0-9e]+\b/,
           operator: /[(),{}\[\]=.:?!]/,
           comment: /\/\/[^\r\n]*/,
           rel_prop: /\b(Transitive|Final|Reflexive|Tag|Exclusive|Symmetric|With|Acyclic|DontInherit)\b/,
