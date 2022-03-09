@@ -45,7 +45,7 @@ Struct(Mass) {
   value = {f64, unit: KiloGrams}
 }
 
-// The Sun
+/// The Sun
 Sun {
 
   /// The Earth
@@ -60,6 +60,7 @@ Sun {
     }    
   }
 }
+
 `
 
 function getParameterByName(name, url = window.location.href) {
