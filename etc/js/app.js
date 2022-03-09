@@ -515,7 +515,7 @@ var app = new Vue({
         }
       }, () => {
         this.entity_error = "request for entity '" + this.selected_entity + "' failed";
-      }, {type_info: true, label: true, id_labels: true});
+      }, {type_info: true, label: true, id_labels: true, values: true});
     },
 
     refresh_tree() {
