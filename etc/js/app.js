@@ -277,7 +277,7 @@ var app = new Vue({
       for (var i = 0; i < reply.ids.length; i ++) {
         const id = reply.ids[i];
         if (id[0] == "flecs.doc.Description" && id[1] == "flecs.core.Name") {
-          this.title = elem.value.value;
+          this.title = reply.values[i].value;
           break;
         }
       }
@@ -441,7 +441,7 @@ var app = new Vue({
           timeout = INITIAL_REMOTE_REQUEST_TIMEOUT;
         }
 
-        this.json_request("GET", host, "entity/flecs/core/World", (reply) => {
+        this.json_request("GET", host, "entity/flecs/core/World?values=true", (reply) => {
           this.host = host;
           this.connection = ConnectionState.Remote;
           this.ready_remote(reply);
