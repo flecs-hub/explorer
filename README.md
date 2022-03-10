@@ -6,63 +6,15 @@ Web-based UI for monitoring Flecs applications, trying out queries &amp; learnin
 A live version of the explorer is running @ https://flecs.dev/explorer
 
 ## Usage
-The flecs explorer can be used in standalone mode (default) or remote mode. In standalone mode, the application runs 100% in the browser with a webasm build of Flecs. In remote mode, the explorer connects to a running flecs application.
+The flecs explorer can be used in standalone mode (default) or remote mode. In standalone mode, the application runs 100% in the browser with a webasm build of Flecs. In remote mode, the explorer connects to a runningn flecs application.
 
-### Connecting to a running Flecs application
-Before connecting the explorer to an application, first make sure that the REST interface is enabled:
+The easiest way to get started with the flecs explorer is to use the hosted application at https://flecs.dev/explorer. If the explorer finds a Flecs application running on http://localhost:27750, it will connect to it automatically. The server is only used to retrieve the resources to run the explorer, and no data is exchanged from the explorer or your application to a remote machine.
 
-In C:
-```c
-ecs_singleton_set(world, EcsRest, {0});
-```
-
-In C with the flecs app addon:
-```c
-ecs_app_run(world, &(ecs_app_desc_t) {
-  .enable_rest = true
-});
-```
-
-In C++:
-```cpp
-world.set<flecs::rest::Rest>({});
-```
-
-When the application is running, verify that the server works by going to:
-http://localhost:27750/entity/flecs
-
-This should return a JSON string that looks similar to:
-```json
-{"path":"flecs", "type":[{"pred":"Module"}, {"pred":"Identifier", "obj":"Name"}, {"pred":"flecs.doc.Description", "obj":"flecs.doc.Brief", "value":{"value":"Flecs root module"}}, {"pred":"flecs.doc.Description", "obj":"flecs.doc.Link", "value":{"value":"https://github.com/SanderMertens/flecs"}}]}
-```
-
-You can now go to https://flecs.dev/explorer which should automatically connect to your application. 
-
-The explorer sends a request with a short timeout to determine if a running application can be found. In some cases this timeout is too short, which can cause the explorer to sometimes not connect. To fix this, add `?remote=true` to the URL (See URL options).
-
-Note that _no_ data is sent from your application to a remote machine. The explorer runs 100% in the browser, so any information sent to the explorer uses a local loopback interface (in other words, no information leaves your machine).
-
-The following browsers have known policies that prevent connecting to localhost from a remote URL:
+The following browsers have known policies that prevent connecting to a port on local host:
  - Safari
  - Brave (can be overridden by configuring "Shield" to be down)
-
-To get around this, you can:
-
-### Host the explorer locally
-If your browser does not support connecting to localhost from a remote URL, or you just prefer to host the explorer yourself, first clone the repository:
-
-```
-git clone https://github.com/flecs-hub/explorer
-```
-
-Then start an HTTP server in the `etc` folder:
-
-```
-cd explorer/etc
-python3 -m http.server
-```
-
-You can now go to http://localhost:8000 to open the explorer.
+ 
+If a browser doesn't suppport connecting to localhost from a remote address, you can self-host the explorer with the following commands:
 
 ### URL options
 The following options can be added to the URL:
@@ -70,11 +22,6 @@ The following options can be added to the URL:
 **Always connect to remote app (will keep trying to connect to localhost:27750)**
 ```
 ?remote=true
-```
-
-**Always connect to app on same URL as explorer (will keep trying to connect to url:27750)**
-```
-?remote_self=true
 ```
 
 **Never connect to remote app (will always use the webasm version of flecs that runs in the browser)**
@@ -85,4 +32,10 @@ The following options can be added to the URL:
 **Specify a custom host to connect to (sets remote to true)**
 ```
 ?host=10.20.30.40:1234
+```
+
+```c
+git clone https://github.com/flecs-hub/explorer
+cd explorer/etc
+python3 -m http.server
 ```

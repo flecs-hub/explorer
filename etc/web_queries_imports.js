@@ -5,7 +5,7 @@ let wq_run;
 let wq_encode;
 let wq_decode;
 
-flecs_explorer = flecs_explorer().then(function(Module) {
+web_queries = web_queries().then(function(Module) {
   wq_init = Module.cwrap('init');
   wq_query = Module.cwrap('query', 'string', ['string']);
   wq_get_entity = Module.cwrap('get_entity', 'string', ['string']);

@@ -17,11 +17,6 @@ Vue.component('query', {
             this.query_result = reply;
           }
           this.$emit('changed');
-        }, undefined, {
-          ids: false, 
-          subjects: false,
-          entity_labels: true,
-          variable_labels: true
         });
       } else {
         this.query_result = undefined;
@@ -71,18 +66,11 @@ Vue.component('query', {
     }
   },
   template: `
-<<<<<<< HEAD
     
     <collapsible-panel 
       ref="container"
       closable="true"
       :disabled="query_result === undefined" 
-=======
-    <content-container 
-      ref="container" 
-      :disable="query_result === undefined && query_error === undefined" 
-      closable="true" 
->>>>>>> pr/13
       v-on:close="evt_close">
       <template v-slot:title>
         <query-editor

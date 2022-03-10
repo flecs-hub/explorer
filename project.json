@@ -1,10 +1,11 @@
 {
-    "id": "flecs.explorer",
+    "id": "web_queries",
     "type": "application",
     "value": {
-        "description": "A web dashboard for flecs applications",
+        "author": "Jane Doe",
+        "description": "A simple hello world flecs application",
         "use": ["flecs"],
-        "standalone": true
+        "use-amalgamate": true
     },
     "lang.c": {
         "${os linux}": {
