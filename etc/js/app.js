@@ -1,4 +1,9 @@
+<<<<<<< HEAD
 Vue.config.devtools = true;
+=======
+
+Vue.config.devtools = false;
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
 
 // Track state of connection to remote app
 const ConnectionState = {
@@ -14,6 +19,9 @@ const ConnectionState = {
 // an app to respond, but not too long to delay page load time.
 const INITIAL_REQUEST_TIMEOUT = 300;
 
+// Longer interval when we're sure the app is in remote mode.
+const INITIAL_REMOTE_REQUEST_TIMEOUT = 10000;
+
 // App will only retry connection when in explicit remote mode.
 const INITIAL_REQUEST_RETRY_INTERVAL = 200;
 
@@ -25,31 +33,38 @@ const DEFAULT_PORT = "27750";
 const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 
 // Example content for local demo
-const example_selected = "Bob";
-const example_query = "Position, Velocity"
+const example_selected = "Sun.Earth";
+const example_query = "OrbitalSpeed, Mass, (ChildOf, _Parent)"
 const example_plecs = `using flecs.meta
+using flecs.units.Speed
+using flecs.units.Mass
 
-Struct(Vec2) {
-  x = {f32}
-  y = {f32}
+/// OrbitalSpeed component
+Struct(OrbitalSpeed) {
+  value = {f32, unit: KiloMetersPerSecond}
 }
 
-Position : Vec2
-Velocity : Vec2
-
-with Position {
-  Bob   = {1, 1}
-  Alice = {2, 3}
-  John  = {5, 8}
-  Jane  = {13, 21}
+/// Mass component
+Struct(Mass) {
+  value = {f64, unit: KiloGrams}
 }
 
-with Velocity {
-  Bob   = {3, 1}
-  Alice = {4, 1}
-  John  = {5, 9}
-  Jane  = {2, 6}
+/// The Sun
+Sun {
+
+  /// The Earth
+  Earth {
+    OrbitalSpeed = {29.7800}
+    Mass = {5.9722e24}
+    
+    /// The Moon
+    Moon {
+      OrbitalSpeed = {1.022}
+      Mass = {7.34767309e22}
+    }    
+  }
 }
+
 `
 
 function getParameterByName(name, url = window.location.href) {
@@ -199,9 +214,14 @@ var app = new Vue({
   el: '#app',
 
   mounted: function() {
+<<<<<<< HEAD
 
     this.$nextTick(_.debounce(() => {
       web_queries.then(() => {
+=======
+    this.$nextTick(() => {
+      flecs_explorer.then(() => {
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
         this.ready();
       });
 
@@ -228,6 +248,8 @@ var app = new Vue({
       if (timeout) {
         Request.timeout = timeout;
       }
+
+      Request.request_aborted = false;
 
       Request.onreadystatechange = (reply) => {
         if (Request.readyState == 4) {
@@ -257,12 +279,14 @@ var app = new Vue({
                   timeout, retry_interval);
               }, retry_interval);
             } else {
-              if (err) err();
+              if (err) err(Request.responseText);
 
               // If error callback did not set the connection state back to
               // local, treat this as a loss of connection event.
               if (this.connection != ConnectionState.Local) {
-                this.connect();
+                if (!Request.request_aborted) {
+                  this.connect();
+                }
               }
             }
           } else {
@@ -270,7 +294,7 @@ var app = new Vue({
 
             if (Request.status < 200 || Request.status >= 300) {
               if (err) {
-                err();
+                err(Request.responseText);
               }
             } else if (Request.responseText && Request.responseText.length) {
               if (recv) {
@@ -282,42 +306,84 @@ var app = new Vue({
       }
 
       Request.send();
+
+      return Request;
     },
 
     // Utility for sending HTTP requests that have a JSON reply
     json_request(method, host, path, recv, err, timeout, retry_interval) {
-      this.http_request(method, host, path, (r) => {
+      return this.http_request(method, host, path, (r) => {
         const reply = JSON.parse(r);
         recv(reply);
-      }, err, timeout, retry_interval);
+      }, (r) => {
+        if (err) {
+          if (r != undefined && r.length) {
+            const reply = JSON.parse(r);
+            err(reply);
+          } else {
+            err();
+          }
+        }
+      }, timeout, retry_interval);
+    },
+
+    // Abort request
+    request_abort(id) {
+      let r = this.requests[id];
+      if (r) {
+        r.request_aborted = true;
+        r.abort();
+      }
+      this.requests[id] = undefined;
     },
 
     // Utility for sending HTTP requests to a remote app
-    request(method, path, recv, err) {
-      this.json_request(method, this.host, path, recv, err);
+    request(id, method, path, recv, err) {
+      let existing = this.requests[id];
+      if (existing) {
+        if (existing.readyState == 4) {
+          this.requests[id] = undefined;
+        } else {
+          // Request is still in progress
+          return;
+        }
+      }
+      this.requests[id] = this.json_request(
+        method, this.host, path, recv, err);
     },
 
     // Data access
-    request_entity: function(path, recv, err) {
+    request_entity: function(id, path, recv, err, params) {
       if (this.is_local()) {
           const r = wq_get_entity(path);
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        this.request("GET", 
-          "entity/" + path.replaceAll('.', '/') + "&type_info=true", 
-          recv, err);
+        let url_params = "";
+        if (params) {
+          for (var k in params) {
+            url_params += "&" + k + "=" + params[k];
+          }
+        }
+        this.request(id, "GET",
+          "entity/" + path.replaceAll('.', '/') + url_params, recv, err);
       }
     },
 
-    request_query: function(q, recv, err) {
+    request_query: function(id, q, recv, err, params) {
       if (this.is_local()) {
           const r = wq_query(q);
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        this.request(
-          "GET", "query?q=" + encodeURIComponent(q), 
+        let url_params = "";
+        if (params) {
+          for (var k in params) {
+            url_params += "&" + k + "=" + params[k];
+          }
+        }
+        this.request(id,
+          "GET", "query?q=" + encodeURIComponent(q) + url_params,
           recv, err);
       }
     },
@@ -343,16 +409,30 @@ var app = new Vue({
       }
     },
 
-    ready_remote(reply) {
-      // Get application name from reply
-      for (var i = 0; i < reply.type.length; i ++) {
-        const elem = reply.type[i];
-        if (elem.pred == "flecs.doc.Description" && elem.obj == "Name") {
-          this.title = elem.value.value;
-          break;
-        }
+    init_remote() {
+      const q_encoded = getParameterByName("q");
+      var selected = getParameterByName("s");
+      var q;
+
+      if (q_encoded) {
+        q = wq_decode(q_encoded);
       }
 
+      if (selected) {
+        this.selected_entity = selected;
+      }
+      if (q) {
+        this.$refs.query.set_query(q);
+      }
+    },
+
+    ready_remote(reply) {
+      // Get application name from reply
+      if (reply.label && reply.label != "World") {
+        this.title = reply.label;
+      }
+
+      this.parse_interval = 150;
       this.$refs.tree.update_expanded();
 
       // Refresh UI periodically
@@ -364,6 +444,8 @@ var app = new Vue({
     },
 
     ready_local() {
+      this.selected_entity = undefined;
+
       const q_encoded = getParameterByName("q");
       const p_encoded = getParameterByName("p");
       var selected = getParameterByName("s");
@@ -386,7 +468,7 @@ var app = new Vue({
         q = example_query;
       }
 
-      if (p) {
+      if (p && !this.remote_mode) {
         this.$refs.plecs.set_code(p);
         this.$refs.plecs.run();
       }
@@ -432,8 +514,34 @@ var app = new Vue({
       // If remote param is provided, don't go to local mode
       let remote = getParameterByName("remote");
 
+      // remote_self is the same as remote, but will always connect to the URL
+      // of the explorer, instead of defaulting to localhost
+      let remote_self = getParameterByName("remote_self");
+
       // If local param is provided, don't connect to remote
       let local = getParameterByName("local");
+
+      // If a code snippet is provided, run in local mode
+      if (getParameterByName("p")) {
+        local = true;
+      }
+
+      // Store URL parameters so they can be added to shared URL
+      this.params.host = host;
+      this.params.port = port;
+      this.params.remote = remote;
+      this.params.remote_self = remote_self;
+      this.params.local = local;
+
+      // Make sure that if both remote_self and host are specified they match
+      if (remote_self) {
+        if (host != undefined && host != window.location.hostname) {
+          console.err("remote_self conflicts with value of host param, starting in local mode");
+          this.ready_local();
+        }
+        remote = true;
+        host = window.location.hostname;
+      }
 
       // Can't set both local and remote
       if (remote && local || host && local) {
@@ -471,7 +579,18 @@ var app = new Vue({
           retry_interval = INITIAL_REQUEST_RETRY_INTERVAL;
         }
 
-        this.json_request("GET", host, "entity/flecs/core/World", (reply) => {
+        if (this.connection != ConnectionState.RetryConnecting) {
+          /* When not reconnecting initialize app from URL arguments */
+          this.init_remote();
+        }
+
+        let timeout = INITIAL_REQUEST_TIMEOUT;
+        if (remote) {
+          /* Tolerate a larger timeout when we're guaranteed in remote mode */
+          timeout = INITIAL_REMOTE_REQUEST_TIMEOUT;
+        }
+
+        this.json_request("GET", host, "entity/flecs/core/World?label=true", (reply) => {
           this.host = host;
           this.connection = ConnectionState.Remote;
           this.ready_remote(reply);
@@ -480,10 +599,10 @@ var app = new Vue({
             this.connection = ConnectionState.Local;
             this.ready_local();
           } else {
-            console.warn("flecs: unable to connect to remote, running explorer in local mode");
+            console.warn("remote connection failed, running explorer in local mode");
             this.connection = ConnectionState.ConnectionFailed;
           }
-        }, INITIAL_REQUEST_TIMEOUT, retry_interval);
+        }, timeout, retry_interval);
       } else {
         this.connection = ConnectionState.Local;
         this.ready_local();
@@ -492,6 +611,28 @@ var app = new Vue({
 
     ready() {
       this.connect();
+    },
+
+    // Set inspector to entity by pathname
+    set_entity(path) {
+      this.request_abort('inspector'); // Abort outstanding requests
+      this.entity_result = undefined;
+
+      this.selected_entity = path;
+      if (!path) {
+        return;
+      }
+
+      this.refresh_entity();
+      this.refresh_terminal();
+    },
+
+    set_entity_by_tree_item(item) {
+      if (item) {
+        this.set_entity(item.path);
+      } else {
+        this.set_entity();
+      }
     },
 
     refresh_terminal() {
@@ -512,7 +653,18 @@ var app = new Vue({
     },
 
     refresh_entity() {
-      this.evt_entity_changed(this.selected_tree_item);
+      if (!this.selected_entity) {
+        return;
+      }
+      this.request_entity('inspector', this.selected_entity, (reply) => {
+        this.entity_error = reply.error;
+        if (this.entity_error === undefined) {
+          this.entity_result = reply;
+          this.$refs.inspector.expand();
+        }
+      }, () => {
+        this.entity_error = "request for entity '" + this.selected_entity + "' failed";
+      }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
     },
 
     refresh_tree() {
@@ -539,24 +691,12 @@ var app = new Vue({
 
     // Entity selected
     evt_entity_changed(e) {
-      this.selected_tree_item = e;
-      if (e) {
-        this.request_entity(e.path, (reply) => {
-          this.entity_error = reply.error;
-          if (this.entity_error === undefined) {
-            this.entity_result = reply;
-            this.$refs.inspector.expand();
-          }
-        }, () => {
-          this.entity_error = "request for entity '" + e.path + "' failed";
-        });
-      }
-      this.refresh_terminal();
+      this.set_entity_by_tree_item(e);
     },
 
     // Follow entity reference
     evt_follow_ref(entity) {
-      this.$refs.tree.select(entity);
+      this.set_entity(entity);
     },
 
     evt_select_query(query) {
@@ -565,18 +705,59 @@ var app = new Vue({
 
     show_url() {
       const query = this.$refs.query.get_query();
-      const plecs = this.$refs.plecs.get_code();
+      
+      let plecs;
+      let plecs_encoded;
+      if (this.$refs.plecs) {
+        plecs = this.$refs.plecs.get_code();
+        plecs_encoded = wq_encode(plecs);
+      }
 
       const query_encoded = wq_encode(query);
-      const plecs_encoded = wq_encode(plecs);
-      
+      let sep = "?";
+    
       this.url = window.location.protocol + '//' + 
                  window.location.host + 
-                 window.location.pathname +
-                 "?q=" + query_encoded + "&p=" + plecs_encoded;
+                 window.location.pathname;
 
-      if (this.selected_tree_item) {
-        this.url += "&s=" + this.selected_tree_item.path;
+      if (this.params.host) {
+        this.url += sep + "host=" + this.params.host;
+        sep = "&";
+      }
+
+      if (this.params.port) {
+        this.url += sep + "port=" + this.params.port;
+        sep = "&";
+      }
+
+      if (this.params.remote) {
+        this.url += sep + "remote=true";
+        sep = "&";
+      }
+
+      if (this.params.remote_self) {
+        this.url += sep + "remote_self=true";
+        sep = "&";
+      }
+
+      if (this.params.local) {
+        this.url += sep + "local=true";
+        sep = "&";
+      }
+
+      if (query_encoded) {
+        this.url += sep + "q=" + query_encoded;
+        sep = "&";
+      }
+
+      if (plecs_encoded) {
+        this.url += sep + "p=" + plecs_encoded;
+        sep = "&";
+      }
+
+      if (this.selected_entity) {
+        this.url += sep + "s=" + this.selected_entity;
+        sep = "&";
       }
 
       this.$refs.url.show();
@@ -589,6 +770,10 @@ var app = new Vue({
         (this.connection == ConnectionState.Local ||
           this.connection == ConnectionState.Remote ||
             this.retry_count < 10);
+    },
+    remote_mode: function() {
+      return this.connection == ConnectionState.Remote || this.params.remote ||
+        this.params.remote_self || this.params.host;
     }
   },
 
@@ -599,12 +784,17 @@ var app = new Vue({
     code_error: undefined,
     query_result: undefined,
     entity_result: undefined,
+    selected_entity: undefined,
     selected_tree_item: undefined,
     url: undefined,
+    params: {},
 
     connection: ConnectionState.Initializing,
+    host: undefined,
     retry_count: 0,
+    request_count: 0,
 
+    requests: {},
     refresh_timer: undefined,
     parse_timer: undefined,
     parse_interval: 0

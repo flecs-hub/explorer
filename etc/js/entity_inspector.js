@@ -10,6 +10,44 @@ function inspector_is_object(type, value) {
   return (typeof value) === "object";
 }
 
+// Formatting functions for units
+function fmt_percentage(value) {
+  return value *= 100;
+}
+
+function fmt_duration(seconds) {
+  let result = "";
+
+  let days = Math.floor(seconds / (24 * 60 * 60));
+  seconds -= days * (24 * 60 * 60);
+
+  let hours = Math.floor(seconds / (60 * 60));
+  seconds -= hours * (60 * 60);
+
+  let minutes = Math.floor(seconds / 60);
+  seconds -= minutes * 60;
+  
+  if (days) {
+    result += days + "d ";
+  }
+  if (hours || (result.length && minutes && seconds)) {
+    result += hours + "h ";
+  }
+  if (minutes || (result.length && seconds)) {
+    result += minutes + "min ";
+  }
+  if (seconds) {
+    result += seconds + "s ";
+  }
+
+  return result;
+}
+
+function fmt_date(seconds) {
+  let date = new Date(seconds * 1000);
+  return date.toDateString();
+}
+
 // Key (property name)
 Vue.component('inspector-key', {
   props: ['prop_key'],
@@ -18,11 +56,20 @@ Vue.component('inspector-key', {
 
 // Single scalar value
 Vue.component('inspector-value', {
-  props: ['type', 'value', 'separator'],
+  props: ['type', 'value', 'symbol', 'separator'],
   computed: {
+    unit: function() {
+      if (this.type && this.type.length > 1) {
+        if (inspector_is_object(undefined, this.type[1])) {
+          return this.type[1].unit;
+        }
+      }
+      return undefined;
+    },
     formatted_value: function() {
       const type = this.type ? this.type[0] : undefined;
-      const value = this.value;
+      const unit = this.unit;
+      let value = this.value;
 
       if (!type) {
         return value;
@@ -36,9 +83,31 @@ Vue.component('inspector-value', {
         }
       }
 
+      if (unit == "flecs.units.Percentage") {
+        value = fmt_percentage(value);
+      }
+      if (unit == "flecs.units.Duration.Seconds") {
+        value = fmt_duration(value);
+      }
+      if (unit == "flecs.units.Duration.Minutes") {
+        value = fmt_duration(value * 60);
+      }
+      if (unit == "flecs.units.Duration.Minutes") {
+        value = fmt_duration(value * 60);
+      }
+      if (unit == "flecs.units.Duration.Hours") {
+        value = fmt_duration(value * 60 * 60);
+      }
+      if (unit == "flecs.units.Duration.Days") {
+        value = fmt_duration(value * 60 * 60 * 24);
+      }
+      if (unit == "flecs.units.Time.Date") {
+        value = fmt_date(value);
+      }
+
       if (type === "float") {
         let str = value.toString();
-        if (str.indexOf('.') == -1) {
+        if (str.indexOf('.') == -1 || str.indexOf('e') != -1) {
           return value;
         } else {
           let num = 4 - str.split('.')[0].length;
@@ -51,6 +120,12 @@ Vue.component('inspector-value', {
 
       return value;
     },
+    actual_symbol: function() {
+      if (this.unit == "flecs.units.Duration.Seconds") {
+        return "";
+      }
+      return this.symbol;
+    },
     css: function() {
       let result = "inspector-value ";
       if (this.type) {
@@ -59,7 +134,7 @@ Vue.component('inspector-value', {
       return result;
     }
   },
-  template: `<span :class="css"><template v-if="separator">,&nbsp;</template>{{formatted_value}}</span>`
+  template: `<span :class="css"><template v-if="separator">,&nbsp;</template>{{formatted_value}}&nbsp;{{actual_symbol}}</span>`
 });
 
 // Key-value pair (as shown in entity inspector)
@@ -71,6 +146,14 @@ Vue.component('inspector-kv', {
     },
     value_css: function() {
       return "inspector-kv-value";
+    },
+    symbol: function() {
+      if (this.type && this.type.length > 1) {
+        if (inspector_is_object(undefined, this.type[1])) {
+          return this.type[1].symbol;
+        }
+      }
+      return "";
     }
   },
   template: `
@@ -89,7 +172,7 @@ Vue.component('inspector-kv', {
           </div>
         </template>
         <template v-else>
-          <inspector-key :prop_key="prop_key"/><inspector-value :css="value_css" :type="type" :value="value"/>
+          <inspector-key :prop_key="prop_key"/><inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol"/>
         </template>
       </template>
       <template v-else>
@@ -160,36 +243,100 @@ Vue.component('inspector-props', {
 
 // Component
 Vue.component('inspector-component', {
-  props: ['elem'],
+  props: ['entity', 'index'],
+  methods: {
+    search_component() {
+      if (this.obj) {
+        this.$emit('select-query', '(' + this.pred + ", " + this.obj + ')');
+      } else {
+        this.$emit('select-query', this.pred);
+      }
+    }
+  },
   computed: {
+    id: function() {
+      return this.entity.ids[this.index];
+    },
+    id_label: function() {
+      if (this.entity.id_labels) {
+        return this.entity.id_labels[this.index];
+      } else {
+        if (this.obj) {
+          return [name_from_path(this.pred), name_from_path(this.obj)];
+        } else {
+          return [name_from_path(this.pred)];
+        }
+      }
+    },
+    pred: function() {
+      return this.id[0];
+    },
+    obj: function() {
+      if (this.id.length > 1) {
+        return this.id[1];
+      } else {
+        return undefined;
+      }
+    },
+    pred_label: function() {
+      return this.id_label[0];
+    },
+    obj_label: function() {
+      return this.id_label[1];
+    },
+    value: function() {
+      if (this.entity.values) {
+        let result = this.entity.values[this.index];
+        if (result !== 0) {
+          return result;
+        } else {
+          return undefined;
+        }
+      } else {
+        return undefined;
+      }
+    },
+    type_info: function() {
+      if (this.entity.type_info) {
+        return this.entity.type_info[this.index];
+      } else {
+        return 0;
+      }
+    },
+    hidden: function() {
+      if (this.entity.hidden) {
+        return this.entity.hidden[this.index];
+      } else {
+        return false;
+      }
+    },
     name_css: function() {
-      if (this.elem.hidden) {
+      if (this.hidden) {
         return "inspector-component-name inspector-component-overridden";
       } else {
         return "inspector-component-name";
       }
-    },
-    hide_property: function() {
-      if (this.elem.pred == "flecs.doc.Description" || this.elem.pred == "Identifier") {
-        return true;
-      }
-      return false;
     }
   },
-
   template: `
-    <div class="inspector-component" v-if="!hide_property">
+    <div class="inspector-component">
       <div class="inspector-component-name">
-        <detail-toggle :disable="elem.value == undefined" summary_toggle="true">
+        <detail-toggle :disable="value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="elem.pred" :disabled="true" show_name="true"/><template v-if="elem.obj">, {{elem.obj}}</template>
+              <entity-reference :entity="pred" :label="pred_label" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="obj">:&nbsp;<span class="inspector-component-object"><entity-reference 
+                :entity="obj" 
+                :label="obj_label"
+                show_name="true" 
+                click_name="true"
+                v-on="$listeners"/></span></template>
+              <icon src="search" v-on:click.stop="search_component"/>
             </div>
           </template>
           <template v-slot:detail>
-            <inspector-props v-if="elem.value !== undefined" 
-              :type="elem.type_info" 
-              :value="elem.value"/>
+            <inspector-props v-if="value !== undefined" 
+              :type="type_info" 
+              :value="value"/>
           </template>
         </detail-toggle>
       </div>
@@ -200,17 +347,12 @@ Vue.component('inspector-component', {
 
 // Components of entity and/or base entities
 Vue.component('inspector-components', {
-  props: ['entity', 'path', 'type', 'show_header'],
+  props: ['entity', 'show_header', 'is_base'],
   computed: {
     entity_type: function() {
-      if (this.type) {
-        return this.type;
+      if (this.entity) {
+        return this.entity.ids;
       }
-
-      if (this.entity.type) {
-        return this.entity.type;
-      }
-      
       return [];
     },
     css: function() {
@@ -236,8 +378,8 @@ Vue.component('inspector-components', {
         <template v-slot:summary>
           <span class="inspector-header" v-if="show_header">
             <entity-reference 
-              :label="entity == undefined ? 'inherited from' : ''" 
-              :entity="path" 
+              :text="is_base ? 'inherited from' : ''" 
+              :entity="entity.path" 
               show_name="true" 
               :disabled="true" 
               icon_link="true" 
@@ -247,7 +389,7 @@ Vue.component('inspector-components', {
         <template v-slot:detail>
           <div :class="detail_css">
             <div class="inspector-components-content">
-              <inspector-component v-for="(elem, k) in entity_type" :elem="elem" :key="k" v-on="$listeners"/>
+              <inspector-component v-for="(elem, k) in entity_type" :entity="entity" :index="k" :key="k" v-on="$listeners"/>
             </div>
           </div>
         </template>
@@ -258,61 +400,48 @@ Vue.component('inspector-components', {
 
 // Top level inspector
 Vue.component('inspector', {
+<<<<<<< HEAD
   props: ['entity', 'selection', 'valid'],
   mounted: function() {
     if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
   },
+=======
+  props: ['entity', 'entity_name', 'valid'],
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
   methods: {
     expand: function() {
       this.$refs.container.force_expand();
     },
     select_query: function() {
-      this.$emit('select-query', this.selection.path);
+      this.$emit('select-query', this.entity_name);
     },
     evt_close: function() {
       this.$emit('select-entity');
-    }
+    },
+    name_from_path: function(path) {
+      return name_from_path(path);
+    },
   },
   computed: {
     parent: function() {
-      const pos = this.selection.path.lastIndexOf(".");
-      if (pos != -1) {
-        return this.selection.path.slice(0, pos);
-      } else {
-        return "";
-      }
+      return parent_from_path(this.entity.path);
+    },
+    has_parent: function() {
+      return this.parent.length != 0;
     },
     brief: function() {
       if (!this.entity) {
         return undefined;
       }
 
-      if (!this.entity.type) {
-        return undefined;
-      }
-
-      for (let i = 0; i < this.entity.type.length; i ++) {
-        const obj = this.entity.type[i];
-        if (obj.pred == "flecs.doc.Description" && obj.obj == "flecs.doc.Brief") {
-          return obj.value.value;
-        }
-      }
+      return this.entity.brief;
     },
     link: function() {
       if (!this.entity) {
         return undefined;
       }
 
-      if (!this.entity.type) {
-        return undefined;
-      }
-
-      for (let i = 0; i < this.entity.type.length; i ++) {
-        const obj = this.entity.type[i];
-        if (obj.pred == "flecs.doc.Description" && obj.obj == "flecs.doc.Link") {
-          return obj.value.value;
-        }
-      }
+      return this.entity.link;
     },
     has_doc: function() {
       return this.brief || this.link;
@@ -328,6 +457,7 @@ Vue.component('inspector', {
   template: `
     <collapsible-panel 
       ref="container" 
+<<<<<<< HEAD
       :disabled="!entity || !selection" 
       closable="true" 
       v-on:close="evt_close">
@@ -344,12 +474,32 @@ Vue.component('inspector', {
             - <entity-reference :entity="parent" v-on="$listeners"/>
             </span>
           </div>
+=======
+      :disable="!entity_name" 
+      no_padding="true"
+      closable="true" 
+      v-on:close="evt_close">
+      
+      <template v-slot:summary>
+        <template v-if="entity && entity.label">
+          {{entity.label}}
+        </template>
+        <template v-else-if="entity && entity.path">
+          {{name_from_path(entity.path)}}
+        </template>
+        <template v-else-if="entity_name">
+          {{name_from_path(entity_name)}}
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
         </template>
         <template v-else>
           Entity inspector
         </template>
       </template>
+<<<<<<< HEAD
       <template v-slot:content v-if="entity && selection">
+=======
+      <template v-slot:detail v-if="entity">
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
         <div :class="content_css">
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
@@ -359,15 +509,20 @@ Vue.component('inspector', {
               <a :href="link" target="_blank">[link]</a>
             </span>
           </div>
+          <div class="inspector-entity-name" v-if="entity.label != name_from_path(entity.path)">
+            <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{name_from_path(entity.path)}}</span>
+          </div>
+          <div class="inspector-entity-name" v-if="has_parent">
+            <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-entity-name"><entity-reference :entity="parent" v-on="$listeners"/></span>
+          </div>
 
           <div class="inspector-content">
             <template v-for="(v, k) in entity.is_a">
-              <inspector-components :path="k" :type="v.type" :show_header="true" v-on="$listeners"/>
+              <inspector-components :entity="v" :show_header="true" is_base="true" v-on="$listeners"/>
             </template>
 
             <inspector-components 
               :entity="entity" 
-              :path="selection.path" 
               :show_header="entity.is_a" 
               v-on="$listeners"/>
           </div>

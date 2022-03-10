@@ -174,6 +174,7 @@ div.top-content {
 
 .app-panel-handle {
   position: absolute;
+<<<<<<< HEAD
 
   width: 100%;
   height: 5px;
@@ -201,26 +202,68 @@ div.tree-box {
   /* width: 194px; */
   width: 100%;
   height: 100%;
+=======
+  top: 41px;
+  left: 0px;
+  width: 214px;
+  height: calc(100vh - 41px);
+  border-style: solid;
+  border-width: 0px;
+  border-left-color: #232833;
+  border-left-width: 5px;
+  border-right-color: #000;
+  border-right-width: 1px;
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
 }
 
 div.app-box {
   display: flex;
   position: relative;
   top: 41px;
-  left: 200px;
-  width: calc(100% - 200px);
+  left: 220px;
+  width: calc(100% - 220px);
   height: calc(100vh - 141px);
 }
 
+<<<<<<< HEAD
+=======
+div.left-column {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+  overflow-x: auto;
+}
+
+div.right-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+  height: 100%;
+  border-style: solid;
+  border-width: 0px;
+  border-left-width: 1px;
+  border-color: #000;
+  overflow-x: auto;
+}
+
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
 div.query-box {
   width: calc(100% - 30px);
 }
 
 div.terminal-box {
 
+<<<<<<< HEAD
   width: 100%;
   height: 100%;
   left: 200px;
+=======
+  position: absolute;
+  width: calc(100% - 220px);
+  height: 100px;
+  left: 220px;
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
   bottom: 0px;
 }
 
@@ -385,6 +428,20 @@ div.inspector-component-name {
   font-weight: 500;
 }
 
+div.inspector-component-name div.detail-toggle-summary {
+  border-radius: 2px;
+  background-color: rgb(35, 40, 51, 0.0);
+  transition: 0.3s background-color
+}
+
+div.inspector-component-name div.detail-toggle-summary:hover {
+  background-color: rgb(35, 40, 51, 1.0);
+}
+
+span.inspector-component-object {
+  color: #47B576;
+}
+
 div.inspector-component-overridden {
   display: flex;
   color: #4F5565;
@@ -500,8 +557,6 @@ div.inspector-component-expand-nodata span {
 }
 
 span.inspector-parent {
-  font-size: 12px;
-  color: #47B576;
   margin-left: 5px;
 }
 
@@ -523,8 +578,41 @@ span.inspector-link a {
   cursor: pointer;
 }
 
+div.inspector-entity-name {
+  margin-left: 15px;
+  margin-bottom: 15px;
+  max-width: 380px;
+  overflow: hidden;
+  /* text-overflow: ellipsis; */
+  white-space: nowrap;
+}
+
+span.inspector-entity-name {
+  color: #BDC1CC;
+  margin-right: 5px;
+  overflow-x: hidden;
+}
+
+span.inspector-entity-name-label {
+  font-weight: 500;
+}
+
 span.entity-reference span {
   white-space: nowrap;
+}
+
+span.entity-reference-clickable-name {
+  transition: 0.3s color;
+  cursor: pointer;
+}
+
+span.entity-reference-clickable-name:hover {
+  color: #fff;
+}
+
+span.entity-parent {
+  font-size: 12px;
+  color: #47B576;
 }
 
 /* -- end of inspector -- */
@@ -639,11 +727,13 @@ div.ecs-query {
 
 div.ecs-query div.ldt {
   min-width: 36px;
+  max-width: 100%;
   min-height: 19px;
+  overflow-x: hidden;
 }
 
 div.ecs-query-empty div.ldt {
-  min-width: 0px;
+  min-width: 1px;
 }
 
 div.query-default-text {
@@ -661,6 +751,7 @@ div.ecs-query:hover {
 
 div.ecs-query pre, div.editor pre {
   min-height: 16px;
+  max-width: inherit;
 }
 
 div.ecs-query-ok {
@@ -792,6 +883,10 @@ div.query-result-no {
   color: #B5494B; 
 }
 
+span.query-result-no {
+  color: #B5494B; 
+}
+
 div.query-results {
   position: relative;
 }
@@ -903,6 +998,7 @@ table.last_align_right td:last-child {
 
 table th {
   padding: 0px;
+  padding-right: 20px;
   font-weight: 500;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -930,6 +1026,10 @@ td.query-results-squeeze {
   min-width: 0px;
 }
 
+td.query-result-entity {
+  white-space: nowrap;
+}
+
 table td {
   padding-top: 8px;
   padding-bottom: 8px;
@@ -938,7 +1038,6 @@ table td {
   border-top-style: solid;
   border-top-width: 1px;
   font-size: inherit;
-  min-width: 100px;
 }
 
 /* detail toggle */

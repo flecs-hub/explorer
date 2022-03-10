@@ -4,19 +4,35 @@ Vue.component('query', {
   data: function() {
     return {
       query_result: undefined,
-      query_error: undefined
+      query_error: undefined,
     }
   },
   methods: {
     // Query changed event
     evt_query_changed(query) {
+      let r = this.request;
+      if (r) {
+        r.abort();
+      }
       if (query && query.length > 1) {
-        app.request_query(query, (reply) => {
+        this.request = app.request_query('query', query, (reply) => {
           this.query_error = reply.error;
           if (reply.error === undefined) {
             this.query_result = reply;
           }
           this.$emit('changed');
+        }, (err_reply) => {
+          if (err_reply) {
+            this.query_error = err_reply.error;
+          } else {
+            this.query_error = "request failed";
+          }
+          this.$emit('changed');
+        }, {
+          ids: false, 
+          subjects: false,
+          entity_labels: true,
+          variable_labels: true
         });
       } else {
         this.query_result = undefined;
@@ -66,11 +82,18 @@ Vue.component('query', {
     }
   },
   template: `
+<<<<<<< HEAD
     
     <collapsible-panel 
       ref="container"
       closable="true"
       :disabled="query_result === undefined" 
+=======
+    <content-container 
+      ref="container" 
+      :disable="query_result === undefined && query_error === undefined" 
+      closable="true" 
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
       v-on:close="evt_close">
       <template v-slot:title>
         <query-editor

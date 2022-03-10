@@ -14,8 +14,8 @@
  * dependencies will automatically show up in this file. Include bake_config.h
  * in your main project file. Do not edit! */
 
-#ifndef WEB_QUERIES_BAKE_CONFIG_H
-#define WEB_QUERIES_BAKE_CONFIG_H
+#ifndef FLECS_EXPLORER_BAKE_CONFIG_H
+#define FLECS_EXPLORER_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
 #include "../../deps/flecs.h"
