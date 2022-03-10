@@ -3,6 +3,7 @@
     <title></title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/split-panes.css">
     <link rel="stylesheet" href="deps/TextareaDecorator.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -33,27 +34,32 @@
         </div>
       </div>
 
-      <!-- Tree view -->
-      <div class="tree-box">
-        <entity-tree ref="tree" 
-          :valid="valid"
-          :selected_entity="selected_entity"
-          v-on:select="evt_entity_changed" 
-          v-on:select_query="evt_select_query"/>
-      </div>
+      <split-pane-container>
 
-      <!-- Application box -->
-      <div class="app-box">
+        <!-- Tree view -->
+        <split-pane :fixed="true" :initial_width="220">
+          <entity-tree ref="tree" 
+            :valid="valid"
+            :selected_entity="selected_entity"
+            v-on:select="evt_entity_changed" 
+            v-on:select_query="evt_select_query"/>
+        </split-pane>
 
         <!-- Query results & Entity inspector -->
-        <div class="left-column">
-          <query :valid="valid" ref="query"
+        <split-pane>
+          <div class="query-box">
+            <query :valid="valid" ref="query"
             v-on:select-entity="evt_follow_ref"
             v-on:changed="evt_query_changed"/>
-        </div>
+          </div>
+
+          <div class="terminal-box">
+            <terminal ref="terminal"/>
+          </div>
+        </split-pane>
 
         <!-- Editor -->
-        <div class="right-column">
+        <split-pane>
           <template v-if="!remote_mode">
             <editor 
               ref="plecs"
@@ -67,13 +73,11 @@
             v-on:select-entity="evt_follow_ref" 
             v-on:select-query="evt_select_query"
             ref="inspector"></inspector>
-        </div>
-      </div>
+        </split-pane>
+      </split-pane-container>
 
       <!-- Terminal -->
-      <div class="terminal-box">
-        <terminal ref="terminal"/>
-      </div>
+
 
       <!-- URL modal -->
       <url-modal ref="url" :url="url"/>
@@ -119,6 +123,7 @@
     <script src="js/detail_toggle.js"></script>
     <script src="js/content_container.js"></script>
     <script src="js/layout.js"></script>
+    <script src="js/split_panes.js"></script>
 
     <script src="js/entity_icon.js"></script>
     <script src="js/entity_reference.js"></script>
