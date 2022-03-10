@@ -1,6 +1,9 @@
 
 Vue.component('content-container', {
     props: ['disable', 'no_padding', 'closable'],
+    mounted: function() {
+      if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+    },
     methods: {
       expand: function(arg) {
         this.$refs.toggle.expand(arg);

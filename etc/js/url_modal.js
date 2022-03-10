@@ -1,6 +1,9 @@
 
 Vue.component('url-modal', {
   props: ['url'],
+  mounted: function() {
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+  },
   data: function() {
       return {
           hidden: true

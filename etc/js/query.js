@@ -48,7 +48,7 @@ Vue.component('query', {
     },
     set_query(q) {
       this.$refs.editor.set_query(q);
-      this.$refs.container.expand();
+      // this.$refs.container.expand();
     },
     get_error() {
       return this.query_error;
@@ -58,6 +58,9 @@ Vue.component('query', {
     },
     result_count() {
       return this.$refs.results.count();
+    },
+    dosomething: function() {
+      console.log("ok!");
     }
   },
   computed: {
@@ -79,26 +82,50 @@ Vue.component('query', {
     }
   },
   template: `
+<<<<<<< HEAD
+    
+    <collapsible-panel 
+      ref="container"
+      closable="true"
+      :disabled="query_result === undefined" 
+=======
     <content-container 
       ref="container" 
       :disable="query_result === undefined && query_error === undefined" 
       closable="true" 
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
       v-on:close="evt_close">
-
-      <template v-slot:summary>
+      <template v-slot:title>
         <query-editor
-          ref="editor"
-          :error="query_error"
-          v-on:changed="evt_query_changed"/>
+        ref="editor"
+        :error="query_error"
+        v-on:changed="evt_query_changed"/>
       </template>
-
-      <template v-slot:detail>
+      <template v-slot:content>
         <query-results 
           ref="results"
           :data="query_result" 
           :valid="valid && query_error === undefined"
           v-on="$listeners"/>
       </template>
-    </content-container>
+    </collapsible-panel>
     `
 });
+
+
+{/* <content-container 
+ref="container" 
+:disable="query_result === undefined" 
+closable="true" 
+v-on:close="evt_close">
+
+<template v-slot:summary>
+  <query-editor
+    ref="editor"
+    :error="query_error"
+    v-on:changed="evt_query_changed"/>
+</template>
+
+<template v-slot:detail>
+</template>
+</content-container> */}

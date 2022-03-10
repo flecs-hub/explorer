@@ -4,6 +4,9 @@ Vue.component('terminal', {
     var div = document.getElementById("terminal");
     div.scrollTop = div.scrollHeight - div.clientHeight;
   },
+  mounted: function() {
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+  },
   data: function() {
     return {
       messages: []
@@ -48,15 +51,25 @@ Vue.component('terminal', {
     }
   },
   template: `
-    <div class="terminal">
-      <div id="terminal" class="terminal-content">
-        <div :class="wrapper_css(msg)" v-for="msg in messages">
-          <span class="terminal-icon" v-if="show_arrow(msg)">
-            <img src="img/nav-right.png">
-          </span>
-          <span :class="content_css(msg)">{{msg.text}}</span>
+    <collapsible-panel
+      ref="terminal">
+
+      <template v-slot:title>
+      Terminal
+      </template>
+
+      <template v-slot:content>
+        <div class="terminal">
+          <div id="terminal" class="terminal-content">
+            <div :class="wrapper_css(msg)" v-for="msg in messages">
+              <span class="terminal-icon" v-if="show_arrow(msg)">
+                <img src="img/nav-right.png">
+              </span>
+              <span :class="content_css(msg)">{{msg.text}}</span>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </collapsible-panel>
     `
 });

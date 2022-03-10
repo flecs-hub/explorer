@@ -1,5 +1,9 @@
+<<<<<<< HEAD
+Vue.config.devtools = true;
+=======
 
 Vue.config.devtools = false;
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
 
 // Track state of connection to remote app
 const ConnectionState = {
@@ -72,15 +76,158 @@ function getParameterByName(name, url = window.location.href) {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+const VALID_UNITS = ["px", "vw", "vh", "%"];
+
+Vue.mixin({
+  data: function() {
+    return {
+      originDims: {},
+    }
+  },
+  methods: {
+    convert: function(current_value, target_unit) {
+      let converted_value;
+
+      if (typeof(current_value == "number") && typeof(target_unit) == "string" && VALID_UNITS.includes(target_unit)) {
+        // current_value must be number
+        // target_unit must be valid unit string
+        switch (target_unit) {
+          case ("vw"):
+            converted_value = current_value / window.innerWidth * 100;
+            break;
+          case ("vh"):
+            converted_value = current_value / window.innerHeight * 100;
+            break;
+        } 
+        return converted_value;
+      } else {
+        throw TypeError;
+      }
+    },
+    emit_resize: function() {
+      emitter.emit("layout_changed");
+    },
+    get_left: function(unit = "px") {
+      let position;
+      try {
+        if (unit == "px") {
+          position = this.$el.getBoundingClientRect().left;
+        } else {
+          position = this.convert(this.$el.getBoundingClientRect().left, unit);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return position;
+    },
+    get_right: function(unit = "px") {
+      let position;
+      try {
+        if (unit == "px") {
+          position = this.$el.getBoundingClientRect().right;
+        } else {
+          position = this.convert(this.$el.getBoundingClientRect().right, unit);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return position;
+    },
+    get_top: function(unit = "px") {
+      let position;
+      try {
+        if (unit == "px") {
+          position = this.$el.getBoundingClientRect().top;
+        } else {
+          position = this.convert(this.$el.getBoundingClientRect().top, unit);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return position;
+    },
+    get_bottom: function(unit = "px") {
+      let position;
+      try {
+        if (unit == "px") {
+          position = this.$el.getBoundingClientRect().bottom;
+        } else {
+          position = this.convert(this.$el.getBoundingClientRect().bottom, unit);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return position;
+    },
+    get_width: function(unit = "px") {
+      let dimension;
+      try {
+        if (unit == "px") {
+          dimension = this.$el.getBoundingClientRect().width;
+        } else {
+          dimension = this.convert(this.$el.getBoundingClientRect().width, unit);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return dimension;
+    },
+    get_height: function(unit = "px") {
+      let dimension;
+      try {
+        if (unit == "px") {
+          dimension = this.$el.getBoundingClientRect().height;
+        } else {
+          dimension = this.convert(this.$el.getBoundingClientRect().height, unit);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+      return dimension;
+    },
+    set_width: function(target_width_value, unit = "px") {
+      if (typeof(target_width_value == "number") && typeof(unit) == "string" && VALID_UNITS.includes(unit)) {
+        this.$el.style.width = target_width_value + unit;
+      } else { throw TypeError; }
+    },
+    set_height: function(target_height_value, unit = "px") {
+      if (typeof(target_height_value == "number") && typeof(unit) == "string" && VALID_UNITS.includes(unit)) {
+        this.$el.style.height = target_height_value + unit;
+      } else { throw TypeError; }
+    },
+    set_left: function(target_left_value, unit = "px") {
+      if (typeof(target_left_value == "number") && typeof(unit) == "string" && VALID_UNITS.includes(unit)) {
+        this.$el.style.left = target_left_value + unit;
+      } else { throw TypeError; }
+    },
+    set_top: function(target_top_value, unit = "px") {
+      if (typeof(target_top_value == "number") && typeof(unit) == "string" && VALID_UNITS.includes(unit)) {
+        this.$el.style.top = target_top_value + unit;
+      } else { throw TypeError; }
+    },
+  }
+});
+
+const emitter = mitt();
+
 var app = new Vue({
   el: '#app',
 
   mounted: function() {
+<<<<<<< HEAD
+
+    this.$nextTick(_.debounce(() => {
+      web_queries.then(() => {
+=======
     this.$nextTick(() => {
       flecs_explorer.then(() => {
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
         this.ready();
       });
-    });
+
+    }, 250));
+
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log("app", "mounted"); };
   },
 
   methods: {

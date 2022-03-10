@@ -4,6 +4,8 @@ Vue.component('query-editor', {
   mounted: function() {
     this.ldt = new TextareaDecorator( 
       document.getElementById('query-editor'), syntax_highlighter);
+
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
   },
   updated: function() {
     this.ldt.update();

@@ -262,7 +262,14 @@ Vue.component('entity-tree-list', {
 });
 
 Vue.component('entity-tree', {
+<<<<<<< HEAD
+  props: ['valid'],
+  mounted: function() {
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+  },
+=======
   props: ['valid', 'selected_entity'],
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
   methods: {
     get_name: function(path) {
       return path.split('.').pop();

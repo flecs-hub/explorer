@@ -1,4 +1,3 @@
-
 Vue.component('editor-textarea', {
   mounted: function() {
     const el = document.getElementById('plecs-editor');
@@ -15,6 +14,8 @@ Vue.component('editor-textarea', {
       autoIndent: true,
       fence: false
     });
+
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
   },
   updated: function() {
     this.ldt.update();
@@ -32,6 +33,8 @@ Vue.component('editor-textarea', {
     set_code(code) {
       this.code = code;
       this.run();
+    
+      if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log("%c code set", "color: #00d404"); };
     },
     tab_pressed (event) { }
   },
@@ -80,22 +83,33 @@ Vue.component('editor', {
     set_code(code) {
       this.$refs.textarea.set_code(code);
       if (code !== undefined && code.length) {
-        this.$refs.container.expand();
+        // this.$refs.container.force_expand();
       }
     }
   },
   template: `
-    <content-container no_padding="true" overflow="true" ref="container">
-      <template v-slot:summary>
-        Editor
-      </template>
-
-      <template v-slot:detail>
+    <collapsible-panel 
+      ref="container">
+      <template v-slot:title>Editor</template>
+      <template v-slot:content>
         <div class="editor">
           <editor-textarea ref="textarea" v-on="$listeners">
           </editor-textarea>
         </div>
       </template>
-    </content-container>
-    `
+    </collapsible-panel>
+  `
 });
+
+// <content-container no_padding="true" overflow="true" ref="container">
+//       <template v-slot:summary>
+//         Editor
+//       </template>
+
+//       <template v-slot:detail>
+//         <div class="editor">
+//           <editor-textarea ref="textarea" v-on="$listeners">
+//           </editor-textarea>
+//         </div>
+//       </template>
+//     </content-container>

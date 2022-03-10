@@ -5,6 +5,9 @@ Vue.component('detail-toggle', {
       should_expand: true
     }
   },
+  mounted: function() {
+    // if (DEBUG_MODE) { console.log(this.$options.name, "mounted"); };
+  },
   methods: {
     toggle: function() {
       this.should_expand = !this.should_expand;

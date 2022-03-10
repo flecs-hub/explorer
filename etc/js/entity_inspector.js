@@ -344,6 +344,7 @@ Vue.component('inspector-component', {
     `
 });
 
+
 // Components of entity and/or base entities
 Vue.component('inspector-components', {
   props: ['entity', 'show_header', 'is_base'],
@@ -399,10 +400,17 @@ Vue.component('inspector-components', {
 
 // Top level inspector
 Vue.component('inspector', {
+<<<<<<< HEAD
+  props: ['entity', 'selection', 'valid'],
+  mounted: function() {
+    if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
+  },
+=======
   props: ['entity', 'entity_name', 'valid'],
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
   methods: {
     expand: function() {
-      this.$refs.container.expand();
+      this.$refs.container.force_expand();
     },
     select_query: function() {
       this.$emit('select-query', this.entity_name);
@@ -447,8 +455,26 @@ Vue.component('inspector', {
     }
   },
   template: `
-    <content-container 
+    <collapsible-panel 
       ref="container" 
+<<<<<<< HEAD
+      :disabled="!entity || !selection" 
+      closable="true" 
+      v-on:close="evt_close">
+      
+      <template v-slot:title>
+        <template v-if="entity && selection">
+          <div class="inspector-name">
+            <div class="inspector-icon">
+              <entity-icon x="0" y="0" :entity_data="selection"/>
+            </div>
+            {{selection.name}}
+            <icon src="search" v-if="selection.is_component" v-on:click.stop="select_query"/>
+            <span class="inspector-parent" v-if="parent.length">
+            - <entity-reference :entity="parent" v-on="$listeners"/>
+            </span>
+          </div>
+=======
       :disable="!entity_name" 
       no_padding="true"
       closable="true" 
@@ -463,12 +489,17 @@ Vue.component('inspector', {
         </template>
         <template v-else-if="entity_name">
           {{name_from_path(entity_name)}}
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
         </template>
         <template v-else>
           Entity inspector
         </template>
       </template>
+<<<<<<< HEAD
+      <template v-slot:content v-if="entity && selection">
+=======
       <template v-slot:detail v-if="entity">
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
         <div :class="content_css">
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
@@ -497,6 +528,6 @@ Vue.component('inspector', {
           </div>
         </div>
       </template>
-    </content-container>
+    </collapsible-panel>
     `
 });

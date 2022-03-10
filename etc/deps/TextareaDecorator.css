@@ -92,8 +92,15 @@
 }
 
 .ldt pre {
+<<<<<<< HEAD
+	/* 0 margin results in Safari rendering bug */
+	margin-top: 2px;
+	margin-bottom: 2px;
+	overflow: initial;
+=======
     margin: 0;
     overflow: initial;
+>>>>>>> 19491602b1472716d562f98e633b221c14f1368c
 }
 
 .ldt label {
