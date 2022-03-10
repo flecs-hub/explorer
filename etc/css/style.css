@@ -174,6 +174,7 @@ div.top-content {
 
 .app-panel-handle {
   position: absolute;
+<<<<<<< HEAD
 
   width: 100%;
   height: 5px;
@@ -201,26 +202,68 @@ div.tree-box {
   /* width: 194px; */
   width: 100%;
   height: 100%;
+=======
+  top: 41px;
+  left: 0px;
+  width: 214px;
+  height: calc(100vh - 41px);
+  border-style: solid;
+  border-width: 0px;
+  border-left-color: #232833;
+  border-left-width: 5px;
+  border-right-color: #000;
+  border-right-width: 1px;
+>>>>>>> pr/13
 }
 
 div.app-box {
   display: flex;
   position: relative;
   top: 41px;
-  left: 200px;
-  width: calc(100% - 200px);
+  left: 220px;
+  width: calc(100% - 220px);
   height: calc(100vh - 141px);
 }
 
+<<<<<<< HEAD
+=======
+div.left-column {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  height: 100%;
+  overflow-x: auto;
+}
+
+div.right-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 400px;
+  height: 100%;
+  border-style: solid;
+  border-width: 0px;
+  border-left-width: 1px;
+  border-color: #000;
+  overflow-x: auto;
+}
+
+>>>>>>> pr/13
 div.query-box {
   width: calc(100% - 30px);
 }
 
 div.terminal-box {
 
+<<<<<<< HEAD
   width: 100%;
   height: 100%;
   left: 200px;
+=======
+  position: absolute;
+  width: calc(100% - 220px);
+  height: 100px;
+  left: 220px;
+>>>>>>> pr/13
   bottom: 0px;
 }
 
@@ -500,8 +543,6 @@ div.inspector-component-expand-nodata span {
 }
 
 span.inspector-parent {
-  font-size: 12px;
-  color: #47B576;
   margin-left: 5px;
 }
 
@@ -523,8 +564,24 @@ span.inspector-link a {
   cursor: pointer;
 }
 
+div.inspector-entity-name {
+  display: flex;
+  margin-left: 15px;
+  margin-bottom: 15px;
+}
+
+span.inspector-entity-name {
+  color: #BDC1CC;
+  margin-right: 5px;
+}
+
 span.entity-reference span {
   white-space: nowrap;
+}
+
+span.entity-parent {
+  font-size: 12px;
+  color: #47B576;
 }
 
 /* -- end of inspector -- */
@@ -792,6 +849,10 @@ div.query-result-no {
   color: #B5494B; 
 }
 
+span.query-result-no {
+  color: #B5494B; 
+}
+
 div.query-results {
   position: relative;
 }
@@ -928,6 +989,10 @@ td.query-results-squeeze {
   padding: 0px;
   margin: 0px;
   min-width: 0px;
+}
+
+td.query-result-entity {
+  white-space: nowrap;
 }
 
 table td {

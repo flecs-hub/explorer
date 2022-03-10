@@ -161,6 +161,15 @@ Vue.component('inspector-props', {
 // Component
 Vue.component('inspector-component', {
   props: ['elem'],
+  methods: {
+    search_component() {
+      if (this.elem.obj) {
+        this.$emit('select-query', '(' + this.elem.pred + ", " + this.elem.obj + ')');
+      } else {
+        this.$emit('select-query', this.elem.pred);
+      }
+    }
+  },
   computed: {
     name_css: function() {
       if (this.elem.hidden) {
@@ -170,7 +179,7 @@ Vue.component('inspector-component', {
       }
     },
     hide_property: function() {
-      if (this.elem.pred == "flecs.doc.Description" || this.elem.pred == "Identifier") {
+      if (this.elem.pred == "flecs.doc.Description" || this.elem.pred == "flecs.core.Identifier") {
         return true;
       }
       return false;
@@ -183,7 +192,8 @@ Vue.component('inspector-component', {
         <detail-toggle :disable="elem.value == undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
-              <entity-reference :entity="elem.pred" :disabled="true" show_name="true"/><template v-if="elem.obj">, {{elem.obj}}</template>
+              <entity-reference :entity="elem.pred" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="elem.obj">,&nbsp;<entity-reference :entity="elem.obj" show_name="true" disabled="true" v-on="$listeners"/></template>
+              <icon src="search" v-on:click.stop="search_component"/>
             </div>
           </template>
           <template v-slot:detail>
@@ -258,10 +268,14 @@ Vue.component('inspector-components', {
 
 // Top level inspector
 Vue.component('inspector', {
+<<<<<<< HEAD
   props: ['entity', 'selection', 'valid'],
   mounted: function() {
     if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
   },
+=======
+  props: ['entity', 'selection', 'entity_name', 'valid'],
+>>>>>>> pr/13
   methods: {
     expand: function() {
       this.$refs.container.force_expand();
@@ -274,13 +288,8 @@ Vue.component('inspector', {
     }
   },
   computed: {
-    parent: function() {
-      const pos = this.selection.path.lastIndexOf(".");
-      if (pos != -1) {
-        return this.selection.path.slice(0, pos);
-      } else {
-        return "";
-      }
+    has_parent: function() {
+      return this.selection.path.lastIndexOf(".") != -1;
     },
     brief: function() {
       if (!this.entity) {
@@ -328,7 +337,12 @@ Vue.component('inspector', {
   template: `
     <collapsible-panel 
       ref="container" 
+<<<<<<< HEAD
       :disabled="!entity || !selection" 
+=======
+      :disable="!entity_name && !selection" 
+      no_padding="true"
+>>>>>>> pr/13
       closable="true" 
       v-on:close="evt_close">
       
@@ -338,12 +352,15 @@ Vue.component('inspector', {
             <div class="inspector-icon">
               <entity-icon x="0" y="0" :entity_data="selection"/>
             </div>
-            {{selection.name}}
+            {{selection.label}}
             <icon src="search" v-if="selection.is_component" v-on:click.stop="select_query"/>
-            <span class="inspector-parent" v-if="parent.length">
-            - <entity-reference :entity="parent" v-on="$listeners"/>
-            </span>
+            <template v-if="has_parent">
+              -&nbsp;<entity-parent :entity="selection.path" v-on="$listeners"/>
+            </template>
           </div>
+        </template>
+        <template v-else-if="entity_name">
+          {{entity_name}}
         </template>
         <template v-else>
           Entity inspector
@@ -351,6 +368,9 @@ Vue.component('inspector', {
       </template>
       <template v-slot:content v-if="entity && selection">
         <div :class="content_css">
+          <div class="inspector-entity-name" v-if="selection.label != selection.name">
+            Name:&nbsp;<span class="inspector-entity-name">{{selection.name}}</span>
+          </div>
           <div class="inspector-doc" v-if="has_doc">
             <span class="inspector-brief" v-if="brief">
               {{brief}}

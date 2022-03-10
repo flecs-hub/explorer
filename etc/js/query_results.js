@@ -1,16 +1,53 @@
 
 Vue.component('query-result', {
   props: ['result', 'entity', 'index', 'show_terms'],
+  methods: {
+    var_label: function(var_index) {
+      if (this.result.var_labels) {
+        return this.result.var_labels[var_index];
+      } else {
+        return this.vars[var_index];
+      }
+    },
+    get_value(value, index) {
+      if (Array.isArray(value)) {
+        // Owned
+        return value[index];
+      } else {
+        // Shared
+        return value;
+      }
+    }
+  },
+  computed: {
+    entity_label: function() {
+      if (this.result.entity_labels) {
+        return this.result.entity_labels[this.index];
+      } else {
+        return this.entity;
+      }
+    }
+  },
   template: `
   <tr>
-    <td v-if="entity">
-      <entity-reference :entity="entity" :show_name="true" v-on="$listeners"/>
+    <td class="query-result-entity" v-if="entity">
+      <entity-reference :entity="entity" :name="entity_label" :show_name="true" :show_parent="true" v-on="$listeners"/>
     </td>
-    <td v-for="variable in result.vars">
-      <entity-reference :entity="variable" :show_name="true" v-on="$listeners"/>
+    <td v-for="(variable, vi) in result.vars">
+        <template v-if="variable !== '*'">
+          <entity-reference :entity="variable" :name="var_label(vi)" :show_name="true" v-on="$listeners"/>
+        </template>
+        <template v-else>
+          <span class="query-result-no">No</span>
+        </template>
     </td>
-    <td v-for="value in result.values" v-if="value !== 0">
-      <inspector-props :value="value[index]" :list="true"/>
+    <td v-for="(value, vi) in result.values" v-if="value !== 0">
+      <template v-if="result.is_set[vi]">
+        <inspector-props :value="get_value(value, index)" :list="true"/>
+      </template>
+      <template v-else>
+        <span class="query-result-no">No</span>
+      </template>
     </td>
     <td v-if="show_terms" v-for="term in result.terms" class="content-container-term">
       {{term}}
@@ -41,9 +78,19 @@ Vue.component('query-results', {
         }
         return false;
       },
-      term_id(term) {
-        const elems = this.data.ids[term].split('.');
+      id_elem(str) {
+        const elems = str.split('.');
         return elems[elems.length - 1];
+      },
+      term_id(term) {
+        const pair = this.data.ids[term].split(',');
+        if (pair.length == 1) {
+          return this.id_elem(pair[0]);
+        } else {
+          const first = this.id_elem(pair[0].slice(1));
+          const second = this.id_elem(pair[1].slice(0, -1));
+          return "(" + first + ", " + second + ")";
+        }
       }
     },
     computed: {
@@ -128,7 +175,7 @@ Vue.component('query-results', {
     },
     template: `
       <div :class="css">
-        <template v-if="data && valid && !has_this && (variable_count == 0)">
+        <template v-if="data && valid && !has_this && ((variable_count == 0) || !results.length)">
           <div v-if="data && is_true" class="noselect query-result-yes"> Yes </div>
           <div v-else class="noselect query-result-no"> No </div>
         </template>
@@ -136,7 +183,7 @@ Vue.component('query-results', {
           <table v-if="data">
             <thead>
               <tr>
-                <th v-if="has_this">Entities</th>
+                <th v-if="has_this">Entity</th>
                 <th v-for="var_name in variables" class="query-results-header">
                   {{var_name}}
                 </th>

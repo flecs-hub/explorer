@@ -2,6 +2,7 @@
 const top_margin = 20;
 const item_height = 24;
 const indent_width = 9;
+const tree_width = 215;
 
 function subtree_height(entity_data) {
   let result = item_height;
@@ -17,7 +18,7 @@ function subtree_height(entity_data) {
 }
 
 Vue.component('entity-tree-item', {
-  props: ['x', 'y', 'entity', 'entity_data'],
+  props: ['x', 'y', 'entity_data'],
   mounted: function() {
     this.expand = this.entity_data.expand;
   },
@@ -39,7 +40,6 @@ Vue.component('entity-tree-item', {
       this.$emit('select', this.entity_data);
     },
     search_x: function() {
-      console.log(this.$refs.item_text);
       return 50;
     }
   },
@@ -52,7 +52,7 @@ Vue.component('entity-tree-item', {
       }
     },
     width_select_box: function() {
-      return 195 - this.x - 30;
+      return tree_width - this.x - 30;
     },
     css_text: function() {
       if (this.entity_data.selected) {
@@ -90,12 +90,12 @@ Vue.component('entity-tree-item', {
 
       <entity-icon :x="x + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
-      <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity}}</text>
-      <rect :x="165" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
+      <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
+      <rect :x="183" :y="y - 12" :width="30" height="15" :class="css_select_box"></rect>
 
       <image v-if="entity_data.is_component && !entity_data.is_module"
         href="img/search.png" 
-        :x="170" :y="y - 12" height="13px"
+        :x="190" :y="y - 12" height="13px"
         v-on:click="search" class="entity-tree-icon">
       </image>
     </svg>`
@@ -199,7 +199,6 @@ Vue.component('entity-tree-list', {
           props: {
             x: this.x,
             y: height,
-            entity: entity_data.name,
             entity_data: entity_data
           },
   
@@ -257,6 +256,9 @@ Vue.component('entity-tree', {
     if (DEBUG_MODE && DEBUG_OPTIONS.mounting) { console.log(this.$options.name, "mounted"); };
   },
   methods: {
+    get_name: function(path) {
+      return path.split('.').pop();
+    },
     update_scope: function(scope, data) {
       // Store entities in new scope, so that deleted entities are automatically
       // cleaned up
@@ -267,7 +269,14 @@ Vue.component('entity-tree', {
           const elem = data.results[r];
           for (var e = 0; e < elem.entities.length; e ++) {
             let path = elem.entities[e];
-            let name = path.split('.').pop();
+            let name = this.get_name(path);
+            let label;
+            if (elem.entity_labels) {
+              label = elem.entity_labels[e];
+            }
+            if (!label) {
+              label = name;
+            }
 
             let entity = scope[name];
             if (!entity) {
@@ -281,6 +290,7 @@ Vue.component('entity-tree', {
               };
             }
 
+            entity.label = label;
             entity.has_children = elem.is_set[1];
             entity.is_module = elem.is_set[2];
             entity.is_component = elem.is_set[3] || elem.is_set[4];
@@ -305,12 +315,19 @@ Vue.component('entity-tree', {
         container = this.root;
       }
 
-      const q = "(ChildOf, " + container.path + "), ?ChildOf(*, This), ?Module, ?Component, ?Tag, ?Prefab";
+      const q = "(ChildOf, " + container.path + "), ?ChildOf(_, This), ?Module, ?Component, ?Tag, ?Prefab";
       app.request_query(q, (reply) => {
         container.entities = this.update_scope(container.entities, reply);
         if (onready) {
           onready();
         }
+      }, undefined, {
+        values: false, 
+        ids: false, 
+        term_ids: false, 
+        subjects: false,
+        entity_labels: true,
+        variable_labels: true
       });
     },
     update_expanded: function(container) {
@@ -356,13 +373,8 @@ Vue.component('entity-tree', {
       this.update(cur, () => {
         let next = cur.entities[elems[i]];
         if (!next) {
-          if (elems[0] != "flecs" && elems[1] != "core") {
-            this.select("flecs.core." + entity);
-            return;
-          } else {
-            console.error("entity-tree: cannot navigate to entity " + elems[i]);
-            this.collapse_all();
-          }
+          console.error("entity-tree: cannot navigate to entity " + elems[i]);
+          this.collapse_all();
         }
 
         if (i < (elems.length - 1)) {
