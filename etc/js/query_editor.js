@@ -36,7 +36,7 @@ Vue.component('query-editor', {
       this.$emit('changed', expr);
     },
     get_query() {
-      return this.actual_query;
+      return this.query;
     },
     is_empty() {
       return this.query == undefined || this.query.length == 0;
