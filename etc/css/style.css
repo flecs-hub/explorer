@@ -679,6 +679,8 @@ div.ecs-query {
   border-style: solid;
   border-color: rgb(0, 0, 0, 0);
 
+  max-width: calc(100% - 40px);
+
   color: #DDE0E6;
 }
 
@@ -707,7 +709,6 @@ div.ecs-query:hover {
 
 div.ecs-query pre, div.editor pre {
   min-height: 16px;
-  max-width: inherit;
 }
 
 div.ecs-query-ok {
@@ -718,6 +719,26 @@ div.ecs-query-ok {
 div.ecs-query-error {
   border-color: #B5494B !important;
   background-color: #13151A !important;
+}
+
+div.ecs-query-focus {
+  padding-top: 2px;
+  transition: padding-top 0.2s;
+  padding-right: 10px;
+}
+
+div.ecs-query-multiline {
+  border-color: #b4b4b4;
+  border-style: solid;
+  border-width: 2px;
+  border-radius: 6px;
+  padding-top: 5px;
+  padding-left: 7px;
+  padding-right: 40px;
+  padding-bottom: 10px;
+  box-shadow: 0px 0px 20px black;
+  position: absolute;
+  top: 3px;
 }
 
 div.error {
@@ -877,6 +898,10 @@ div.ecs-filter {
   margin: 10px;
 }
 
+div.content-container {
+  position: relative;
+}
+
 div.content-container-wrapper {
   border-color: #232833;
   border-style: solid;
@@ -912,6 +937,11 @@ div.content-container > div.detail-toggle > div.detail-toggle-detail {
   border-top-color: #000;
 }
 
+span.content-container-icon-close {
+  position: absolute;
+  right: 5px;
+}
+
 span.content-summary {
   font-weight: 600;
   font-size: 13px;
@@ -919,6 +949,7 @@ span.content-summary {
   width: 100%;
   height: 30px;
   align-items: center;
+  z-index: 1;
 }
 
 div.content-detail {
