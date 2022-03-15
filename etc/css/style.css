@@ -912,7 +912,6 @@ div.content-container-wrapper {
 
 div.content-container-wrapper-overflow {
   display: flex;
-  overflow: hidden;
   min-height: 31px;
 }
 
