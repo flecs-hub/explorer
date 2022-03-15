@@ -41,6 +41,7 @@ Vue.component('query-editor', {
     },
     evt_focus(focus) {
       this.focus = focus;
+      this.$emit('enable_toggle', !focus);
     },
     set_focus() {
       this.$refs.input.focus();
@@ -66,12 +67,13 @@ Vue.component('query-editor', {
       <textarea ref="input" 
         id="query-editor"
         v-model="query"
-        v-on:click.stop 
+        v-on:click.stop
         v-on:keyup="changed"
         v-on:focus="evt_focus(true)"
         v-on:blur="evt_focus(false)">
       </textarea>
-      <div class="query-default-text" v-if="!query.length" v-on:click.stop="set_focus">Search</div>
+      <div class="query-default-text" v-if="!query.length" 
+        v-on:click.stop="set_focus">Search</div>
       <icon src="search" v-on:click.stop="set_focus"/>
     </div>
     `

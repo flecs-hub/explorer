@@ -2,7 +2,8 @@ Vue.component('detail-toggle', {
   props: ['disable', 'collapse', 'hide_disabled', 'summary_toggle', 'show_divider'],
   data: function() {
     return {
-      should_expand: true
+      should_expand: true,
+      can_toggle: true
     }
   },
   methods: {
@@ -10,6 +11,9 @@ Vue.component('detail-toggle', {
       this.should_expand = !this.should_expand;
     },
     summary_clicked: function() {
+      if (!this.can_toggle) {
+        return;
+      }
       if (this.summary_toggle && !this.disable) {
         this.should_expand = !this.should_expand;
       }
@@ -20,6 +24,9 @@ Vue.component('detail-toggle', {
       } else {
         this.should_expand = expand;
       }
+    },
+    enable_toggle: function(e) {
+      this.can_toggle = e;
     }
   },
   computed: {
@@ -61,7 +68,7 @@ Vue.component('detail-toggle', {
           </span>
         </template>
 
-        <slot name="summary"></slot>
+        <slot name="summary" v-on:enable_toggle="enable_toggle"></slot>
 
         <div class="detail-toggle-divider" v-if="show_divider && !disable"></div>
       </div>

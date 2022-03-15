@@ -5,6 +5,9 @@ Vue.component('content-container', {
       expand: function(arg) {
         this.$refs.toggle.expand(arg);
       },
+      enable_toggle(e) {
+        this.$refs.toggle.enable_toggle(e);
+      },
       evt_close: function() {
         this.$emit('close');
       }

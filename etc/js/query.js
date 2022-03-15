@@ -40,6 +40,9 @@ Vue.component('query', {
         this.$emit('changed');
       }
     },
+    evt_enable_toggle(e) {
+      this.$refs.container.enable_toggle(e);
+    },
     refresh() {
       this.evt_query_changed(this.$refs.editor.get_query());
     },
@@ -89,7 +92,8 @@ Vue.component('query', {
         <query-editor
           ref="editor"
           :error="query_error"
-          v-on:changed="evt_query_changed"/>
+          v-on:changed="evt_query_changed"
+          v-on:enable_toggle="evt_enable_toggle"/>
       </template>
 
       <template v-slot:detail>
