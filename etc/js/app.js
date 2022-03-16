@@ -473,6 +473,7 @@ var app = new Vue({
         return;
       }
 
+      this.$refs.inspector.expand();
       this.refresh_entity();
     },
 
@@ -496,7 +497,6 @@ var app = new Vue({
         this.entity_error = reply.error;
         if (this.entity_error === undefined) {
           this.entity_result = reply;
-          this.$refs.inspector.expand();
         }
       }, () => {
         this.entity_error = "request for entity '" + this.selected_entity + "' failed";
