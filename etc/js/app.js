@@ -60,7 +60,6 @@ Sun {
     }    
   }
 }
-
 `
 
 function getParameterByName(name, url = window.location.href) {

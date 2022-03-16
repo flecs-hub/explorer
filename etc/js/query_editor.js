@@ -11,6 +11,7 @@ Vue.component('query-editor', {
   data: function() {
     return {
       query: "",
+      actual_query: "",
       last_query: undefined,
       ldt: undefined,
       focus: false
@@ -30,7 +31,8 @@ Vue.component('query-editor', {
       if (expr === undefined) {
         expr = "";
       }
-      this.query = expr;
+      this.query = expr.replaceAll("\n", " ");
+      this.actual_query = expr;
       this.$emit('changed', expr);
     },
     get_query() {
@@ -41,6 +43,14 @@ Vue.component('query-editor', {
     },
     evt_focus(focus) {
       this.focus = focus;
+      this.$emit('enable_toggle', !focus);
+
+      if (focus) {
+        this.query = this.actual_query;
+      } else {
+        this.actual_query = this.query;
+        this.query = this.actual_query.replaceAll("\n", " ");
+      }
     },
     set_focus() {
       this.$refs.input.focus();
@@ -48,8 +58,17 @@ Vue.component('query-editor', {
     }
   },
   computed: {
+    multiline() {
+      return this.query.indexOf("\n") != -1;
+    },
     query_class() {
       let result = "ecs-query";
+      if (this.focus) {
+        result += " ecs-query-focus";
+        if (this.multiline) {
+          result += " ecs-query-multiline";
+        }
+      }
       if (this.error) {
         result += " ecs-query-error";
       } else if (this.focus) {
@@ -66,13 +85,14 @@ Vue.component('query-editor', {
       <textarea ref="input" 
         id="query-editor"
         v-model="query"
-        v-on:click.stop 
+        v-on:click.stop
         v-on:keyup="changed"
         v-on:focus="evt_focus(true)"
         v-on:blur="evt_focus(false)">
       </textarea>
-      <div class="query-default-text" v-if="!query.length" v-on:click.stop="set_focus">Search</div>
-      <icon src="search" v-on:click.stop="set_focus"/>
+      <div class="query-default-text" v-if="!query.length" 
+        v-on:click.stop="set_focus">Search</div>
+      <icon src="search" v-on:click.stop="set_focus" v-if="!focus"/>
     </div>
     `
 });
