@@ -15,13 +15,14 @@ Vue.component('status', {
       return (this.status !== undefined);
     },
     css: function() {
+      let result = "content-status";
       if (this.has_status) {
-        let result = "content-status";
+        result += " content-status-visible";
         if (this.kind == Status.Error) {
           result += " content-status-error";
         }
-        return result;
       }
+      return result;
     },
     text: function() {
       if (!this.has_status) {

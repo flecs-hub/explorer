@@ -283,7 +283,10 @@ var app = new Vue({
       }
 
       this.parse_interval = 150;
-      this.$refs.tree.update_expanded();
+
+      this.refresh_query();
+      this.refresh_entity();
+      this.refresh_tree();
 
       // Refresh UI periodically
       this.refresh_timer = window.setInterval(() => {
@@ -600,8 +603,9 @@ var app = new Vue({
             this.retry_count < 10);
     },
     remote_mode: function() {
-      return this.connection == ConnectionState.Remote || this.params.remote ||
-        this.params.remote_self || this.params.host;
+      return (this.connection == ConnectionState.Remote) || 
+        (this.connection == ConnectionState.RetryConnecting) ||
+        this.params.remote || this.params.remote_self || this.params.host;
     }
   },
 

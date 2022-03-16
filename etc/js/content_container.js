@@ -1,6 +1,6 @@
 
 Vue.component('content-container', {
-    props: ['disable', 'no_padding', 'closable'],
+    props: ['hidden', 'disable', 'no_padding', 'closable'],
     methods: {
       expand: function(arg) {
         this.$refs.toggle.expand(arg);
@@ -27,7 +27,7 @@ Vue.component('content-container', {
     template: `
       <div :class="wrapper_css">
         <div class="content-container">
-          <detail-toggle summary_toggle="true" :collapse="disable" :disable="disable" ref="toggle">
+          <detail-toggle summary_toggle="true" :collapse="disable || hidden" :disable="disable" ref="toggle">
             <template v-slot:summary>
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>

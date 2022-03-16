@@ -21,7 +21,6 @@ Vue.component('query', {
       this.status = msg;
       this.status_kind = Status.Error;
       this.error = true;
-      this.query_result = undefined;
     },
     // Query changed event
     evt_query_changed(query) {
@@ -36,10 +35,12 @@ Vue.component('query', {
             this.query_result = reply;
           } else {
             this.query_error(reply.error);
+            this.query_result = undefined;
           }
         }, (err_reply) => {
           if (err_reply) {
             this.query_error(err_reply.error);
+            this.query_result = undefined;
           } else {
             this.query_error("request failed");
           }
@@ -98,7 +99,7 @@ Vue.component('query', {
   template: `
     <content-container 
       ref="container" 
-      :disable="query_result === undefined"
+      :hidden="query_result === undefined"
       closable="true" 
       v-on:close="evt_close">
 
@@ -113,7 +114,7 @@ Vue.component('query', {
       <template v-slot:detail>
         <query-results 
           ref="results"
-          v-if="!error"
+          v-if="query_result"
           :data="query_result" 
           :valid="valid && error === false"
           v-on="$listeners"/>

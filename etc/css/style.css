@@ -1093,11 +1093,19 @@ div.content-detail ecs-value {
 }
 
 div.content-status {
+  padding-top: 0px;
+  opacity: 0;
+  transition: padding-top 0.2s, opacity 0.2s;
+}
+
+div.content-status-visible {
   display: flex;
   min-height: 25px;
   align-items: center;
   padding-left: var(--p-1);
   padding-top: var(--p-1);
+
+  opacity: 1;
 
   background-color: var(--panel-footer-bg);
   color: var(--footer-text);

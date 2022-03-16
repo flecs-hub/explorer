@@ -1,3 +1,5 @@
+
+
 Vue.component('detail-toggle', {
   props: ['disable', 'collapse', 'hide_disabled', 'summary_toggle', 'show_divider'],
   data: function() {
