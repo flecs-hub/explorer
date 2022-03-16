@@ -104,6 +104,11 @@ const frame = Vue.component('split-pane', {
       x: 0,
     }
   },
+  methods: {
+    evt_close: function() {
+      console.log("close event detected from panel");
+    }
+  },
   computed: {
     slack() {
       return this.width - this.min_width;
@@ -148,7 +153,7 @@ const frame = Vue.component('split-pane', {
   },
   template: `
     <div class="split-pane"">
-      <slot></slot>
+      <slot v-on:close="evt_close"></slot>
     </div>
   `
 }) 

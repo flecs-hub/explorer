@@ -7,7 +7,8 @@ Vue.component('query', {
       status_kind: undefined,
       query_result: undefined,
       error: false,
-      invalid_query: false
+      invalid_query: false,
+      request: undefined
     }
   },
   methods: {
@@ -71,7 +72,11 @@ Vue.component('query', {
     },
     set_query(q) {
       this.$refs.editor.set_query(q);
-      this.$refs.container.expand();
+      if (q !== undefined) {
+        this.$refs.container.expand();
+      } else if (this.request) {
+        this.request.abort();
+      }
     },
     get_error() {
       return this.query_error;
@@ -103,7 +108,8 @@ Vue.component('query', {
   },
   template: `
     <content-container 
-      ref="container" 
+      ref="container"
+      :disable="query_result === undefined && !invalid_query"
       :hidden="query_result === undefined"
       closable="true" 
       v-on:close="evt_close">

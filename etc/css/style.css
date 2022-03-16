@@ -50,6 +50,8 @@
   --steel-400: #aaaeb5;
   --steel-500: #7a7e86;
   --steel-600: #4d515a;
+  --steel-650: #383c46;
+  --steel-675: #2e323c;
   --steel-700: #242832;
   --steel-750: #1f222a;
   --steel-800: #1a1d23;
@@ -65,7 +67,7 @@
   --app-bg: var(--grey-950);
   --panel-border: var(--steel-850);
   --panel-header-bg: var(--steel-700);
-  --panel-header-hover-bg: var(--steel-600);
+  --panel-header-hover-bg: var(--steel-675);
   --panel-footer-bg: var(--steel-700);
   --panel-bg: var(--steel-850);
   --panel-bg-secondary: var(--steel-800);
@@ -76,7 +78,7 @@
   --label: var(--steel-500);
   --footer-text: var(--steel-300);
   --error: var(--bright-red);
-  --light-hover-bg: var(--steel-600);
+  --light-hover-bg: var(--steel-700);
 
   /* Text sizes */
   --text-fs-sm: 12px;
@@ -1043,6 +1045,7 @@ div.content-container > div.detail-toggle > div.detail-toggle-summary {
 }
 
 div.content-container > div.detail-toggle > div.detail-toggle-summary:hover {
+  background-color: var(--panel-header-hover-bg);
 }
 
 div.content-container > div.detail-toggle > div.detail-toggle-summary:hover > span.icon:not(.icon-hide) > * {

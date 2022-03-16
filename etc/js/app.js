@@ -235,6 +235,8 @@ var app = new Vue({
         this.request(id,
           "GET", "query?q=" + encodeURIComponent(q) + url_params,
           recv, err);
+      } else {
+        err({error: "no connection"});
       }
     },
 
