@@ -46,6 +46,9 @@ Vue.component('content-container', {
                 <slot name="detail"></slot>
               </div>
             </template>
+            <template v-slot:footer>
+              <slot name="footer"></slot>
+            </template>
           </detail-toggle>
         </div>
       </div>

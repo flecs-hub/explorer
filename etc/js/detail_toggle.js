@@ -76,6 +76,10 @@ Vue.component('detail-toggle', {
       <div :class="detail_css">
         <slot name="detail"></slot>
       </div>
+
+      <div>
+        <slot name="footer"></slot>
+      </div>
     </div>
   `
 });

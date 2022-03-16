@@ -3,11 +3,26 @@ Vue.component('query', {
   props: ['valid'],
   data: function() {
     return {
+      status: undefined,
+      status_kind: undefined,
       query_result: undefined,
-      query_error: undefined,
+      error: false,
     }
   },
   methods: {
+    query_ok(msg) {
+      this.$emit('changed');
+      this.status = undefined;
+      this.status_kind = Status.Info;
+      this.error = false;
+    },
+    query_error(msg) {
+      this.$emit('changed');
+      this.status = msg;
+      this.status_kind = Status.Error;
+      this.error = true;
+      this.query_result = undefined;
+    },
     // Query changed event
     evt_query_changed(query) {
       let r = this.request;
@@ -16,18 +31,18 @@ Vue.component('query', {
       }
       if (query && query.length > 1) {
         this.request = app.request_query('query', query, (reply) => {
-          this.query_error = reply.error;
           if (reply.error === undefined) {
+            this.query_ok();
             this.query_result = reply;
+          } else {
+            this.query_error(reply.error);
           }
-          this.$emit('changed');
         }, (err_reply) => {
           if (err_reply) {
-            this.query_error = err_reply.error;
+            this.query_error(err_reply.error);
           } else {
-            this.query_error = "request failed";
+            this.query_error("request failed");
           }
-          this.$emit('changed');
         }, {
           ids: false, 
           subjects: false,
@@ -35,9 +50,8 @@ Vue.component('query', {
           variable_labels: true
         });
       } else {
+        this.query_ok();
         this.query_result = undefined;
-        this.query_error = undefined;
-        this.$emit('changed');
       }
     },
     evt_enable_toggle(e) {
@@ -84,14 +98,14 @@ Vue.component('query', {
   template: `
     <content-container 
       ref="container" 
-      :disable="query_result === undefined && query_error === undefined" 
+      :disable="query_result === undefined"
       closable="true" 
       v-on:close="evt_close">
 
       <template v-slot:summary>
         <query-editor
           ref="editor"
-          :error="query_error"
+          :error="error"
           v-on:changed="evt_query_changed"
           v-on:enable_toggle="evt_enable_toggle"/>
       </template>
@@ -99,9 +113,16 @@ Vue.component('query', {
       <template v-slot:detail>
         <query-results 
           ref="results"
+          v-if="!error"
           :data="query_result" 
-          :valid="valid && query_error === undefined"
+          :valid="valid && error === false"
           v-on="$listeners"/>
+      </template>
+
+      <template v-slot:footer>
+        <status :status="status"
+          :kind="status_kind">
+        </status>
       </template>
     </content-container>
     `

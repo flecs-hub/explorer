@@ -18,7 +18,7 @@ function subtree_height(entity_data) {
 }
 
 Vue.component('entity-tree-item', {
-  props: ['x', 'y', 'entity_data', 'selected_entity'],
+  props: ['x', 'y', 'entity_data', 'selected_entity', 'width'],
   mounted: function() {
     this.expand = this.entity_data.expand;
   },
@@ -52,7 +52,7 @@ Vue.component('entity-tree-item', {
       }
     },
     width_select_box: function() {
-      return tree_width - this.x - 30;
+      return this.width - this.x - 29;
     },
     css_text: function() {
       if (this.entity_data.path == this.selected_entity) {
@@ -63,6 +63,9 @@ Vue.component('entity-tree-item', {
     },
     show_search_icon: function() {
       return this.entity_data.is_component && !this.entity_data.is_module;
+    },
+    search_icon_x: function() {
+      return this.width - 20;
     }
   },
   template: `
@@ -95,16 +98,16 @@ Vue.component('entity-tree-item', {
 
       <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
       <rect 
-        :x="183" 
+        :x="search_icon_x - 2" 
         :y="y - 12" 
         :width="31" 
-        height="15" 
+        height="15"
         :class="css_select_box"
         v-if="show_search_icon"></rect>
 
       <image v-if="show_search_icon"
         href="img/search.png" 
-        :x="190" :y="y - 12" height="13px"
+        :x="search_icon_x" :y="y - 12" height="13px"
         v-on:click="search" class="entity-tree-icon">
       </image>
     </svg>`
@@ -133,7 +136,7 @@ Vue.component('entity-tree-outline', {
 });
 
 Vue.component('entity-tree-list', {
-  props: ['entities', 'x', 'y', 'selected_entity'],
+  props: ['entities', 'x', 'y', 'selected_entity', 'width'],
   data: function() {
     return {
       expand: false
@@ -209,7 +212,8 @@ Vue.component('entity-tree-list', {
             x: this.x,
             y: height,
             entity_data: entity_data,
-            selected_entity: this.selected_entity
+            selected_entity: this.selected_entity,
+            width: this.width
           },
   
           on: {
@@ -237,7 +241,8 @@ Vue.component('entity-tree-list', {
               entities: nested_entities,
               x: this.x + indent_width,
               y: height + item_height,
-              selected_entity: this.selected_entity
+              selected_entity: this.selected_entity,
+              width: this.width
             },
             on: {
               toggle: this.toggle,
@@ -263,6 +268,9 @@ Vue.component('entity-tree-list', {
 
 Vue.component('entity-tree', {
   props: ['valid', 'selected_entity'],
+  beforeUpdate: function() {
+    this.width = this.$el.clientWidth;
+  },
   methods: {
     get_name: function(path) {
       return path.split('.').pop();
@@ -419,10 +427,15 @@ Vue.component('entity-tree', {
     },
     evt_select_query: function(entity) {
       this.$emit('select_query', entity);
+    },
+    evt_resize: function(elem) {
+      console.log("resize");
+      console.log(elem);
     }
   },
   data: function() {
     return {
+      width: 0,
       root: {
         path: "0",
         entities: {},
@@ -452,7 +465,11 @@ Vue.component('entity-tree', {
   template: `
     <div :class="css">
       <svg :height="tree_height" width="100%">
-        <entity-tree-list :entities="root.entities" :x="0" :y="tree_top_margin" 
+        <entity-tree-list 
+          :entities="root.entities" 
+          :x="0"
+          :y="tree_top_margin" 
+          :width="width"
           :selected_entity="selected_entity"
           v-on:toggle="toggle"
           v-on:select="evt_select"

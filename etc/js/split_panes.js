@@ -89,8 +89,6 @@ const resize_handle = Vue.component('resize-handle', {
   `
 });
 
-
-
 const frame = Vue.component('split-pane', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
@@ -119,8 +117,13 @@ const frame = Vue.component('split-pane', {
   },
   watch: {
     width: function(new_width) {
-      this.$el.style.width = new_width + "px"
-      this.x = this.$el.offsetLeft
+      this.$el.style.width = new_width + "px";
+      this.x = this.$el.offsetLeft;
+
+      for (var i = 0; i < this.$children.length; i ++) {
+        const child = this.$children[i];
+        child.$forceUpdate(); // Give child a chance to respond to width change
+      }
     }
   },
   created() {

@@ -49,22 +49,14 @@
         <split-pane>
           <div class="query-box">
             <query :valid="valid" ref="query"
-            v-on:select-entity="evt_follow_ref"
-            v-on:changed="evt_query_changed"/>
-          </div>
-
-          <div class="terminal-box">
-            <terminal ref="terminal"/>
+              v-on:select-entity="evt_follow_ref"/>
           </div>
         </split-pane>
 
         <!-- Editor -->
-        <split-pane>
+        <split-pane :fixed="true" :initial_width="400">
           <template v-if="!remote_mode">
-            <editor 
-              ref="plecs"
-              v-on:run-code="evt_code_changed">
-            </editor>
+            <editor ref="plecs"></editor>
           </template>
           <inspector 
             :entity="entity_result"
@@ -125,6 +117,7 @@
     <script src="js/layout.js"></script>
     <script src="js/split_panes.js"></script>
 
+    <script src="js/status.js"></script>
     <script src="js/entity_icon.js"></script>
     <script src="js/entity_reference.js"></script>
     <script src="js/entity_parent.js"></script>
@@ -135,7 +128,6 @@
     <script src="js/entity_inspector.js"></script>
     <script src="js/editor.js"></script>
     <script src="js/url_modal.js"></script>
-    <script src="js/terminal.js"></script>
     <script src="js/app_title.js"></script>
     <script src="js/app.js"></script>
   </body>
