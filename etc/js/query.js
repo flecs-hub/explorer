@@ -7,6 +7,7 @@ Vue.component('query', {
       status_kind: undefined,
       query_result: undefined,
       error: false,
+      invalid_query: false
     }
   },
   methods: {
@@ -15,6 +16,7 @@ Vue.component('query', {
       this.status = undefined;
       this.status_kind = Status.Info;
       this.error = false;
+      this.invalid_query = false;
     },
     query_error(msg) {
       this.$emit('changed');
@@ -22,25 +24,28 @@ Vue.component('query', {
       this.status_kind = Status.Error;
       this.error = true;
     },
+    invalid_query_error(msg) {
+      this.query_error(msg);
+      this.invalid_query = true;
+      this.query_result = undefined;
+    },
     // Query changed event
     evt_query_changed(query) {
       let r = this.request;
       if (r) {
         r.abort();
       }
-      if (query && query.length > 1) {
+      if (query) {
         this.request = app.request_query('query', query, (reply) => {
           if (reply.error === undefined) {
             this.query_ok();
             this.query_result = reply;
           } else {
-            this.query_error(reply.error);
-            this.query_result = undefined;
+            this.invalid_query_error(reply.error);
           }
         }, (err_reply) => {
           if (err_reply) {
-            this.query_error(err_reply.error);
-            this.query_result = undefined;
+            this.invalid_query_error(err_reply.error);
           } else {
             this.query_error("request failed");
           }
@@ -106,7 +111,7 @@ Vue.component('query', {
       <template v-slot:summary>
         <query-editor
           ref="editor"
-          :error="error"
+          :error="invalid_query"
           v-on:changed="evt_query_changed"
           v-on:enable_toggle="evt_enable_toggle"/>
       </template>
@@ -116,7 +121,7 @@ Vue.component('query', {
           ref="results"
           v-if="query_result"
           :data="query_result" 
-          :valid="valid && error === false"
+          :valid="valid"
           v-on="$listeners"/>
       </template>
 
