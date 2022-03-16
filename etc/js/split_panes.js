@@ -96,6 +96,7 @@ const frame = Vue.component('split-pane', {
     fixed: { type: Boolean, required: false, default: false },
     initial_width: { type: Number, required: false },
     min_width: { type: Number, required: false, default: 50 },
+    max_width: { type: Number, required: false, default: Infinity },
   },
   data() {
     return {
@@ -133,6 +134,7 @@ const frame = Vue.component('split-pane', {
 
     // Declare minimum width
     this.$el.style.minWidth = this.min_width
+    if (this.max_width != Infinity) this.$el.style.maxWidth = this.max_width
 
     this.save()
   },
@@ -237,19 +239,20 @@ const frame_container = Vue.component('split-pane-container', {
       lfr = handle.left_frame;
       rfr = handle.right_frame;
 
-      current_step = {
+      let current_step = {
         left: lfr.width,
         right: rfr.width
       }
 
-      next_step = {
+      let next_step = {
         left: lfr.start + offset,
         right: rfr.start - offset
       }
 
+      let valid_step = next_step.left >= lfr.min_width && next_step.left < lfr.max_width && next_step.right >= rfr.min_width && next_step.right < rfr.max_width;
 
       if (handle.direction == "left") {
-        if (next_step.left >= lfr.min_width && next_step.right >= rfr.min_width) {
+        if (valid_step) {
           lfr.width = next_step.left;
           rfr.width = next_step.right;
         } else {
@@ -262,7 +265,7 @@ const frame_container = Vue.component('split-pane-container', {
       }
 
       if (handle.direction == "right") {
-        if (next_step.left >= lfr.min_width && next_step.right >= rfr.min_width) {
+        if (valid_step) {
           lfr.width = next_step.left;
           rfr.width = next_step.right;
         } else {
