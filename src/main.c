@@ -141,6 +141,10 @@ char* run(char *plecs) {
     if (res || err) {
         ecs_strbuf_list_append(&reply, "\"error\": \"%s\"", err);
         ecs_os_free(err);
+
+        /* Don't return partially initialized world */
+        ecs_fini(world);
+        init();
     }
 
     ecs_strbuf_list_pop(&reply, "}");

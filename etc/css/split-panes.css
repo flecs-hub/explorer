@@ -1,0 +1,52 @@
+* {
+  padding: 0;
+  margin: 0;
+}
+
+body {
+}
+
+#app {
+  width: 100%;
+}
+
+.split-pane-container {
+  width: 100%;
+  height: calc(100vh - 41px);
+
+  display: flex;
+  flex-direction: row;
+}
+
+.split-pane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.handle {
+  height: 100%;
+  width: 1px;
+}
+
+.handle-grab-box {
+  border-radius: 3px;
+  position: relative;
+  z-index: 100;
+  left: -1px;
+  height: 100%;
+  width: 3px;
+  background-color: #4F95FF;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.handle-grab-box:hover {
+  cursor: col-resize;
+  opacity: 0.7;
+}
+
+.handle:active,
+.handle:focus {
+  opacity: 1;
+}

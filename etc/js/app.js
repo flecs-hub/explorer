@@ -115,14 +115,12 @@ var app = new Vue({
                 retry_interval = 1000;
               }
 
-              this.$refs.terminal.clear();
-
               // No point in timing out sooner than retry interval
               if (timeout < retry_interval) {
                 timeout = retry_interval;
               }
 
-              this.$refs.terminal.err("request to " + host + " failed, " +
+              console.error("request to " + host + " failed, " +
                 "ensure app is running and REST is enabled " +
                 "(retried " + this.retry_count + " times)");
 
@@ -476,7 +474,6 @@ var app = new Vue({
       }
 
       this.refresh_entity();
-      this.refresh_terminal();
     },
 
     set_entity_by_tree_item(item) {
@@ -484,19 +481,6 @@ var app = new Vue({
         this.set_entity(item.path);
       } else {
         this.set_entity();
-      }
-    },
-
-    refresh_terminal() {
-      this.$refs.terminal.clear();
-
-      if (this.code_error) {
-        this.$refs.terminal.log({text: "Code error: " + this.code_error, kind: "command-error" });
-      }
-
-      const q_err = this.$refs.query.get_error();
-      if (q_err) {
-        this.$refs.terminal.log({text: "Query error: " + q_err, kind: "command-error" });
       }
     },
 
@@ -523,21 +507,13 @@ var app = new Vue({
       this.$refs.tree.update_expanded();
     },
 
-    // Query changed event
-    evt_query_changed(query) {
-      this.refresh_terminal();
-    },
-
     // Code changed event
-    evt_code_changed(code) {
+    run_code(code, recv) {
       this.insert_code(code, (reply) => {
-        this.code_error = reply.error;
-        if (reply.error === undefined) {
-          this.refresh_query();
-          this.$refs.tree.update_expanded();
-          this.refresh_entity();
-        }
-        this.refresh_terminal();
+        this.refresh_query();
+        this.$refs.tree.update_expanded();
+        this.refresh_entity();
+        recv(reply);
       }, this.parse_interval);
     },
 

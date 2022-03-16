@@ -22,7 +22,10 @@ Vue.component('editor-textarea', {
   methods: {
     run() {      
       if (this.code != this.last_code) {
-        this.$emit('run-code', this.code);
+        app.run_code(this.code, (reply) => {
+          this.$emit('changed', reply);
+        });
+
         this.last_code = this.code;
       }
     },
@@ -67,8 +70,11 @@ Vue.component('editor-textarea', {
 });
 
 Vue.component('editor', {
-  mounted: function() {
-    // this.$refs.container.expand(false);
+  data: function() {
+    return {
+      status: undefined,
+      status_kind: undefined,
+    }
   },
   methods: {
     run() {
@@ -82,6 +88,15 @@ Vue.component('editor', {
       if (code !== undefined && code.length) {
         this.$refs.container.expand();
       }
+    },
+    evt_changed(msg) {
+      if (msg.error) {
+        this.status = msg.error;
+        this.status_kind = Status.Error;
+      } else {
+        this.status = undefined;
+        this.status_kind = Status.Info;
+      }
     }
   },
   template: `
@@ -92,9 +107,16 @@ Vue.component('editor', {
 
       <template v-slot:detail>
         <div class="editor">
-          <editor-textarea ref="textarea" v-on="$listeners">
+          <editor-textarea ref="textarea" 
+            v-on:changed="evt_changed">
           </editor-textarea>
         </div>
+      </template>
+
+      <template v-slot:footer>
+        <status :status="status"
+          :kind="status_kind">
+        </status>
       </template>
     </content-container>
     `

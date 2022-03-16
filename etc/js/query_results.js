@@ -177,7 +177,7 @@ Vue.component('query-results', {
           <div v-else class="noselect query-result-no"> No </div>
         </template>
         <template v-else>
-          <table v-if="data">
+          <table class="query-results-table" v-if="data">
             <thead>
               <tr>
                 <th v-if="has_this">Entity</th>
