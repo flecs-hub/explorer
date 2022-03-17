@@ -82,11 +82,12 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js"></script>
+    <script src="deps/vue.dev.js"></script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>
     <script src="deps/TextareaDecorator.js"></script>
-    <script src="deps/Behave.js"></script>
+    <script src="deps/Behave.js"></script> <!-- provides IDE-like behavior in text editor -->
+    <script src="deps/httpVueLoader.js"></script> <!-- loads Vue SFCs without webpack -->
 
     <script>
       var syntax_highlighter = new Parser(

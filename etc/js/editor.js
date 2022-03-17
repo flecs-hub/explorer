@@ -85,9 +85,6 @@ Vue.component('editor', {
     },
     set_code(code) {
       this.$refs.textarea.set_code(code);
-      if (code !== undefined && code.length) {
-        this.$refs.container.expand();
-      }
     },
     evt_changed(msg) {
       if (msg.error) {
@@ -100,7 +97,7 @@ Vue.component('editor', {
     }
   },
   template: `
-    <content-container no_padding="true" overflow="true" ref="container">
+    <collapsible-panel overflow="true" ref="container">
       <template v-slot:summary>
         Editor
       </template>
@@ -118,6 +115,6 @@ Vue.component('editor', {
           :kind="status_kind">
         </status>
       </template>
-    </content-container>
+    </collapsible-panel>
     `
 });

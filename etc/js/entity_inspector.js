@@ -161,7 +161,7 @@ Vue.component('inspector-kv', {
       <template v-if="!list">
         <template v-if="is_object">
           <div class="inspector-prop-object">
-            <detail-toggle summary_toggle="true">
+            <detail-toggle :collapsible="true">
               <template v-slot:summary>
                 <span>{{prop_key}}</span>
               </template>
@@ -321,7 +321,7 @@ Vue.component('inspector-component', {
   template: `
     <div class="inspector-component">
       <div class="inspector-component-name">
-        <detail-toggle :disable="value == undefined" summary_toggle="true">
+        <detail-toggle :disabled="value == undefined" :collapsible="true">
           <template v-slot:summary>
             <div :class="name_css">
               <entity-reference :entity="pred" :label="pred_label" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="obj">:&nbsp;<span class="inspector-component-object"><entity-reference 
@@ -373,7 +373,7 @@ Vue.component('inspector-components', {
   },
   template: `
     <div :class="css">
-      <detail-toggle :disable="!show_header" hide_disabled="true" show_divider="true" summary_toggle="true">
+      <detail-toggle :disabled="!show_header" :hide_when_disabled="true":show_divider="true"  :collapsible="true">
         <template v-slot:summary>
           <span class="inspector-header" v-if="show_header">
             <entity-reference 
@@ -401,9 +401,6 @@ Vue.component('inspector-components', {
 Vue.component('inspector', {
   props: ['entity', 'entity_name', 'valid'],
   methods: {
-    expand: function() {
-      this.$refs.container.expand();
-    },
     select_query: function() {
       this.$emit('select-query', this.entity_name);
     },
@@ -447,11 +444,9 @@ Vue.component('inspector', {
     }
   },
   template: `
-    <content-container 
+    <collapsible-panel 
       ref="container" 
-      :disable="!entity_name" 
-      no_padding="true"
-      closable="true" 
+      :closable="true && entity_name" 
       v-on:close="evt_close">
       
       <template v-slot:summary>
@@ -497,6 +492,6 @@ Vue.component('inspector', {
           </div>
         </div>
       </template>
-    </content-container>
+    </collapsible-panel>
     `
 });

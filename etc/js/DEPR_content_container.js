@@ -1,41 +1,47 @@
+/*
+  THIS COMPONENT IS DEPRECATED
+  DO NOT USE
+*/
 
 Vue.component('content-container', {
-    props: ['hidden', 'disable', 'no_padding', 'closable'],
+    props: {
+      hidden: { type: Boolean, required: false, default: false }, 
+      disabled: { type: Boolean, required: false, default: false }, 
+      closable: { type: Boolean, required: false, default: false }
+    },
+    components: {
+      'detail-toggle-alt': httpVueLoader('js/detail_toggle_alt.vue')
+    },
     methods: {
-      expand: function(arg) {
-        this.$refs.toggle.expand(arg);
-      },
-      enable_toggle(e) {
-        this.$refs.toggle.enable_toggle(e);
-      },
       evt_close: function() {
         this.$emit('close');
+      },
+      force_expand() {
+        this.$refs.toggle.force_expand();
       }
     },
     computed: {
       wrapper_css: function() {
-        return "content-container-wrapper  content-container-wrapper-overflow";
+        return "content-container-wrapper content-container-wrapper-overflow";
       },
       detail_css: function() {
-        let result = "content-detail ";
-        if (!this.no_padding) {
-          result += " content-detail-padding";
-        }
+        let result = "content-detail content-detail-padding";
         return result;
       }
     },
     template: `
       <div :class="wrapper_css">
         <div class="content-container">
-          <detail-toggle summary_toggle="true" :collapse="disable || hidden" :disable="disable || hidden" ref="toggle">
+          <detail-toggle-alt 
+            ref="toggle">
             <template v-slot:summary>
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>
 
                 <span class="content-container-icon-close">
                   <icon src="close" v-if="closable" 
-                    :rotate="disable" 
-                    :hide="disable"
+                    :rotate="disabled" 
+                    :hide="disabled"
                     v-on:click.stop="evt_close">
                   </icon>
               </span>
@@ -49,7 +55,7 @@ Vue.component('content-container', {
             <template v-slot:footer>
               <slot name="footer"></slot>
             </template>
-          </detail-toggle>
+          </detail-toggle-alt>
         </div>
       </div>
     `

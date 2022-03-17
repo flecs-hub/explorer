@@ -1,5 +1,5 @@
 
-Vue.config.devtools = false;
+Vue.config.devtools = true;
 
 // Track state of connection to remote app
 const ConnectionState = {
@@ -62,6 +62,9 @@ Sun {
 }
 `
 
+/*
+  HELPER FUNCTIONS
+*/
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
   var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
@@ -71,6 +74,16 @@ function getParameterByName(name, url = window.location.href) {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+/*
+  GLOBAL COMPONENT REGISTRATIOnS
+*/
+Vue.component('collapsible-panel', httpVueLoader('js/collapsible_panel.vue'));
+Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
+
+
+/*
+  VUE MAIN APP
+*/
 var app = new Vue({
   el: '#app',
 
@@ -478,7 +491,6 @@ var app = new Vue({
         return;
       }
 
-      this.$refs.inspector.expand();
       this.refresh_entity();
     },
 

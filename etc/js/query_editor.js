@@ -43,7 +43,7 @@ Vue.component('query-editor', {
     },
     evt_focus(focus) {
       this.focus = focus;
-      this.$emit('enable_toggle', !focus);
+      // this.$emit('enable_toggle', !focus);
 
       if (focus) {
         this.query = this.actual_query;
