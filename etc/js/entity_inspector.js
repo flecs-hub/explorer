@@ -418,6 +418,9 @@ Vue.component('inspector', {
     has_parent: function() {
       return this.parent.length != 0;
     },
+    collapsed_state() {
+      return this.$refs.collapsible_panel.collapsed_state;
+    },
     brief: function() {
       if (!this.entity) {
         return undefined;
@@ -445,8 +448,8 @@ Vue.component('inspector', {
   },
   template: `
     <collapsible-panel 
-      ref="container" 
-      :closable="true && entity_name" 
+      ref="collapsible_panel" 
+      :closable="true && entity_name !== undefined" 
       v-on:close="evt_close">
       
       <template v-slot:summary>

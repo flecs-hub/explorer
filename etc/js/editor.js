@@ -94,10 +94,10 @@ Vue.component('editor', {
         this.status = undefined;
         this.status_kind = Status.Info;
       }
-    }
+    },
   },
   template: `
-    <collapsible-panel overflow="true" ref="container">
+    <collapsible-panel overflow="true" ref="collapsible_panel" v-on="$listeners">
       <template v-slot:summary>
         Editor
       </template>

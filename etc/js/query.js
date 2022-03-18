@@ -70,7 +70,7 @@ Vue.component('query', {
     set_query(q) {
       this.$refs.editor.set_query(q);
       if (q !== undefined) {
-        this.$refs.container.force_expand();
+        // this.$refs.collapsible_panel.force_expand();
       } else if (this.request) {
         this.request.abort();
       }
@@ -86,6 +86,9 @@ Vue.component('query', {
     }
   },
   computed: {
+    collapsed_state() {
+      return this.$refs.collapsible_panel.collapsed_state;
+    },
     count: function() {
       if (!this.query_result) {
         return 0;
@@ -107,7 +110,7 @@ Vue.component('query', {
     <collapsible-panel 
       :hidden="query_result === undefined"
       :closable="true && query_result != undefined && !invalid_query" 
-      ref="container" 
+      ref="collapsible_panel" 
       v-on:close="evt_close">
 
       <template v-slot:summary>

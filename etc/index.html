@@ -47,24 +47,32 @@
 
         <!-- Query results & Entity inspector -->
         <split-pane>
-          <div class="query-box">
-            <query :valid="valid" ref="query"
-              v-on:select-entity="evt_follow_ref"/>
-          </div>
+          <panel-container>
+            <panel>
+              <query :valid="valid" ref="query"
+                v-on:select-entity="evt_follow_ref"/>
+            </panel>
+          </panel-container>
         </split-pane>
 
         <!-- Editor -->
         <split-pane :fixed="true" :initial_width="400">
-          <template v-if="!remote_mode">
-            <editor ref="plecs"></editor>
-          </template>
-          <inspector 
-            :entity="entity_result"
-            :entity_name="selected_entity"
-            :valid="valid"
-            v-on:select-entity="evt_follow_ref" 
-            v-on:select-query="evt_select_query"
-            ref="inspector"></inspector>
+          <panel-container>
+            <template v-if="!remote_mode">
+              <panel>
+                <editor ref="plecs" v-on="$listeners"></editor>
+              </panel>
+            </template>
+            <panel>
+              <inspector 
+                :entity="entity_result"
+                :entity_name="selected_entity"
+                :valid="valid"
+                v-on:select-entity="evt_follow_ref" 
+                v-on:select-query="evt_select_query"
+                ref="inspector"></inspector>
+              </panel>
+          </panel-container>
         </split-pane>
       </split-pane-container>
 
@@ -114,7 +122,6 @@
     <!-- Generic UI elements -->
     <script src="js/icon.js"></script>
     <script src="js/detail_toggle.js"></script>
-    <script src="js/content_container.js"></script>
     <script src="js/layout.js"></script>
     <script src="js/split_panes.js"></script>
 

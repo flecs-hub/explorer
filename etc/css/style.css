@@ -108,7 +108,12 @@
 
 /* HTML element styling */
 
+#app {
+  height: 100%;
+}
+
 body {
+  height: 100%;
   font-family: Inter, Helvetica, sans-serif;
   font-feature-settings: "liga" 0, "calt" 0;
   font-size: var(--text-fs-md);
@@ -312,14 +317,6 @@ div.right-column {
   border-left-width: 1px;
   border-color: var(--panel-border);
   overflow-x: auto;
-}
-
-div.query-box {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
 }
 
 div.terminal-box {
@@ -1018,11 +1015,13 @@ div.content-container {
 }
 
 div.content-container-wrapper {
+  /* to fill height of panel  */
+  height: 100%; 
+
   border-color: var(--panel-header-bg);
   border-style: solid;
   border-width: 0px;
   border-bottom-width: 4px;
-  margin-bottom: 1px;
 }
 
 div.content-container-wrapper-overflow {
@@ -1216,6 +1215,7 @@ div.detail-toggle-summary {
 }
 
 div.detail-toggle-detail {
+  flex: 1 1 auto;
   display: flex;
   position: relative;
   flex-direction: inherit;

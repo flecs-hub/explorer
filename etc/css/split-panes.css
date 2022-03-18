@@ -1,52 +1,90 @@
-* {
-  padding: 0;
-  margin: 0;
-}
-
-body {
-}
-
-#app {
-  width: 100%;
+:root {
+  --handle-thickness: 1px;
+  --handle-grabbox-thickness: 3px;
 }
 
 .split-pane-container {
   width: 100%;
-  height: calc(100vh - 41px);
+  height: calc(100% - 41px);
 
   display: flex;
   flex-direction: row;
 }
 
 .split-pane {
+  height: 100%;
+}
+
+.panel-container {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
+}
+
+.panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.fixed {
+  flex: auto 0 0;
+}
+
+.fluid  {
+  flex: auto 0 0;
 }
 
 .handle {
-  height: 100%;
-  width: 1px;
 }
 
-.handle-grab-box {
+.handle-horizontal {
+  height: var(--handle-thickness);
+}
+
+.handle-vertical {
+  width: var(--handle-thickness);
+}
+
+.handle-vertical .handle-grab-box {
   border-radius: 3px;
   position: relative;
   z-index: 100;
-  left: -1px;
+  left: -2px;
   height: 100%;
-  width: 3px;
+  width: 5px;
   background-color: #4F95FF;
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
 }
 
-.handle-grab-box:hover {
+.handle-vertical .handle-grab-box:hover {
   cursor: col-resize;
   opacity: 0.7;
 }
 
+.handle-horizontal .handle-grab-box {
+  border-radius: 3px;
+  position: relative;
+  z-index: 100;
+  top: -2px;
+  width: 100%;
+  height: 5px;
+  background-color: #4F95FF;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.handle-horizontal .handle-grab-box:hover {
+  cursor: row-resize;
+  opacity: 0.7;
+}
+
+
 .handle:active,
-.handle:focus {
+.handle:focus,
+.panel-handle:active,
+.panel-handle:focus {
   opacity: 1;
 }

@@ -22,7 +22,9 @@
         </div>
         <!-- BODY -->
         <div :class="detail_css">
-          <slot name="detail"></slot>
+          <div class="content-detail">
+            <slot name="detail"></slot>
+          </div>
         </div>
         <!-- STATUS BAR -->
         <div>
@@ -44,6 +46,7 @@
     data: function() {
       return {
         collapsed_state: false,
+        panel_node: this.$parent,
       }
     },
     methods: {
@@ -54,15 +57,25 @@
         // Normal expand/collapse method, toggles only when not disabled
         if (!this.disabled) {
           this.collapsed_state = !this.collapsed_state;
+          
+          if (this.panel_node) {
+            if (this.collapsed_state) {
+              this.panel_node.collapse();
+            } else {
+              this.panel_node.expand();
+            }
+          }
         }
       },
       force_expand() {
         // Forces panel to expand whether or not it's disabled
         this.collapsed_state = false;
+        this.panel_node.expand();
       },
       force_collapse() {
         // Forces panel to collapse whether or not it's disabled
         this.collapsed_state = true;
+        this.panel_node.collapse();
       }
     },
     computed: {
@@ -84,6 +97,17 @@
     created() {
       // Iniitialize starting collapse state
       this.collapsed_state = this.initial_collapsed_state;
+
+      while (this.panel_node.$options.name != "panel") {
+        // Search tree for nearest parent panel
+        this.panel_node = this.panel_node.$parent;
+
+        // If at root of tree w/o finding panel, then there is no panel container
+        if (this.panel_node == this.$root) {
+          this.panel_node = null;
+          break;
+        }
+      }
     }
   }
 </script>
