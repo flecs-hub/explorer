@@ -419,20 +419,21 @@ const panel = Vue.component('panel', {
       this.start = this.height;
     },
     collapse() {
-      this.collapsed = true;
       this.$el.style.minHeight = 35
       this.past_heights.push(this.height)
+      console.log(this.height);
       this.height = 35
       this.save()
+      this.collapsed = true;
       this.$parent.resize();
     },
     expand() {
-      this.collapsed = false;
       this.$el.style.minHeight = this.min_height
       let re_height = this.past_heights.shift();
       this.height = re_height;
       this.save()
       this.$parent.resize();
+      this.collapsed = false;
     }
   },
   template: `
