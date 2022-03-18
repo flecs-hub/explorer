@@ -19,6 +19,14 @@ function getMouseMovement(e, axis = "x") {
 }
 
 const resize_handle = Vue.component('resize-handle', {
+  /*
+    Resize-handle is used for both split-pane and vertical panels.
+    Provides Orientation prop:
+      Split-pane : "vertical"
+      Panel : "horizontal"
+
+    Value assignments is determined by orientation
+  */
   props: {
     orientation: String, // vertical | horizontal
     prev_frame: Object, // split-pane | panel
@@ -39,6 +47,9 @@ const resize_handle = Vue.component('resize-handle', {
     }
   },
   computed: {
+    locked() { 
+      return this.prev_frame.locked || this.next_frame.locked;
+    }
   },
   watch: {
   },
@@ -53,7 +64,7 @@ const resize_handle = Vue.component('resize-handle', {
   },
   methods: {
     recalibrate() {
-
+      // Planned method to recalibrate internal position with actual position
     },
     begin_drag(e) {
       e.preventDefault();
@@ -103,7 +114,8 @@ const resize_handle = Vue.component('resize-handle', {
   },
   template: `
     <div class="handle" 
-      :class="orientation === 'vertical' ? 'handle-vertical' : 'handle-horizontal'">
+      :class="[orientation === 'vertical' ? 'handle-vertical' : 'handle-horizontal',
+              locked ? 'locked' : '']">
       <div class="handle-grab-box"
         @mousedown="begin_drag"
         @mousemove="dragging"
@@ -115,7 +127,7 @@ const resize_handle = Vue.component('resize-handle', {
 
 
 
-const frame = Vue.component('split-pane', {
+const split_pane = Vue.component('split-pane', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
     initial_width: { type: Number, required: false },
@@ -124,6 +136,7 @@ const frame = Vue.component('split-pane', {
   data() {
     return {
       active: false,
+      locked: false,
       width: undefined,
       start: 0,
       x: 0,
@@ -132,9 +145,6 @@ const frame = Vue.component('split-pane', {
   computed: {
     slack() {
       return this.width - this.min_width;
-    },
-    locked() {
-      return ( this.slack == 0 ? true : false );
     },
     index() {
       return this.$parent.frames.indexOf(this);
@@ -390,7 +400,7 @@ const panel = Vue.component('panel', {
       return this.height - this.min_height;
     },
     locked() {
-      return ( this.slack == 0 || this.collapsed ? true : false );
+      return ( this.collapsed ? true : false );
     },
     index() {
       return this.$parent.panels.indexOf(this);
