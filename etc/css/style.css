@@ -752,7 +752,6 @@ div.editor-detail {
 
 div.editor-textarea {
   position: relative;
-  min-width: 400px;
   height: 100%;
   border: none;
   resize: none;

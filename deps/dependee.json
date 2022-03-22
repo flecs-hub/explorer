@@ -5,6 +5,11 @@
                 "rt",
                 "pthread"
             ]
+        },
+        "${cfg sanitize}": {
+            "defines": [
+                "FLECS_SANITIZE"
+            ]
         }
     }
 }
