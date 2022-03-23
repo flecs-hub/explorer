@@ -30,32 +30,29 @@ const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 
 // Example content for local demo
 const example_selected = "Sun.Earth";
-const example_query = "OrbitalSpeed,\nMass,\n(ChildOf, _Parent)"
-const example_plecs = `using flecs.meta
-using flecs.units.Speed
+const example_query = "Mass,\n?(ChildOf, _Parent)"
+const example_plecs = `// For C/C++ code, go to repository:
+//   https://github.com/SanderMertens/flecs
+//
+// C:   examples/c/explorer
+// C++: examples/cpp/explorer
+
+using flecs.meta
 using flecs.units.Mass
 
-/// OrbitalSpeed component
-Struct(OrbitalSpeed) {
-  value = {f32, unit: KiloMetersPerSecond}
-}
-
-/// Mass component
+// Mass component
 Struct(Mass) {
   value = {f64, unit: KiloGrams}
 }
 
-/// The Sun
+// Simple hierarchy
 Sun {
-
-  /// The Earth
+  Mass = {1.988500e31}
+  
   Earth {
-    OrbitalSpeed = {29.7800}
     Mass = {5.9722e24}
-    
-    /// The Moon
+      
     Moon {
-      OrbitalSpeed = {1.022}
       Mass = {7.34767309e22}
     }    
   }
