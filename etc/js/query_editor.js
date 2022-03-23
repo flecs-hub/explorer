@@ -18,25 +18,34 @@ Vue.component('query-editor', {
     }
   },
   methods: {
+    strip_newlines(query) {
+      let q = query.replaceAll("\n ", " ");
+      q = q.replaceAll(" \n", " ");
+      q = q.replaceAll("\n", " ");
+      return q;
+    },
     changed: function(e) {
       if (this.query != this.last_query) {
         this.refresh();
       }
     },
     refresh: function() {
-      this.$emit('changed', this.query);
+      if (this.focus) {
+        this.actual_query = this.query;
+      }
+      this.$emit('changed', this.actual_query);
       this.last_query = this.query;
     },
     set_query(expr) {
       if (expr === undefined) {
         expr = "";
       }
-      this.query = expr.replaceAll("\n", " ");
+      this.query = this.strip_newlines(expr);
       this.actual_query = expr;
       this.$emit('changed', expr);
     },
     get_query() {
-      return this.query;
+      return this.actual_query;
     },
     is_empty() {
       return this.query == undefined || this.query.length == 0;
@@ -49,7 +58,7 @@ Vue.component('query-editor', {
         this.query = this.actual_query;
       } else {
         this.actual_query = this.query;
-        this.query = this.actual_query.replaceAll("\n", " ");
+        this.query = this.strip_newlines(this.query);
       }
     },
     set_focus() {
