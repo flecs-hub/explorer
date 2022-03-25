@@ -108,7 +108,12 @@
 
 /* HTML element styling */
 
+#app {
+  height: 100%;
+}
+
 body {
+  height: 100%;
   font-family: Inter, Helvetica, sans-serif;
   font-feature-settings: "liga" 0, "calt" 0;
   font-size: var(--text-fs-md);
@@ -314,14 +319,6 @@ div.right-column {
   overflow-x: auto;
 }
 
-div.query-box {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-}
-
 div.terminal-box {
   background-color: var(--panel-bg);
   border-color: var(--panel-border);
@@ -376,7 +373,6 @@ div.share-button-box {
   position: absolute;
   right: 0px;
   top: 5px;
-  width: 35px;
   cursor: pointer;
 }
 
@@ -742,8 +738,7 @@ div.url-modal h1 {
 }
 
 div.editor {
-  padding-left: 10px;
-  padding-bottom: 3px;
+  padding: 8px;
 }
 
 div.editor-detail {
@@ -1017,11 +1012,13 @@ div.content-container {
 }
 
 div.content-container-wrapper {
+  /* to fill height of panel  */
+  height: 100%; 
+
   border-color: var(--panel-header-bg);
   border-style: solid;
   border-width: 0px;
   border-bottom-width: 4px;
-  margin-bottom: 1px;
 }
 
 div.content-container-wrapper-overflow {
@@ -1215,19 +1212,22 @@ div.detail-toggle-summary {
 }
 
 div.detail-toggle-detail {
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: auto;
   display: flex;
   position: relative;
   flex-direction: inherit;
   overflow: hidden;
   opacity: 1;
-
   padding-top: 5px;
-  transition: padding-top 0.1s ease-out, opacity 0.06s ease-out;;
+  transition: all 0.1s ease-out;
 }
 
 div.detail-toggle-detail-hide {
+
+  transition: all 0.1s ease-out;
   padding-top: 0px;
-  height: 0px;
   opacity: 0;
 }
 

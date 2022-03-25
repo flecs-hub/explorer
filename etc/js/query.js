@@ -61,9 +61,6 @@ Vue.component('query', {
         this.query_result = undefined;
       }
     },
-    evt_enable_toggle(e) {
-      this.$refs.container.enable_toggle(e);
-    },
     refresh() {
       this.evt_query_changed(this.$refs.editor.get_query());
     },
@@ -73,7 +70,7 @@ Vue.component('query', {
     set_query(q) {
       this.$refs.editor.set_query(q);
       if (q !== undefined) {
-        this.$refs.container.expand();
+        // this.$refs.collapsible_panel.force_expand();
       } else if (this.request) {
         this.request.abort();
       }
@@ -89,6 +86,9 @@ Vue.component('query', {
     }
   },
   computed: {
+    collapsed_state() {
+      return this.$refs.collapsible_panel.collapsed_state;
+    },
     count: function() {
       if (!this.query_result) {
         return 0;
@@ -107,11 +107,10 @@ Vue.component('query', {
     }
   },
   template: `
-    <content-container 
-      ref="container"
-      :disable="query_result === undefined && !invalid_query"
+    <collapsible-panel 
       :hidden="query_result === undefined"
-      closable="true" 
+      :closable="true && query_result != undefined && !invalid_query" 
+      ref="collapsible_panel" 
       v-on:close="evt_close">
 
       <template v-slot:summary>
@@ -119,7 +118,7 @@ Vue.component('query', {
           ref="editor"
           :error="invalid_query"
           v-on:changed="evt_query_changed"
-          v-on:enable_toggle="evt_enable_toggle"/>
+/>
       </template>
 
       <template v-slot:detail>
@@ -136,6 +135,6 @@ Vue.component('query', {
           :kind="status_kind">
         </status>
       </template>
-    </content-container>
+    </collapsible-panel>
     `
 });

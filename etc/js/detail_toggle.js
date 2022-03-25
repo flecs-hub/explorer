@@ -1,46 +1,50 @@
 
 
 Vue.component('detail-toggle', {
-  props: ['disable', 'collapse', 'hide_disabled', 'summary_toggle', 'show_divider'],
+  props: {
+
+    disabled: { type: Boolean, required: false, default: false},
+    collapse: { type: Boolean, required: false, default: false},
+    hide_when_disabled: { type: Boolean, required: false, default: false},
+    collapsible: { type: Boolean, required: false, default: false},
+    show_divider: { type: Boolean, required: false, default: false},
+  },
   data: function() {
     return {
-      should_expand: true,
+      expanded_state: true,
       can_toggle: true
     }
   },
   methods: {
     toggle: function() {
-      this.should_expand = !this.should_expand;
+      this.expanded_state = !this.expanded_state;
     },
     summary_clicked: function() {
       if (!this.can_toggle) {
         return;
       }
-      if (this.summary_toggle && !this.disable) {
-        this.should_expand = !this.should_expand;
+      if (this.collapsible && !this.disabled) {
+        this.expanded_state = !this.expanded_state;
       }
     },
     expand: function(expand) {
       if (expand === undefined) {
-        this.should_expand = true;
+        this.expanded_state = true;
       } else {
-        this.should_expand = expand;
+        this.expanded_state = expand;
       }
     },
-    enable_toggle: function(e) {
-      this.can_toggle = e;
-    }
   },
   computed: {
     expanded: function() {
-      return this.should_expand && (this.collapse === undefined || this.collapse === false);
+      return this.expanded_state && (this.collapse === undefined || this.collapse === false);
     },
     summary_css: function() {
       let result = "detail-toggle-summary";
-      if (this.summary_toggle) {
+      if (this.collapsible) {
         result += " noselect";
       }
-      if (!this.disable) {
+      if (!this.disabled) {
         result += " clickable";
       }
       return result;
@@ -50,7 +54,7 @@ Vue.component('detail-toggle', {
       if (!this.expanded) {
         result += " detail-toggle-detail-hide";
       }
-      if (this.disable && !this.hide_disable) {
+      if (this.disabled && !this.hide_when_disabled) {
         result += " detail-toggle-detail-disable";
       }
       return result;
@@ -59,26 +63,31 @@ Vue.component('detail-toggle', {
   template: `
     <div class="detail-toggle">
       <div :class="summary_css" v-on:click.stop="summary_clicked">
-        <template v-if="!disable">
+        <!-- LEFT ICON -->
+        <template v-if="!disabled">
           <icon src="nav" v-on:click.stop="toggle" :rotate="expanded"/>
         </template>
         <template v-else>
-          <span class="icon noselect" v-if="!hide_disabled">
+          <span class="icon noselect" v-if="!hide_when_disabled">
             <svg width="20" height="20">
               <circle r="2" cx="10" cy="10" fill="#fff"/>
             </svg>
           </span>
         </template>
 
-        <slot name="summary" v-on:enable_toggle="enable_toggle"></slot>
+        <!-- TITLE -->
+        <slot name="summary"></slot>
 
-        <div class="detail-toggle-divider" v-if="show_divider && !disable"></div>
+        <!-- UNKNOWN -->
+        <div class="detail-toggle-divider" v-if="show_divider && !disabled"></div>
       </div>
 
+      <!-- BODY -->
       <div :class="detail_css">
         <slot name="detail"></slot>
       </div>
 
+      <!-- STATUS BAR -->
       <div>
         <slot name="footer"></slot>
       </div>

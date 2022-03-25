@@ -1,52 +1,125 @@
-* {
-  padding: 0;
-  margin: 0;
-}
-
-body {
-}
-
-#app {
-  width: 100%;
+:root {
+  --handle-thickness: 1px;
+  --handle-grabbox-thickness: 3px;
 }
 
 .split-pane-container {
   width: 100%;
-  height: calc(100vh - 41px);
+  height: calc(100% - 41px);
 
   display: flex;
   flex-direction: row;
 }
 
 .split-pane {
+  height: 100%;
+}
+
+.panel-container {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: 100%;
+}
+
+.panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  transition: height 0.1s ease-in; /* Collapse animation on script expand/collapse */
+  background-color: var(--panel-bg-secondary); /* To provide color background while detail area drops out opacity */
+}
+
+.panel-void {
+  background-color: transparent;
+}
+
+.panel-active {
+  /* 
+    - Only applied on panel elem during manual adjust 
+    - Disables transition animation so as to appear snappy
+  */
+  transition: height 0s;
+}
+
+.fixed {
+  flex: auto 0 0;
+}
+
+.fluid  {
+  flex: auto 0 0;
 }
 
 .handle {
-  height: 100%;
-  width: 1px;
 }
 
-.handle-grab-box {
+.handle-horizontal {
+  height: var(--handle-thickness);
+}
+
+.handle-vertical {
+  width: var(--handle-thickness);
+}
+
+.handle-vertical .handle-grab-box {
   border-radius: 3px;
   position: relative;
   z-index: 100;
   left: -1px;
-  height: 100%;
   width: 3px;
+  height: 100%;
   background-color: #4F95FF;
   opacity: 0;
-  transition: opacity 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
-.handle-grab-box:hover {
+.handle-vertical:not(.locked) .handle-grab-box:hover {
+  /* When resize handle is locked, then do not show on hover */
   cursor: col-resize;
-  opacity: 0.7;
+  opacity: 0.5;
 }
+
+.handle-vertical:not(.locked) .handle-grab-box:active {
+  /* When resize handle is locked, then do not show when active */
+  cursor: col-resize;
+  opacity: 1.0;
+  /* Enlargen handle by 2px, reposition */
+  left: -2px;
+  width: 5px;
+}
+
+.handle-horizontal .handle-grab-box {
+  border-radius: 3px;
+  position: relative;
+  z-index: 100;
+  top: -1px;
+  height: 3px;
+  width: 100%;
+  background-color: #4F95FF;
+  opacity: 0;
+  transition: all 0.2s ease-in-out;
+}
+
+.handle-horizontal:not(.locked) .handle-grab-box:hover {
+  /* When resize handle is locked, then do not show on hover */
+  cursor: row-resize;
+  opacity: 0.5;
+}
+
+.handle-horizontal:not(.locked) .handle-grab-box:active {
+  /* When resize handle is locked, then do not show when active */
+  cursor: row-resize;
+  opacity: 1.0;
+  /* Enlargen handle by 2px, reposition */
+  top: -2px;
+  height: 5px;
+}
+
+
 
 .handle:active,
-.handle:focus {
+.handle:focus,
+.panel-handle:active,
+.panel-handle:focus {
   opacity: 1;
 }

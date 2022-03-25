@@ -1,17 +1,36 @@
-function getMousePosition(e) {
-  if ('touches' in e) return e.touches[0].clientX
-  return e.clientX
+function getMousePosition(e, axis = "x") {
+  if (axis == "x") {
+    if ('touches' in e) return e.touches[0].clientX
+    return e.clientX
+  } else if (axis == "y") {
+    if ('touches' in e) return e.touches[0].clientY
+    return e.clientY
+  }
 }
 
-function getMouseMovement(e) {
-  if ('touches' in e) return e.touches[0].movementX
-  return e.movementX
+function getMouseMovement(e, axis = "x") {
+  if (axis == "x") {
+    if ('touches' in e) return e.touches[0].movementX
+    return e.movementX
+  } else if (axis == "y") {
+    if ('touches' in e) return e.touches[0].movementY
+    return e.movementY
+  }
 }
 
 const resize_handle = Vue.component('resize-handle', {
+  /*
+    Resize-handle is used for both split-pane and vertical panels.
+    Provides Orientation prop:
+      Split-pane : "vertical"
+      Panel : "horizontal"
+
+    Value assignments is determined by orientation
+  */
   props: {
-    left_frame: Object,
-    right_frame: Object,
+    orientation: String, // vertical | horizontal
+    prev_frame: Object, // split-pane | panel
+    next_frame: Object, // split-pane | panel
     begin_drag_callback: Function,
     dragging_callback: Function,
     end_drag_callback: Function,
@@ -21,11 +40,16 @@ const resize_handle = Vue.component('resize-handle', {
       moving: false,
       direction: null,
       start: undefined,
+      height: 0,
       width: 0,
       x: 0,
+      y: 0,
     }
   },
   computed: {
+    locked() { 
+      return this.prev_frame.locked || this.next_frame.locked;
+    }
   },
   watch: {
   },
@@ -33,38 +57,48 @@ const resize_handle = Vue.component('resize-handle', {
   },
   mounted() {
     this.$nextTick(() => {
-      this.start = this.$el.offsetLeft;
+      this.start = this.orientation == "vertical" ? this.$el.offsetLeft : this.$el.offsetTop;
       this.width = this.$el.offsetWidth;
+      this.height = this.$el.offsetHeight;
     })
   },
   methods: {
     recalibrate() {
-
+      // Planned method to recalibrate internal position with actual position
     },
     begin_drag(e) {
       e.preventDefault();
       this.moving = true;
-      this.start = this.$el.offsetLeft;
+      this.start = this.orientation == "vertical" ? this.$el.offsetLeft : this.$el.offsetTop;
       this.begin_drag_callback(this);
 
       document.addEventListener("mousemove", this.dragging);
       document.addEventListener("mouseup", this.end_drag);
-      this.$parent.$el.style.cursor = "col-resize";
+      this.prev_frame.$parent.$el.style.cursor = "col-resize";
     },
     dragging(e) {
       e.preventDefault();
       if (!this.moving) return;
 
+      if (this.prev_frame.collapsed || this.next_frame.collapsed) return;
+
+      let axis = this.orientation == "vertical" ? "x" : "y";
+
       let offset;
       let delta;
 
       // Calculate offset from start
-      offset = getMousePosition(e) - this.start;
+      offset = getMousePosition(e, axis) - this.start;
       this.x = this.start + offset;
 
       // Determine current movement direction
-      delta = getMouseMovement(e);
-      this.direction = delta < 0 ? "left" : delta > 0 ? "right" : null;
+      delta = getMouseMovement(e, axis);
+      if (this.orientation == "vertical") {
+        this.direction = delta < 0 ? "left" : delta > 0 ? "right" : null;
+      }
+      if (this.orientation == "horizontal") {
+        this.direction = delta < 0 ? "up" : delta > 0 ? "down" : null;
+      }
 
       this.dragging_callback(this, offset);
     },
@@ -75,11 +109,13 @@ const resize_handle = Vue.component('resize-handle', {
 
       document.removeEventListener("mousemove", this.dragging);
       document.removeEventListener("mouseup", this.end_drag);
-      this.$parent.$el.style.cursor = "auto";
+      this.prev_frame.$parent.$el.style.cursor = "auto";
     }
   },
   template: `
-    <div class="handle">
+    <div class="handle" 
+      :class="[orientation === 'vertical' ? 'handle-vertical' : 'handle-horizontal',
+              locked ? 'locked' : '']">
       <div class="handle-grab-box"
         @mousedown="begin_drag"
         @mousemove="dragging"
@@ -89,32 +125,26 @@ const resize_handle = Vue.component('resize-handle', {
   `
 });
 
-const frame = Vue.component('split-pane', {
+
+
+const split_pane = Vue.component('split-pane', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
     initial_width: { type: Number, required: false },
-    min_width: { type: Number, required: false, default: 50 },
-    max_width: { type: Number, required: false, default: Infinity },
+    min_width: { type: Number, required: false, default: 100 },
   },
   data() {
     return {
       active: false,
+      locked: false,
       width: undefined,
       start: 0,
       x: 0,
     }
   },
-  methods: {
-    evt_close: function() {
-      console.log("close event detected from panel");
-    }
-  },
   computed: {
     slack() {
       return this.width - this.min_width;
-    },
-    locked() {
-      return ( this.slack == 0 ? true : false );
     },
     index() {
       return this.$parent.frames.indexOf(this);
@@ -122,13 +152,8 @@ const frame = Vue.component('split-pane', {
   },
   watch: {
     width: function(new_width) {
-      this.$el.style.width = new_width + "px";
-      this.x = this.$el.offsetLeft;
-
-      for (var i = 0; i < this.$children.length; i ++) {
-        const child = this.$children[i];
-        child.$forceUpdate(); // Give child a chance to respond to width change
-      }
+      this.$el.style.width = new_width + "px"
+      this.x = this.$el.offsetLeft
     }
   },
   created() {
@@ -142,7 +167,6 @@ const frame = Vue.component('split-pane', {
 
     // Declare minimum width
     this.$el.style.minWidth = this.min_width
-    if (this.max_width != Infinity) this.$el.style.maxWidth = this.max_width
 
     this.save()
   },
@@ -152,8 +176,11 @@ const frame = Vue.component('split-pane', {
     }
   },
   template: `
-    <div class="split-pane"">
-      <slot v-on:close="evt_close"></slot>
+    <div class="split-pane"
+      :class="[
+      ]">
+      <slot></slot>
+      
     </div>
   `
 }) 
@@ -203,8 +230,9 @@ const frame_container = Vue.component('split-pane-container', {
       let handle_class = Vue.extend(resize_handle)
       let handle_instance = new handle_class({
         propsData: {
-          left_frame: this.frames[i],
-          right_frame: this.frames[i + 1],
+          orientation: "vertical",
+          prev_frame: this.frames[i],
+          next_frame: this.frames[i + 1],
           begin_drag_callback: this.begin_adjust,
           dragging_callback: this.adjust,
           end_drag_callback: this.end_adjust,
@@ -240,27 +268,26 @@ const frame_container = Vue.component('split-pane-container', {
     },
 
     begin_adjust(handle) {
-      handle.left_frame.active = handle.right_frame.active = true;
+      handle.prev_frame.active = handle.next_frame.active = true;
     },
 
     adjust(handle, offset) {
-      lfr = handle.left_frame;
-      rfr = handle.right_frame;
+      lfr = handle.prev_frame;
+      rfr = handle.next_frame;
 
-      let current_step = {
+      current_step = {
         left: lfr.width,
         right: rfr.width
       }
 
-      let next_step = {
+      next_step = {
         left: lfr.start + offset,
         right: rfr.start - offset
       }
 
-      let valid_step = next_step.left >= lfr.min_width && next_step.left < lfr.max_width && next_step.right >= rfr.min_width && next_step.right < rfr.max_width;
 
       if (handle.direction == "left") {
-        if (valid_step) {
+        if (next_step.left >= lfr.min_width && next_step.right >= rfr.min_width) {
           lfr.width = next_step.left;
           rfr.width = next_step.right;
         } else {
@@ -273,7 +300,7 @@ const frame_container = Vue.component('split-pane-container', {
       }
 
       if (handle.direction == "right") {
-        if (valid_step) {
+        if (next_step.left >= lfr.min_width && next_step.right >= rfr.min_width) {
           lfr.width = next_step.left;
           rfr.width = next_step.right;
         } else {
@@ -288,7 +315,7 @@ const frame_container = Vue.component('split-pane-container', {
     },
 
     end_adjust(handle) {
-      handle.left_frame.active = handle.right_frame.active = false;
+      handle.prev_frame.active = handle.next_frame.active = false;
       for (const frame of this.frames) {
         frame.save();
       }
@@ -314,8 +341,9 @@ const frame_container = Vue.component('split-pane-container', {
       let handle_class = Vue.extend(resize_handle)
       let handle_instance = new handle_class({
         propsData: {
-          left_frame: this.frames[index],
-          right_frame: this.frames[index + 1],
+          orientation: "vertical",
+          prev_frame: this.frames[index],
+          next_frame: this.frames[index + 1],
           begin_drag_callback: this.begin_adjust,
           dragging_callback: this.adjust,
           end_drag_callback: this.end_adjust,
@@ -328,8 +356,8 @@ const frame_container = Vue.component('split-pane-container', {
       this.frames[index].$el.after(handle_instance.$el);
 
       // Modify previous handle
-      this.handles[index].left_frame = this.frames[index + 1];
-      this.handles[index].right_frame = this.frames[index + 2];
+      this.handles[index].prev_frame = this.frames[index + 1];
+      this.handles[index].next_frame = this.frames[index + 2];
 
       // Fit everything together
       this.resize();
@@ -338,6 +366,279 @@ const frame_container = Vue.component('split-pane-container', {
   },
   template: `
   <div class="split-pane-container">
+    <slot></slot>
+  </div>
+  `
+});
+
+
+
+
+/*
+  VERTICAL PANELS
+*/
+
+
+const panel = Vue.component('panel', {
+  props: {
+    fixed: { type: Boolean, required: false, default: false },
+    initial_height: { type: Number, required: false },
+    min_height: { type: Number, required: false, default: 60 },
+  },
+  data() {
+    return {
+      collapsed: false,
+      active: false,
+      height: undefined,
+      past_heights: [],
+      start: 0,
+      y: 0,
+    }
+  },
+  computed: {
+    slack() {
+      return this.height - this.min_height;
+    },
+    locked() {
+      return ( this.collapsed ? true : false );
+    },
+    index() {
+      return this.$parent.panels.indexOf(this);
+    }
+  },
+  watch: {
+    height(new_height) {
+      this.$el.style.height = new_height + "px"
+      this.y = this.$el.offsetTop
+    },
+  },
+  updated() {
+    this.x = this.$el.offsetTop;
+  },
+  mounted() {
+    // Declare current height
+    this.height = this.initial_height ? this.initial_height : this.min_height
+
+    // Declare minimum height
+    this.$el.style.minHeight = this.min_height
+
+    this.save()
+  },
+  methods: {
+    save() {
+      this.start = this.height;
+    },
+    collapse() {
+      this.$el.style.minHeight = 35
+      this.past_heights.push(this.height)
+      console.log(this.height);
+      this.height = 35
+      this.save()
+      this.collapsed = true;
+      this.$parent.resize();
+    },
+    expand() {
+      let re_height = this.past_heights.shift();
+      this.height = re_height;
+      this.save()
+      this.$parent.resize();
+      this.collapsed = false;
+      
+      setTimeout(
+        () => {
+          this.$el.style.minHeight = this.min_height
+        }, 150
+      )
+      // min height setting is delayed so it won't interfere with expand animation
+
+    }
+  },
+  template: `
+    <div class="panel" 
+      :class="active ? 'panel-active' : ''"
+      >
+      <slot @collapsible_panel_toggled="toggle"></slot>
+      
+    </div>
+  `
+}) 
+
+const panel_container = Vue.component('panel-container', {
+  data() {
+    return {
+    }
+  },
+  computed: {
+    panels() {
+      return this.$children.filter(child => child.$options.name === "panel");
+    },
+    handles() {
+      return this.$children.filter(child => child.$options.name === "resize-handle");
+    },
+    layout() {
+      const layout = {
+        fixed_pn_count: this.panels.filter(panel => panel.fixed || panel.collapsed).length,
+        fluid_pn_count: this.panels.filter(panel => !panel.fixed && !panel.collapsed).length,
+        handle_space: this.handles.reduce((acc, handle) => acc + handle.height, 0),
+        fixed_pn_space: this.panels.filter(panel => panel.fixed || panel.collapsed ).reduce((acc, panel) => acc + panel.height, 0),
+        fluid_pn_space: this.panels.filter(panel => !panel.fixed && !panel.collapsed).reduce((acc, panel) => acc + panel.height, 0),
+      }
+      return layout;
+    }
+  },
+  mounted() {
+
+    // Initialize panel dimensions
+    this.resize()
+
+    // When window resizes, resize panels.
+    window.addEventListener("resize", () => {
+      this.resize()
+    });
+
+    // Instantiate handles
+    for (let i = 0; i < this.panels.length - 1; i++) {
+      let panel = this.panels[i];
+
+      let handle_class = Vue.extend(resize_handle)
+      let handle_instance = new handle_class({
+        propsData: {
+          orientation: "horizontal",
+          prev_frame: this.panels[i],
+          next_frame: this.panels[i + 1],
+          begin_drag_callback: this.begin_adjust,
+          dragging_callback: this.adjust,
+          end_drag_callback: this.end_adjust,
+        }
+      })
+
+      // Set ancestry
+      this.$children.push(handle_instance);
+      this.handles.push(handle_instance);
+      handle_instance.$parent = this;
+      
+      handle_instance.$mount();
+      panel.$el.after(handle_instance.$el);
+    }
+  },
+  
+  methods: {
+
+    resize() {
+      // Capture available and demanded space at moment
+      let application_height = this.$el.offsetHeight;
+      let free_sp = application_height - (this.layout.fixed_pn_space + this.layout.handle_space);
+      let demanded_sp = this.layout.fluid_pn_space;
+
+      for (const panel of this.panels) {
+        if (!panel.fixed && !panel.collapsed) {
+          let r = panel.height / demanded_sp;
+          let resized_height = r * free_sp;
+          panel.height = resized_height >= panel.min_height ? resized_height : panel.min_height;
+        }
+        panel.save();
+      }
+    },
+
+    begin_adjust(handle) {
+      handle.prev_frame.active = handle.next_frame.active = true;
+    },
+
+    adjust(handle, offset) {
+      lfr = handle.prev_frame;
+      rfr = handle.next_frame;
+
+      current_step = {
+        left: lfr.height,
+        right: rfr.height
+      }
+
+      next_step = {
+        left: lfr.start + offset,
+        right: rfr.start - offset
+      }
+
+      if (handle.direction == "up") {
+        if (next_step.left >= lfr.min_height && next_step.right >= rfr.min_height) {
+          lfr.height = next_step.left;
+          rfr.height = next_step.right;
+        } else {
+          if (next_step.left < lfr.min_height) {
+            let diff = lfr.start - lfr.min_height;
+            lfr.height = lfr.min_height;
+            rfr.height = rfr.start + diff;
+          }
+        }
+      }
+
+      if (handle.direction == "down") {
+        if (next_step.left >= lfr.min_height && next_step.right >= rfr.min_height) {
+          lfr.height = next_step.left;
+          rfr.height = next_step.right;
+        } else {
+          if (next_step.right < rfr.min_height) {
+            let diff = rfr.start - rfr.min_height;
+            rfr.height = rfr.min_height;
+            lfr.height = lfr.start + diff;
+          }
+        }
+      }
+
+    },
+
+    end_adjust(handle) {
+      handle.prev_frame.active = handle.next_frame.active = false;
+      for (const panel of this.panels) {
+        panel.save();
+      }
+    },
+
+    insert_panel(index) {
+      // Insertion index must be within range
+      if (index >= this.panels.length) return;
+
+      // If no insertion index, then point to end
+      if (!index) index = this.panels.length - 1;
+
+      // Create panel
+      let panel_class = Vue.extend(panel)
+      let panel_instance = new panel_class()
+      this.$children.push(panel_instance);
+      this.panels.push(panel_instance);
+      panel_instance.$parent = this;
+      panel_instance.$mount();
+      this.panels[index].$el.after(panel_instance.$el);
+
+      // Create handle
+      let handle_class = Vue.extend(resize_handle)
+      let handle_instance = new handle_class({
+        propsData: {
+          orientation: "vertical",
+          prev_frame: this.panels[index],
+          next_frame: this.panels[index + 1],
+          begin_drag_callback: this.begin_adjust,
+          dragging_callback: this.adjust,
+          end_drag_callback: this.end_adjust,
+        }
+      })
+      this.$children.push(handle_instance);
+      this.handles.push(handle_instance);
+      handle_instance.$parent = this;
+      handle_instance.$mount();
+      this.panels[index].$el.after(handle_instance.$el);
+
+      // Modify previous handle
+      this.handles[index].prev_frame = this.panels[index + 1];
+      this.handles[index].next_frame = this.panels[index + 2];
+
+      // Fit everything together
+      this.resize();
+      console.log("new panel created");
+    }
+
+  },
+  template: `
+  <div class="panel-container">
     <slot></slot>
   </div>
   `
