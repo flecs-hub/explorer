@@ -373,7 +373,6 @@ div.share-button-box {
   position: absolute;
   right: 0px;
   top: 5px;
-  width: 35px;
   cursor: pointer;
 }
 
@@ -739,8 +738,7 @@ div.url-modal h1 {
 }
 
 div.editor {
-  padding-left: 10px;
-  padding-bottom: 3px;
+  padding: 8px;
 }
 
 div.editor-detail {
@@ -1215,20 +1213,22 @@ div.detail-toggle-summary {
 }
 
 div.detail-toggle-detail {
-  flex: 1 1 auto;
+  flex-grow: 1;
+  flex-shrink: 1;
+  flex-basis: auto;
   display: flex;
   position: relative;
   flex-direction: inherit;
   overflow: hidden;
   opacity: 1;
-
   padding-top: 5px;
-  transition: padding-top 0.1s ease-out, opacity 0.06s ease-out;;
+  transition: all 0.1s ease-out;
 }
 
 div.detail-toggle-detail-hide {
+
+  transition: all 0.1s ease-out;
   padding-top: 0px;
-  height: 0px;
   opacity: 0;
 }
 

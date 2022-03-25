@@ -383,7 +383,7 @@ const panel = Vue.component('panel', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
     initial_height: { type: Number, required: false },
-    min_height: { type: Number, required: false, default: 100 },
+    min_height: { type: Number, required: false, default: 60 },
   },
   data() {
     return {
@@ -438,16 +438,25 @@ const panel = Vue.component('panel', {
       this.$parent.resize();
     },
     expand() {
-      this.$el.style.minHeight = this.min_height
       let re_height = this.past_heights.shift();
       this.height = re_height;
       this.save()
       this.$parent.resize();
       this.collapsed = false;
+      
+      setTimeout(
+        () => {
+          this.$el.style.minHeight = this.min_height
+        }, 150
+      )
+      // min height setting is delayed so it won't interfere with expand animation
+
     }
   },
   template: `
-    <div class="panel">
+    <div class="panel" 
+      :class="active ? 'panel-active' : ''"
+      >
       <slot @collapsible_panel_toggled="toggle"></slot>
       
     </div>

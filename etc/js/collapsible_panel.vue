@@ -80,7 +80,7 @@
     },
     computed: {
       summary_css: function() {
-        let result = "detail-toggle-summary";
+        let result = "detail-toggle-summary noselect";
         if (!this.disabled) {
           result += " clickable";
         }

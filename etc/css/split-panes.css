@@ -26,6 +26,20 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+  transition: height 0.1s ease-in; /* Collapse animation on script expand/collapse */
+  background-color: var(--panel-bg-secondary); /* To provide color background while detail area drops out opacity */
+}
+
+.panel-void {
+  background-color: transparent;
+}
+
+.panel-active {
+  /* 
+    - Only applied on panel elem during manual adjust 
+    - Disables transition animation so as to appear snappy
+  */
+  transition: height 0s;
 }
 
 .fixed {
