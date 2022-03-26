@@ -248,6 +248,9 @@ typedef char bool;
 #define true !false
 #endif
 
+/* Utility types to indicate usage as bitmask */
+typedef uint8_t ecs_flags8_t;
+typedef uint16_t ecs_flags16_t;
 typedef uint32_t ecs_flags32_t;
 typedef uint64_t ecs_flags64_t;
 
@@ -2076,6 +2079,12 @@ typedef struct ecs_mixins_t ecs_mixins_t;
 /* Maximum number of events to set in static array of trigger descriptor */
 #define ECS_TRIGGER_DESC_EVENT_COUNT_MAX (8)
 
+/* Maximum number of query variables per query */
+#define ECS_VARIABLE_COUNT_MAX (64)
+
+/* Number of query variables in iterator cache */
+#define ECS_VARIABLE_CACHE_SIZE (4)
+
 /** @} */
 
 
@@ -2326,6 +2335,7 @@ struct ecs_filter_t {
     
     char *name;                /* Name of filter (optional) */
     char *expr;                /* Expression of filter (if provided) */
+    char *variable_names[1];   /* Array with variable names */
 
     ecs_iterable_t iterable;   /* Iterable mixin */
 };
@@ -2456,10 +2466,29 @@ struct ecs_observable_t {
     ecs_sparse_t *events;  /* sparse<event, ecs_event_record_t> */
 };
 
+/** Record for entity index */
 struct ecs_record_t {
     ecs_table_t *table;  /* Identifies a type (and table) in world */
     uint32_t row;        /* Table row of the entity */
 };
+
+/** Range in table */
+typedef struct ecs_table_range_t {
+    ecs_table_t *table;
+    int32_t offset;       /* Leave both members to 0 to cover entire table */
+    int32_t count;       
+} ecs_table_range_t;
+
+/** Value of query variable */
+typedef struct ecs_var_t {
+    ecs_table_range_t range; /* Set when variable stores a range of entities */
+    ecs_entity_t entity;     /* Set when variable stores single entity */
+
+    /* Most entities can be stored as a range by setting range.count to 1, 
+     * however in order to also be able to store empty entities in variables, 
+     * a separate entity member is needed. Both range and entity may be set at
+     * the same time, as long as they are consistent. */
+} ecs_var_t;
 
 /** Cached reference. */
 struct ecs_ref_t {
@@ -2523,7 +2552,7 @@ typedef struct ecs_term_iter_t {
 } ecs_term_iter_t;
 
 typedef enum ecs_iter_kind_t {
-    EcsIterEvalIndex,
+    EcsIterEvalTables,
     EcsIterEvalChain,
     EcsIterEvalCondition,
     EcsIterEvalNone
@@ -2566,8 +2595,7 @@ typedef struct ecs_sparse_iter_t {
 /** Rule-iterator specific data */
 typedef struct ecs_rule_iter_t {
     const ecs_rule_t *rule;
-    struct ecs_rule_reg_t *registers;    /* Variable storage (tables, entities) */
-    ecs_entity_t *variables;             /* Variable storage for iterator (entities only) */
+    struct ecs_var_t *registers;         /* Variable storage (tables, entities) */
     struct ecs_rule_op_ctx_t *op_ctx;    /* Operation-specific state */
     
     int32_t *columns;                    /* Column indices */
@@ -2579,7 +2607,19 @@ typedef struct ecs_rule_iter_t {
     int32_t sp;
 } ecs_rule_iter_t;
 
-/* Inline arrays for queries with small number of components */
+/* Bits for tracking whether a cache was used/whether the array was allocated.
+ * Used by flecs_iter_init, flecs_iter_validate and ecs_iter_fini. 
+ * Constants are named to enable easy macro substitution. */
+#define flecs_iter_cache_ids           (1u << 0u)
+#define flecs_iter_cache_columns       (1u << 1u)
+#define flecs_iter_cache_subjects      (1u << 2u)
+#define flecs_iter_cache_sizes         (1u << 3u)
+#define flecs_iter_cache_ptrs          (1u << 4u)
+#define flecs_iter_cache_match_indices (1u << 5u)
+#define flecs_iter_cache_variables     (1u << 6u)
+#define flecs_iter_cache_all           (255)
+
+/* Inline iterator arrays to prevent allocations for small array sizes */
 typedef struct ecs_iter_cache_t {
     ecs_id_t ids[ECS_TERM_CACHE_SIZE];
     int32_t columns[ECS_TERM_CACHE_SIZE];
@@ -2587,13 +2627,10 @@ typedef struct ecs_iter_cache_t {
     ecs_size_t sizes[ECS_TERM_CACHE_SIZE];
     void *ptrs[ECS_TERM_CACHE_SIZE];
     int32_t match_indices[ECS_TERM_CACHE_SIZE];
+    ecs_var_t variables[ECS_VARIABLE_CACHE_SIZE];
 
-    bool ids_alloc;
-    bool columns_alloc;
-    bool subjects_alloc;
-    bool sizes_alloc;
-    bool ptrs_alloc;
-    bool match_indices_alloc;
+    ecs_flags8_t used;       /* For which fields is the cache used */
+    ecs_flags8_t allocated; /* Which fields are allocated */
 } ecs_iter_cache_t;
 
 /* Private iterator data. Used by iterator implementations to keep track of
@@ -2612,6 +2649,14 @@ typedef struct ecs_iter_private_t {
     ecs_iter_cache_t cache;       /* Inline arrays to reduce allocations */
 } ecs_iter_private_t;
 
+/* Bits for iterator flags */
+#define EcsIterIsValid         (1u << 0u) /* Does iterator contain valid result */
+#define EcsIterIsFilter        (1u << 1u) /* Is iterator filter (metadata only) */
+#define EcsIterIsInstanced     (1u << 2u) /* Is iterator instanced */
+#define EcsIterHasShared       (1u << 3u) /* Does result have shared terms */
+#define EcsIterTableOnly       (1u << 4u) /* Result only populates table */
+#define EcsIterEntityOptional  (1u << 5u) /* Treat terms with entity subject as optional */
+
 /** Iterator.
  */
 struct ecs_iter_t {
@@ -2627,12 +2672,13 @@ struct ecs_iter_t {
     ecs_type_t type;              /* Current type */
     ecs_table_t *other_table;     /* Prev or next table when adding/removing */
     ecs_id_t *ids;                /* (Component) ids */
-    ecs_entity_t *variables;      /* Values of variables (if any) */
+    ecs_var_t *variables;      /* Values of variables (if any) */
     int32_t *columns;             /* Query term to table column mapping */
     ecs_entity_t *subjects;       /* Subject (source) entities */
     int32_t *match_indices;       /* Indices of current match for term. Allows an iterator to iterate
                                    * all permutations of wildcards in query. */
     ecs_ref_t *references;        /* Cached refs to components (if iterating a cache) */
+    ecs_flags64_t constrained_vars; /* Bitset that marks constrained variables */
 
     /* Source information */
     ecs_entity_t system;          /* The system (if applicable) */
@@ -2666,11 +2712,7 @@ struct ecs_iter_t {
     int32_t instance_count;       /* Number of entities to iterate before next table */
 
     /* Iterator flags */
-    bool is_valid;                /* Set to true after first next() */
-    bool is_filter;               /* When true, data fields are not set */
-    bool is_instanced;            /* When true, owned terms are always returned as arrays */
-    bool has_shared;              /* Iterator may set this when iterator has shared terms */
-    bool table_only;              /* If false, iterator does not expose table data */
+    ecs_flags32_t flags;
 
     ecs_entity_t interrupted_by;  /* When set, system execution is interrupted */
 
@@ -2769,6 +2811,14 @@ void ecs_default_ctor(
 #endif
 
 #define ECS_ELEM(ptr, size, index) ECS_OFFSET(ptr, (size) * (index))
+
+/** Enable/disable bitsets */
+#define ECS_BIT_SET(flags, bit) (flags) |= (bit)
+#define ECS_BIT_CLEAR(flags, bit) (flags) &= ~(bit) 
+#define ECS_BIT_COND(flags, bit, cond) ((cond) \
+    ? (ECS_BIT_SET(flags, bit)) \
+    : (ECS_BIT_CLEAR(flags, bit)))
+#define ECS_BIT_IS_SET(flags, bit) ((flags) & (bit))
 
 #ifdef __cplusplus
 }
@@ -2948,6 +2998,11 @@ void* _flecs_sparse_get_dense(
 /** Get the number of alive elements in the sparse set. */
 FLECS_DBG_API
 int32_t flecs_sparse_count(
+    const ecs_sparse_t *sparse);
+
+/** Get the number of not alive alive elements in the sparse set. */
+FLECS_DBG_API
+int32_t flecs_sparse_not_alive_count(
     const ecs_sparse_t *sparse);
 
 /** Return total number of allocated elements in the dense array */
@@ -3653,8 +3708,26 @@ typedef struct ecs_world_info_t {
     
     int32_t frame_count_total;        /* Total number of frames */
     int32_t merge_count_total;        /* Total number of merges */
+
+    int32_t id_create_total;          /* Total number of times a new id was created */
+    int32_t id_delete_total;          /* Total number of times an id was deleted */
+    int32_t table_create_total;       /* Total number of times a table was created */
+    int32_t table_delete_total;       /* Total number of times a table was deleted */
     int32_t pipeline_build_count_total; /* Total number of pipeline builds */
     int32_t systems_ran_frame;  /* Total number of systems ran in last frame */
+
+    int32_t id_count;                 /* Number of ids in the world (excluding wildcards) */
+    int32_t tag_id_count;             /* Number of tag (no data) ids in the world */
+    int32_t component_id_count;       /* Number of component (data) ids in the world */
+    int32_t pair_id_count;            /* Number of pair ids in the world */
+    int32_t wildcard_id_count;        /* Number of wildcard ids */
+
+    int32_t table_count;              /* Number of tables */
+    int32_t tag_table_count;          /* Number of tag-only tables */
+    int32_t trivial_table_count;      /* Number of tables with trivial components (no lifecycle callbacks) */
+    int32_t empty_table_count;        /* Number of tables without entities */
+    int32_t table_record_count;       /* Total number of table records (entries in table caches) */
+    int32_t table_storage_count;      /* Total number of table storages */
 } ecs_world_info_t;
 
 /** @} */
@@ -4977,9 +5050,36 @@ ecs_entity_t ecs_get_typeid(
     const ecs_world_t *world,
     ecs_id_t id);
 
+/** Returns whether specified id a tag.
+ * This operation returns whether the specified type is a tag (a component 
+ * without data/size).
+ * 
+ * An id is a tag when:
+ * - it is an entity without the EcsComponent component
+ * - it has an EcsComponent with size member set to 0
+ * - it is a pair where both elements are a tag
+ * - it is a pair where the first element has the EcsTag tag
+ * 
+ * @param world The world.
+ * @param id The id.
+ * @return Whether the provided id is a tag.
+ */
 FLECS_API
 ecs_entity_t ecs_id_is_tag(
     const ecs_world_t *world,
+    ecs_id_t id);
+
+/** Returns whether specified id is in use.
+ * This operation returns whether an id is in use in the world. An id is in use
+ * if it has been added to one or more tables.
+ * 
+ * @param world The world.
+ * @param id The id.
+ * @return Whether the id is in use.
+ */
+FLECS_API
+bool ecs_id_in_use(
+    ecs_world_t *world,
     ecs_id_t id);
 
 /** Get the name of an entity.
@@ -5743,6 +5843,21 @@ int ecs_filter_finalize(
     const ecs_world_t *world,
     ecs_filter_t *filter); 
 
+/** Find index for This variable.
+ * This operation looks up the index of the This variable. This index can
+ * be used in operations like ecs_iter_set_var and ecs_iter_get_var.
+ * 
+ * The operation will return -1 if the variable was not found. This happens when
+ * a filter only has terms that are not matched on the This variable, like a
+ * filter that exclusively matches singleton components.
+ * 
+ * @param filter The rule.
+ * @return The index of the This variable.
+ */
+FLECS_API
+int32_t ecs_filter_find_this_var(
+    const ecs_filter_t *filter);
+
 /** Convert ter, to string expression.
  * Convert term to a string expression. The resulting expression is equivalent
  * to the same term, with the exception of And & Or operators.
@@ -6292,13 +6407,135 @@ FLECS_API
 bool ecs_iter_is_true(
     ecs_iter_t *it);
 
-/** Get value for iterator variable.
+/** Set value for iterator variable.
+ * This constrains the iterator to return only results for which the variable
+ * equals the specified value. The default value for all variables is 
+ * EcsWildcard, which means the variable can assume any value.
+ * 
+ * Example:
+ * 
+ * // Rule that matches (Eats, *)
+ * ecs_rule_t *r = ecs_rule_init(world, &(ecs_filter_desc_t) {
+ *   .terms = {
+ *     { .pred.entity = Eats, .obj.name = "_Food" }
+ *   }
+ * });
+ * 
+ * int food_var = ecs_rule_find_var(r, "Food");
+ * 
+ * // Set Food to Apples, so we're only matching (Eats, Apples)
+ * ecs_iter_t it = ecs_rule_iter(world, r);
+ * ecs_iter_set_var(&it, food_var, Apples);
+ * 
+ * while (ecs_rule_next(&it)) {
+ *   for (int i = 0; i < it.count; i ++) {
+ *     // iterate as usual
+ *   }
+ * }
+ * 
+ * The variable must be initialized after creating the iterator and before the
+ * first call to next.
+ * 
+ * @param it The iterator.
+ * @param var_id The variable index.
+ * @param entity The entity variable value.
+ */
+FLECS_API
+void ecs_iter_set_var(
+    ecs_iter_t *it,
+    int32_t var_id,
+    ecs_entity_t entity);
+
+/** Same as ecs_iter_set_var, but for a table.
+ * This constrains the variable to all entities in a table.
+ * 
+ * @param it The iterator.
+ * @param var_id The variable index.
+ * @param table The table variable value.
+ */
+FLECS_API
+void ecs_iter_set_var_as_table(
+    ecs_iter_t *it,
+    int32_t var_id,
+    const ecs_table_t *table);
+
+/** Same as ecs_iter_set_var, but for a range of entities
+ * This constrains the variable to a range of entities in a table.
+ * 
+ * @param it The iterator.
+ * @param var_id The variable index.
+ * @param range The range variable value.
+ */
+FLECS_API
+void ecs_iter_set_var_as_range(
+    ecs_iter_t *it,
+    int32_t var_id,
+    const ecs_table_range_t *range);
+
+/** Get value of iterator variable as entity.
+ * A variable can be interpreted as entity if it is set to an entity, or if it
+ * is set to a table range with count 1.
+ * 
+ * This operation can only be invoked on valid iterators. The variable index
+ * must be smaller than the total number of variables provided by the iterator
+ * (as set in ecs_iter_t::variable_count).
  * 
  * @param it The iterator.
  * @param var_id The variable index.
  */
 FLECS_API
 ecs_entity_t ecs_iter_get_var(
+    ecs_iter_t *it,
+    int32_t var_id);
+
+/** Get value of iterator variable as table.
+ * A variable can be interpreted as table if it is set as table range with
+ * both offset and count set to 0, or if offset is 0 and count matches the
+ * number of elements in the table.
+ * 
+ * This operation can only be invoked on valid iterators. The variable index
+ * must be smaller than the total number of variables provided by the iterator
+ * (as set in ecs_iter_t::variable_count).
+ * 
+ * @param it The iterator.
+ * @param var_id The variable index.
+ */
+FLECS_API
+ecs_table_t* ecs_iter_get_var_as_table(
+    ecs_iter_t *it,
+    int32_t var_id);
+
+/** Get value of iterator variable as table range.
+ * A value can be interpreted as table range if it is set as table range, or if
+ * it is set to an entity with a non-empty type (the entity must have at least
+ * one component, tag or relationship in its type).
+ * 
+ * This operation can only be invoked on valid iterators. The variable index
+ * must be smaller than the total number of variables provided by the iterator
+ * (as set in ecs_iter_t::variable_count).
+ * 
+ * @param it The iterator.
+ * @param var_id The variable index.
+ */
+FLECS_API
+ecs_table_range_t ecs_iter_get_var_as_range(
+    ecs_iter_t *it,
+    int32_t var_id);
+
+
+/** Returns whether variable is constrained.
+ * This operation returns true for variables set by one of the ecs_iter_set_var*
+ * operations.
+ * 
+ * A constrained variable is guaranteed not to change values while results are
+ * being iterated.
+ * 
+ * @param it The iterator.
+ * @param var_id The variable index.
+ * @return Whether the variable is constrained to a specified value.
+ */
+FLECS_API
+bool ecs_iter_var_is_constrained(
     ecs_iter_t *it,
     int32_t var_id);
 
@@ -10914,7 +11151,7 @@ int32_t ecs_rule_var_count(
 
 /** Find variable index.
  * This operation looks up the index of a variable in the rule. This index can
- * be used in operations like ecs_rule_set_var and ecs_iter_get_var.
+ * be used in operations like ecs_iter_set_var and ecs_iter_get_var.
  * 
  * @param rule The rule.
  * @param name The variable name.
@@ -10935,43 +11172,6 @@ FLECS_API
 const char* ecs_rule_var_name(
     const ecs_rule_t *rule,
     int32_t var_id);
-
-/** Set variable to a value.
- * This operation initializes the variable to the specified entity. By default
- * variables are initialized with a wildcard. By setting the variable it is
- * possible to reuse a single rule for different data sets. For example:
- * 
- * // Rule that matches (Eats, *)
- * ecs_rule_t *r = ecs_rule_init(world, &(ecs_filter_desc_t) {
- *   .terms = {
- *     { .pred.entity = Eats, .obj.name = "_Food" }
- *   }
- * });
- * 
- * int food_var = ecs_rule_find_var(r, "Food");
- * 
- * // Set Food to Apples, so we're only matching (Eats, Apples)
- * ecs_iter_t it = ecs_rule_iter(world, r);
- * ecs_rule_set_var(&it, food_var, Apples);
- * 
- * while (ecs_rule_next(&it)) {
- *   for (int i = 0; i < it.count; i ++) {
- *     // iterate as usual
- *   }
- * }
- * 
- * That the variable must be initialized after calling ecs_rule_iter and before
- * calling ecs_rule_next.
- * 
- * @param it The iterator.
- * @param var_id The variable index.
- * @param value The entity to initialize the variable with.
- */
-FLECS_API
-void ecs_rule_set_var(
-    ecs_iter_t *it,
-    int32_t var_id,
-    ecs_entity_t value);
 
 /** Test if variable is an entity.
  * Internally the rule engine has entity variables and table variables. When
@@ -11187,14 +11387,34 @@ typedef struct ecs_world_stats_t {
     int32_t dummy_;
 
     ecs_gauge_t entity_count;                 /* Number of entities */
-    ecs_gauge_t component_count;              /* Number of components */
-    ecs_gauge_t query_count;                  /* Number of queries */
-    ecs_gauge_t system_count;                 /* Number of systems */
+    ecs_gauge_t entity_not_alive_count;       /* Number of not alive (recyclable) entity ids */
+
+    /* Components and ids */
+    ecs_gauge_t id_count;                     /* Number of ids (excluding wildcards) */
+    ecs_gauge_t tag_id_count;                 /* Number of tag ids (ids without data) */
+    ecs_gauge_t component_id_count;           /* Number of components ids (ids with data) */
+    ecs_gauge_t pair_id_count;                /* Number of pair ids */
+    ecs_gauge_t wildcard_id_count;            /* Number of wildcard ids */
+    ecs_gauge_t component_count;              /* Number of components  (non-zero sized types) */
+    ecs_counter_t id_create_count;            /* Number of times id has been created */
+    ecs_counter_t id_delete_count;            /* Number of times id has been deleted */
+
+    /* Tables */
     ecs_gauge_t table_count;                  /* Number of tables */
     ecs_gauge_t empty_table_count;            /* Number of empty tables */
     ecs_gauge_t singleton_table_count;        /* Number of singleton tables. Singleton tables are tables with just a single entity that contains itself */
-    ecs_gauge_t matched_entity_count;         /* Number of entities matched by queries */
-    ecs_gauge_t matched_table_count;          /* Number of tables matched by queries */
+    ecs_gauge_t tag_table_count;              /* Number of tables with only tags */
+    ecs_gauge_t trivial_table_count;          /* Number of tables with only trivial components */
+    ecs_gauge_t table_record_count;           /* Number of table cache records */
+    ecs_gauge_t table_storage_count;          /* Number of table storages */
+    ecs_counter_t table_create_count;         /* Number of times table has been created */
+    ecs_counter_t table_delete_count;         /* Number of times table has been deleted */
+
+    /* Queries & events */
+    ecs_gauge_t query_count;                  /* Number of queries */
+    ecs_gauge_t trigger_count;                /* Number of triggers */
+    ecs_gauge_t observer_count;               /* Number of observers */
+    ecs_gauge_t system_count;                 /* Number of systems */
 
     /* Deferred operations */
     ecs_counter_t new_count;
@@ -18462,7 +18682,9 @@ protected:
     template < template<typename Func, typename ... Comps> class Invoker, typename Func, typename NextFunc, typename ... Args>
     void iterate(Func&& func, NextFunc next, Args &&... args) const {
         ecs_iter_t it = this->get_iter();
-        it.is_instanced |= Invoker<Func, Components...>::instanced();
+        if (Invoker<Func, Components...>::instanced()) {
+            ECS_BIT_SET(it.flags, EcsIterIsInstanced);
+        }
 
         while (next(&it, FLECS_FWD(args)...)) {
             Invoker<Func, Components...>(func).invoke(&it);
@@ -18485,7 +18707,7 @@ struct iter_iterable final : iterable<Components...> {
 iter_iterable<Components...>& set_var(int var_id, flecs::entity_t value) {
     ecs_assert(m_it.next == ecs_rule_next, ECS_INVALID_OPERATION, NULL);
     ecs_assert(var_id != -1, ECS_INVALID_PARAMETER, 0);
-    ecs_rule_set_var(&m_it, var_id, value);
+    ecs_iter_set_var(&m_it, var_id, value);
     return *this;
 }
 
@@ -18494,7 +18716,7 @@ iter_iterable<Components...>& set_var(const char *name, flecs::entity_t value) {
     ecs_rule_iter_t *rit = &m_it.priv.iter.rule;
     int var_id = ecs_rule_find_var(rit->rule, name);
     ecs_assert(var_id != -1, ECS_INVALID_PARAMETER, name);
-    ecs_rule_set_var(&m_it, var_id, value);
+    ecs_iter_set_var(&m_it, var_id, value);
     return *this;
 }
 
