@@ -101,7 +101,7 @@ Vue.component('query-editor', {
       </textarea>
       <div class="query-default-text" v-if="!query.length" 
         v-on:click.stop="set_focus">Search</div>
-      <icon src="search" v-on:click.stop="set_focus" v-if="!focus"/>
+      <old-icon-button src="search" v-on:click.stop="set_focus" v-if="!focus"/>
     </div>
     `
 });

@@ -31,14 +31,6 @@ Vue.component('content-container', {
             <template v-slot:summary>
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>
-
-                <span class="content-container-icon-close">
-                  <icon src="close" v-if="closable" 
-                    :rotate="disable" 
-                    :hide="disable"
-                    v-on:click.stop="evt_close">
-                  </icon>
-              </span>
               </span>
             </template>
             <template v-slot:detail>

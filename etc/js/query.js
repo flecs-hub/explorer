@@ -120,6 +120,17 @@ Vue.component('query', {
           :error="invalid_query"
           v-on:changed="evt_query_changed"
           v-on:enable_toggle="evt_enable_toggle"/>
+
+
+
+        <span class="content-container-icon-close">
+
+          <icon-button 
+            icon="feather:x"
+            v-show="!(query_result === undefined && !invalid_query)"
+            v-on:click.stop="evt_close"
+            v-tooltip="'Clear query'" />
+        </span>
       </template>
 
       <template v-slot:detail>

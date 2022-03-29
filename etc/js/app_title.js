@@ -53,7 +53,7 @@ Vue.component('app-title', {
   },
   template: `
     <div class="app-title">
-      <span><span>{{title}}</span> <span :class="detail_css">reconnecting</span><icon v-if="show_icon" :src="icon" :rotate="retry_count % 2"/></span>
+      <span><span>{{title}}</span> <span :class="detail_css">reconnecting</span><old-icon-button v-if="show_icon" :src="icon" :rotate="retry_count % 2"/></span>
     </div>
     `
 });
