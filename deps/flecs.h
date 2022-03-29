@@ -2026,6 +2026,9 @@ typedef const ecs_vector_t* ecs_type_t;
 /** A world is the container for all ECS data and supporting features. */
 typedef struct ecs_world_t ecs_world_t;
 
+/** A table is where entities and components are stored */
+typedef struct ecs_table_t ecs_table_t;
+
 /** A term is a single element in a query */
 typedef struct ecs_term_t ecs_term_t;
 
@@ -2159,7 +2162,7 @@ typedef int (*ecs_order_by_action_t)(
 /** Callback used for ranking types */
 typedef uint64_t (*ecs_group_by_action_t)(
     ecs_world_t *world,
-    ecs_type_t type,
+    ecs_table_t *table,
     ecs_id_t id,
     void *ctx);
 
@@ -2429,9 +2432,6 @@ extern "C" {
 
 /** A stage enables modification while iterating and from multiple threads */
 typedef struct ecs_stage_t ecs_stage_t;
-
-/** A table is where entities and components are stored */
-typedef struct ecs_table_t ecs_table_t;
 
 /** A record stores data to map an entity id to a location in a table */
 typedef struct ecs_record_t ecs_record_t;
@@ -5770,6 +5770,24 @@ FLECS_API
 bool ecs_id_is_wildcard(
     ecs_id_t id);
 
+/** Utility to check if id is valid.
+ * A valid id is an id that can be added to an entity. Invalid ids are:
+ * - ids that contain wildcards
+ * - ids that contain invalid entities
+ * - ids that are 0 or contain 0 entities
+ *
+ * Note that the same rules apply to removing from an entity, with the exception
+ * of wildcards.
+ *
+ * @param world The world.
+ * @param id The id.
+ * @return True if the id is valid.
+ */
+FLECS_API
+bool ecs_id_is_valid(
+    const ecs_world_t *world,
+    ecs_id_t id);
+
 /** @} */
 
 
@@ -7141,6 +7159,7 @@ int32_t ecs_search_offset(
  * @param max_depth The maximum search depth. Zero means no maximum.
  * @param subject_out If provided, it will be set to the matched entity.
  * @param id_out If provided, it will be set to the found id (optional).
+ * @param depth_out If provided, it will be set to the traversal depth.
  * @param tr_out Internal datatype.
  * @return The index of the id in the table type.
  */
@@ -7155,6 +7174,38 @@ int32_t ecs_search_relation(
     int32_t max_depth,
     ecs_entity_t *subject_out,
     ecs_id_t *id_out,
+    int32_t *depth_out,
+    struct ecs_table_record_t **tr_out);
+
+/** Similar to ecs_search_relation, but find component at maximum depth.
+ * Instead of searching for the first occurrence of a component following a
+ * relationship, this operation returns the last (deepest) occurrence of the
+ * component. This operation can be used to determine the depth of a tree.
+ * 
+ * @param world The world.
+ * @param table The table.
+ * @param offset Offset from where to start searching.
+ * @param id The id to search for.
+ * @param rel The relation to traverse (optional).
+ * @param min_depth The minimum search depth. Use 1 for only shared components.
+ * @param max_depth The maximum search depth. Zero means no maximum.
+ * @param subject_out If provided, it will be set to the matched entity.
+ * @param id_out If provided, it will be set to the found id (optional).
+ * @param depth_out If provided, it will be set to the traversal depth.
+ * @param tr_out Internal datatype.
+ */
+FLECS_API
+int32_t ecs_search_relation_last(
+    const ecs_world_t *world,
+    const ecs_table_t *table,
+    int32_t offset,
+    ecs_id_t id,
+    ecs_entity_t rel,
+    int32_t min_depth,
+    int32_t max_depth,
+    ecs_entity_t *subject_out,
+    ecs_id_t *id_out,
+    int32_t *depth_out,
     struct ecs_table_record_t **tr_out);
 
 /** @} */
@@ -13336,7 +13387,9 @@ struct event_builder_base {
      */
     template <typename R, typename O>
     Base& id() {
-        return id(ecs_pair(_::cpp_type<R>::id(this->m_world), _::cpp_type<O>::id(this->m_world)));
+        return id(
+            ecs_pair(_::cpp_type<R>::id(this->m_world), 
+                _::cpp_type<O>::id(this->m_world)));
     }
 
     /** 
@@ -13399,7 +13452,7 @@ struct event_builder_base {
         ecs_assert(m_desc.table != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_ids.array = m_ids_array;
         m_desc.ids = &m_ids;
-        m_desc.observable = m_world;
+        m_desc.observable = const_cast<flecs::world_t*>(ecs_get_world(m_world));
         ecs_emit(m_world, &m_desc);
     }
 
@@ -19832,8 +19885,7 @@ inline void entity_view::each(flecs::id_t pred, flecs::id_t obj, const Func& fun
     id_t *ids = static_cast<ecs_id_t*>(
         _ecs_vector_first(type, ECS_VECTOR_T(ecs_id_t)));
     
-    while (-1 != (cur = ecs_search_relation(real_world, table, cur, pattern,
-        0, 0, 0, NULL, NULL, NULL))) 
+    while (-1 != (cur = ecs_search_offset(real_world, table, cur, pattern, 0)))
     {
         flecs::id ent(m_world, ids[cur]);
         func(ent);
@@ -21099,7 +21151,7 @@ public:
      * @param rank The rank action.
      */
     template <typename T>
-    Base& group_by(uint64_t(*rank)(flecs::world_t*, flecs::type_t type, flecs::id_t id, void* ctx)) {
+    Base& group_by(uint64_t(*rank)(flecs::world_t*, flecs::table_t *table, flecs::id_t id, void* ctx)) {
         ecs_group_by_action_t rnk = reinterpret_cast<ecs_group_by_action_t>(rank);
         return this->group_by(_::cpp_type<T>::id(this->world_v()), rnk);
     }
@@ -21110,7 +21162,7 @@ public:
      * @param component The component used to determine the group rank.
      * @param rank The rank action.
      */
-    Base& group_by(flecs::entity_t component, uint64_t(*rank)(flecs::world_t*, flecs::type_t type, flecs::id_t id, void* ctx)) {
+    Base& group_by(flecs::entity_t component, uint64_t(*rank)(flecs::world_t*, flecs::table_t *table, flecs::id_t id, void* ctx)) {
         m_desc->group_by = reinterpret_cast<ecs_group_by_action_t>(rank);
         m_desc->group_by_id = component;
         return *this;
