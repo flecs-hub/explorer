@@ -92,8 +92,9 @@
       var syntax_highlighter = new Parser(
         { whitespace: /\s+/,
           property: /[a-zA-Z_0-9]+(?=:)/,
+          variable: /(\$[a-zA-Z_0-9]+)/,
           number: /\b[0-9e]+\b/,
-          operator: /[(),{}\[\]=.:?!]/,
+          operator: /[(),{}\[\]=\.:?!]/,
           comment: /\/\/[^\r\n]*/,
           rel_prop: /\b(Transitive|Final|Reflexive|Tag|Exclusive|Symmetric|With|Acyclic|DontInherit)\b/,
           builtin: /\b(IsA|ChildOf|Component|Tag|Identifier|Name|Symbol|Prefab)\b/,
@@ -101,9 +102,8 @@
           type: /\b(Struct|Enum|Bitmask|Primitive|Array|Vector)\b/,
           builtin_type: /\b(bool|byte|char|i8|i16|i32|i64|iptr|u8|u16|u32|u64|uptr|f32|f64|string|entity)\b/,
           builtin_literal: /\b(true|false|null)\b/,
-          builtin_variable: /(\bThis\b)|[\\*]/,
+          builtin_variable: /(\bThis\b)|[\\*]|[$]/,
           keyword: /\b(using|with)\b/,
-          variable: /\b([A-Z_0-9]|_[a-zA-Z_0-9]+)\b/,
           entity: /\b[a-zA-Z_0-9]+\b/,
           string: /"[^"]*"/,
           other: /\S/
