@@ -490,6 +490,7 @@ div.inspector-component {
 
 div.inspector-component-name {
   display: flex;
+  align-items: center;
 }
 
 div.inspector-component-name {
@@ -778,6 +779,7 @@ button.editor-button-run {
 
 div.ecs-query {
   display: flex;
+  align-items: center;
   
   padding-top: 2px;
   padding-left: 8px;

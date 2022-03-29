@@ -89,7 +89,7 @@ module.exports = {
     visibility: visible;
     opacity: 1;
     transform: translateY(0px);
-    transition: all 0.15s 1s ease-in;
+    transition: all 0.15s 0.8s ease-in-out;
   }
 
 </style>
