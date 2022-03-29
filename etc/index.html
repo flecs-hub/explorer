@@ -23,13 +23,14 @@
             :connection="connection"
             :retry_count="retry_count">
           </app-title>
-          <div class="play-button-box">
+          <div class="play-button-box" v-tooltip="'Project repository'">
             <a href="https://github.com/SanderMertens/flecs" target="_blank">
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
-          <div class="share-button-box">
-            <img src="img/share_icon.png" v-on:click="show_url">
+          <div class="share-button-box"  v-on:click="show_url" v-tooltip="'Get link'">
+            <!-- <img src="img/share_icon.png"> -->
+            <icon-button :size="20" icon="feather:link" />
           </div>
         </div>
       </div>
@@ -82,11 +83,14 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js"></script>
+    <script src="deps/vue.dev.js"></script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>
     <script src="deps/TextareaDecorator.js"></script>
-    <script src="deps/Behave.js"></script>
+    <script src="deps/Behave.js"></script> <!-- provides IDE-like behavior in text editor -->
+    <script src="deps/floating-ui.core.min.js"></script>
+    <script src="deps/floating-ui.dom.min.js"></script>
+    <script src="deps/httpVueLoader.js"></script> <!-- loads Vue SFCs without webpack -->
 
     <script>
       var syntax_highlighter = new Parser(

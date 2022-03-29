@@ -1,5 +1,5 @@
 
-Vue.component('icon', {
+Vue.component('old-icon-button', {
   props: ['src', 'rotate', 'hide'],
   computed: {
     css: function() {
