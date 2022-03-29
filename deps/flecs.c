@@ -21739,6 +21739,7 @@ void populate_iterator(
                 ECS_INTERNAL_ERROR, NULL);
 
             ecs_entity_t e = reg->entity;
+            ecs_assert(ecs_is_valid(world, e), ECS_INTERNAL_ERROR, NULL);
             ecs_record_t *record = ecs_eis_get(world, e);
             offset = ECS_RECORD_TO_ROW(record->row);
 
@@ -21892,6 +21893,8 @@ void rule_iter_set_initial_state(
                 ecs_entity_t e = it_var->entity;
 
                 if (e) {
+                    ecs_assert(ecs_is_valid(it->world, e), 
+                        ECS_INTERNAL_ERROR, NULL);
                     reg_set_entity(rule, regs, i, e);
                     if (other_var != -1) {
                         reg_set_entity(rule, regs, other_var, e);
@@ -32052,10 +32055,9 @@ void FlecsDocImport(
 #define TOK_BRACKET_OPEN '['
 #define TOK_BRACKET_CLOSE ']'
 #define TOK_WILDCARD '*'
-#define TOK_SINGLETON '$'
+#define TOK_VARIABLE '$'
 #define TOK_PAREN_OPEN '('
 #define TOK_PAREN_CLOSE ')'
-#define TOK_AS_ENTITY '\\'
 
 #define TOK_SELF "self"
 #define TOK_SUPERSET "super"
@@ -32186,7 +32188,7 @@ bool valid_identifier_start_char(
     char ch)
 {
     if (ch && (isalpha(ch) || (ch == '.') || (ch == '_') || (ch == '*') ||
-        (ch == '0') || (ch == TOK_AS_ENTITY) || isdigit(ch))) 
+        (ch == '0') || (ch == TOK_VARIABLE) || isdigit(ch))) 
     {
         return true;
     }
@@ -32336,18 +32338,13 @@ int parse_identifier(
     const char *token,
     ecs_term_id_t *out)
 {
-    char ch = token[0];
-
     const char *tptr = token;
-    if (ch == TOK_AS_ENTITY) {
+    if (tptr[0] == TOK_VARIABLE && tptr[1]) {
+        out->var = EcsVarIsVariable;
         tptr ++;
     }
 
     out->name = ecs_os_strdup(tptr);
-
-    if (ch == TOK_AS_ENTITY) {
-        out->var = EcsVarIsEntity;
-    }
 
     return 0;
 }
@@ -32765,23 +32762,6 @@ const char* parse_term(
         /* Next token must be a predicate */
         goto parse_predicate;
 
-    /* If next token is a singleton, assign identifier to pred and subject */
-    } else if (ptr[0] == TOK_SINGLETON) {
-        ptr ++;
-        if (valid_token_start_char(ptr[0])) {
-            ptr = ecs_parse_identifier(name, expr, ptr, token);
-            if (!ptr) {
-                goto error;
-            }
-
-            goto parse_singleton;
-
-        } else {
-            ecs_parser_error(name, expr, (ptr - expr), 
-                "expected identifier after singleton operator");
-            goto error;
-        }
-
     /* Pair with implicit subject */
     } else if (ptr[0] == TOK_PAREN_OPEN) {
         goto parse_pair;
@@ -32935,16 +32915,6 @@ parse_pair_object:
     }
 
     ptr = ecs_parse_whitespace(ptr);
-    goto parse_done; 
-
-parse_singleton:
-    if (parse_identifier(token, &term.pred)) {
-        ecs_parser_error(name, expr, (ptr - expr), 
-            "invalid identifier '%s'", token); 
-        goto error; 
-    }
-
-    parse_identifier(token, &term.subj);
     goto parse_done;
 
 parse_done:
@@ -34086,15 +34056,17 @@ const ecs_entity_t EcsDisabled =              ECS_HI_COMPONENT_ID + 7;
 const ecs_entity_t EcsWildcard =              ECS_HI_COMPONENT_ID + 10;
 const ecs_entity_t EcsAny =                   ECS_HI_COMPONENT_ID + 11;
 const ecs_entity_t EcsThis =                  ECS_HI_COMPONENT_ID + 12;
-const ecs_entity_t EcsTransitive =            ECS_HI_COMPONENT_ID + 13;
-const ecs_entity_t EcsReflexive =             ECS_HI_COMPONENT_ID + 14;
-const ecs_entity_t EcsSymmetric =             ECS_HI_COMPONENT_ID + 15;
-const ecs_entity_t EcsFinal =                 ECS_HI_COMPONENT_ID + 16;
-const ecs_entity_t EcsDontInherit =           ECS_HI_COMPONENT_ID + 17;
-const ecs_entity_t EcsTag =                   ECS_HI_COMPONENT_ID + 18;
-const ecs_entity_t EcsExclusive =             ECS_HI_COMPONENT_ID + 19;
-const ecs_entity_t EcsAcyclic =               ECS_HI_COMPONENT_ID + 20;
-const ecs_entity_t EcsWith =                  ECS_HI_COMPONENT_ID + 21;
+const ecs_entity_t EcsVariable =              ECS_HI_COMPONENT_ID + 13;
+
+const ecs_entity_t EcsTransitive =            ECS_HI_COMPONENT_ID + 14;
+const ecs_entity_t EcsReflexive =             ECS_HI_COMPONENT_ID + 15;
+const ecs_entity_t EcsSymmetric =             ECS_HI_COMPONENT_ID + 16;
+const ecs_entity_t EcsFinal =                 ECS_HI_COMPONENT_ID + 17;
+const ecs_entity_t EcsDontInherit =           ECS_HI_COMPONENT_ID + 18;
+const ecs_entity_t EcsTag =                   ECS_HI_COMPONENT_ID + 19;
+const ecs_entity_t EcsExclusive =             ECS_HI_COMPONENT_ID + 20;
+const ecs_entity_t EcsAcyclic =               ECS_HI_COMPONENT_ID + 21;
+const ecs_entity_t EcsWith =                  ECS_HI_COMPONENT_ID + 22;
 
 /* Builtin relations */
 const ecs_entity_t EcsChildOf =               ECS_HI_COMPONENT_ID + 25;
@@ -36384,16 +36356,6 @@ int finalize_term_var(
     ecs_term_id_t *identifier,
     const char *name)
 {
-    if (identifier->var == EcsVarDefault) {
-        const char *var = ecs_identifier_is_var(identifier->name);
-        if (var) {
-            char *var_dup = ecs_os_strdup(var);
-            ecs_os_free(identifier->name);
-            identifier->name = var_dup;
-            identifier->var = EcsVarIsVariable;
-        }
-    }
-
     if (identifier->var == EcsVarDefault && identifier->set.mask != EcsNothing){
         identifier->var = EcsVarIsEntity;
     }
@@ -36521,7 +36483,7 @@ static
 bool entity_is_var(
     ecs_entity_t e)
 {
-    if (e == EcsThis || e == EcsWildcard || e == EcsAny) {
+    if (e == EcsThis || e == EcsWildcard || e == EcsAny || e == EcsVariable) {
         return true;
     }
     return false;
@@ -36592,10 +36554,21 @@ int finalize_term_identifiers(
     {
         term->subj.entity = EcsThis;
     }
-    
+
     if (entity_is_var(term->pred.entity)) {
         term->pred.var = EcsVarIsVariable;
     }
+
+    /* If EcsVariable is used by itself, assign to predicate (singleton) */
+    if (term->subj.entity == EcsVariable) {
+        term->subj.entity = term->pred.entity;
+        term->subj.var = term->pred.var;
+    }
+    if (term->obj.entity == EcsVariable) {
+        term->obj.entity = term->pred.entity;
+        term->obj.var = term->pred.var;
+    }
+    
     if (entity_is_var(term->subj.entity)) {
         term->subj.var = EcsVarIsVariable;
     }
@@ -47820,9 +47793,10 @@ void flecs_bootstrap(
 
     /* Initialize builtin entities */
     bootstrap_entity(world, EcsWorld, "World", EcsFlecsCore);
-    bootstrap_entity(world, EcsThis, "This", EcsFlecsCore);
     bootstrap_entity(world, EcsWildcard, "*", EcsFlecsCore);
     bootstrap_entity(world, EcsAny, "_", EcsFlecsCore);
+    bootstrap_entity(world, EcsThis, "This", EcsFlecsCore);
+    bootstrap_entity(world, EcsVariable, "$", EcsFlecsCore);
 
     /* Component/relationship properties */
     flecs_bootstrap_tag(world, EcsTransitive);
