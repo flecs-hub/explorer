@@ -29,11 +29,12 @@ module.exports = {
       FloatingUIDOM.computePosition(target, tooltip, {
         placement: "bottom-start",
         middleware: [
-          FloatingUIDOM.shift(),
+          FloatingUIDOM.shift({padding: 4}),
           FloatingUIDOM.offset(4),
         ],
       }).then(
         ({x,y}) => {
+          // console.log(x,y);
           Object.assign(this.$el.style, {
             left: `${x}px`,
             top: `${y}px`,

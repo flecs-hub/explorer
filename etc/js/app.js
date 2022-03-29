@@ -95,7 +95,7 @@ Vue.directive('tooltip', {
         });
         
         tooltip_instance.$mount();
-        el.appendChild(tooltip_instance.$el);
+        el.after(tooltip_instance.$el);
         vnode.context.$children.push(tooltip_instance);
         tooltip_instance.$parent = vnode.context;
       }

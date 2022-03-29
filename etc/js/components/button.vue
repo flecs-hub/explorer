@@ -1,6 +1,6 @@
 <template>
   <div class="icon-button noselect clickable" :title="tooltip" v-on="$listeners">
-    <icon :icon="icon" :size="size"></icon>
+    <icon :icon="icon" :size="size / 1.2"></icon>
   </div>
 </template>
 
@@ -27,7 +27,7 @@ module.exports = {
     }
   },
   mounted() {
-    let dim_val = this.size * 1.2;
+    let dim_val = Math.round(this.size);
     this.$el.style.height = `${dim_val}px`;
 
     this.$el.style.width = `${dim_val}px`;
@@ -37,7 +37,6 @@ module.exports = {
 
 <style>
 .icon-button {
-  aspect-ratio: 1;
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -57,7 +56,8 @@ module.exports = {
   opacity: 0.9;
 }
 
-.icon-button:active {
+.icon-button:active,
+.icon-button:focus {
   background-color: rgba(255, 255, 255, 0.2);
   opacity: 1.0;
 }

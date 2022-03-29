@@ -127,6 +127,7 @@ Vue.component('query', {
 
           <icon-button 
             icon="feather:x"
+            :size="20"
             v-show="!(query_result === undefined && !invalid_query)"
             v-on:click.stop="evt_close"
             v-tooltip="'Clear query'" />
