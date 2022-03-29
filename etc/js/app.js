@@ -30,7 +30,7 @@ const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 
 // Example content for local demo
 const example_selected = "Sun.Earth";
-const example_query = "Mass,\n?(ChildOf, _Parent)"
+const example_query = "Mass,\n?(ChildOf, $Parent)"
 const example_plecs = `// For C/C++ code, go to repository:
 //   https://github.com/SanderMertens/flecs
 //
