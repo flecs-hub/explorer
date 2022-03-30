@@ -116,7 +116,6 @@ body {
   color: var(--primary-text);
   margin: 0px;
 
-  overflow-x: hidden;
 }
 
 input {

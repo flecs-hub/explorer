@@ -24,6 +24,13 @@ module.exports = {
   },
   methods: {
     show() {
+      this.position();
+      this.show_state = true;
+    },
+    hide() {
+      this.show_state = false;
+    },
+    position() {
       let target = this.element;
       let tooltip = this.$el;
       FloatingUIDOM.computePosition(target, tooltip, {
@@ -40,16 +47,14 @@ module.exports = {
             top: `${y}px`,
           });
         }
-      )
-
-      this.show_state = true;
-
-    },
-    hide() {
-      this.show_state = false;
-    },
+      );
+    }
+  },
+  created() {
   },
   mounted() {
+    console.log("positioning");
+    this.position();
     this.element.addEventListener("mouseenter", () => { this.show() });
     this.element.addEventListener("mouseleave", () => { this.hide() });
     
@@ -79,8 +84,7 @@ module.exports = {
     visibility: hidden;
     opacity: 0;
     transform: translateY(2px);
-    transition: all 0.15s ease-out;
-
+    transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
   }
 
   .tooltip-visible {
@@ -89,7 +93,7 @@ module.exports = {
     visibility: visible;
     opacity: 1;
     transform: translateY(0px);
-    transition: all 0.15s 0.8s ease-in-out;
+    transition: opacity 0.15s 0.8s ease-in-out, transform 0.15s 0.8s ease-in-out;
   }
 
 </style>
