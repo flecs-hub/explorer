@@ -1170,6 +1170,25 @@ table.query-results-table th {
   color: var(--label);
 }
 
+table.query-results-table thead.query-results-table-header {
+  background-color: var(--panel-bg-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+table.query-results-table thead tr,
+table.query-results-table tbody tr {
+  background-color: transparent;
+  transition: background-color 0.1s ease;
+}
+
+table.query-results-table thead tr:hover,
+table.query-results-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
 th.query-results-header-term {
   color: #FFE100;
 }
@@ -1193,8 +1212,8 @@ td.query-result-entity {
 }
 
 table.query-results-table td {
-  padding-left: var(--p-3);
-  padding-right: var(--p-3);
+  padding-left: var(--p-4);
+  padding-right: var(--p-4);
   padding-bottom: var(--p-3);
   padding-top: var(--p-3);
   border-top-color: var(--grey-850);

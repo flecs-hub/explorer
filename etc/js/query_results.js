@@ -178,7 +178,7 @@ Vue.component('query-results', {
         </template>
         <template v-else>
           <table class="query-results-table" v-if="data">
-            <thead>
+            <thead class="query-results-table-header">
               <tr>
                 <th v-if="has_this">Entity</th>
                 <th v-for="var_name in variables" class="query-results-header">
