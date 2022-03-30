@@ -41,7 +41,6 @@ module.exports = {
         ],
       }).then(
         ({x,y}) => {
-          // console.log(x,y);
           Object.assign(this.$el.style, {
             left: `${x}px`,
             top: `${y}px`,
@@ -53,7 +52,6 @@ module.exports = {
   created() {
   },
   mounted() {
-    console.log("positioning");
     this.position();
     this.element.addEventListener("mouseenter", () => { this.show() });
     this.element.addEventListener("mouseleave", () => { this.hide() });
