@@ -76,6 +76,13 @@ module.exports = {
   stroke-width: 2;
   fill: none;
   overflow: visible;
+
+  /* Preempts SVG jitter bug in Safari */
+  -webkit-backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  -webkit-font-smoothing: antialiased;
+  -webkit-transform-style: preserve-3d;
+  -webkit-transform: translateZ(0); 
 }
 
 .codicons {

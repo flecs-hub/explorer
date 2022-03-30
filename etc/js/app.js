@@ -1,5 +1,5 @@
 
-Vue.config.devtools = true;
+Vue.config.devtools = false;
 
 // Track state of connection to remote app
 const ConnectionState = {
