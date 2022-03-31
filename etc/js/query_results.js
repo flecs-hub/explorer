@@ -31,14 +31,15 @@ Vue.component('query-result', {
   template: `
   <tr>
     <td class="query-result-entity" v-if="entity">
-      <entity-reference :entity="entity" :label="entity_label" :show_name="true" :show_parent="true" v-on="$listeners"/>
+      <entity-hierarchy :entity_path="entity" />
+      <entity-reference :entity="entity" :label="entity_label" :show_name="true" :show_parent="false" v-on="$listeners"/>
     </td>
     <td v-for="(variable, vi) in result.vars">
         <template v-if="variable !== '*'">
           <entity-reference :entity="variable" :label="var_label(vi)" :show_name="true" v-on="$listeners"/>
         </template>
         <template v-else>
-          <span class="query-result-no">No</span>
+          <span class="query-result-no">None</span>
         </template>
     </td>
     <td v-for="(value, vi) in result.values" v-if="value !== 0">
@@ -46,7 +47,7 @@ Vue.component('query-result', {
         <inspector-props :value="get_value(value, index)" :list="true"/>
       </template>
       <template v-else>
-        <span class="query-result-no">No</span>
+        <span class="query-result-no">None</span>
       </template>
     </td>
     <td v-if="show_terms" v-for="term in result.terms" class="content-container-term">
