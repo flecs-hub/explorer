@@ -111,6 +111,7 @@ Vue.component('query', {
       ref="container"
       :disable="query_result === undefined && !invalid_query"
       :hidden="query_result === undefined"
+      :no_padding="true"
       closable="true" 
       v-on:close="evt_close">
 

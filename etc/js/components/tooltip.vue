@@ -64,7 +64,6 @@ module.exports = {
 <style>
   .tooltip {
     position: absolute;
-    z-index: 100;
 
     max-width: calc(100vw - 10px); /* technical maximum; realistically should not approach */
 
@@ -87,6 +86,7 @@ module.exports = {
 
   .tooltip-visible {
     box-shadow: 0px 2px 4px rgba(0,0,0,0.3);
+    z-index: 10;
 
     visibility: visible;
     opacity: 1;

@@ -73,18 +73,23 @@
   --panel-bg-secondary: var(--steel-800);
   --panel-select: var(--steel-700);
   --prop-bg: var(--steel-700);
-  --primary-text: var(--steel-300);
-  --secondary-text: var(--grey-300);
-  --label: var(--steel-500);
+
+  --primary-text: var(--grey-100);
+  --secondary-text: var(--grey-400);
+  --tertiary-text: var(--grey-500);
+
+  --label: var(--secondary-text);
   --footer-text: var(--steel-300);
   --error: var(--bright-red);
   --light-hover-bg: var(--steel-700);
 
   /* Text sizes */
+  --text-fs-xs: 10px;
   --text-fs-sm: 12px;
   --text-fs-md: 14px;
   --text-fs-lg: 15px;
 
+  --text-lh-xs: 12px;
   --text-lh-sm: 14px;
   --text-lh-md: 16px;
   --text-lh-lg: 18px;
@@ -980,11 +985,11 @@ div.query-result-yes {
 }
 
 div.query-result-no {
-  color: var(--red); 
+  color: var(--tertiary-text); 
 }
 
 span.query-result-no {
-  color: var(--red); 
+  color: var(--tertiary-text); 
 }
 
 div.query-results {
@@ -1075,7 +1080,7 @@ span.content-summary {
   width: 100%;
   height: 30px;
   align-items: center;
-  z-index: 1;
+  z-index: 3;
 }
 
 div.content-detail {
@@ -1157,8 +1162,8 @@ table.last_align_right td:last-child {
 
 table.query-results-table th {
   /* padding: 0px; */
-  padding-left: var(--p-3);
-  padding-right: var(--p-3);
+  padding-left: var(--p-4);
+  padding-right: var(--p-4);
   padding-bottom: var(--p-3);
   padding-top: var(--p-3);
   font-weight: 400;
@@ -1168,6 +1173,25 @@ table.query-results-table th {
   -o-user-select: none;
   user-select: none;
   color: var(--label);
+}
+
+table.query-results-table thead.query-results-table-header {
+  background-color: var(--panel-bg-secondary);
+  position: sticky;
+  top: 0px;
+  z-index: 2;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+table.query-results-table thead tr,
+table.query-results-table tbody tr {
+  background-color: transparent;
+  transition: background-color 0.1s ease;
+}
+
+table.query-results-table thead tr:hover,
+table.query-results-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.02);
 }
 
 th.query-results-header-term {
@@ -1188,16 +1212,20 @@ td.query-results-squeeze {
   min-width: 0px;
 }
 
+td.query-result-hierarchy {
+
+}
+
 td.query-result-entity {
   white-space: nowrap;
 }
 
 table.query-results-table td {
-  padding-left: var(--p-3);
-  padding-right: var(--p-3);
+  padding-left: var(--p-4);
+  padding-right: var(--p-4);
   padding-bottom: var(--p-3);
   padding-top: var(--p-3);
-  border-top-color: var(--grey-850);
+  border-top-color: var(--grey-800);
   border-top-style: solid;
   border-top-width: 1px;
   font-size: inherit;

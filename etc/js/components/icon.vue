@@ -72,10 +72,11 @@ module.exports = {
 <style scoped>
 
 .icon-obj {
-  stroke: white;
+  stroke: currentColor;
   stroke-width: 2;
   fill: none;
   overflow: visible;
+  z-index: 1;
 
   /* Preempts SVG jitter bug in Safari */
   -webkit-backface-visibility: hidden;

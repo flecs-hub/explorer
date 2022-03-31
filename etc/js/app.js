@@ -77,6 +77,7 @@ var icon_component = Vue.component('icon', httpVueLoader('js/components/icon.vue
 var button_component = Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
 var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
 
+var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {

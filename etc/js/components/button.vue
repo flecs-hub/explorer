@@ -43,6 +43,7 @@ module.exports = {
   justify-content: center;
 
   border-radius: 4px;
+  z-index: 1;
 }
 
 .icon-button {
