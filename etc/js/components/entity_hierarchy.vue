@@ -50,9 +50,10 @@ module.exports = {
     },
     parse() {
       let entities = this.entity_path.split(".").slice(0, -1);
-      if (entities.length > 2) {
-        entities = [ entities[0], "…", entities[entities.length -1]];
-      }
+      // Path shortening is disabled temporarily
+      // if (entities.length > 2) {
+      //   entities = [ entities[0], "…", entities[entities.length -1]];
+      // }
 
       this.entities = entities;
     }
