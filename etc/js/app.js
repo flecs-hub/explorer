@@ -76,31 +76,19 @@ Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
 var icon_component = Vue.component('icon', httpVueLoader('js/components/icon.vue'));
 var button_component = Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
 var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
-
 var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
-    /* 
-      Tooltips are dynamically instantiated on mouse enter.
-      They are destroyed on mouse leave after a short delay to allow for animated transitioned exit.
-    */
-    tooltip_component().then(
-      (res) => {
-        let tooltip_class = Vue.extend(res);
-        tooltip_instance = new tooltip_class({
-          propsData: {
-            element: el,
-            label: binding.value,
-          }
-        });
-        
-        tooltip_instance.$mount();
-        el.after(tooltip_instance.$el);
-        vnode.context.$children.push(tooltip_instance);
-        tooltip_instance.$parent = vnode.context;
-      }
-    )
+    el.addEventListener("mouseenter", () => {
+      app.$refs.tooltip.element = el;
+      app.$refs.tooltip.label = binding.value;
+      app.$refs.tooltip.show();
+    })
+
+    el.addEventListener("mouseleave", () => {
+      app.$refs.tooltip.hide();
+    })
   }
 })
 

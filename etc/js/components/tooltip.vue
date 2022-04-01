@@ -40,7 +40,8 @@ module.exports = {
           FloatingUIDOM.offset(4),
         ],
       }).then(
-        ({x,y}) => {
+        ({x,y, middlewareData}) => {
+          console.log(middlewareData);
           Object.assign(this.$el.style, {
             left: `${x}px`,
             top: `${y}px`,
@@ -52,11 +53,6 @@ module.exports = {
   created() {
   },
   mounted() {
-    this.position();
-    this.element.addEventListener("mouseenter", () => { this.show() });
-    this.element.addEventListener("mouseleave", () => { this.hide() });
-    
-    this.$el.addEventListener("mouseenter", () => { this.hide() });
   }
 }
 </script>
@@ -78,20 +74,21 @@ module.exports = {
     white-space: nowrap;
     box-shadow: 0px 0px 0px rgba(0,0,0,0);
 
-    visibility: hidden;
+    z-index: 100;
+
     opacity: 0;
-    transform: translateY(2px);
-    transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out;
+    transform: translateY(-2px);
+
+    transition: opacity 0.20s ease-in-out, transform 0.20s ease-in-out;
   }
 
   .tooltip-visible {
     box-shadow: 0px 2px 4px rgba(0,0,0,0.3);
-    z-index: 10;
 
-    visibility: visible;
     opacity: 1;
     transform: translateY(0px);
-    transition: opacity 0.15s 0.8s ease-in-out, transform 0.15s 0.8s ease-in-out;
+    transition: opacity 0.20s 0.8s ease-in-out, transform 0.20s 0.8s ease-in-out;
   }
+
 
 </style>
