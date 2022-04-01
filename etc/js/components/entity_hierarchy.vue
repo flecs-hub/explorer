@@ -36,7 +36,6 @@ module.exports = {
   },
   watch: {
     entity_path() {
-      console.log("change", this.entity_path)
       this.parse();
     }
   },

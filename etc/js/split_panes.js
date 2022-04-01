@@ -105,9 +105,6 @@ const frame = Vue.component('split-pane', {
     }
   },
   methods: {
-    evt_close: function() {
-      console.log("close event detected from panel");
-    }
   },
   computed: {
     slack() {
