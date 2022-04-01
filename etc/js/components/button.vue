@@ -29,7 +29,6 @@ module.exports = {
   mounted() {
     let dim_val = Math.round(this.size);
     this.$el.style.height = `${dim_val}px`;
-
     this.$el.style.width = `${dim_val}px`;
   }
 }

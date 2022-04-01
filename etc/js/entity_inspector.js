@@ -330,7 +330,7 @@ Vue.component('inspector-component', {
                 show_name="true" 
                 click_name="true"
                 v-on="$listeners"/></span></template>
-              <icon-button icon="codicons:search" :size="16" v-tooltip="'Query'" v-on:click.stop="search_component"/>
+              <icon-button icon="codicons:search" :size="16" v-on:click.stop="search_component"/>
             </div>
           </template>
           <template v-slot:detail>
@@ -475,7 +475,7 @@ Vue.component('inspector', {
             :size="20"
             v-show="entity_name"
             v-on:click.stop="evt_close"
-            v-tooltip="'Stop inspecting entity'" 
+            v-tooltip="'Close'" 
           />
         </span>
       </template>
