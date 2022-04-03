@@ -1,5 +1,5 @@
-<template>
-  <div class="icon-button noselect clickable" :title="tooltip" v-on="$listeners">
+<template functional>
+  <div class="icon-button noselect clickable" v-on="$listeners" :width="`${size + 4}px`" :height="`${size + 4}px`">
     <icon :icon="icon" :size="size / 1.2"></icon>
   </div>
 </template>
@@ -19,18 +19,6 @@ module.exports = {
   props: {
     size: { type: Number, required: false, default: 16 },
     icon: { type: String, required: true },
-    tooltip: { type: String, required: false }
-  },
-  computed: {
-    children() {
-      return this.$children;
-    }
-  },
-  mounted() {
-    let dim_val = Math.round(this.size);
-    this.$el.style.height = `${dim_val}px`;
-
-    this.$el.style.width = `${dim_val}px`;
   }
 }
 </script>
