@@ -13,12 +13,10 @@
 */
 module.exports = {
   name: "tooltip",
-  props: {
-    element: { type: HTMLElement },
-    label: { type: String }
-  },
   data() {
     return {
+      element: undefined,
+      label: undefined,
       show_state: false,
     }
   },
@@ -41,7 +39,6 @@ module.exports = {
         ],
       }).then(
         ({x,y, middlewareData}) => {
-          console.log(middlewareData);
           Object.assign(this.$el.style, {
             left: `${x}px`,
             top: `${y}px`,

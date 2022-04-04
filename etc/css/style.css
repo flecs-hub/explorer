@@ -1,3 +1,7 @@
+@import "components/icon.css";
+@import "components/icon-button.css";
+@import "components/entity-hierarchy.css";
+
 /* Color palette variables */
 
 :root {
@@ -382,7 +386,7 @@ div.share-button-box {
   position: absolute;
   right: 12px;
   top: 10px;
-  width: 16px;
+
   cursor: pointer;
 }
 

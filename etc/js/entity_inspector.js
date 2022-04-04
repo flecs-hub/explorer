@@ -475,7 +475,7 @@ Vue.component('inspector', {
             :size="20"
             v-show="entity_name"
             v-on:click.stop="evt_close"
-            v-tooltip="'Close'" 
+            v-tooltip="'Clear'" 
           />
         </span>
       </template>

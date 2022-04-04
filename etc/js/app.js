@@ -73,9 +73,10 @@ function getParameterByName(name, url = window.location.href) {
 */
 Vue.component('collapsible-panel', httpVueLoader('js/collapsible_panel.vue'));
 Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
-var icon_component = Vue.component('icon', httpVueLoader('js/components/icon.vue'));
-var button_component = Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
+// var icon_component = Vue.component('icon', httpVueLoader('js/components/icon.vue'));
+// Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
 var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
+var popover_component = Vue.component('popover', httpVueLoader('js/components/popover.vue'));
 var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
 
 Vue.directive('tooltip', {
@@ -86,7 +87,11 @@ Vue.directive('tooltip', {
       app.$refs.tooltip.show();
     })
 
+    // Dismiss tooltip after mouse leave or interaction
     el.addEventListener("mouseleave", () => {
+      app.$refs.tooltip.hide();
+    })
+    el.addEventListener("click", () => {
       app.$refs.tooltip.hide();
     })
   }
