@@ -49,13 +49,13 @@ function fmt_date(seconds) {
 }
 
 // Key (property name)
-Vue.component('inspector-key', {
+const inspector_key_component = Vue.component('inspector-key', {
   props: ['prop_key'],
   template: `<span v-if="prop_key !== undefined" class="inspector-key">{{prop_key}}</span>`
 });
 
 // Single scalar value
-Vue.component('inspector-value', {
+const inspector_value_component = Vue.component('inspector-value', {
   props: ['type', 'value', 'symbol', 'separator'],
   computed: {
     unit: function() {
@@ -67,9 +67,14 @@ Vue.component('inspector-value', {
       return undefined;
     },
     formatted_value: function() {
+      if(typeof(this.value) == "object") {
+        console.log(this.value);
+      }
       const type = this.type ? this.type[0] : undefined;
       const unit = this.unit;
       let value = this.value;
+
+
 
       if (!type) {
         return value;
@@ -137,8 +142,114 @@ Vue.component('inspector-value', {
   template: `<span :class="css"><template v-if="separator">,&nbsp;</template>{{formatted_value}}&nbsp;{{actual_symbol}}</span>`
 });
 
+// Functional version of inspector-value component
+const functional_inspector_value_component = Vue.component('functional-inspector-value', {
+  props: ["type", "value", "symbol", "separator"],
+  functional: true,
+  render: function (createElement, context) {
+    let unit = (function() {
+      if (context.props.type && context.props.type.length > 1) {
+        if (inspector_is_object(undefined, context.props.type[1])) {
+          return context.props.type[1].unit;
+        }
+      }
+      return undefined;
+    })();
+
+    let formatted_value = (function() {
+      const type = context.props.type ? context.props.type[0] : undefined;
+      let value = context.props.value;
+
+      if (typeof(value) == "object") {
+        return JSON.stringify(value);
+      }
+
+      if (!type) {
+        return value;
+      }
+
+      if (type === "text") {
+        if (value) {
+          return "\"" + value + "\"";
+        } else {
+          return "";
+        }
+      }
+
+      if (unit == "flecs.units.Percentage") {
+        value = fmt_percentage(value);
+      }
+      if (unit == "flecs.units.Duration.Seconds") {
+        value = fmt_duration(value);
+      }
+      if (unit == "flecs.units.Duration.Minutes") {
+        value = fmt_duration(value * 60);
+      }
+      if (unit == "flecs.units.Duration.Minutes") {
+        value = fmt_duration(value * 60);
+      }
+      if (unit == "flecs.units.Duration.Hours") {
+        value = fmt_duration(value * 60 * 60);
+      }
+      if (unit == "flecs.units.Duration.Days") {
+        value = fmt_duration(value * 60 * 60 * 24);
+      }
+      if (unit == "flecs.units.Time.Date") {
+        value = fmt_date(value);
+      }
+
+      if (type === "float") {
+        let str = value.toString();
+        if (str.indexOf('.') == -1 || str.indexOf('e') != -1) {
+          return value;
+        } else {
+          let num = 4 - str.split('.')[0].length;
+          if (num < 0) {
+            num = 0;
+          }
+          return value.toFixed(num);
+        }
+      }
+      return value;
+    })();
+
+    let actual_symbol = (function() {
+      if (unit == "flecs.units.Duration.Seconds") {
+        return "";
+      }
+      return context.props.symbol;
+    })();
+
+    let css_classes = {
+      "inspector-value": true,
+    }
+    if (context.props.type) {
+      css_classes[`inspector-value-${context.props.type[0]}`] = true;
+    }
+
+    // Actual rendering
+    if (!context.props.separator) {
+      return createElement(
+        'span',
+        {
+          class: css_classes,
+        },
+        [formatted_value, " ", actual_symbol]
+      )
+    } else {
+      return createElement(
+        'span',
+        {
+          class: css_classes,
+        },
+        [", ", formatted_value, " ", actual_symbol]
+      )
+    }
+  }
+})
+
 // Key-value pair (as shown in entity inspector)
-Vue.component('inspector-kv', {
+const inspector_kv_component = Vue.component('inspector-kv', {
   props: ['prop_key', 'type', 'value', 'list', 'first'],
   computed: {
     is_object: function() {
@@ -172,18 +283,21 @@ Vue.component('inspector-kv', {
           </div>
         </template>
         <template v-else>
-          <inspector-key :prop_key="prop_key"/><inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol"/>
+          <inspector-key :prop_key="prop_key"/>
+          <functional-inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol"/>
         </template>
       </template>
       <template v-else>
-        <inspector-value :type="type" :value="value" :separator="!first"></inspector-value>
+        <functional-inspector-value :type="type" :value="value" :separator="!first" />
       </template>
     </div>
     `
 });
 
+
+
 // Component properties
-Vue.component('inspector-props', {
+const inspector_props_component = Vue.component('inspector-props', {
   props: ['value', 'type', 'list'],
   methods: {
     prop_type: function(prop_name) {
@@ -242,7 +356,7 @@ Vue.component('inspector-props', {
 });
 
 // Component
-Vue.component('inspector-component', {
+const inspector_component_component = Vue.component('inspector-component', {
   props: ['entity', 'index'],
   methods: {
     search_component() {
@@ -345,7 +459,7 @@ Vue.component('inspector-component', {
 });
 
 // Components of entity and/or base entities
-Vue.component('inspector-components', {
+const inspector_components_component = Vue.component('inspector-components', {
   props: ['entity', 'show_header', 'is_base'],
   computed: {
     entity_type: function() {
@@ -398,7 +512,7 @@ Vue.component('inspector-components', {
 });
 
 // Top level inspector
-Vue.component('inspector', {
+const inspector_component = Vue.component('inspector', {
   props: ['entity', 'entity_name', 'valid'],
   methods: {
     expand: function() {
