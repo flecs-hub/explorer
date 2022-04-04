@@ -416,7 +416,7 @@ div.entity-tree {
 }
 
 text.entity-tree-text {
-  fill: var(--secondary-text);
+  fill: var(--primary-text);
   cursor: pointer;
 }
 
