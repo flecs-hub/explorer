@@ -77,7 +77,7 @@ Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
 // Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
 var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
 var popover_component = Vue.component('popover', httpVueLoader('js/components/popover.vue'));
-var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
+// var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
