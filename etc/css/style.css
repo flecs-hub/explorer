@@ -1087,7 +1087,8 @@ span.content-summary {
   font-size: var(--text-fs-md);
   line-height: var(--text-lh-md);
   color: var(--secondary-text);
-  width: 100%;
+  width: calc(100% - 24px);
+  /* 24px subtraction accounts for chevron space to left of content-summary */
   height: 30px;
   align-items: center;
   z-index: 3;
