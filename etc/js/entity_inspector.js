@@ -242,7 +242,8 @@ const functional_inspector_value_component = Vue.component('functional-inspector
         {
           class: css_classes,
         },
-        [", ", formatted_value, " ", actual_symbol]
+        [",\xa0", formatted_value, "\xa0", actual_symbol]
+        // \xa0 is non-breaking space escaped for js
       )
     }
   }
