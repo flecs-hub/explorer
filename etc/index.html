@@ -15,6 +15,10 @@
     <!-- <script src="js/event_listener.js"></script> -->
 
     <div id="app">
+      <!-- Overlays -->
+      <tooltip ref="tooltip"></tooltip>
+      <url-popover :url="url" ref="share_url_popover"></url-popover>
+        
       <!-- Top bar -->
       <div class="top-box">
         <div class="top-content">
@@ -28,7 +32,7 @@
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
-          <div class="share-button-box"  v-on:click="show_url" v-tooltip="'Get link'">
+          <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
             <!-- <img src="img/share_icon.png"> -->
             <icon-button :size="20" icon="feather:link" />
           </div>
@@ -83,7 +87,9 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js"></script>
+    <script src="deps/vue.min.js">
+      Vue.config.devtools = false;
+    </script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>
     <script src="deps/TextareaDecorator.js"></script>
@@ -120,6 +126,11 @@
     <script src="js/content_container.js"></script>
     <script src="js/layout.js"></script>
     <script src="js/split_panes.js"></script>
+
+    <!-- Functional components -->
+    <script src="js/functional_components/functional_icon.js"></script>
+    <script src="js/functional_components/functional_icon_button.js"></script>
+    <script src="js/functional_components/functional_entity_hierarchy.js"></script>
 
     <script src="js/status.js"></script>
     <script src="js/entity_icon.js"></script>
