@@ -64,6 +64,14 @@ python3 -m http.server
 
 You can now go to http://localhost:8000 to open the explorer.
 
+### Run the explorer as Docker image
+If you have a docker environment, you can host the explorer by running this command:
+```
+docker run --name=explorer -p 80:80 --restart=unless-stopped -d sandermertens/flecs.explorer:latest
+```
+
+You can now go to http://localhost to open the explorer.
+
 ### URL options
 The following options can be added to the URL:
 
