@@ -67,6 +67,9 @@
   --red: #B5494B;
   --bright-red: #EF8784;
 
+  --ui-blue: rgba(79, 149, 255, 1.0);
+  --ui-blue-30: rgba(79, 149, 255, 0.30);
+
   /* Color assignments */
   --app-bg: var(--grey-950);
   --panel-border: var(--steel-850);
@@ -86,6 +89,9 @@
   --footer-text: var(--steel-300);
   --error: var(--bright-red);
   --light-hover-bg: var(--steel-700);
+
+  --color-acent-emphasis: var(--ui-blue);
+  --color-acent-emphasis-translucent: var(--ui-blue-30);
 
   /* Text sizes */
   --text-fs-xs: 10px;

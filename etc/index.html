@@ -17,6 +17,7 @@
     <div id="app">
       <!-- Overlays -->
       <tooltip ref="tooltip"></tooltip>
+      <url-popover :url="url" ref="share_url_popover"></url-popover>
         
       <!-- Top bar -->
       <div class="top-box">
@@ -31,7 +32,7 @@
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
-          <div class="share-button-box"  v-on:click="show_url" v-tooltip="'Get link'">
+          <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
             <!-- <img src="img/share_icon.png"> -->
             <icon-button :size="20" icon="feather:link" />
           </div>
@@ -86,7 +87,9 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js"></script>
+    <script src="deps/vue.min.js">
+      Vue.config.devtools = false;
+    </script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>
     <script src="deps/TextareaDecorator.js"></script>

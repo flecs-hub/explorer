@@ -1,5 +1,4 @@
 
-Vue.config.devtools = false;
 
 // Track state of connection to remote app
 const ConnectionState = {
@@ -77,6 +76,7 @@ Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
 // Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
 var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
 var popover_component = Vue.component('popover', httpVueLoader('js/components/popover.vue'));
+Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
 // var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
 
 Vue.directive('tooltip', {
@@ -565,7 +565,7 @@ var app = new Vue({
       this.$refs.query.set_query(query);
     },
 
-    show_url() {
+    show_url_modal() {
       const query = this.$refs.query.get_query();
       
       let plecs;
@@ -622,7 +622,8 @@ var app = new Vue({
         sep = "&";
       }
 
-      this.$refs.url.show();
+      // this.$refs.url.show();
+      this.$refs.share_url_popover.show();
     },
   },
 
