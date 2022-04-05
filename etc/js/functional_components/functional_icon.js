@@ -11,9 +11,9 @@ Vue.component('icon', {
       class: [
         "icon-obj",
       ],
-      attrs: {
-        width: context.props.size,
-        height: context.props.size,
+      style: {
+        width: `${context.props.size}px`,
+        height: `${context.props.size}px`,
       }
     }, [
       createElement('use', {

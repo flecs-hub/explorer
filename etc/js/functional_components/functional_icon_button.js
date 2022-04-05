@@ -15,9 +15,9 @@ Vue.component('icon-button', {
           "noselect",
           "clickable"
         ],
-        attrs: {
-          width: context.props.size + 4,
-          height: context.props.size + 4,
+        style: {
+          width: `${context.props.size}px`,
+          height: `${context.props.size}px`,
         },
         on: context.listeners, // pass down listeners
         directives: context.data.directives, // pass down directives
@@ -28,7 +28,7 @@ Vue.component('icon-button', {
           {
             props: {
               icon: context.props.icon,
-              size: context.props.size / 1.2,
+              size: context.props.size * 0.8,
             }
         })
       ]
