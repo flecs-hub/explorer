@@ -1,6 +1,6 @@
 
 Vue.component('query-result', {
-  props: ['result', 'entity', 'index', 'show_terms'],
+  props: ['results', 'result', 'entity', 'index', 'show_terms'],
   methods: {
     var_label: function(var_index) {
       if (this.result.var_labels) {
@@ -16,6 +16,11 @@ Vue.component('query-result', {
       } else {
         // Shared
         return value;
+      }
+    },
+    type_info(index) {
+      if (this.results.type_info) {
+        return this.results.type_info[this.results.ids[index]];
       }
     }
   },
@@ -44,7 +49,7 @@ Vue.component('query-result', {
     </td>
     <td v-for="(value, vi) in result.values" v-if="value !== 0">
       <template v-if="result.is_set[vi]">
-        <inspector-props :value="get_value(value, index)" :list="true"/>
+        <inspector-props :value="get_value(value, index)" :type="type_info(vi)" :list="true"/>
       </template>
       <template v-else>
         <span class="query-result-no">None</span>
@@ -80,15 +85,39 @@ Vue.component('query-results', {
         const elems = str.split('.');
         return elems[elems.length - 1];
       },
+      type_info(term) {
+        if (this.data.type_info) {
+          const ti = this.data.type_info[this.data.ids[term]];
+
+          // If type info has a single member we can use its type info for the
+          // entire column, otherwise ignore.
+          const keys = Object.keys(ti);
+          if (keys.length == 1) {
+            return ti[keys[0]];
+          }
+        }
+      },
       term_id(term) {
         const pair = this.data.ids[term].split(',');
+        let result;
         if (pair.length == 1) {
-          return this.id_elem(pair[0]);
+          result = this.id_elem(pair[0]);
         } else {
           const first = this.id_elem(pair[0].slice(1));
           const second = this.id_elem(pair[1].slice(0, -1));
-          return "(" + first + "," + second + ")";
+          result = "(" + first + "," + second + ")";
         }
+        const ti = this.type_info(term);
+        if (ti) {
+          // Extended type properties are in the second element of the array
+          const ext = ti[1];
+          if (ext) {
+            if (ext.quantity != "flecs.units.Duration") {
+              result += "\xa0(" + ext.symbol + ")";
+            }
+          }
+        }
+        return result;
       }
     },
     computed: {
@@ -199,16 +228,18 @@ Vue.component('query-results', {
                 <template v-if="has_this">
                   <template v-for="(entity, index) in result.entities">
                     <query-result 
+                      :results="data"
+                      :result="result"
                       :entity="entity"
                       :index="index"
-                      :result="result"
                       :show_terms="show_terms"
                       v-on="$listeners"/>
                   </template>
                 </template>
                 <template v-else>
                   <query-result 
-                    :result="result" 
+                    :results="data"
+                    :result="result"
                     :index="0"
                     :show_terms="show_terms"
                     v-on="$listeners"/>

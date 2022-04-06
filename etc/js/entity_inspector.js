@@ -53,7 +53,7 @@ function fmt_duration(seconds) {
     result += minutes + "min ";
   }
   if (seconds) {
-    result += fmt_float(seconds) + "s ";
+    result += fmt_float(seconds) + "s";
   }
 
   return result;
@@ -147,25 +147,18 @@ const inspector_value_component = Vue.component('inspector-value', {
       css_classes[`inspector-value-${context.props.type[0]}`] = true;
     }
 
-    // Actual rendering
-    if (!context.props.separator) {
-      return createElement(
-        'span',
-        {
-          class: css_classes,
-        },
-        [formatted_value, " ", actual_symbol]
-      )
-    } else {
-      return createElement(
-        'span',
-        {
-          class: css_classes,
-        },
-        [",\xa0", formatted_value, "\xa0", actual_symbol]
-        // \xa0 is non-breaking space escaped for js
-      )
+    let content = "";
+    if (context.props.separator) {
+      content += ",\xa0";
     }
+    content += formatted_value.toString().trim();
+    if (actual_symbol && actual_symbol.length) {
+      content += actual_symbol;
+    }
+
+    return createElement(
+      'span', { class: css_classes, }, [content]
+    );
   }
 });
 

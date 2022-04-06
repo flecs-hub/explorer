@@ -54,7 +54,8 @@ Vue.component('query', {
           ids: false, 
           subjects: false,
           entity_labels: true,
-          variable_labels: true
+          variable_labels: true,
+          type_info: true
         });
       } else {
         this.query_ok();
