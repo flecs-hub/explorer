@@ -21,13 +21,18 @@ module.exports = {
       this.position();
       this.show_state = true;
       setTimeout(() => {
-        document.addEventListener("click", this.outside_click);
+        document.addEventListener("click", this.outside_click); 
+        // close this popover when clicked outside
+        window.addEventListener("resize", this.position)
+        // relocate this popover when window is resized
       }, 100);
     },
     hide() {
       this.show_state = false;
       setTimeout(() => {
+        // clean up listeners so they don't accumulate over time
         document.removeEventListener("click", this.outside_click);
+        window.removeEventListener("resize", this.position)
       }, 100);
     },
     position() {
@@ -46,6 +51,7 @@ module.exports = {
         ({x,y, placement, middlewareData}) => {
           const {x: arrowX, y: arrowY} = middlewareData.arrow;
 
+          // position popover
           Object.assign(this.$el.style, {
             left: `${x}px`,
             top: `${y}px`,
@@ -58,6 +64,7 @@ module.exports = {
             left: 'right',
           }[placement.split('-')[0]];
         
+          // position popover arrow
           Object.assign(arrow_el.style, {
             left: arrowX != null ? `${arrowX - middlewareData.shift.x}px` : '', // account for shifting
             top: arrowY != null ? `${arrowY}px` : '',
@@ -111,7 +118,7 @@ module.exports = {
     border-radius: var(--br-3);
     border: 1px solid var(--grey-700);
     white-space: nowrap;
-    box-shadow: 0px 0px 0px rgba(0,0,0,0);
+    box-shadow: 0 8px 24px rgba(140,149,159,0.2);
 
     z-index: 5;
     visibility: hidden;
@@ -122,7 +129,7 @@ module.exports = {
 
   .popover-visible {
     box-shadow: 0px 2px 4px rgba(0,0,0,0.3);
-    visibility: inherit;
+    visibility: visible;
     opacity: 1;
 
     transition: opacity 0.12s ease-in-out, transform 0.20s ease-in-out;
