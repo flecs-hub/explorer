@@ -153,7 +153,7 @@ const inspector_value_component = Vue.component('inspector-value', {
     }
     content += formatted_value.toString().trim();
     if (actual_symbol && actual_symbol.length) {
-      content += actual_symbol;
+      content += "\xa0" + actual_symbol;
     }
 
     return createElement(
