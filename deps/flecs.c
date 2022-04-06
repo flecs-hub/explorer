@@ -23599,6 +23599,7 @@ void add_enum(ecs_iter_t *it) {
         }
 
         ecs_add_id(world, e, EcsExclusive);
+        ecs_add_id(world, e, EcsOneOf);
         ecs_add_id(world, e, EcsTag);
     }
 }
@@ -33053,7 +33054,7 @@ char* ecs_parse_term(
     }
 
     /* Check for $() notation */
-    if (term->pred.name && !ecs_os_strcmp(term->pred.name, "$")) {
+    if (!ecs_os_strcmp(term->pred.name, "$")) {
         if (term->subj.name) {
             ecs_os_free(term->pred.name);
             
@@ -34147,6 +34148,7 @@ const ecs_entity_t EcsTag =                   ECS_HI_COMPONENT_ID + 19;
 const ecs_entity_t EcsExclusive =             ECS_HI_COMPONENT_ID + 20;
 const ecs_entity_t EcsAcyclic =               ECS_HI_COMPONENT_ID + 21;
 const ecs_entity_t EcsWith =                  ECS_HI_COMPONENT_ID + 22;
+const ecs_entity_t EcsOneOf =                 ECS_HI_COMPONENT_ID + 23;
 
 /* Builtin relations */
 const ecs_entity_t EcsChildOf =               ECS_HI_COMPONENT_ID + 25;
@@ -35219,6 +35221,21 @@ ecs_id_record_t* new_id_record(
         if (idr_r) {
             idr->flags = (idr_r->flags & ~ECS_TYPE_INFO_INITIALIZED);
         }
+
+        /* Check constraints */
+        if (obj && !ecs_id_is_wildcard(obj)) {
+            ecs_entity_t oneof = 0;
+            if (ecs_has_id(world, rel, EcsOneOf)) {
+                oneof = rel;
+            } else {
+                oneof = ecs_get_object(world, rel, EcsOneOf, 0);
+            }
+
+            ecs_check( !oneof || ecs_has_pair(world, obj, EcsChildOf, oneof),
+                ECS_CONSTRAINT_VIOLATED, NULL);
+            (void)oneof;
+        }
+
     } else {
         rel = id & ECS_COMPONENT_MASK;
         rel = ecs_get_alive(world, rel);
@@ -35264,6 +35281,8 @@ ecs_id_record_t* new_id_record(
     }
 
     return idr;
+error:
+    return NULL;
 }
 
 
@@ -35987,6 +36006,10 @@ void flecs_register_for_id_record(
     ecs_poly_assert(world, ecs_world_t);
 
     ecs_id_record_t *idr = flecs_ensure_id_record(world, id);
+    if (!idr) {
+        return;
+    }
+
     ecs_table_cache_insert(&idr->cache, table, &tr->hdr);
 
     /* When id record is used by table, make sure type info is initialized */
@@ -36523,7 +36546,35 @@ int finalize_term_var(
         if (ecs_identifier_is_0(identifier->name)) {
             identifier->entity = 0;
         } else if (identifier->name) {
+            ecs_entity_t oneof = 0;
+            ecs_entity_t pred = 0;
+            if (term->pred.var == EcsVarIsEntity) {
+                pred = term->pred.entity;
+                if (pred) {
+                    if (ecs_has_id(world, pred, EcsOneOf)) {
+                        oneof = pred;
+                    } else {
+                        oneof = ecs_get_object(world, pred, EcsOneOf, 0);
+                    }
+                }
+            }
+
             ecs_entity_t e = ecs_lookup_symbol(world, identifier->name, true);
+            if (oneof && identifier != &term->pred) {
+                if (!e) {
+                    e = ecs_lookup_child(world, oneof, identifier->name);
+                } else if (e) {
+                    if (!ecs_has_pair(world, e, EcsChildOf, oneof)) {
+                        char *rel_str = ecs_get_fullpath(world, pred);
+                        term_error(world, term, name, 
+                            "invalid object '%s' for relation %s",
+                            identifier->name, rel_str);
+                        ecs_os_free(rel_str);
+                        return -1;
+                    }
+                }
+            }
+
             if (!e) {
                 term_error(world, term, name,
                     "unresolved identifier '%s'", identifier->name);
@@ -47404,6 +47455,7 @@ void flecs_bootstrap(
     flecs_bootstrap_tag(world, EcsExclusive);
     flecs_bootstrap_tag(world, EcsAcyclic);
     flecs_bootstrap_tag(world, EcsWith);
+    flecs_bootstrap_tag(world, EcsOneOf);
 
     flecs_bootstrap_tag(world, EcsOnDelete);
     flecs_bootstrap_tag(world, EcsOnDeleteObject);
@@ -47447,6 +47499,7 @@ void flecs_bootstrap(
     ecs_add_id(world, EcsOnDelete, EcsExclusive);
     ecs_add_id(world, EcsOnDeleteObject, EcsExclusive);
     ecs_add_id(world, EcsDefaultChildComponent, EcsExclusive);
+    ecs_add_id(world, EcsOneOf, EcsExclusive);
 
     /* Make EcsOnAdd, EcsOnSet events iterable to enable .yield_existing */
     ecs_set(world, EcsOnAdd, EcsIterable, { .init = on_event_iterable_init });
