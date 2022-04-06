@@ -37,12 +37,12 @@
 /* Flecs debugging enables asserts, which are used for input parameter checking
  * and cheap (constant time) sanity checks. There are lots of asserts in every
  * part of the code, so this will slow down code. */
+#if !defined(FLECS_DEBUG) && !defined(FLECS_NDEBUG) 
+#if defined(NDEBUG)
+#define FLECS_NDEBUG
+#else
 #define FLECS_DEBUG
-#if defined(NDEBUG) || defined(FLECS_NDEBUG)
-#undef FLECS_DEBUG
 #endif
-#ifndef FLECS_DEBUG
-#define FLECS_NDEBUG /* Either FLECS_DEBUG or FLECS_NDEBUG must be defined */
 #endif
 
 /* FLECS_SANITIZE enables expensive checks that can detect issues early. This
@@ -798,6 +798,9 @@ void _ecs_vector_reclaim(
 
 #define ecs_vector_reclaim(vector, T)\
     _ecs_vector_reclaim(vector, ECS_VECTOR_T(T))
+
+#define ecs_vector_reclaim_t(vector, size, alignment)\
+    _ecs_vector_reclaim(vector, ECS_VECTOR_U(size, alignment))
 
 /** Grow size of vector with provided number of elements. */
 FLECS_API
@@ -2337,7 +2340,6 @@ struct ecs_filter_t {
     bool match_empty_tables;   /* See ecs_filter_desc_t */
     
     char *name;                /* Name of filter (optional) */
-    char *expr;                /* Expression of filter (if provided) */
     char *variable_names[1];   /* Array with variable names */
 
     ecs_iterable_t iterable;   /* Iterable mixin */
@@ -2564,6 +2566,7 @@ typedef struct ecs_filter_iter_t {
     ecs_iter_kind_t kind; 
     ecs_term_iter_t term_iter;
     int32_t matches_left;
+    int32_t pivot_term;
 } ecs_filter_iter_t;
 
 /** Query-iterator specific data */
@@ -4380,6 +4383,48 @@ int32_t ecs_get_threads(
 FLECS_API
 void ecs_force_aperiodic(
     ecs_world_t *world);
+
+/** Cleanup empty tables.
+ * This operation cleans up empty tables that meet certain conditions. Having
+ * large amounts of empty tables does not negatively impact performance of the
+ * ECS, but can take up considerable amounts of memory, especially in 
+ * applications with many components, and many components per entity.
+ * 
+ * The generation specifies the minimum number of times this operation has
+ * to be called before an empty table is cleaned up. If a table becomes non
+ * empty, the generation is reset.
+ * 
+ * The operation allows for both a "clear" generation and a "delete"
+ * generation. When the clear generation is reached, the table's 
+ * resources are freed (like component arrays) but the table itself is not
+ * deleted. When the delete generation is reached, the empty table is deleted.
+ * 
+ * By specifying a non-zero id the cleanup logic can be limited to tables with
+ * a specific (component) id. The operation will only increase the generation
+ * count of matching tables.
+ * 
+ * The min_id_count specifies a lower bound for the number of components a table
+ * should have. Often the more components a table has, the more specific it is 
+ * and therefore less likely to be reused.
+ * 
+ * The time budget specifies how long the operation should take at most.
+ * 
+ * @param world The world.
+ * @param id Optional component filter for the tables to evaluate.
+ * @param clear_generation Free table data when generation > clear_generation.
+ * @param delete_generation Delete table when generation > delete_generation.
+ * @param min_id_count Minimum number of component ids the table should have.
+ * @param time_budget_seconds Amount of time operation is allowed to spend.
+ * @return Number of deleted tables.
+ */
+FLECS_API
+int32_t ecs_delete_empty_tables(
+    ecs_world_t *world,
+    ecs_id_t id,
+    uint16_t clear_generation,
+    uint16_t delete_generation,
+    int32_t min_id_count,
+    double time_budget_seconds);
 
 /** @} */
 
@@ -8097,19 +8142,19 @@ void _ecs_parser_errorv(
 #endif // FLECS_NO_DEPRECATED_WARNINGS
 
 /* If no tracing verbosity is defined, pick default based on build config */
-#if !(defined(ECS_TRACE_0) || defined(ECS_TRACE_1) || defined(ECS_TRACE_2) || defined(ECS_TRACE_3))
+#if !(defined(FLECS_LOG_0) || defined(FLECS_LOG_1) || defined(FLECS_LOG_2) || defined(FLECS_LOG_3))
 #if !defined(FLECS_NDEBUG)
-#define ECS_TRACE_3 /* Enable all tracing in debug mode. May slow things down */
+#define FLECS_LOG_3 /* Enable all tracing in debug mode. May slow things down */
 #else
-#define ECS_TRACE_0 /* Only enable infrequent tracing in release mode */
+#define FLECS_LOG_0 /* Only enable infrequent tracing in release mode */
 #endif // !defined(FLECS_NDEBUG)
-#endif // !(defined(ECS_TRACE_0) || defined(ECS_TRACE_1) || defined(ECS_TRACE_2) || defined(ECS_TRACE_3))
+#endif // !(defined(FLECS_LOG_0) || defined(FLECS_LOG_1) || defined(FLECS_LOG_2) || defined(FLECS_LOG_3))
 
 
 /* Define/undefine macro's based on compiled-in tracing level. This can optimize
  * out tracing statements from a build, which improves performance. */
 
-#if defined(ECS_TRACE_3) /* All debug tracing enabled */
+#if defined(FLECS_LOG_3) /* All debug tracing enabled */
 #define ecs_dbg_1(...) ecs_log(1, __VA_ARGS__);
 #define ecs_dbg_2(...) ecs_log(2, __VA_ARGS__);
 #define ecs_dbg_3(...) ecs_log(3, __VA_ARGS__);
@@ -8126,11 +8171,11 @@ void _ecs_parser_errorv(
 #define ecs_should_log_2() ecs_should_log(2)
 #define ecs_should_log_3() ecs_should_log(3)
 
-#define ECS_TRACE_2
-#define ECS_TRACE_1
-#define ECS_TRACE_0
+#define FLECS_LOG_2
+#define FLECS_LOG_1
+#define FLECS_LOG_0
 
-#elif defined(ECS_TRACE_2) /* Level 2 and below debug tracing enabled */
+#elif defined(FLECS_LOG_2) /* Level 2 and below debug tracing enabled */
 #define ecs_dbg_1(...) ecs_log(1, __VA_ARGS__);
 #define ecs_dbg_2(...) ecs_log(2, __VA_ARGS__);
 #define ecs_dbg_3(...)
@@ -8147,10 +8192,10 @@ void _ecs_parser_errorv(
 #define ecs_should_log_2() ecs_should_log(2)
 #define ecs_should_log_3() false
 
-#define ECS_TRACE_1
-#define ECS_TRACE_0
+#define FLECS_LOG_1
+#define FLECS_LOG_0
 
-#elif defined(ECS_TRACE_1) /* Level 1 debug tracing enabled */
+#elif defined(FLECS_LOG_1) /* Level 1 debug tracing enabled */
 #define ecs_dbg_1(...) ecs_log(1, __VA_ARGS__);
 #define ecs_dbg_2(...)
 #define ecs_dbg_3(...)
@@ -8167,9 +8212,9 @@ void _ecs_parser_errorv(
 #define ecs_should_log_2() false
 #define ecs_should_log_3() false
 
-#define ECS_TRACE_0
+#define FLECS_LOG_0
 
-#elif defined(ECS_TRACE_0) /* No debug tracing enabled */
+#elif defined(FLECS_LOG_0) /* No debug tracing enabled */
 #define ecs_dbg_1(...)
 #define ecs_dbg_2(...)
 #define ecs_dbg_3(...)
@@ -8201,7 +8246,7 @@ void _ecs_parser_errorv(
 #define ecs_log_pop_2()
 #define ecs_log_pop_3()
 
-#endif // defined(ECS_TRACE_3)
+#endif // defined(FLECS_LOG_3)
 
 /* Default debug tracing is at level 1 */
 #define ecs_dbg ecs_dbg_1
@@ -8293,12 +8338,12 @@ void _ecs_parser_errorv(
  * This will enable builtin tracing. For tracing to work, it will have to be
  * compiled in which requires defining one of the following macro's:
  *
- * ECS_TRACE_0 - All tracing is disabled
- * ECS_TRACE_1 - Enable tracing level 1
- * ECS_TRACE_2 - Enable tracing level 2 and below
- * ECS_TRACE_3 - Enable tracing level 3 and below
+ * FLECS_LOG_0 - All tracing is disabled
+ * FLECS_LOG_1 - Enable tracing level 1
+ * FLECS_LOG_2 - Enable tracing level 2 and below
+ * FLECS_LOG_3 - Enable tracing level 3 and below
  *
- * If no tracing level is defined and this is a debug build, ECS_TRACE_3 will
+ * If no tracing level is defined and this is a debug build, FLECS_LOG_3 will
  * have been automatically defined.
  *
  * The provided level corresponds with the tracing level. If -1 is provided as
@@ -10143,6 +10188,7 @@ typedef struct EcsMember {
     ecs_entity_t type;
     int32_t count;
     ecs_entity_t unit;
+    int32_t offset;
 } EcsMember;
 
 /* Element type of members vector in EcsStruct */
@@ -15439,6 +15485,11 @@ struct world {
     flecs::entity ensure(flecs::entity_t e) const;
 #endif
 
+    /* Run callback after completing frame */
+    void run_post_frame(ecs_fini_action_t action, void *ctx) {
+        ecs_run_post_frame(m_world, action, ctx);
+    }
+
 
 /** Get id from a type.
  */
@@ -17132,10 +17183,10 @@ struct entity_builder : entity_view {
     /** Add an entity to an entity.
      * Add an entity to the entity. This is typically used for tagging.
      *
-     * @param entity The entity to add.
+     * @param component The component to add.
      */
-    Self& add(entity_t entity) {
-        ecs_add_id(this->m_world, this->m_id, entity);
+    Self& add(id_t component) {
+        ecs_add_id(this->m_world, this->m_id, component);
         return to_base();
     }
 
@@ -17188,6 +17239,82 @@ struct entity_builder : entity_view {
         const auto& et = enum_type<O>(this->m_world);
         flecs::entity_t object = et.entity(constant);
         return this->add<R>(object);
+    }
+
+    /** Conditional add.
+     * This operation adds if condition is true, removes if condition is false.
+     * 
+     * @tparam T The component to add.
+     * @param cond The condition to evaluate.
+     */
+    template <typename T>
+    Self& add_if(bool cond) {
+        if (cond) {
+            return this->add<T>();
+        } else {
+            return this->remove<T>();
+        }
+    }
+
+    /** Conditional add.
+     * This operation adds if condition is true, removes if condition is false.
+     * 
+     * @param cond The condition to evaluate.
+     * @param component The component to add.
+     */
+    Self& add_if(bool cond, flecs::id_t component) {
+        if (cond) {
+            return this->add(component);
+        } else {
+            return this->remove(component);
+        }
+    }
+
+    /** Conditional add.
+     * This operation adds if condition is true, removes if condition is false.
+     * 
+     * @tparam R The relation type
+     * @tparam O The object type.
+     * @param cond The condition to evaluate.
+     */
+    template <typename R, typename O>
+    Self& add_if(bool cond) {
+        if (cond) {
+            return this->add<R, O>();
+        } else {
+            return this->remove<R, O>();
+        }
+    }
+
+    /** Conditional add.
+     * This operation adds if condition is true, removes if condition is false.
+     * 
+     * @tparam R The relation type
+     * @param cond The condition to evaluate.
+     * @param object The relation object.
+     */
+    template <typename R>
+    Self& add_if(bool cond, flecs::entity_t object) {
+        if (cond) {
+            return this->add<R>(object);
+        } else {
+            return this->remove<R>(object);
+        }
+    }
+
+    /** Conditional add.
+     * This operation adds if condition is true, removes if condition is false.
+     * 
+     * @param cond The condition to evaluate.
+     * @param relation The relation.
+     * @param object The relation object.
+     */
+    Self& add_if(bool cond, flecs::entity_t relation, flecs::entity_t object) {
+        if (cond) {
+            return this->add(relation, object);
+        } else {
+            return this->remove(relation, object);
+        }
     }
 
     /** Shortcut for add(IsA, obj).
@@ -19226,7 +19353,7 @@ struct untyped_component : entity {
 #   ifdef FLECS_META
 
 /** Add member. */
-untyped_component& member(flecs::entity_t type_id, const char *name, int32_t count = 0) {
+untyped_component& member(flecs::entity_t type_id, const char *name, int32_t count = 0, size_t offset = 0) {
     ecs_entity_desc_t desc = {};
     desc.name = name;
     desc.add[0] = ecs_pair(flecs::ChildOf, m_id);
@@ -19238,13 +19365,14 @@ untyped_component& member(flecs::entity_t type_id, const char *name, int32_t cou
     Member m = {};
     m.type = type_id;
     m.count = count;
+    m.offset = static_cast<int32_t>(offset);
     e.set<Member>(m);
 
     return *this;
 }
 
 /** Add member with unit. */
-untyped_component& member(flecs::entity_t type_id, flecs::entity_t unit, const char *name, int32_t count = 0) {
+untyped_component& member(flecs::entity_t type_id, flecs::entity_t unit, const char *name, int32_t count = 0, size_t offset = 0) {
     ecs_entity_desc_t desc = {};
     desc.name = name;
     desc.add[0] = ecs_pair(flecs::ChildOf, m_id);
@@ -19257,6 +19385,7 @@ untyped_component& member(flecs::entity_t type_id, flecs::entity_t unit, const c
     m.type = type_id;
     m.unit = unit;
     m.count = count;
+    m.offset = static_cast<int32_t>(offset);
     e.set<Member>(m);
 
     return *this;
@@ -19264,24 +19393,24 @@ untyped_component& member(flecs::entity_t type_id, flecs::entity_t unit, const c
 
 /** Add member. */
 template <typename MemberType>
-untyped_component& member(const char *name, int32_t count = 0) {
+untyped_component& member(const char *name, int32_t count = 0, size_t offset = 0) {
     flecs::entity_t type_id = _::cpp_type<MemberType>::id(m_world);
-    return member(type_id, name, count);
+    return member(type_id, name, count, offset);
 }
 
 /** Add member with unit. */
 template <typename MemberType>
-untyped_component& member(flecs::entity_t unit, const char *name, int32_t count = 0) {
+untyped_component& member(flecs::entity_t unit, const char *name, int32_t count = 0, size_t offset = 0) {
     flecs::entity_t type_id = _::cpp_type<MemberType>::id(m_world);
-    return member(type_id, unit, name, count);
+    return member(type_id, unit, name, count, offset);
 }
 
 /** Add member with unit. */
 template <typename MemberType, typename UnitType>
-untyped_component& member(const char *name, int32_t count = 0) {
+untyped_component& member(const char *name, int32_t count = 0, size_t offset = 0) {
     flecs::entity_t type_id = _::cpp_type<MemberType>::id(m_world);
     flecs::entity_t unit_id = _::cpp_type<UnitType>::id(m_world);
-    return member(type_id, unit_id, name, count);
+    return member(type_id, unit_id, name, count, offset);
 }
 
 /** Add constant. */
