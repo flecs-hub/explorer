@@ -48,7 +48,6 @@ module.exports = {
     }
   },
   mounted() {
-    console.log(app.$refs.share_url_button)
     this.element = app.$refs.share_url_button;
   }
 }
