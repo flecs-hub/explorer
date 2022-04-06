@@ -5,10 +5,6 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/split-panes.css">
     <link rel="stylesheet" href="deps/TextareaDecorator.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
     <link rel="icon" href="img/flecs_logo.png" />
   </head>
   <body>
@@ -21,22 +17,20 @@
         
       <!-- Top bar -->
       <div class="top-box">
-        <div class="top-content">
-          <app-title ref="title" 
-            :value="title" 
-            :connection="connection"
-            :retry_count="retry_count">
-          </app-title>
           <div class="play-button-box" v-tooltip="'Project repository'">
             <a href="https://github.com/SanderMertens/flecs" target="_blank">
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
+          <app-title ref="title" 
+            :value="title" 
+            :connection="connection"
+            :retry_count="retry_count">
+          </app-title>
           <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
             <!-- <img src="img/share_icon.png"> -->
             <icon-button :size="20" icon="feather:link" />
           </div>
-        </div>
       </div>
 
       <split-pane-container>
@@ -87,8 +81,8 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.dev.js">
-      Vue.config.devtools = true;
+    <script src="deps/vue.min.js">
+      Vue.config.devtools = false;
     </script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>

@@ -8,8 +8,9 @@ Vue.component('entity-hierarchy', {
 
     return createElement(
       'div', 
-      { class: ["entity-hierarchy"],
-      on: { click: () => { console.log('clicked', context.props.entity_path) } } }, 
+      { 
+        class: ["entity-hierarchy"],
+      }, 
       entities.map(
         (entity, index) => {
           if (index != entities.length - 1) {
