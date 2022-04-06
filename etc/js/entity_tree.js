@@ -429,7 +429,6 @@ Vue.component('entity-tree', {
       this.$emit('select_query', entity);
     },
     evt_resize: function(elem) {
-      console.log(elem);
     }
   },
   data: function() {

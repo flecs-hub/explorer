@@ -10,9 +10,25 @@ function inspector_is_object(type, value) {
   return (typeof value) === "object";
 }
 
+function fmt_float(value) {
+  let str = value.toString();
+  if (str.indexOf('.') == -1 || str.indexOf('e') != -1) {
+    /* if number is not a floating point or has e notation, don't change
+     * anything */
+    return value;
+  } else {
+    /* if number is floating point, reduce precision to readable amount */
+    let num = 4 - str.split('.')[0].length;
+    if (num < 0) {
+      num = 0;
+    }
+    return value.toFixed(num);
+  }
+}
+
 // Formatting functions for units
 function fmt_percentage(value) {
-  return value *= 100;
+  return fmt_float(value *= 100);
 }
 
 function fmt_duration(seconds) {
@@ -37,7 +53,7 @@ function fmt_duration(seconds) {
     result += minutes + "min ";
   }
   if (seconds) {
-    result += seconds + "s ";
+    result += fmt_float(seconds) + "s";
   }
 
   return result;
@@ -54,96 +70,8 @@ const inspector_key_component = Vue.component('inspector-key', {
   template: `<span v-if="prop_key !== undefined" class="inspector-key">{{prop_key}}</span>`
 });
 
-// Single scalar value
+// Inspector-value component
 const inspector_value_component = Vue.component('inspector-value', {
-  props: ['type', 'value', 'symbol', 'separator'],
-  computed: {
-    unit: function() {
-      if (this.type && this.type.length > 1) {
-        if (inspector_is_object(undefined, this.type[1])) {
-          return this.type[1].unit;
-        }
-      }
-      return undefined;
-    },
-    formatted_value: function() {
-      if(typeof(this.value) == "object") {
-        console.log(this.value);
-      }
-      const type = this.type ? this.type[0] : undefined;
-      const unit = this.unit;
-      let value = this.value;
-
-
-
-      if (!type) {
-        return value;
-      }
-
-      if (type === "text") {
-        if (value) {
-          return "\"" + value + "\"";
-        } else {
-          return "";
-        }
-      }
-
-      if (unit == "flecs.units.Percentage") {
-        value = fmt_percentage(value);
-      }
-      if (unit == "flecs.units.Duration.Seconds") {
-        value = fmt_duration(value);
-      }
-      if (unit == "flecs.units.Duration.Minutes") {
-        value = fmt_duration(value * 60);
-      }
-      if (unit == "flecs.units.Duration.Minutes") {
-        value = fmt_duration(value * 60);
-      }
-      if (unit == "flecs.units.Duration.Hours") {
-        value = fmt_duration(value * 60 * 60);
-      }
-      if (unit == "flecs.units.Duration.Days") {
-        value = fmt_duration(value * 60 * 60 * 24);
-      }
-      if (unit == "flecs.units.Time.Date") {
-        value = fmt_date(value);
-      }
-
-      if (type === "float") {
-        let str = value.toString();
-        if (str.indexOf('.') == -1 || str.indexOf('e') != -1) {
-          return value;
-        } else {
-          let num = 4 - str.split('.')[0].length;
-          if (num < 0) {
-            num = 0;
-          }
-          return value.toFixed(num);
-        }
-      }
-
-      return value;
-    },
-    actual_symbol: function() {
-      if (this.unit == "flecs.units.Duration.Seconds") {
-        return "";
-      }
-      return this.symbol;
-    },
-    css: function() {
-      let result = "inspector-value ";
-      if (this.type) {
-        result += "inspector-value-" + this.type[0];
-      }
-      return result;
-    }
-  },
-  template: `<span :class="css"><template v-if="separator">,&nbsp;</template>{{formatted_value}}&nbsp;{{actual_symbol}}</span>`
-});
-
-// Functional version of inspector-value component
-const functional_inspector_value_component = Vue.component('functional-inspector-value', {
   props: ["type", "value", "symbol", "separator"],
   functional: true,
   render: function (createElement, context) {
@@ -161,7 +89,7 @@ const functional_inspector_value_component = Vue.component('functional-inspector
       let value = context.props.value;
 
       if (typeof(value) == "object") {
-        return JSON.stringify(value);
+        return JSON.stringify(value); // TODO
       }
 
       if (!type) {
@@ -198,18 +126,10 @@ const functional_inspector_value_component = Vue.component('functional-inspector
         value = fmt_date(value);
       }
 
-      if (type === "float") {
-        let str = value.toString();
-        if (str.indexOf('.') == -1 || str.indexOf('e') != -1) {
-          return value;
-        } else {
-          let num = 4 - str.split('.')[0].length;
-          if (num < 0) {
-            num = 0;
-          }
-          return value.toFixed(num);
-        }
+      if (typeof(value) == "number") {
+        value = fmt_float(value);
       }
+
       return value;
     })();
 
@@ -227,27 +147,20 @@ const functional_inspector_value_component = Vue.component('functional-inspector
       css_classes[`inspector-value-${context.props.type[0]}`] = true;
     }
 
-    // Actual rendering
-    if (!context.props.separator) {
-      return createElement(
-        'span',
-        {
-          class: css_classes,
-        },
-        [formatted_value, " ", actual_symbol]
-      )
-    } else {
-      return createElement(
-        'span',
-        {
-          class: css_classes,
-        },
-        [",\xa0", formatted_value, "\xa0", actual_symbol]
-        // \xa0 is non-breaking space escaped for js
-      )
+    let content = "";
+    if (context.props.separator) {
+      content += ",\xa0";
     }
+    content += formatted_value.toString().trim();
+    if (actual_symbol && actual_symbol.length) {
+      content += "\xa0" + actual_symbol;
+    }
+
+    return createElement(
+      'span', { class: css_classes, }, [content]
+    );
   }
-})
+});
 
 // Key-value pair (as shown in entity inspector)
 const inspector_kv_component = Vue.component('inspector-kv', {
@@ -285,17 +198,15 @@ const inspector_kv_component = Vue.component('inspector-kv', {
         </template>
         <template v-else>
           <inspector-key :prop_key="prop_key"/>
-          <functional-inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol"/>
+          <inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol"/>
         </template>
       </template>
       <template v-else>
-        <functional-inspector-value :type="type" :value="value" :separator="!first" />
+        <inspector-value :type="type" :value="value" :separator="!first" />
       </template>
     </div>
     `
 });
-
-
 
 // Component properties
 const inspector_props_component = Vue.component('inspector-props', {
