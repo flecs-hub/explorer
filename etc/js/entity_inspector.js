@@ -44,13 +44,13 @@ function fmt_duration(seconds) {
   seconds -= minutes * 60;
   
   if (days) {
-    result += days + "d ";
+    result += days + "d\xa0";
   }
   if (hours || (result.length && minutes && seconds)) {
-    result += hours + "h ";
+    result += hours + "h\xa0";
   }
   if (minutes || (result.length && seconds)) {
-    result += minutes + "min ";
+    result += minutes + "min\xa0";
   }
   if (seconds) {
     result += fmt_float(seconds) + "s";
