@@ -12,8 +12,8 @@
 
       <div class="input-group">
         <div class="input-field-row">
-          <input id="address" type="text" v-model="address" placeholder="Address" />
-          <input id="port" type="text" class="port" v-model="port" placeholder="Port" />
+          <input type="text" v-model="address" placeholder="Address" />
+          <input type="text" class="port" v-model="port" placeholder="Port" />
         </div>
       </div>
 
@@ -30,8 +30,6 @@ module.exports = {
   name: "connection-popover",
   props: {
     "connection": { type: Symbol, required: false },
-    "title": { type: String },
-    "params": { type: Object }
   },
   components: {
     "popover": httpVueLoader("../../components/popover.vue"),
@@ -40,6 +38,7 @@ module.exports = {
     return {
       element: undefined,
       address: "",
+      port: "",
       state: 0,
     }
   },
