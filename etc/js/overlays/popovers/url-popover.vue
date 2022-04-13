@@ -8,7 +8,7 @@
       </div>
       <div>
         <div class="input-group">
-          <input ref="url_field" class="form-control" :value="url" @click="select_url_field" readonly>
+          <input type="text" ref="url_field" class="form-control" :value="url" @click="select_url_field" readonly>
           <icon-button icon="feather:copy" :size="24" v-tooltip="'Copy'" @click="copy_to_clipboard" />
         </div>
       </div>
@@ -72,11 +72,8 @@ module.exports = {
   border: 1px solid var(--grey-700);
   border-radius: var(--br-2);
   background-color: transparent;
-}
-
-.form-control:focus {
-  border-color: var(--color-acent-emphasis);
-  outline: 3px solid var(--color-acent-emphasis-translucent);
+  outline: 0px solid transparent;
+  transition: all 0.2s ease-in-out;
 }
 
 .popover-title {
@@ -87,5 +84,13 @@ module.exports = {
   flex-direction: row;
   align-items: center;
   gap: 4px;
+}
+
+.popover-description {
+  font-size: var(--text-fs-sm);
+  line-height: var(--text-lh-sm);
+  font-weight: 400;
+  color: var(--secondary-text);
+  white-space:normal;
 }
 </style>

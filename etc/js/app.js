@@ -7,7 +7,8 @@ const ConnectionState = {
   Connecting:       Symbol('Connecting'),
   RetryConnecting:  Symbol('RetryConnecting'),
   Remote:           Symbol('Remote'),
-  ConnectionFailed: Symbol('ConnectionFailed')
+  ConnectionFailed: Symbol('ConnectionFailed'),
+  Disconnecting:    Symbol('Disconnecting'),
 };
 
 // Short initial timeout to detect remote app. Should be long enough for
@@ -68,16 +69,21 @@ function getParameterByName(name, url = window.location.href) {
 }
 
 /*
-  GLOBAL COMPONENT REGISTRATIOnS
+  GLOBAL COMPONENT REGISTRATIONS
 */
 Vue.component('collapsible-panel', httpVueLoader('js/collapsible_panel.vue'));
 Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
-// var icon_component = Vue.component('icon', httpVueLoader('js/components/icon.vue'));
-// Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
-var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
-var popover_component = Vue.component('popover', httpVueLoader('js/components/popover.vue'));
+
+Vue.component('primary-button', httpVueLoader('js/components/button.vue'));
+Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
+Vue.component('popover', httpVueLoader('js/components/popover.vue'));
+
+// Popovers
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
-// var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
+Vue.component('connection-popover', httpVueLoader('js/overlays/popovers/connection-popover.vue'));
+
+// Widgets
+Vue.component('connection-status', httpVueLoader('js/widgets/connection_status.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
@@ -104,6 +110,12 @@ var app = new Vue({
   el: '#app',
 
   mounted: function() {
+
+    /*
+      Call Sequence:
+      Mounted -> Ready -> Connect -> 
+    */
+
     this.$nextTick(() => {
       flecs_explorer.then(() => {
         this.ready();
@@ -153,9 +165,12 @@ var app = new Vue({
                 "ensure app is running and REST is enabled " +
                 "(retried " + this.retry_count + " times)");
 
+              // Attempt reconnection loop
               window.setTimeout(() => {
-                this.http_request(method, host, path, recv, err, 
-                  timeout, retry_interval);
+                if (this.connection != ConnectionState.Disconnecting) {
+                  this.http_request(method, host, path, recv, err, 
+                    timeout, retry_interval);
+                }
               }, retry_interval);
             } else {
               if (err) err(Request.responseText);
@@ -367,6 +382,31 @@ var app = new Vue({
       this.$refs.tree.update_expanded();
 
       this.parse_interval = 150;
+    },
+
+    disconnect() {
+      this.connection = ConnectionState.Disconnecting;
+
+      // Clear URL params
+      const url = new URL(window.location);
+      url.searchParams.delete("host");
+      url.searchParams.delete("remote");
+      url.searchParams.delete("port");
+      window.history.replaceState({}, '', url);
+
+      // Clear stored params
+      this.params.host = undefined;
+      this.params.remote = undefined;
+      this.params.port = undefined;
+
+      // Reset 
+      this.title = "Flecs";
+
+
+      setTimeout(() => {
+        this.connection = ConnectionState.Local;
+        this.ready_local();
+      }, 1)
     },
 
     // Connect to a remote host
@@ -625,7 +665,12 @@ var app = new Vue({
       // this.$refs.url.show();
       this.$refs.share_url_popover.show();
     },
+    
+    show_connection_modal() {
+      this.$refs.connection_popover.show();
+    }
   },
+  
 
   computed: {
     valid: function() {
@@ -639,6 +684,12 @@ var app = new Vue({
         (this.connection == ConnectionState.RetryConnecting) ||
         this.params.remote || this.params.remote_self || this.params.host;
     }
+  },
+
+  watch: {
+    title(new_title) {
+      document.title = new_title;
+    },
   },
 
   data: {

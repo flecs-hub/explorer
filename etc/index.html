@@ -11,26 +11,33 @@
     <!-- <script src="js/event_listener.js"></script> -->
 
     <div id="app">
-      <!-- Overlays -->
-      <tooltip ref="tooltip"></tooltip>
-      <url-popover :url="url" ref="share_url_popover"></url-popover>
-        
       <!-- Top bar -->
       <div class="top-box">
+        <div class="bar-group">
           <div class="play-button-box" v-tooltip="'Project repository'">
             <a href="https://github.com/SanderMertens/flecs" target="_blank">
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
-          <app-title ref="title" 
+          <div>
+            <connection-status 
+              v-on:click="show_connection_modal"
+              ref="connection_button" 
+              :connection="connection" 
+              :value="title"></connection-status>
+          </div>
+        </div>
+        <div class="bar-group">
+          <!-- <app-title ref="title" 
             :value="title" 
             :connection="connection"
             :retry_count="retry_count">
-          </app-title>
+          </app-title> -->
           <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
             <!-- <img src="img/share_icon.png"> -->
             <icon-button :size="20" icon="feather:link" />
           </div>
+        </div>
       </div>
 
       <split-pane-container>
@@ -67,13 +74,18 @@
         </split-pane>
       </split-pane-container>
 
-      <!-- Terminal -->
-
-
-      <!-- URL modal -->
-      <url-modal ref="url" :url="url"/>
-
-      <layout></layout>
+      <!-- Overlays -->
+      <tooltip ref="tooltip"></tooltip>
+      <url-popover 
+        ref="share_url_popover"
+        :url="url" 
+        ></url-popover>
+      <connection-popover 
+        ref="connection_popover"
+        :connection="connection"
+        :title="title"
+        :params="host"
+        ></connection-popover>
     </div>
 
     <!-- Webassembly module -->
@@ -81,8 +93,8 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js">
-      Vue.config.devtools = false;
+    <script src="deps/vue.dev.js">
+      Vue.config.devtools = true;
     </script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>
@@ -118,7 +130,6 @@
     <script src="js/icon.js"></script>
     <script src="js/detail_toggle.js"></script>
     <script src="js/content_container.js"></script>
-    <script src="js/layout.js"></script>
     <script src="js/split_panes.js"></script>
 
     <!-- Functional components -->

@@ -104,6 +104,9 @@ module.exports = {
 <style>
   .popover {
     position: absolute;
+    top: 0;
+    left: 0;
+    /* starting position at top left corner prevents accidental invisible page expansion */
 
     max-width: calc(100vw - 10px); /* technical maximum; realistically should not approach */
     width: 300px;
@@ -118,21 +121,21 @@ module.exports = {
     border-radius: var(--br-3);
     border: 1px solid var(--grey-700);
     white-space: nowrap;
-    box-shadow: 0 8px 24px rgba(140,149,159,0.2);
+    box-shadow: 0 8px 24px rgba(0,0,0,0);
 
     z-index: 5;
     visibility: hidden;
 
     opacity: 0;
-    transition: opacity 0.12s ease-in-out, transform 0.20s ease-in-out;
+    transition: height 0.2s ease-in-out;
   }
 
   .popover-visible {
-    box-shadow: 0px 2px 4px rgba(0,0,0,0.3);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3);
     visibility: visible;
     opacity: 1;
 
-    transition: opacity 0.12s ease-in-out, transform 0.20s ease-in-out;
+    transition: height 0.2s ease-in-out;
   }
 
   .arrow {
