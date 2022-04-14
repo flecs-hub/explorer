@@ -111,7 +111,7 @@ Vue.component('query-results', {
         if (ti) {
           // Extended type properties are in the second element of the array
           const ext = ti[1];
-          if (ext) {
+          if (ext && ext.symbol) {
             if (ext.quantity != "flecs.units.Duration") {
               result += "\xa0(" + ext.symbol + ")";
             }
