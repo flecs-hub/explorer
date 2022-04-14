@@ -12,7 +12,7 @@
 
       <div class="input-group">
         <div class="input-field-row">
-          <input type="text" v-model="address" placeholder="Address" />
+          <input type="text" v-model="address" placeholder="Address"  />
           <input type="text" class="port" v-model="port" placeholder="Port" />
         </div>
       </div>
@@ -30,6 +30,7 @@ module.exports = {
   name: "connection-popover",
   props: {
     "connection": { type: Symbol, required: false },
+    "host": { type: String, required: false },
   },
   components: {
     "popover": httpVueLoader("../../components/popover.vue"),
@@ -73,7 +74,7 @@ module.exports = {
         default:
           this.state = 5;
       }
-    }
+    },
   },
   computed: {
     button_label() {
@@ -91,6 +92,12 @@ module.exports = {
   methods: {
     show() {
       this.$refs.popover.show();
+
+      if (this.host) {
+        let [address, port] = this.host.split(":");
+        this.address = address;
+        this.port = port;
+      }
     },
     hide() {
       this.$refs.popover.hide();

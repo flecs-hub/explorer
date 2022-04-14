@@ -1377,7 +1377,7 @@ div.detail-toggle-divider {
   align-items: center;
   gap: 8px;
 }
-
+/* 
 .text-token {
   font-size: var(--text-fs-sm);
   line-height: var(--text-lh-sm);
@@ -1387,4 +1387,4 @@ div.detail-toggle-divider {
 
   padding: var(--p-1) var(--p-3);
   border-radius: var(--br-2);
-}
+} */

@@ -1,29 +1,38 @@
 <template>
   <div class="text-token noselect" 
-    v-tooltip="'Connection settings'"
+    v-tooltip="'Flecs application connection'"
     v-on="$listeners"
   > 
     <span ref="content">
+
       <template v-if="state == 0">
+        <icon icon="codicons:circle-outline" :size="12"></icon>
         Initializing
       </template>
       <template v-else-if="state == 1">
+        <icon icon="codicons:circle-outline" :size="12"></icon>
         Not connected
       </template>
       <template v-else-if="state == 2">
+        <icon icon="codicons:circle-outline" :size="12"></icon>
         Connecting...
       </template>
       <template v-else-if="state == 3">
-        <icon icon="feather:check" :size="14"></icon>
-        Connected: {{ value }}
+        <icon icon="codicons:circle-filled" :size="12" class="connected_icon ok"></icon>
+        Connected 
+        <icon icon="feather:arrow-right" :size="14"></icon>
+        {{ value }}
       </template>
       <template v-else-if="state == 4">
+        <icon icon="codicons:circle-outline" :size="12"></icon>
         Reconnecting
       </template>
       <template v-else-if="state == 5">
+        <icon icon="codicons:circle-outline" :size="12"></icon>
         Connection failed
       </template>
       <template v-else-if="state == 6">
+        <icon icon="codicons:circle-outline" :size="12"></icon>
         Disconnecting
       </template>
       <template v-else>
@@ -96,11 +105,11 @@ module.exports = {
 
 <style scoped>
 .text-token {
-  font-size: var(--text-fs-sm);
-  line-height: var(--text-lh-sm);
+  font-size: var(--text-fs-md);
+  line-height: var(--text-lh-md);
   color: var(--secondary-text);
 
-  background-color: var(--steel-650);
+
 
   padding: var(--p-1) var(--p-2);
   border-radius: var(--br-2);
@@ -108,6 +117,17 @@ module.exports = {
 
   transition: all 0.12s ease-out;
   cursor: pointer;
+}
+
+.text-token:hover { 
+  color: var(--primary-text);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.text-token:focus,
+.text-token:active { 
+  color: var(--primary-text);
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .success-state {
@@ -121,7 +141,20 @@ module.exports = {
 
 }
 
-.hide {
+.connected_icon {
+  animation-duration: 1.2s;
+  animation-name: connected_glow;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
 
+@keyframes connected_glow {
+  from {
+    color: inherit;
+  }
+
+  to {
+    color: var(--green);
+  }
 }
 </style>
