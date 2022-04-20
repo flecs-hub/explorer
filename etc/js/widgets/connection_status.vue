@@ -44,7 +44,7 @@
 
 <script>
 module.exports = {
-  name: "experiment",
+  name: "connection-status",
   props: {
     "value": { type: String },
     "connection": { type: Symbol, required: false },

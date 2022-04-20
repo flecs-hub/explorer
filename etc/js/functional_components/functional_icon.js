@@ -6,13 +6,12 @@ Vue.component('icon', {
   },
   render: function (createElement, context) {
     let [iconset, icon] = context.props.icon.split(":");
-    console.log(context)
 
     return createElement('svg', {
       class: [
         "icon-obj",
         `${iconset}-iconset`,
-        context.data.staticClass,
+        context.data.staticClass, // 
         context.data.class,
       ],
       style: {

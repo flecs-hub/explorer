@@ -61,9 +61,9 @@
 
         <!-- Editor -->
         <split-pane :fixed="true" :initial_width="400">
-          <template v-if="!remote_mode">
-            <editor ref="plecs"></editor>
-          </template>
+
+          <editor ref="plecs" v-if="!remote_mode"></editor>
+
           <inspector 
             :entity="entity_result"
             :entity_name="selected_entity"
@@ -92,8 +92,8 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js">
-      Vue.config.devtools = false;
+    <script src="deps/vue.dev.js">
+      Vue.config.devtools = true;
     </script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>

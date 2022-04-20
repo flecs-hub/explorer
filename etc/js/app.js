@@ -167,7 +167,7 @@ var app = new Vue({
 
               // Attempt reconnection loop
               window.setTimeout(() => {
-                if (this.connection != ConnectionState.Disconnecting) {
+                if (this.connection != ConnectionState.Disconnecting && this.connection != ConnectionState.Local) {
                   this.http_request(method, host, path, recv, err, 
                     timeout, retry_interval);
                 }
@@ -386,6 +386,13 @@ var app = new Vue({
 
     disconnect() {
       this.connection = ConnectionState.Disconnecting;
+
+      // Reset application connection status
+      this.retry_count = 0;
+
+      if (this.refresh_timer) {
+        window.clearInterval(this.refresh_timer);
+      }
 
       // Clear URL params
       const url = new URL(window.location);
@@ -684,6 +691,7 @@ var app = new Vue({
         (this.connection == ConnectionState.RetryConnecting) ||
         this.params.remote || this.params.remote_self || this.params.host;
     }
+    
   },
 
   watch: {
