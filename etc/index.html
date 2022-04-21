@@ -28,14 +28,13 @@
           </div>
         </div>
         <div class="bar-group">
-          <!-- <app-title ref="title" 
-            :value="title" 
-            :connection="connection"
-            :retry_count="retry_count">
-          </app-title> -->
           <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
-            <!-- <img src="img/share_icon.png"> -->
             <icon-button :size="20" icon="feather:link" />
+          </div>
+          <div v-tooltip="'Report issue'">
+            <a href="https://github.com/flecs-hub/explorer/issues" target="_blank" >
+              <icon-button :size="20" icon="codicons:report" />
+            </a>
           </div>
         </div>
       </div>

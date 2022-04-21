@@ -142,6 +142,11 @@ body {
   overflow: hidden;
 }
 
+a {
+  color: inherit;
+  text-decoration: inherit;
+}
+
 input {
   appearance: none;
   -webkit-appearance: none;
