@@ -159,6 +159,10 @@ input[type="text"] {
   transition: all 0.2s ease-in-out;
 }
 
+input[type="text"]:disabled {
+  color: var(--secondary-text);
+}
+
 input[type="text"]:hover {
   border-color: var(--color-accent-emphasis);
 }

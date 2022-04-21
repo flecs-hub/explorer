@@ -7,16 +7,31 @@
         <span>Application connection</span>
       </div>
       <div class="popover-description">
-        Connect to a Flecs application remotely or locally.
+        Connect to a Flecs application on localhost or remotely.
       </div>
 
-      <div class="input-group">
-        <div class="input-field-row">
-          <input type="text" v-model="address" placeholder="Address"  />
-          <input type="text" class="port" v-model="port" placeholder="Port" />
-        </div>
+      <div>
+        <tabs :tabs="['Local', 'Remote']" >
+          <template v-slot:tab-1> 
+            <div class="input-group">
+              <div class="input-field-row">
+                <input type="text" value="127.0.0.1" placeholder="Address" disabled  />
+                <input type="text" class="port" v-model="port" placeholder="Port" />
+              </div>
+            </div>
+          </template>
+          <template v-slot:tab-2> 
+            <div class="input-group">
+              <div class="input-field-row">
+                <input type="text" v-model="address" placeholder="Address"  />
+                <input type="text" class="port" v-model="port" placeholder="Port" />
+              </div>
+            </div>
+          </template>
+        </tabs>
       </div>
 
+      <div>
       <div class="control-row">
         <primary-button :label="button_label" @click="button_action"></primary-button>
       </div>
@@ -38,8 +53,8 @@ module.exports = {
   data() {
     return {
       element: undefined,
-      address: "",
-      port: "",
+      address: undefined,
+      port: undefined,
       state: 0,
     }
   },
