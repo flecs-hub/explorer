@@ -1,7 +1,6 @@
 <template>
 
   <div class="tabs-container">
-
     <div class="tabs">
       <ul>
         <li v-for="(tab, index) in tabs" :key="index">

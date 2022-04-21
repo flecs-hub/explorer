@@ -77,7 +77,7 @@ Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
 Vue.component('primary-button', httpVueLoader('js/components/button.vue'));
 Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
 Vue.component('popover', httpVueLoader('js/components/popover.vue'));
-Vue.component('tabs', httpVueLoader('js/components/popover.vue'));
+Vue.component('tabs', httpVueLoader('js/components/tabs.vue'));
 
 // Popovers
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
