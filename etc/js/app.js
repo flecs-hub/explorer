@@ -153,6 +153,11 @@ var app = new Vue({
           if (Request.status == 0) {
             this.retry_count ++;
 
+            // Disconnect after the 10th try
+            if (this.retry_count >= 10) {
+              this.disconnect();
+            }
+
             // Retry if the server did not respond to request
             if (retry_interval) {
               retry_interval *= 1.3;
