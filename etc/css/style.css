@@ -137,6 +137,9 @@ body {
   color: var(--primary-text);
   margin: 0px;
 
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 input {
