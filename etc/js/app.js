@@ -77,7 +77,7 @@ Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
 Vue.component('primary-button', httpVueLoader('js/components/button.vue'));
 Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
 Vue.component('popover', httpVueLoader('js/components/popover.vue'));
-Vue.component('tabs', httpVueLoader('js/components/tabs.vue'));
+Vue.component('tabs', httpVueLoader('js/components/popover.vue'));
 
 // Popovers
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
@@ -111,6 +111,9 @@ var app = new Vue({
   el: '#app',
 
   mounted: function() {
+
+    // Initialize title before watcher sets
+    document.title = this.title;
 
     /*
       Call Sequence:
@@ -697,6 +700,7 @@ var app = new Vue({
 
   watch: {
     title(new_title) {
+      // Watches for title data change, then updates page title
       document.title = new_title;
     },
   },
