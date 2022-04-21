@@ -10,6 +10,9 @@ Vue.component('icon', {
     return createElement('svg', {
       class: [
         "icon-obj",
+        `${iconset}-iconset`,
+        context.data.staticClass, // 
+        context.data.class,
       ],
       style: {
         width: `${context.props.size}px`,

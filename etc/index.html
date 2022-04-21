@@ -5,36 +5,36 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/split-panes.css">
     <link rel="stylesheet" href="deps/TextareaDecorator.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
     <link rel="icon" href="img/flecs_logo.png" />
   </head>
   <body>
     <!-- <script src="js/event_listener.js"></script> -->
 
     <div id="app">
-      <!-- Overlays -->
-      <tooltip ref="tooltip"></tooltip>
-      <url-popover :url="url" ref="share_url_popover"></url-popover>
-        
       <!-- Top bar -->
       <div class="top-box">
-        <div class="top-content">
-          <app-title ref="title" 
-            :value="title" 
-            :connection="connection"
-            :retry_count="retry_count">
-          </app-title>
+        <div class="bar-group">
           <div class="play-button-box" v-tooltip="'Project repository'">
             <a href="https://github.com/SanderMertens/flecs" target="_blank">
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
+          <div>
+            <connection-status 
+              v-on:click="show_connection_modal"
+              ref="connection_button" 
+              :connection="connection" 
+              :value="title"></connection-status>
+          </div>
+        </div>
+        <div class="bar-group">
           <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
-            <!-- <img src="img/share_icon.png"> -->
             <icon-button :size="20" icon="feather:link" />
+          </div>
+          <div v-tooltip="'Report issue'">
+            <a href="https://github.com/flecs-hub/explorer/issues" target="_blank" >
+              <icon-button :size="20" icon="codicons:report" />
+            </a>
           </div>
         </div>
       </div>
@@ -60,9 +60,9 @@
 
         <!-- Editor -->
         <split-pane :fixed="true" :initial_width="400">
-          <template v-if="!remote_mode">
-            <editor ref="plecs"></editor>
-          </template>
+
+          <editor ref="plecs" v-if="!remote_mode"></editor>
+
           <inspector 
             :entity="entity_result"
             :entity_name="selected_entity"
@@ -73,13 +73,17 @@
         </split-pane>
       </split-pane-container>
 
-      <!-- Terminal -->
-
-
-      <!-- URL modal -->
-      <url-modal ref="url" :url="url"/>
-
-      <layout></layout>
+      <!-- Overlays -->
+      <tooltip ref="tooltip"></tooltip>
+      <url-popover 
+        ref="share_url_popover"
+        :url="url" 
+        ></url-popover>
+      <connection-popover 
+        ref="connection_popover"
+        :connection="connection"
+        :host="host"
+        ></connection-popover>
     </div>
 
     <!-- Webassembly module -->
@@ -87,8 +91,8 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js">
-      Vue.config.devtools = false;
+    <script src="deps/vue.dev.js">
+      Vue.config.devtools = true;
     </script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>

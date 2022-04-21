@@ -1,53 +1,53 @@
-<template functional>
-  <div class="icon-button noselect clickable" v-on="$listeners" :width="`${size + 4}px`" :height="`${size + 4}px`">
-    <icon :icon="icon" :size="size / 1.2"></icon>
+<template>
+  <div class="button" v-on="$listeners">
+    <span class="button-label" ref="content">
+      {{ label }}
+    </span>
   </div>
 </template>
 
 <script>
-
-/*
-  CONTEXT
-  Parent, Self
-
-  STATES
-  Unfocused -> Parent:hover -> Self:hover -> Self:active
-*/
-
 module.exports = {
-  name: "icon-button",
+  name: "primary-button",
   props: {
-    size: { type: Number, required: false, default: 16 },
-    icon: { type: String, required: true },
+    label: {type: String, required: true }
+  },
+  mounted() {
+    let cwidth = this.$refs.content.offsetWidth;
+
+    this.$el.style.width = cwidth;
+    this.$el.style.height = this.$refs.content.offsetHeight;
+  },
+  updated() {
+    this.$nextTick(() => {
+      let cwidth = this.$refs.content.offsetWidth;
+      this.$el.style.width = cwidth;
+    })
   }
 }
 </script>
 
-<style>
-.icon-button {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 4px;
-  z-index: 1;
+<style scoped>
+.button {
+  display: inline-block;
+  background-color: var(--grey-700);
+  padding: var(--p-2) var(--p-3);
+  border-radius: var(--br-2);
+  overflow: hidden;
+  transition: all 0.12s ease-out;
 }
 
-.icon-button {
-  background-color: rgba(255, 255, 255, 0);
-  opacity: 0.6;
-  transition: all 0.2s ease;
+.button:hover {
+  background-color: var(--ui-blue);
+  cursor: pointer;
 }
 
-.icon-button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  opacity: 0.9;
-}
+.button-label {
+  color: var(--primary-text);
+  font-size: var(--text-fs-md);
+  line-height: var(--text-lh-md);
 
-.icon-button:active,
-.icon-button:focus {
-  background-color: rgba(255, 255, 255, 0.2);
-  opacity: 1.0;
+
+  white-space: nowrap;
 }
 </style>

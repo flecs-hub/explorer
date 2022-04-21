@@ -32,7 +32,7 @@ body {
 .handle-grab-box {
   border-radius: 3px;
   position: relative;
-  z-index: 100;
+  z-index: 5;
   left: -1px;
   height: 100%;
   width: 3px;

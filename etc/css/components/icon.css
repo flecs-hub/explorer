@@ -12,3 +12,7 @@
   -webkit-transform-style: preserve-3d;
   -webkit-transform: translateZ(0); 
 }
+
+.codicons-iconset {
+  stroke-width: 0.25;
+}

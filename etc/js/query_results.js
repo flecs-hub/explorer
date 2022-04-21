@@ -49,7 +49,7 @@ Vue.component('query-result', {
     </td>
     <td v-for="(value, vi) in result.values" v-if="value !== 0">
       <template v-if="result.is_set[vi]">
-        <inspector-props :value="get_value(value, index)" :type="type_info(vi)" :list="true"/>
+        <inspector-props :key="vi" :value="get_value(value, index)" :type="type_info(vi)" :list="true"/>
       </template>
       <template v-else>
         <span class="query-result-no">None</span>
@@ -226,13 +226,14 @@ Vue.component('query-results', {
             <tbody>
               <template v-for="result in results">
                 <template v-if="has_this">
-                  <template v-for="(entity, index) in result.entities">
+                  <template v-for="(entity, index) in result.entities" v-memo="[entity]">
                     <query-result 
                       :results="data"
                       :result="result"
                       :entity="entity"
                       :index="index"
                       :show_terms="show_terms"
+                      :key="entity"
                       v-on="$listeners"/>
                   </template>
                 </template>
@@ -242,6 +243,7 @@ Vue.component('query-results', {
                     :result="result"
                     :index="0"
                     :show_terms="show_terms"
+                    :key="entity"
                     v-on="$listeners"/>
                 </template>
               </template>
