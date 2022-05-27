@@ -388,7 +388,7 @@ Vue.component('entity-tree', {
       this.update(cur, () => {
         let next = cur.entities[elems[i]];
         if (!next) {
-          console.error("entity-tree: cannot navigate to entity " + elems[i]);
+          // console.error("entity-tree: cannot navigate to entity " + elems[i]);
           this.collapse_all();
         }
 

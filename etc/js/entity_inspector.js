@@ -440,6 +440,11 @@ const inspector_component = Vue.component('inspector', {
       return name_from_path(path);
     },
   },
+  watch: {
+    entity_name: function() {
+      this.$emit('panel-update');
+    },
+  },
   computed: {
     parent: function() {
       return parent_from_path(this.entity.path);
@@ -475,9 +480,9 @@ const inspector_component = Vue.component('inspector', {
   template: `
     <content-container 
       ref="container" 
-      :disable="!entity_name" 
-      no_padding="true"
-      closable="true" 
+      :disable="!entity_name"
+      :no_padding="true"
+      :closable="true"
       v-on:close="evt_close">
       
       <template v-slot:summary>

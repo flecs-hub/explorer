@@ -1,6 +1,12 @@
 
 Vue.component('content-container', {
-    props: ['hidden', 'disable', 'no_padding', 'closable'],
+    props: {
+      hide_detail: { type: Boolean, required: false, default: false },
+      disable: { type: Boolean, required: false, default: false },
+      no_padding: { type: Boolean, required: false },
+      closable: { type: Boolean, required: false },
+      hide_on_close: { type: Boolean, required: false, default: true },
+    },
     methods: {
       expand: function(arg) {
         this.$refs.toggle.expand(arg);
@@ -14,7 +20,11 @@ Vue.component('content-container', {
     },
     computed: {
       wrapper_css: function() {
-        return "content-container-wrapper  content-container-wrapper-overflow";
+        let result = "content-container-wrapper  content-container-wrapper-overflow";
+        if (this.disable && this.hide_on_close) {
+          result += " disable";
+        }
+        return result;
       },
       detail_css: function() {
         let result = "content-detail ";
@@ -27,7 +37,7 @@ Vue.component('content-container', {
     template: `
       <div :class="wrapper_css">
         <div class="content-container">
-          <detail-toggle summary_toggle="true" :collapse="disable || hidden" :disable="disable || hidden" ref="toggle">
+          <detail-toggle summary_toggle="true" :collapse="disable || hide_detail" :disable="disable || hide_detail" ref="toggle">
             <template v-slot:summary>
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>

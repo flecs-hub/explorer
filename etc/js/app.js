@@ -565,12 +565,18 @@ var app = new Vue({
       this.$refs.query.set_query(query);
     },
 
+    evt_panel_update() {
+      this.$nextTick(() => {
+        this.$refs.panes.resize();
+      });
+    },
+
     show_url_modal() {
       const query = this.$refs.query.get_query();
       
       let plecs;
       let plecs_encoded;
-      if (this.$refs.plecs) {
+      if (!this.remote_mode) {
         plecs = this.$refs.plecs.get_code();
         plecs_encoded = wq_encode(plecs);
       }

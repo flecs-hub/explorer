@@ -83,6 +83,7 @@ const resize_handle = Vue.component('resize-handle', {
 const frame = Vue.component('split-pane', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
+    collapseable: { type: Boolean, required: false, default: false },
     initial_width: { type: Number, required: false },
     min_width: { type: Number, required: false, default: 50 },
     max_width: { type: Number, required: false, default: Infinity },
@@ -90,12 +91,11 @@ const frame = Vue.component('split-pane', {
   data() {
     return {
       active: false,
+      visible: true,
       width: undefined,
       start: 0,
       x: 0,
     }
-  },
-  methods: {
   },
   computed: {
     slack() {
@@ -106,6 +106,13 @@ const frame = Vue.component('split-pane', {
     },
     index() {
       return this.$parent.frames.indexOf(this);
+    },
+    css() {
+      let result = "split-pane";
+      if (!this.visible) {
+        result += " split-pane-hidden";
+      }
+      return result;
     }
   },
   watch: {
@@ -135,10 +142,16 @@ const frame = Vue.component('split-pane', {
   methods: {
     save() {
       this.start = this.width;
+    },
+    collapse() {
+      this.visible = false;
+    },
+    expand() {
+      this.visible = true;
     }
   },
   template: `
-    <div class="split-pane"">
+    <div :class="css">
       <slot v-on:close="evt_close"></slot>
     </div>
   `
@@ -208,19 +221,54 @@ const frame_container = Vue.component('split-pane-container', {
   },
   
   methods: {
+    has_active_children(frame) {
+      let result = 0;
+
+      for (let i = 0; i < frame.$children.length; i ++) {
+        const child = frame.$children[i];
+        const css = child.$el.classList;
+        if (!css.contains("disable")) {
+          result ++;
+        }
+      }
+
+      return result != 0;
+    },
 
     resize() {
+      let collapsed_width = 0;
+
+      for (const frame of this.frames) {
+        let active = true;
+        if (frame.collapseable) {
+          active = this.has_active_children(frame);
+        }
+
+        if (!active) {
+          collapsed_width += frame.width - 1;
+          frame.collapse();
+        } else {
+          frame.expand();
+        }
+      }
+
       // Capture available and demanded space at moment
       let application_width = this.$el.offsetWidth;
-      let free_sp = application_width - (this.layout.fixed_fr_space + this.layout.handle_space);
+      let free_sp = application_width - (this.layout.fixed_fr_space + this.layout.handle_space) + collapsed_width;
       let demanded_sp = this.layout.fluid_fr_space;
 
       for (const frame of this.frames) {
-        if (!frame.fixed) {
+        let active = true;
+        if (frame.collapseable) {
+          active = this.has_active_children(frame);
+        }
+
+        if (active && !frame.fixed) {
           let r = frame.width / demanded_sp;
           let resized_width = r * free_sp;
           frame.width = resized_width >= frame.min_width ? resized_width : frame.min_width;
         }
+        
         frame.save();
       }
     },

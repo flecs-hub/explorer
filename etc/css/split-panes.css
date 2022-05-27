@@ -1,16 +1,9 @@
-* {
-  padding: 0;
-  margin: 0;
-}
-
-body {
-}
 
 #app {
   width: 100%;
 }
 
-.split-pane-container {
+div.split-pane-container {
   width: 100%;
   height: calc(100vh - 41px);
 
@@ -18,18 +11,26 @@ body {
   flex-direction: row;
 }
 
-.split-pane {
+div.split-pane {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.handle {
+div.split-pane-hidden {
+  display: none;
+}
+
+div.disable {
+  display: none;
+}
+
+div.handle {
   height: 100%;
   width: 1px;
 }
 
-.handle-grab-box {
+div.handle-grab-box {
   border-radius: 3px;
   position: relative;
   z-index: 100;
@@ -41,7 +42,7 @@ body {
   transition: opacity 0.2s ease-in-out;
 }
 
-.handle-grab-box:hover {
+div.handle-grab-box:hover {
   cursor: col-resize;
   opacity: 0.7;
 }

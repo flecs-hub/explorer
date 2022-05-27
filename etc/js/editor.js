@@ -74,8 +74,10 @@ Vue.component('editor', {
     return {
       status: undefined,
       status_kind: undefined,
+      closed: false
     }
   },
+  props: ["disable"],
   methods: {
     run() {
       this.$refs.textarea.run();
@@ -97,10 +99,26 @@ Vue.component('editor', {
         this.status = undefined;
         this.status_kind = Status.Info;
       }
+    },
+    evt_close() {
+      this.closed = true;
+      this.$emit("panel-update");
+    }
+  },
+  watch: {
+    disable: function() {
+      this.$emit("panel-update");
     }
   },
   template: `
-    <content-container no_padding="true" overflow="true" ref="container">
+    <content-container 
+      :no_padding="true" 
+      overflow="true" 
+      ref="container"
+      :closable="true"
+      :disable="disable || closed"
+      v-on:close="evt_close">
+
       <template v-slot:summary>
         Editor
       </template>

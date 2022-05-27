@@ -111,9 +111,10 @@ Vue.component('query', {
     <content-container 
       ref="container"
       :disable="query_result === undefined && !invalid_query"
-      :hidden="query_result === undefined"
+      :hide_detail="query_result === undefined"
       :no_padding="true"
-      closable="true" 
+      :closable="true"
+      :hide_on_close="false"
       v-on:close="evt_close">
 
       <template v-slot:summary>
