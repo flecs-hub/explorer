@@ -31,6 +31,13 @@ Vue.component('content-container', {
             <template v-slot:summary>
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>
+                <span class="content-container-icon-close" v-if="closable">
+                  <icon-button 
+                    icon="feather:x"
+                    :size="20"
+                    v-on:click.stop="evt_close"
+                    v-tooltip="'Clear'"/>
+                </span>
               </span>
             </template>
             <template v-slot:detail>
@@ -46,4 +53,3 @@ Vue.component('content-container', {
       </div>
     `
   });
-  

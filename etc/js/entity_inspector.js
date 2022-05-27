@@ -493,17 +493,6 @@ const inspector_component = Vue.component('inspector', {
         <template v-else>
           Entity inspector
         </template>
-
-
-        <span class="content-container-icon-close">
-          <icon-button 
-            icon="feather:x"
-            :size="20"
-            v-show="entity_name"
-            v-on:click.stop="evt_close"
-            v-tooltip="'Clear'" 
-          />
-        </span>
       </template>
       <template v-slot:detail v-if="entity">
         <div :class="content_css">

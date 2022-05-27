@@ -25,12 +25,6 @@ const resize_handle = Vue.component('resize-handle', {
       x: 0,
     }
   },
-  computed: {
-  },
-  watch: {
-  },
-  created() {
-  },
   mounted() {
     this.$nextTick(() => {
       this.start = this.$el.offsetLeft;
@@ -38,9 +32,6 @@ const resize_handle = Vue.component('resize-handle', {
     })
   },
   methods: {
-    recalibrate() {
-
-    },
     begin_drag(e) {
       e.preventDefault();
       this.moving = true;
@@ -128,8 +119,6 @@ const frame = Vue.component('split-pane', {
       }
     }
   },
-  created() {
-  },
   updated() {
     this.x = this.$el.offsetLeft;
   },
@@ -153,7 +142,7 @@ const frame = Vue.component('split-pane', {
       <slot v-on:close="evt_close"></slot>
     </div>
   `
-}) 
+})
 
 const frame_container = Vue.component('split-pane-container', {
   data() {
@@ -290,47 +279,6 @@ const frame_container = Vue.component('split-pane-container', {
         frame.save();
       }
     },
-
-    insert_frame(index) {
-      // Insertion index must be within range
-      if (index >= this.frames.length) return;
-
-      // If no insertion index, then point to end
-      if (!index) index = this.frames.length - 1;
-
-      // Create frame
-      let frame_class = Vue.extend(frame)
-      let frame_instance = new frame_class()
-      this.$children.push(frame_instance);
-      this.frames.push(frame_instance);
-      frame_instance.$parent = this;
-      frame_instance.$mount();
-      this.frames[index].$el.after(frame_instance.$el);
-
-      // Create handle
-      let handle_class = Vue.extend(resize_handle)
-      let handle_instance = new handle_class({
-        propsData: {
-          left_frame: this.frames[index],
-          right_frame: this.frames[index + 1],
-          begin_drag_callback: this.begin_adjust,
-          dragging_callback: this.adjust,
-          end_drag_callback: this.end_adjust,
-        }
-      })
-      this.$children.push(handle_instance);
-      this.handles.push(handle_instance);
-      handle_instance.$parent = this;
-      handle_instance.$mount();
-      this.frames[index].$el.after(handle_instance.$el);
-
-      // Modify previous handle
-      this.handles[index].left_frame = this.frames[index + 1];
-      this.handles[index].right_frame = this.frames[index + 2];
-
-      // Fit everything together
-      this.resize();
-    }
 
   },
   template: `

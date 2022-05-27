@@ -639,7 +639,7 @@ struct ecs_query_t {
     int32_t match_count;        /* How often have tables been (un)matched */
     int32_t prev_match_count;   /* Track if sorting is needed */
     int32_t rematch_count;      /* Track which tables were added during rematch */
-    bool constraints_satisfied; /* Are all term constraints satisfied */
+    bool condition_is_true; /* Are all term constraints satisfied */
 
     /* Mixins */
     ecs_world_t *world;
@@ -1325,14 +1325,14 @@ ecs_type_info_t* flecs_ensure_type_info(
     ecs_world_t *world,
     ecs_entity_t component);
 
-void flecs_init_type_info(
+void flecs_init_type_info_id(
     ecs_world_t *world,
     ecs_entity_t component,
     ecs_size_t size,
     ecs_size_t alignment);
 
-#define flecs_init_type_info_t(world, T)\
-    flecs_init_type_info(world, ecs_id(T), ECS_SIZEOF(T), ECS_ALIGNOF(T))
+#define flecs_init_type_info(world, T)\
+    flecs_init_type_info_id(world, ecs_id(T), ECS_SIZEOF(T), ECS_ALIGNOF(T))
 
 void flecs_eval_component_monitors(
     ecs_world_t *world);
@@ -2291,7 +2291,7 @@ void init_storage_table(
     for (i = 0; i < count; i ++) {
         ecs_table_record_t *tr = &records[i];
         ecs_id_record_t *idr = (ecs_id_record_t*)tr->hdr.cache;
-        ecs_assert(idr->flags & ECS_TYPE_INFO_INITIALIZED, 
+        ecs_assert(idr->flags & ECS_ID_TYPE_INFO_INITIALIZED, 
             ECS_INTERNAL_ERROR, NULL);
 
         if (idr->type_info == NULL) {
@@ -2381,7 +2381,7 @@ void init_type_info(
     for (i = 0; i < count; i ++) {
         ecs_table_record_t *tr = &records[i];
         ecs_id_record_t *idr = (ecs_id_record_t*)tr->hdr.cache;
-        ecs_assert(idr->flags & ECS_TYPE_INFO_INITIALIZED, 
+        ecs_assert(idr->flags & ECS_ID_TYPE_INFO_INITIALIZED, 
             ECS_INTERNAL_ERROR, NULL);
         
         /* All ids in the storage table must be components with type info */
@@ -35265,7 +35265,7 @@ ecs_id_record_t* new_id_record(
         ecs_id_record_t *idr_r = flecs_get_id_record(
             world, ECS_PAIR_FIRST(id));
         if (idr_r) {
-            idr->flags = (idr_r->flags & ~ECS_TYPE_INFO_INITIALIZED);
+            idr->flags = (idr_r->flags & ~ECS_ID_TYPE_INFO_INITIALIZED);
         }
 
         /* Check constraints */
@@ -35726,7 +35726,7 @@ ecs_type_info_t* flecs_ensure_type_info(
     return ti_mut;
 }
 
-void flecs_init_type_info(
+void flecs_init_type_info_id(
     ecs_world_t *world,
     ecs_entity_t component,
     ecs_size_t size,
@@ -36053,7 +36053,7 @@ void flecs_register_for_id_record(
     ecs_table_cache_insert(&idr->cache, table, &tr->hdr);
 
     /* When id record is used by table, make sure type info is initialized */
-    if (!(idr->flags & ECS_TYPE_INFO_INITIALIZED)) {
+    if (!(idr->flags & ECS_ID_TYPE_INFO_INITIALIZED)) {
         ecs_entity_t type = ecs_get_typeid(world, id);
         if (type) {
             idr->type_info = flecs_get_type_info(world, type);
@@ -36062,7 +36062,7 @@ void flecs_register_for_id_record(
             world->info.tag_id_count --;
             world->info.component_id_count ++;
         }
-        idr->flags |= ECS_TYPE_INFO_INITIALIZED;
+        idr->flags |= ECS_ID_TYPE_INFO_INITIALIZED;
     }
 }
 
@@ -42029,7 +42029,7 @@ void rematch_tables(
 
     /* Enable/disable system if constraints are (not) met. If the system is
      * already dis/enabled this operation has no side effects. */
-    query->constraints_satisfied = satisfy_constraints(world, &query->filter);      
+    query->condition_is_true = satisfy_constraints(world, &query->filter);      
 }
 
 static
@@ -42295,7 +42295,7 @@ ecs_query_t* ecs_query_init(
             world, result, desc->order_by_component, desc->order_by);
     }
 
-    result->constraints_satisfied = satisfy_constraints(world, &result->filter);
+    result->condition_is_true = satisfy_constraints(world, &result->filter);
 
     return result;
 error:
@@ -42394,7 +42394,7 @@ ecs_iter_t ecs_query_iter(
     ecs_check(!(query->flags & EcsQueryIsOrphaned),
         ECS_INVALID_PARAMETER, NULL);
 
-    query->constraints_satisfied = satisfy_constraints(query->world, &query->filter);
+    query->condition_is_true = satisfy_constraints(query->world, &query->filter);
 
     ecs_world_t *world = (ecs_world_t*)ecs_get_world(stage);
 
@@ -42849,7 +42849,7 @@ bool ecs_query_next_instanced(
 
     ecs_poly_assert(world, ecs_world_t);
 
-    if (!query->constraints_satisfied) {
+    if (!query->condition_is_true) {
         goto done;
     }
 
@@ -47398,14 +47398,14 @@ void flecs_bootstrap(
     ecs_set_name_prefix(world, "Ecs");
 
     /* Bootstrap type info (otherwise initialized by setting EcsComponent) */
-    flecs_init_type_info_t(world, EcsComponent);
-    flecs_init_type_info_t(world, EcsIdentifier);
-    flecs_init_type_info_t(world, EcsComponentLifecycle);
-    flecs_init_type_info_t(world, EcsType);
-    flecs_init_type_info_t(world, EcsQuery);
-    flecs_init_type_info_t(world, EcsTrigger);
-    flecs_init_type_info_t(world, EcsObserver);
-    flecs_init_type_info_t(world, EcsIterable);
+    flecs_init_type_info(world, EcsComponent);
+    flecs_init_type_info(world, EcsIdentifier);
+    flecs_init_type_info(world, EcsComponentLifecycle);
+    flecs_init_type_info(world, EcsType);
+    flecs_init_type_info(world, EcsQuery);
+    flecs_init_type_info(world, EcsTrigger);
+    flecs_init_type_info(world, EcsObserver);
+    flecs_init_type_info(world, EcsIterable);
 
     /* Setup component lifecycle actions */
     ecs_set_component_actions(world, EcsComponent, { 
