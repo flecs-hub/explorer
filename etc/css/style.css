@@ -72,6 +72,7 @@
 
   /* Color assignments */
   --app-bg: var(--grey-950);
+  --app-bg-maximized: var(--steel-900);
   --panel-border: var(--steel-850);
   --panel-header-bg: var(--steel-700);
   --panel-header-hover-bg: var(--steel-675);
@@ -1293,4 +1294,18 @@ div.detail-toggle-divider {
   border-top-color: #1B1E25;
   border-top-style: solid;
   border-top-width: 1px;
+}
+
+div.maximized {
+  position: absolute;
+  top: 41px;
+  left: 0px;
+  width: 100%;
+  height: calc(100% - 45px);
+  z-index: 10;
+  background-color: var(--app-bg-maximized);
+}
+
+div.disable {
+  display: none;
 }

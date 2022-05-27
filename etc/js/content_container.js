@@ -7,6 +7,11 @@ Vue.component('content-container', {
       closable: { type: Boolean, required: false },
       hide_on_close: { type: Boolean, required: false, default: true },
     },
+    data: function() {
+      return {
+        maximized: false
+      }
+    },
     methods: {
       expand: function(arg) {
         this.$refs.toggle.expand(arg);
@@ -15,7 +20,14 @@ Vue.component('content-container', {
         this.$refs.toggle.enable_toggle(e);
       },
       evt_close: function() {
+        this.maximized = false;
         this.$emit('close');
+      },
+      evt_maximize: function() {
+        this.maximized = !this.maximized;
+        if (this.disable) {
+          this.maximized = false;
+        }
       }
     },
     computed: {
@@ -23,6 +35,9 @@ Vue.component('content-container', {
         let result = "content-container-wrapper  content-container-wrapper-overflow";
         if (this.disable && this.hide_on_close) {
           result += " disable";
+        }
+        if (this.maximized && !this.disable) {
+          result += " maximized";
         }
         return result;
       },
@@ -32,6 +47,13 @@ Vue.component('content-container', {
           result += " content-detail-padding";
         }
         return result;
+      },
+      maximize_icon: function() {
+        if (this.maximized) {
+          return "minimize";
+        } else {
+          return "maximize";
+        }
       }
     },
     template: `
@@ -43,10 +65,16 @@ Vue.component('content-container', {
                 <slot name="summary"></slot>
                 <span class="content-container-icon-close" v-if="closable">
                   <icon-button 
+                    :icon="'feather:' + maximize_icon"
+                    :size="20"
+                    v-on:click.stop="evt_maximize"
+                    v-tooltip="maximize_icon"/>
+                    
+                  <icon-button 
                     icon="feather:x"
                     :size="20"
                     v-on:click.stop="evt_close"
-                    v-tooltip="'Clear'"/>
+                    v-tooltip="'close'"/>
                 </span>
               </span>
             </template>

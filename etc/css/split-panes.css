@@ -21,10 +21,6 @@ div.split-pane-hidden {
   display: none;
 }
 
-div.disable {
-  display: none;
-}
-
 div.handle {
   height: 100%;
   width: 1px;
