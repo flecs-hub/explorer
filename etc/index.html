@@ -53,7 +53,6 @@
         <split-pane :fixed="true" :initial_width="200">
           <entity-tree ref="tree" 
             :valid="valid"
-            :selected_entity="selected_entity"
             v-on:select="evt_entity_changed" 
             v-on:select_query="evt_select_query"
             v-on:panel-update="evt_panel_update"/>

@@ -270,7 +270,20 @@ Vue.component('entity-tree-list', {
 });
 
 Vue.component('entity-tree', {
-  props: ['valid', 'selected_entity'],
+  props: ['valid'],
+  data: function() {
+    return {
+      width: 0,
+      disabled: false,
+      selected_entity: undefined,
+      root: {
+        path: "0",
+        entities: {},
+        expand: true,
+        selection: undefined
+      }
+    }
+  },
   beforeUpdate: function() {
     this.width = this.$el.clientWidth;
   },
@@ -352,7 +365,7 @@ Vue.component('entity-tree', {
       if (this.disabled) {
         return;
       }
-      
+
       if (!container) {
         container = this.root;
       }
@@ -421,6 +434,9 @@ Vue.component('entity-tree', {
         this.evt_select(item);
       });
     },
+    set_selected_entity(entity) {
+      this.selected_entity = entity;
+    },
     evt_select: function(entity) {
       if (entity) {
         if (entity.path == this.selected_entity) {
@@ -444,18 +460,6 @@ Vue.component('entity-tree', {
     close: function() {
       this.disabled = true;
       this.$emit("panel-update");
-    }
-  },
-  data: function() {
-    return {
-      width: 0,
-      disabled: false,
-      root: {
-        path: "0",
-        entities: {},
-        expand: true,
-        selection: undefined
-      }
     }
   },
   computed: {

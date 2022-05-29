@@ -437,6 +437,11 @@ const inspector_component = Vue.component('inspector', {
       error: undefined
     }
   },
+  mounted: function() {
+    if (this.entity_name == undefined) {
+      this.close();
+    }
+  },
   methods: {
     expand() {
       this.$refs.container.expand();
@@ -463,13 +468,20 @@ const inspector_component = Vue.component('inspector', {
       }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
     },
     set_entity(path) {
+      if (path == this.entity_name) {
+        return;
+      }
+
       app.request_abort('inspector');
 
       this.entity = undefined;
       this.entity_name = path;
 
-      if (!path) {
+      if (path == undefined) {
+        this.close();
         return;
+      } else {
+        this.open();
       }
 
       this.expand();
@@ -484,20 +496,15 @@ const inspector_component = Vue.component('inspector', {
     close() {
       this.$refs.container.close();
     },
+    get_entity() {
+      return this.entity_name;
+    },
     evt_panel_update() {
       this.$emit('panel-update');
     },
     evt_close() {
       this.$emit('select-entity');
     }
-  },
-  watch: {
-    entity_name: function() {
-      if (this.entity_name != undefined) {
-        this.open();
-      }
-      this.evt_panel_update();
-    },
   },
   computed: {
     parent: function() {

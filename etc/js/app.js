@@ -299,8 +299,9 @@ var app = new Vue({
       }
 
       if (selected) {
-        this.selected_entity = selected;
+        this.set_entity(selected);
       }
+
       if (q) {
         this.$refs.query.set_query(q);
       }
@@ -329,7 +330,7 @@ var app = new Vue({
     },
 
     ready_local() {
-      this.selected_entity = undefined;
+      this.set_entity();
 
       const q_encoded = getParameterByName("q");
       const p_encoded = getParameterByName("p");
@@ -503,6 +504,7 @@ var app = new Vue({
     // Set inspector to entity by pathname
     set_entity(path) {
       this.$refs.inspector.set_entity(path);
+      this.$refs.tree.set_selected_entity(path);
     },
 
     set_entity_by_tree_item(item) {
@@ -570,6 +572,8 @@ var app = new Vue({
         plecs_encoded = wq_encode(plecs);
       }
 
+      let entity = this.$refs.inspector.get_entity();
+
       const query_encoded = wq_encode(query);
       let sep = "?";
     
@@ -612,8 +616,8 @@ var app = new Vue({
         sep = "&";
       }
 
-      if (this.selected_entity) {
-        this.url += sep + "s=" + this.selected_entity;
+      if (entity) {
+        this.url += sep + "s=" + entity;
         sep = "&";
       }
 
@@ -638,11 +642,8 @@ var app = new Vue({
   data: {
     title: "Flecs",
     query_error: undefined,
-    entity_error: undefined,
     code_error: undefined,
     query_result: undefined,
-    entity_result: undefined,
-    selected_entity: undefined,
     selected_tree_item: undefined,
     url: undefined,
     params: {},
