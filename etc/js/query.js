@@ -8,7 +8,7 @@ Vue.component('query', {
       query_result: undefined,
       error: false,
       invalid_query: false,
-      request: undefined
+      request: undefined,
     }
   },
   methods: {
@@ -66,6 +66,9 @@ Vue.component('query', {
       this.$refs.container.allow_toggle(e);
     },
     refresh() {
+      if (this.$refs.container.is_closed()) {
+        return;
+      }
       this.evt_query_changed(this.$refs.editor.get_query());
     },
     get_query() {
@@ -85,10 +88,10 @@ Vue.component('query', {
     result_count() {
       return this.$refs.results.count();
     },
-    open: function() {
+    open() {
       this.$refs.container.open();
     },
-    close: function() {
+    close() {
       this.$refs.container.close();
     },
     evt_close() {

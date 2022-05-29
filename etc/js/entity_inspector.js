@@ -429,27 +429,65 @@ const inspector_components_component = Vue.component('inspector-components', {
 
 // Top level inspector
 const inspector_component = Vue.component('inspector', {
-  props: ['entity', 'entity_name', 'valid'],
+  props: ['valid'],
+  data: function() {
+    return {
+      entity: undefined,
+      entity_name: undefined,
+      error: undefined
+    }
+  },
   methods: {
-    expand: function() {
+    expand() {
       this.$refs.container.expand();
     },
-    select_query: function() {
+    select_query() {
       this.$emit('select-query', this.entity_name);
     },
-    name_from_path: function(path) {
+    refresh() {
+      if (!this.entity_name) {
+        return;
+      }
+
+      if (this.$refs.container.is_closed()) {
+        return;
+      }
+
+      app.request_entity('inspector', this.entity_name, (reply) => {
+        this.error = reply.error;
+        if (this.error === undefined) {
+          this.entity = reply;
+        }
+      }, () => {
+        this.error = "request for entity '" + this.entity_name + "' failed";
+      }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
+    },
+    set_entity(path) {
+      app.request_abort('inspector');
+
+      this.entity = undefined;
+      this.entity_name = path;
+
+      if (!path) {
+        return;
+      }
+
+      this.expand();
+      this.refresh();
+    },
+    name_from_path(path) {
       return name_from_path(path);
     },
-    open: function() {
+    open() {
       this.$refs.container.open();
     },
-    close: function() {
+    close() {
       this.$refs.container.close();
     },
-    evt_panel_update: function() {
+    evt_panel_update() {
       this.$emit('panel-update');
     },
-    evt_close: function() {
+    evt_close() {
       this.$emit('select-entity');
     }
   },

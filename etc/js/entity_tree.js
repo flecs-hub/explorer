@@ -349,6 +349,10 @@ Vue.component('entity-tree', {
       });
     },
     update_expanded: function(container) {
+      if (this.disabled) {
+        return;
+      }
+      
       if (!container) {
         container = this.root;
       }

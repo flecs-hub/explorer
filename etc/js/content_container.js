@@ -22,6 +22,9 @@ Vue.component('content-container', {
         this.maximized = false;
         this.$emit("panel-update");
       },
+      is_closed() {
+        return this.closed;
+      },
       expand: function(arg) {
         this.$refs.toggle.expand(arg);
       },

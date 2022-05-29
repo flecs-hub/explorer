@@ -502,16 +502,7 @@ var app = new Vue({
 
     // Set inspector to entity by pathname
     set_entity(path) {
-      this.request_abort('inspector'); // Abort outstanding requests
-      this.entity_result = undefined;
-
-      this.selected_entity = path;
-      if (!path) {
-        return;
-      }
-
-      this.$refs.inspector.expand();
-      this.refresh_entity();
+      this.$refs.inspector.set_entity(path);
     },
 
     set_entity_by_tree_item(item) {
@@ -527,17 +518,7 @@ var app = new Vue({
     },
 
     refresh_entity() {
-      if (!this.selected_entity) {
-        return;
-      }
-      this.request_entity('inspector', this.selected_entity, (reply) => {
-        this.entity_error = reply.error;
-        if (this.entity_error === undefined) {
-          this.entity_result = reply;
-        }
-      }, () => {
-        this.entity_error = "request for entity '" + this.selected_entity + "' failed";
-      }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
+      this.$refs.inspector.refresh();
     },
 
     refresh_tree() {
