@@ -52,7 +52,7 @@ Vue.component('entity-tree-item', {
       }
     },
     width_select_box: function() {
-      return this.width - this.x - 29;
+      return Math.max(this.width - this.x - 29, 0);
     },
     css_text: function() {
       if (this.entity_data.path == this.selected_entity) {
@@ -65,7 +65,7 @@ Vue.component('entity-tree-item', {
       return this.entity_data.is_component && !this.entity_data.is_module;
     },
     search_icon_x: function() {
-      return this.width - 20;
+      return Math.max(this.width - 20, 0);
     },
     xp: function() {
       return this.x + 3;
