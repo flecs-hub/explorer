@@ -68,16 +68,15 @@ function getParameterByName(name, url = window.location.href) {
 }
 
 /*
-  GLOBAL COMPONENT REGISTRATIOnS
+  GLOBAL COMPONENT REGISTRATIONS
 */
 Vue.component('collapsible-panel', httpVueLoader('js/collapsible_panel.vue'));
 Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
-// var icon_component = Vue.component('icon', httpVueLoader('js/components/icon.vue'));
-// Vue.component('icon-button', httpVueLoader('js/components/button.vue'));
 var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
 var popover_component = Vue.component('popover', httpVueLoader('js/components/popover.vue'));
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
-// var entity_hierarchy_component = Vue.component('entity-hierarchy', httpVueLoader('js/components/entity_hierarchy.vue'));
+Vue.component('panel-menu', httpVueLoader('js/components/panel_menu.vue'));
+Vue.component('panel-button', httpVueLoader('js/components/panel_button.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
@@ -325,6 +324,8 @@ var app = new Vue({
         this.refresh_entity();
         this.refresh_tree();
       }, REFRESH_INTERVAL);
+
+      this.evt_panel_update();
     },
 
     ready_local() {
@@ -367,6 +368,8 @@ var app = new Vue({
       this.$refs.tree.update_expanded();
 
       this.parse_interval = 150;
+
+      this.evt_panel_update();
     },
 
     // Connect to a remote host
@@ -567,7 +570,12 @@ var app = new Vue({
 
     evt_panel_update() {
       this.$nextTick(() => {
-        this.$refs.panes.resize();
+        if (this.$refs.panes) {
+          this.$refs.panes.resize();
+        }
+        if (this.$refs.panel_menu) {
+          this.$refs.panel_menu.refresh();
+        }
       });
     },
 
@@ -628,7 +636,6 @@ var app = new Vue({
         sep = "&";
       }
 
-      // this.$refs.url.show();
       this.$refs.share_url_popover.show();
     },
   },

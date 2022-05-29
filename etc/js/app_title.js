@@ -34,7 +34,9 @@ Vue.component('app-title', {
           this.connection == ConnectionState.Local ||
           this.connection == ConnectionState.RetryConnecting) 
       {
-        return this.value;
+        let str = this.value.replaceAll("_", " ");
+        str = str.charAt(0).toUpperCase() + str.slice(1);
+        return str;
       } else if (this.connection == ConnectionState.Connecting ||
         this.connection == ConnectionState.Initializing)
       {

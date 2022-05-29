@@ -49,11 +49,6 @@ module.exports = {
     },
     parse() {
       let entities = this.entity_path.split(".").slice(0, -1);
-      // Path shortening is disabled temporarily
-      // if (entities.length > 2) {
-      //   entities = [ entities[0], "…", entities[entities.length -1]];
-      // }
-
       this.entities = entities;
     }
   },
@@ -65,8 +60,8 @@ module.exports = {
 
 <style scoped>
 
-.entity-hierarchy,
-.entity-hierarchy-node {
+div.entity-hierarchy,
+div.entity-hierarchy-node {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -77,7 +72,7 @@ module.exports = {
   padding-bottom: var(--p-0);
 }
 
-.entity-hierarchy span {
+div.entity-hierarchy span {
   color: var(--tertiary-text);
 }
 

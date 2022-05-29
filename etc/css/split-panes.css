@@ -26,6 +26,10 @@ div.handle {
   width: 1px;
 }
 
+div.handle-last {
+  margin-left: auto;
+}
+
 div.handle-grab-box {
   border-radius: 3px;
   position: relative;

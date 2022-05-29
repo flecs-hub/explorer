@@ -40,9 +40,17 @@
       </div>
 
       <split-pane-container ref="panes">
+        <split-pane :fixed="true" :collapseable="false" :initial_width="20">
+          <panel-menu ref="panel_menu" v-on:panel-update="evt_panel_update">
+            <panel-button icon="list-tree" panel="tree"></panel-button>
+            <panel-button icon="search" panel="query"></panel-button>
+            <panel-button icon="code" panel="plecs"></panel-button>
+            <panel-button icon="inspect" panel="inspector"></panel-button>
+          </panel-menu>
+        </split-pane>
 
         <!-- Tree view -->
-        <split-pane :fixed="true" :initial_width="220">
+        <split-pane :fixed="true" :initial_width="200">
           <entity-tree ref="tree" 
             :valid="valid"
             :selected_entity="selected_entity"
@@ -61,10 +69,11 @@
         </split-pane>
 
         <!-- Editor -->
-        <split-pane :fixed="true" :collapseable="true" :initial_width="400">
-          <editor ref="plecs" 
-              :disable="remote_mode"
-              v-on:panel-update="evt_panel_update"></editor>
+        <split-pane :fixed="true" :initial_width="400">
+          <template v-if="!remote_mode">
+            <editor ref="plecs" 
+                v-on:panel-update="evt_panel_update"></editor>
+            </template>
           <inspector 
             :entity="entity_result"
             :entity_name="selected_entity"
@@ -85,10 +94,10 @@
     <script src="flecs_explorer_imports.js"></script>
 
     <!-- Dependencies -->
-    <script src="deps/vue.min.js"></script>
-    <!-- <script src="deps/vue.dev.js">
+    <!-- <script src="deps/vue.min.js"></script> -->
+    <script src="deps/vue.dev.js">
       Vue.config.devtools = true;
-    </script> -->
+    </script>
     <script src="deps/Parser.js"></script>
     <script src="deps/SelectHelper.js"></script>
     <script src="deps/TextareaDecorator.js"></script>

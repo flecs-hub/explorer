@@ -62,8 +62,8 @@ Vue.component('query', {
         this.query_result = undefined;
       }
     },
-    evt_enable_toggle(e) {
-      this.$refs.container.enable_toggle(e);
+    evt_allow_toggle(e) {
+      this.$refs.container.allow_toggle(e);
     },
     refresh() {
       this.evt_query_changed(this.$refs.editor.get_query());
@@ -82,11 +82,20 @@ Vue.component('query', {
     get_error() {
       return this.query_error;
     },
+    result_count() {
+      return this.$refs.results.count();
+    },
+    open: function() {
+      this.$refs.container.open();
+    },
+    close: function() {
+      this.$refs.container.close();
+    },
     evt_close() {
       this.set_query();
     },
-    result_count() {
-      return this.$refs.results.count();
+    evt_panel_update() {
+      this.$emit("panel-update");
     }
   },
   computed: {
@@ -110,19 +119,17 @@ Vue.component('query', {
   template: `
     <content-container 
       ref="container"
-      :disable="query_result === undefined && !invalid_query"
-      :hide_detail="query_result === undefined"
+      :show_detail="query_result != undefined"
       :no_padding="true"
-      :closable="true"
-      :hide_on_close="false"
-      v-on:close="evt_close">
+      v-on:close="evt_close"
+      v-on:panel-update="evt_panel_update">
 
       <template v-slot:summary>
         <query-editor
           ref="editor"
           :error="invalid_query"
           v-on:changed="evt_query_changed"
-          v-on:enable_toggle="evt_enable_toggle"/>
+          v-on:allow-toggle="evt_allow_toggle"/>
       </template>
 
       <template v-slot:detail>

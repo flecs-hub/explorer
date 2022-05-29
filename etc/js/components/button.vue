@@ -24,7 +24,7 @@ module.exports = {
 </script>
 
 <style>
-.icon-button {
+div.icon-button {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -34,19 +34,19 @@ module.exports = {
   z-index: 1;
 }
 
-.icon-button {
+div.icon-button {
   background-color: rgba(255, 255, 255, 0);
   opacity: 0.6;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease;
 }
 
-.icon-button:hover {
+div.icon-button:hover {
   background-color: rgba(255, 255, 255, 0.1);
   opacity: 0.9;
 }
 
-.icon-button:active,
-.icon-button:focus {
+div.icon-button:active,
+div.icon-button:focus {
   background-color: rgba(255, 255, 255, 0.2);
   opacity: 1.0;
 }

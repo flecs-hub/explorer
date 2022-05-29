@@ -347,7 +347,7 @@ const inspector_component_component = Vue.component('inspector-component', {
   template: `
     <div class="inspector-component">
       <div class="inspector-component-name">
-        <detail-toggle :disable="value == undefined" summary_toggle="true">
+        <detail-toggle :show_detail="value != undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
               <entity-reference :entity="pred" :label="pred_label" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="obj">:&nbsp;<span class="inspector-component-object"><entity-reference 
@@ -399,7 +399,7 @@ const inspector_components_component = Vue.component('inspector-components', {
   },
   template: `
     <div :class="css">
-      <detail-toggle :disable="!show_header" hide_disabled="true" show_divider="true" summary_toggle="true">
+      <detail-toggle :show_summary="show_header" :show_divider="true">
         <template v-slot:summary>
           <span class="inspector-header" v-if="show_header">
             <entity-reference 
@@ -414,7 +414,11 @@ const inspector_components_component = Vue.component('inspector-components', {
         <template v-slot:detail>
           <div :class="detail_css">
             <div class="inspector-components-content">
-              <inspector-component v-for="(elem, k) in entity_type" :entity="entity" :index="k" :key="k" v-on="$listeners"/>
+              <inspector-component v-for="(elem, k) in entity_type" 
+                :entity="entity" 
+                :index="k" 
+                :key="k" 
+                v-on="$listeners"/>
             </div>
           </div>
         </template>
@@ -433,16 +437,28 @@ const inspector_component = Vue.component('inspector', {
     select_query: function() {
       this.$emit('select-query', this.entity_name);
     },
-    evt_close: function() {
-      this.$emit('select-entity');
-    },
     name_from_path: function(path) {
       return name_from_path(path);
     },
+    open: function() {
+      this.$refs.container.open();
+    },
+    close: function() {
+      this.$refs.container.close();
+    },
+    evt_panel_update: function() {
+      this.$emit('panel-update');
+    },
+    evt_close: function() {
+      this.$emit('select-entity');
+    }
   },
   watch: {
     entity_name: function() {
-      this.$emit('panel-update');
+      if (this.entity_name != undefined) {
+        this.open();
+      }
+      this.evt_panel_update();
     },
   },
   computed: {
@@ -479,11 +495,12 @@ const inspector_component = Vue.component('inspector', {
   },
   template: `
     <content-container 
-      ref="container" 
-      :disable="!entity_name"
+      ref="container"
       :no_padding="true"
       :closable="true"
-      v-on:close="evt_close">
+      :show_detail="entity_name != undefined"
+      v-on:close="evt_close"
+      v-on:panel-update="evt_panel_update">
       
       <template v-slot:summary>
         <template v-if="entity && entity.label">
@@ -523,7 +540,7 @@ const inspector_component = Vue.component('inspector', {
 
             <inspector-components 
               :entity="entity" 
-              :show_header="entity.is_a" 
+              :show_header="entity.is_a != undefined" 
               v-on="$listeners"/>
           </div>
         </div>

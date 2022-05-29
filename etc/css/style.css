@@ -1033,6 +1033,7 @@ div.ecs-filter {
 
 div.content-container {
   position: relative;
+
 }
 
 div.content-container-wrapper {
@@ -1059,7 +1060,7 @@ div.content-container-wrapper-overflow div.content-container div.detail-toggle {
 
 div.content-container > div.detail-toggle > div.detail-toggle-summary {
   background-color: var(--panel-header-bg);
-  transition: all 0.2s ease-in-out;
+  transition: opacity 0.2s ease-in-out;
 }
 
 div.content-container > div.detail-toggle > div.detail-toggle-summary:hover {
@@ -1192,7 +1193,7 @@ table.query-results-table thead.query-results-table-header {
   position: sticky;
   top: 0px;
   z-index: 2;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0px 4px 7px rgba(0, 0, 0, 0.1);
 }
 
 table.query-results-table thead tr,

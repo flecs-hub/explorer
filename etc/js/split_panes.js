@@ -15,6 +15,7 @@ const resize_handle = Vue.component('resize-handle', {
     begin_drag_callback: Function,
     dragging_callback: Function,
     end_drag_callback: Function,
+    last: Boolean
   },
   data() {
     return {
@@ -69,8 +70,17 @@ const resize_handle = Vue.component('resize-handle', {
       this.$parent.$el.style.cursor = "auto";
     }
   },
+  computed: {
+    css() {
+      let result = "handle";
+      if (this.last) {
+        result += " handle-last";
+      }
+      return result;
+    }
+  },
   template: `
-    <div class="handle">
+    <div :class="css">
       <div class="handle-grab-box"
         @mousedown="begin_drag"
         @mousemove="dragging"
@@ -83,7 +93,7 @@ const resize_handle = Vue.component('resize-handle', {
 const frame = Vue.component('split-pane', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
-    collapseable: { type: Boolean, required: false, default: false },
+    collapseable: { type: Boolean, required: false, default: true },
     initial_width: { type: Number, required: false },
     min_width: { type: Number, required: false, default: 50 },
     max_width: { type: Number, required: false, default: Infinity },
@@ -188,7 +198,7 @@ const frame_container = Vue.component('split-pane-container', {
     window.controller = this;
 
     // Initialize frame dimensions
-    this.resize()
+    this.resize();
 
     // When window resizes, resize frames.
     window.addEventListener("resize", () => {
@@ -207,8 +217,9 @@ const frame_container = Vue.component('split-pane-container', {
           begin_drag_callback: this.begin_adjust,
           dragging_callback: this.adjust,
           end_drag_callback: this.end_adjust,
+          last: i == (this.frames.length - 2)
         }
-      })
+      });
 
       // Set ancestry
       this.$children.push(handle_instance);

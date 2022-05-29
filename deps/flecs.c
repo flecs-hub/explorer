@@ -26503,7 +26503,7 @@ error:
     return;
 }
 
-void ecs_get_world_stats(
+void ecs_world_stats_get(
     const ecs_world_t *world,
     ecs_world_stats_t *s)
 {
@@ -26613,7 +26613,7 @@ error:
     return;
 }
 
-void ecs_get_query_stats(
+void ecs_query_stats_get(
     const ecs_world_t *world,
     const ecs_query_t *query,
     ecs_query_stats_t *s)
@@ -26635,7 +26635,7 @@ error:
 }
 
 #ifdef FLECS_SYSTEM
-bool ecs_get_system_stats(
+bool ecs_system_stats_get(
     const ecs_world_t *world,
     ecs_entity_t system,
     ecs_system_stats_t *s)
@@ -26651,7 +26651,7 @@ bool ecs_get_system_stats(
         return false;
     }
 
-    ecs_get_query_stats(world, ptr->query, &s->query_stats);
+    ecs_query_stats_get(world, ptr->query, &s->query_stats);
     int32_t t = s->query_stats.t;
 
     record_counter(&s->time_spent, t, ptr->time_spent);
@@ -26686,7 +26686,7 @@ error:
     return NULL;
 }
 
-bool ecs_get_pipeline_stats(
+bool ecs_pipeline_stats_get(
     ecs_world_t *stage,
     ecs_entity_t pipeline,
     ecs_pipeline_stats_t *s)
@@ -26773,7 +26773,7 @@ bool ecs_get_pipeline_stats(
         for (i = 0; i < it.count; i ++) {
             ecs_system_stats_t *sys_stats = get_system_stats(
                 s->system_stats, it.entities[i]);
-            ecs_get_system_stats(world, it.entities[i], sys_stats);
+            ecs_system_stats_get(world, it.entities[i], sys_stats);
         }
     }
 
@@ -26791,7 +26791,7 @@ void ecs_pipeline_stats_fini(
 
 #endif
 
-void ecs_dump_world_stats(
+void ecs_world_stats_log(
     const ecs_world_t *world,
     const ecs_world_stats_t *s)
 {

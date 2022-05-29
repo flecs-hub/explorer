@@ -86,6 +86,4 @@ module.exports = {
     transform: translateY(0px);
     transition: opacity 0.20s 0.8s ease-in-out, transform 0.20s 0.8s ease-in-out;
   }
-
-
 </style>

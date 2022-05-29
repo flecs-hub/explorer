@@ -11681,7 +11681,7 @@ typedef struct ecs_world_stats_t {
     int32_t t;
 } ecs_world_stats_t;
 
-/* Statistics for a single query (use ecs_get_query_stats) */
+/* Statistics for a single query (use ecs_query_stats_get) */
 typedef struct ecs_query_stats_t {
     ecs_gauge_t matched_table_count;       /* Number of matched non-empty tables. This is the number of tables 
                                             * iterated over when evaluating a query. */    
@@ -11695,7 +11695,7 @@ typedef struct ecs_query_stats_t {
     int32_t t; 
 } ecs_query_stats_t;
 
-/** Statistics for a single system (use ecs_get_system_stats) */
+/** Statistics for a single system (use ecs_system_stats_get) */
 typedef struct ecs_system_stats_t {
     ecs_query_stats_t query_stats;
     ecs_counter_t time_spent;       /* Time spent processing a system */
@@ -11727,7 +11727,7 @@ typedef struct ecs_pipeline_stats_t {
  * @param stats Out parameter for statistics.
  */
 FLECS_API 
-void ecs_get_world_stats(
+void ecs_world_stats_get(
     const ecs_world_t *world,
     ecs_world_stats_t *stats);
 
@@ -11739,7 +11739,7 @@ void ecs_get_world_stats(
  * @param stats The statistics to print.
  */
 FLECS_API 
-void ecs_dump_world_stats(
+void ecs_world_stats_log(
     const ecs_world_t *world,
     const ecs_world_stats_t *stats);
 
@@ -11751,7 +11751,7 @@ void ecs_dump_world_stats(
  * @param stats Out parameter for statistics.
  */
 FLECS_API 
-void ecs_get_query_stats(
+void ecs_query_stats_get(
     const ecs_world_t *world,
     const ecs_query_t *query,
     ecs_query_stats_t *stats);
@@ -11766,7 +11766,7 @@ void ecs_get_query_stats(
  * @return true if success, false if not a system.
  */
 FLECS_API 
-bool ecs_get_system_stats(
+bool ecs_system_stats_get(
     const ecs_world_t *world,
     ecs_entity_t system,
     ecs_system_stats_t *stats);
@@ -11782,7 +11782,7 @@ bool ecs_get_system_stats(
  * @return true if success, false if not a pipeline.
  */
 FLECS_API 
-bool ecs_get_pipeline_stats(
+bool ecs_pipeline_stats_get(
     ecs_world_t *world,
     ecs_entity_t pipeline,
     ecs_pipeline_stats_t *stats);

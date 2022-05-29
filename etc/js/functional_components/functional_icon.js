@@ -6,10 +6,17 @@ Vue.component('icon', {
   },
   render: function (createElement, context) {
     let [iconset, icon] = context.props.icon.split(":");
+    let css;
+
+    if (iconset == "codicons") {
+      css = "codicons-icon";
+    } else {
+      css = "feather-icon";
+    }
 
     return createElement('svg', {
       class: [
-        "icon-obj",
+        css
       ],
       style: {
         width: `${context.props.size}px`,

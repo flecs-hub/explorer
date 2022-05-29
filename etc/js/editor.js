@@ -73,8 +73,7 @@ Vue.component('editor', {
   data: function() {
     return {
       status: undefined,
-      status_kind: undefined,
-      closed: false
+      status_kind: undefined
     }
   },
   props: ["disable"],
@@ -100,9 +99,17 @@ Vue.component('editor', {
         this.status_kind = Status.Info;
       }
     },
+    open: function() {
+      this.$refs.container.open();
+    },
+    close: function() {
+      this.$refs.container.close();
+    },
+    evt_panel_update: function() {
+      this.$emit('panel-update');
+    },
     evt_close() {
-      this.closed = true;
-      this.$emit("panel-update");
+      this.evt_panel_update();
     }
   },
   watch: {
@@ -116,8 +123,8 @@ Vue.component('editor', {
       overflow="true" 
       ref="container"
       :closable="true"
-      :disable="disable || closed"
-      v-on:close="evt_close">
+      v-on:close="evt_close"
+      v-on:panel-update="evt_panel_update">
 
       <template v-slot:summary>
         Editor
