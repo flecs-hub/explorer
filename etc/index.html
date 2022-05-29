@@ -40,7 +40,7 @@
       </div>
 
       <split-pane-container ref="panes">
-        <split-pane :fixed="true" :collapseable="false" :initial_width="20">
+        <split-pane :fixed="true" :collapseable="false" :initial_width="20" :resizable="false">
           <panel-menu ref="panel_menu" v-on:panel-update="evt_panel_update">
             <panel-button icon="list-tree" panel="tree"></panel-button>
             <panel-button icon="search" panel="query"></panel-button>

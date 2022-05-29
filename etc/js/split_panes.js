@@ -93,6 +93,7 @@ const resize_handle = Vue.component('resize-handle', {
 const frame = Vue.component('split-pane', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
+    resizable: { type: Boolean, required: false, default: true },
     collapseable: { type: Boolean, required: false, default: true },
     initial_width: { type: Number, required: false },
     min_width: { type: Number, required: false, default: 50 },
@@ -208,6 +209,9 @@ const frame_container = Vue.component('split-pane-container', {
     // Instantiate handles
     for (let i = 0; i < this.frames.length - 1; i++) {
       let frame = this.frames[i];
+      if (!frame.resizable) {
+        continue;
+      }
 
       let handle_class = Vue.extend(resize_handle)
       let handle_instance = new handle_class({
