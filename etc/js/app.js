@@ -1,5 +1,4 @@
 
-
 // Track state of connection to remote app
 const ConnectionState = {
   Initializing:     Symbol('Initializing'),
@@ -67,6 +66,16 @@ function getParameterByName(name, url = window.location.href) {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+function paramStr(params) {
+  let url_params = "";
+  if (params) {
+    for (var k in params) {
+      url_params += "&" + k + "=" + params[k];
+    }
+  }
+  return url_params;
+}
+
 /*
   GLOBAL COMPONENT REGISTRATIONS
 */
@@ -77,6 +86,10 @@ var popover_component = Vue.component('popover', httpVueLoader('js/components/po
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
 Vue.component('panel-menu', httpVueLoader('js/components/panel_menu.vue'));
 Vue.component('panel-button', httpVueLoader('js/components/panel_button.vue'));
+Vue.component('stat', httpVueLoader('js/components/stat.vue'));
+Vue.component('stats-period', httpVueLoader('js/components/stats_period.vue'));
+Vue.component('stat-chart', httpVueLoader('js/components/stat_chart.vue'));
+Vue.component('stats-world', httpVueLoader('js/components/stats_world.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
@@ -237,14 +250,8 @@ var app = new Vue({
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        let url_params = "";
-        if (params) {
-          for (var k in params) {
-            url_params += "&" + k + "=" + params[k];
-          }
-        }
         this.request(id, "GET",
-          "entity/" + path.replaceAll('.', '/') + url_params, recv, err);
+          "entity/" + path.replaceAll('.', '/') + paramStr(params), recv, err);
       }
     },
 
@@ -254,17 +261,20 @@ var app = new Vue({
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        let url_params = "";
-        if (params) {
-          for (var k in params) {
-            url_params += "&" + k + "=" + params[k];
-          }
-        }
         this.request(id,
-          "GET", "query?q=" + encodeURIComponent(q) + url_params,
+          "GET", "query?q=" + encodeURIComponent(q) + paramStr(params),
           recv, err);
       } else {
         err({error: "no connection"});
+      }
+    },
+
+    request_stats: function(id, category, recv, err, params) {
+      if (this.is_local()) {
+          return "{}";
+      } else if (this.is_remote()) {
+        this.request(id, "GET",
+          "stats/" + category + paramStr(params), recv, err);
       }
     },
 
@@ -318,12 +328,14 @@ var app = new Vue({
       this.refresh_query();
       this.refresh_entity();
       this.refresh_tree();
+      this.refresh_stats();
 
       // Refresh UI periodically
       this.refresh_timer = window.setInterval(() => {
         this.refresh_query();
         this.refresh_entity();
         this.refresh_tree();
+        this.refresh_stats();
       }, REFRESH_INTERVAL);
 
       this.evt_panel_update();
@@ -525,6 +537,12 @@ var app = new Vue({
 
     refresh_tree() {
       this.$refs.tree.update_expanded();
+    },
+
+    refresh_stats() {
+      if (this.$refs.stats_world) {
+        this.$refs.stats_world.refresh();
+      }
     },
 
     // Code changed event

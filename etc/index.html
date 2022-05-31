@@ -46,6 +46,7 @@
             <panel-button icon="search" panel="query"></panel-button>
             <panel-button icon="code" panel="plecs"></panel-button>
             <panel-button icon="inspect" panel="inspector"></panel-button>
+            <panel-button icon="graph" panel="stats_world"></panel-button>
           </panel-menu>
         </split-pane>
 
@@ -60,11 +61,12 @@
 
         <!-- Query results & Entity inspector -->
         <split-pane>
-          <div class="query-box">
-            <query :valid="valid" ref="query"
-              v-on:select-entity="evt_follow_ref"
-              v-on:panel-update="evt_panel_update"/>
-          </div>
+          <stats-world ref="stats_world"
+            v-on:panel-update="evt_panel_update">
+          </stats-world>
+          <query :valid="valid" ref="query"
+            v-on:select-entity="evt_follow_ref"
+            v-on:panel-update="evt_panel_update"/>
         </split-pane>
 
         <!-- Editor -->
