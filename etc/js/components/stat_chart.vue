@@ -12,18 +12,18 @@
     <text :x="5" :y="19" :fill="text_color">{{min_max.max}}</text>
     <text :x="5" :y="chart_height / 2 + 5" :fill="text_color">{{min_max.avg}}</text>
 
-    <template v-for="i in 58">
-      <line :x1="to_x(i)" :y1="to_y_min(i)" :x2="to_x(i + 1)" :y2="to_y_min(i + 1)" 
+    <template v-for="i in 59">
+      <line :x1="to_x(i - 1)" :y1="to_y_min(i - 1)" :x2="to_x(i)" :y2="to_y_min(i)" 
         :stroke="stroke_color_min"/>
     </template>
 
-    <template v-for="i in 58">
-      <line :x1="to_x(i)" :y1="to_y_max(i)" :x2="to_x(i + 1)" :y2="to_y_max(i + 1)" 
+    <template v-for="i in 59">
+      <line :x1="to_x(i - 1)" :y1="to_y_max(i - 1)" :x2="to_x(i)" :y2="to_y_max(i)" 
         :stroke="stroke_color_max"/>
     </template>
 
-    <template v-for="i in 58">
-      <line :x1="to_x(i)" :y1="to_y(i)" :x2="to_x(i + 1)" :y2="to_y(i + 1)" 
+    <template v-for="i in 59">
+      <line :x1="to_x(i - 1)" :y1="to_y(i - 1)" :x2="to_x(i)" :y2="to_y(i)" 
         :stroke="stroke_color"/>
     </template>
 
