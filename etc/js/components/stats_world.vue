@@ -13,12 +13,36 @@
         <div v-for="(v, k) in results">
           <stat :name="k" :values="v"></stat>
         </div>
+        <template v-if="Object.keys(results) == 0">
+          <p>
+            <span>
+              Could not request statistics from application, make sure to update
+              to the latest Flecs and import the flecs.monitor module!
+            <span>
+          </p>
+          <p>
+            In C:
+          </p>
+            <code>
+              ECS_IMPORT(world, FlecsMonitor);
+            </code>
+          <p>
+            In C++:
+          </p>
+            <code>
+              world.import&lt;flecs::monitor&gt;();
+            </code>
+        </template>
       </template>
       <template v-else>
         <span>
           Connect to an application to see statistics.
         </span>
       </template>
+    </template>
+    <template v-slot:footer>
+      <status :status="error" :kind="Status.Error">
+      </status>
     </template>
   </content-container>
 </template>
@@ -60,7 +84,8 @@
             this.results = reply;
           }
         }, () => {
-          this.error = "request for stats failed";
+          this.error = "request for statistics failed";
+          this.results = {};
         }, { period: this.$refs.period.period });
       },
       open() {
