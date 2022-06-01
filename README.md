@@ -1,7 +1,7 @@
 # Flecs Explorer
 Web-based UI for monitoring Flecs applications, trying out queries &amp; learning ECS
 
-<img width="995" alt="Screen Shot 2021-11-07 at 10 20 51 PM" src="https://user-images.githubusercontent.com/9919222/140693729-12b9c7bb-3147-4040-9c15-d830e9bc1080.png">
+<img width="1038" alt="Screen Shot 2022-06-01 at 3 42 48 PM" src="https://user-images.githubusercontent.com/9919222/171513654-894549df-8ad5-4d39-a82a-d57e425ece9e.png">
 
 A live version of the explorer is running @ https://flecs.dev/explorer
 
