@@ -13,7 +13,9 @@
         <div v-for="(v, k) in results">
           <stat :name="k" :values="v"></stat>
         </div>
-        <template v-if="Object.keys(results) == 0">
+
+        <!-- Explorer is connected to application but monitoring is not on -->
+        <template v-if="connected && error">
           <p>
             <span>
               Could not request statistics from application, make sure to update
@@ -34,6 +36,8 @@
             </code>
         </template>
       </template>
+
+      <!-- Explorer is not connected to application -->
       <template v-else>
         <span>
           Connect to an application to see statistics.
@@ -66,6 +70,9 @@
       },
       remote_mode() {
         return app.remote_mode;
+      },
+      connected() {
+        return app.connection == ConnectionState.Remote;
       }
     },
     methods: {
@@ -100,10 +107,3 @@
     }
   }
 </script>
-
-<style>
-
-div.stats-world {
-}
-
-</style>
