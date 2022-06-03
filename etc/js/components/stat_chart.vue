@@ -12,6 +12,16 @@
     <text :x="5" :y="19" :fill="text_color">{{min_max.max}}</text>
     <text :x="5" :y="chart_height / 2 + 5" :fill="text_color">{{min_max.avg}}</text>
 
+    <template v-if="zoom">
+      <line :x1="to_x(0)" :y1="scale_y(min_avg)" :x2="to_x(59)" :y2="scale_y(min_avg)" 
+          :stroke="stroke_color_ruler"/>
+      <line :x1="to_x(0)" :y1="scale_y(avg_max)" :x2="to_x(59)" :y2="scale_y(avg_max)" 
+          :stroke="stroke_color_ruler"/>
+
+      <text :x="5" :y="chart_height * 0.75 - 3" :fill="text_color">{{min_avg}}</text>
+      <text :x="5" :y="chart_height * 0.25 + 12" :fill="text_color">{{avg_max}}</text>
+    </template>
+
     <template v-for="i in 59">
       <line :x1="to_x(i - 1)" :y1="to_y_min(i - 1)" :x2="to_x(i)" :y2="to_y_min(i)" 
         :stroke="stroke_color_min"/>
@@ -98,6 +108,20 @@
           max: Number.parseFloat(max), 
           avg: Number.parseFloat(avg)
         };
+      },
+      min_avg() {
+        const min_max = this.min_max;
+        const min = min_max.min;
+        const avg = min_max.avg;
+        let result = min + (avg - min) / 2.0;
+        return Number.parseFloat(result.toFixed(1));
+      },
+      avg_max() {
+        const min_max = this.min_max;
+        const avg = min_max.avg;
+        const max = min_max.max;
+        let result = avg + (max - avg) / 2.0;
+        return Number.parseFloat(result.toFixed(1));
       },
       chart_width() {
         return 550;
