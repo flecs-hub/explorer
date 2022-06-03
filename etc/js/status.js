@@ -1,10 +1,4 @@
 
-// Track state of connection to remote app
-const Status = {
-  Info:     Symbol('info'),
-  Error:    Symbol('error')
-};
-
 Vue.component('status', {
   props: {
     status: String,

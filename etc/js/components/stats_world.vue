@@ -10,8 +10,11 @@
     <template v-slot:detail>
       <template v-if="remote_mode">
         <stats-period ref="period"></stats-period>
-        <div v-for="(v, k) in results">
-          <stat :name="k" :values="v"></stat>
+
+        <div class="stats-charts">
+          <div v-for="(v, k) in results">
+            <stat :name="k" :values="v"></stat>
+          </div>
         </div>
 
         <!-- Explorer is connected to application but monitoring is not on -->
@@ -25,15 +28,15 @@
           <p>
             In C:
           </p>
-            <code>
-              ECS_IMPORT(world, FlecsMonitor);
-            </code>
+          <code>
+            ECS_IMPORT(world, FlecsMonitor);
+          </code>
           <p>
             In C++:
           </p>
-            <code>
-              world.import&lt;flecs::monitor&gt;();
-            </code>
+          <code>
+            world.import&lt;flecs::monitor&gt;();
+          </code>
         </template>
       </template>
 
@@ -45,7 +48,7 @@
       </template>
     </template>
     <template v-slot:footer>
-      <status :status="error" :kind="Status.Error">
+      <status :status="error">
       </status>
     </template>
   </content-container>
@@ -107,3 +110,15 @@
     }
   }
 </script>
+
+<style>
+div.stats-charts {
+  border-style: solid;
+  border-width: 0px;
+  border-top-width: 1px;
+  border-color: #3f3f46;
+  padding-top: 10px;
+  height: 100%;
+  overflow-y: auto;
+}
+</style>

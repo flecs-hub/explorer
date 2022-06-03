@@ -1,6 +1,6 @@
 <template>
   <div class="stat-chart">
-  <svg class="stat-chart" :width="chart_width" :height="chart_height">
+  <svg class="noselect clickable stat-chart" :width="chart_width" :height="chart_height" v-on:click="toggle_zoom">
     <line :x1="to_x(0)" :y1="scale_y(min_max.min)" :x2="to_x(59)" :y2="scale_y(min_max.min)" 
         :stroke="stroke_color_ruler"/>
     <line :x1="to_x(0)" :y1="scale_y(min_max.max)" :x2="to_x(59)" :y2="scale_y(min_max.max)" 
@@ -36,6 +36,11 @@
     name: "stat-chart",
     props: {
       values: Object
+    },
+    data: function() {
+      return {
+        zoom: false
+      }
     },
     computed: {
       min() {
@@ -95,16 +100,20 @@
         };
       },
       chart_width() {
-        return 500;
+        return 550;
       },
       chart_height() {
-        return 100;
+        if (this.zoom) {
+          return 200;
+        } else {
+          return 100;
+        }
       },
       chart_padding() {
         return 15;
       },
       chart_y_ruler_width() {
-        return 40;
+        return 60;
       },
       stroke_color() {
         return "#A2D8B4";
@@ -157,6 +166,9 @@
           return 0;
         } 
         return this.scale_y(this.values.max[index]);
+      },
+      toggle_zoom() {
+        this.zoom = !this.zoom;
       }
     }
   }
