@@ -8,9 +8,9 @@
     <line :x1="to_x(0)" :y1="scale_y(min_max.avg)" :x2="to_x(59)" :y2="scale_y(min_max.avg)" 
         :stroke="stroke_color_ruler"/>
 
-    <text :x="5" :y="chart_height - 10" :fill="text_color">{{min_max.min}}</text>
-    <text :x="5" :y="19" :fill="text_color">{{min_max.max}}</text>
-    <text :x="5" :y="chart_height / 2 + 5" :fill="text_color">{{min_max.avg}}</text>
+    <text :font-size="text_size" :x="5" :y="chart_height - 10" :fill="text_color">{{min_max.min}}</text>
+    <text :font-size="text_size" :x="5" :y="19" :fill="text_color">{{min_max.max}}</text>
+    <text :font-size="text_size" :x="5" :y="chart_height / 2 + 5" :fill="text_color">{{min_max.avg}}</text>
 
     <template v-if="zoom">
       <line :x1="to_x(0)" :y1="scale_y(min_avg)" :x2="to_x(59)" :y2="scale_y(min_avg)" 
@@ -18,8 +18,8 @@
       <line :x1="to_x(0)" :y1="scale_y(avg_max)" :x2="to_x(59)" :y2="scale_y(avg_max)" 
           :stroke="stroke_color_ruler"/>
 
-      <text :x="5" :y="chart_height * 0.75 - 3" :fill="text_color">{{min_avg}}</text>
-      <text :x="5" :y="chart_height * 0.25 + 12" :fill="text_color">{{avg_max}}</text>
+      <text :font-size="text_size" :x="5" :y="chart_height * 0.75 - 3" :fill="text_color">{{min_avg}}</text>
+      <text :font-size="text_size" :x="5" :y="chart_height * 0.25 + 12" :fill="text_color">{{avg_max}}</text>
     </template>
 
     <template v-for="i in 59">
@@ -153,6 +153,9 @@
       },
       text_color() {
         return "#71717a";
+      },
+      text_size() {
+        return 12;
       }
     },
     methods: {

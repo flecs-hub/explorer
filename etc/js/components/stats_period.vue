@@ -42,11 +42,12 @@
 span.stats-period {
   display: inline-block;
   height: 20px;
-  padding: 10px;
+  padding: 5px;
+  padding-left: 8px;
+  padding-right: 8px;
   border-style: solid;
   border-color: #3f3f46;
-  margin-top: 10px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   background-color: #242832;
   color: #aaaeb5;
   transition: background-color 0.1s ease-out;
