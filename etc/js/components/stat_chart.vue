@@ -143,13 +143,13 @@
         return "#A2D8B4";
       },
       stroke_color_min() {
-        return "#383c46";
+        return "#4d515a";
       },
       stroke_color_max() {
-        return "#383c46";
+        return "#4d515a";
       },
       stroke_color_ruler() {
-        return "#1f222a";
+        return "#2e323c";
       },
       text_color() {
         return "#71717a";
