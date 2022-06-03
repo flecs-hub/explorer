@@ -1,9 +1,4 @@
 
-const Status = {
-  Info:     Symbol('info'),
-  Error:    Symbol('error')
-};
-
 // Track state of connection to remote app
 const ConnectionState = {
   Initializing:     Symbol('Initializing'),
