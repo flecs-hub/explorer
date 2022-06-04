@@ -259,20 +259,14 @@
       system_impact_css(index) {
         const pct = this.get_system_time_pct(index);
         if (pct == 0) {
-          return "stats-system-impact-none";
-        } else if (pct < 0.05) {
-          return "stats-system-impact-lowest";
-        } else if (pct < 0.1) {
-          return "stats-system-impact-low";
-        } else if (pct < 0.2) {
-          return "stats-system-impact-medium";
-        } else if (pct < 0.3) {
-          return "stats-system-impact-high";
-        } else if (pct < 0.4) {
-          return "stats-system-impact-higher";
-        } else {
-          return "stats-system-impact-highest";
+          return "";
         }
+
+        let lbl = Math.round(pct * 20).toFixed(0) * 5;
+        lbl = Math.max(lbl, 1);
+        lbl = Math.min(lbl, 50);
+
+        return "stats-system-impact-" + lbl;
       }
     }
   }
@@ -291,7 +285,7 @@ div.stats-charts {
 }
 
 div.stats-systems {
-  width: 830px;
+  width: 820px;
 }
 
 div.stats-system {
@@ -308,28 +302,48 @@ div.stats-system {
   margin-bottom: 5px;
 }
 
-div.stats-system-impact-lowest {
+div.stats-system-impact-1 {
+  border-left-color: hsl(200, 54%, 22%);
+}
+
+div.stats-system-impact-5 {
   border-left-color: hsl(220, 54%, 25%);
 }
 
-div.stats-system-impact-low {
-  border-left-color: hsl(240, 54%, 30%);
+div.stats-system-impact-10 {
+  border-left-color: hsl(240, 54%, 27%);
 }
 
-div.stats-system-impact-medium {
+div.stats-system-impact-15 {
+  border-left-color: hsl(250, 54%, 30%);
+}
+
+div.stats-system-impact-20 {
   border-left-color: hsl(260, 54%, 30%);
 }
 
-div.stats-system-impact-high {
-  border-left-color: hsl(280, 43%, 30%);
+div.stats-system-impact-25 {
+  border-left-color: hsl(270, 54%, 30%);
 }
 
-div.stats-system-impact-higher {
-  border-left-color: hsl(300, 42%, 30%);
+div.stats-system-impact-30 {
+  border-left-color: hsl(280, 54%, 30%);
 }
 
-div.stats-system-impact-highest {
-  border-left-color: hsl(320, 42%, 30%);
+div.stats-system-impact-35 {
+  border-left-color: hsl(290, 54%, 30%);
+}
+
+div.stats-system-impact-40 {
+  border-left-color: hsl(300, 54%, 32%);
+}
+
+div.stats-system-impact-45 {
+  border-left-color: hsl(310, 54%, 35%);
+}
+
+div.stats-system-impact-50 {
+  border-left-color: hsl(320, 54%, 35%);
 }
 
 div.stats-system-charts {
