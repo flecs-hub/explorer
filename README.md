@@ -85,7 +85,7 @@ In C++:
 world.import<flecs::monitor>();
 ```
 
-Note that the statistics collection systems run as part of the efault Flecs pipeline. If your application does not use systems, manually runs systems or uses a custom pipeline statistics collection will not run. To make sure the collection systems are ran, call this once in the main loop of your game:
+Note that the statistics collection systems run as part of the default Flecs pipeline. If your application does not use systems, manually runs systems or uses a custom pipeline statistics collection will not run. To make sure the collection systems are ran, call this once in the main loop of your game:
 
 In C:
 ```c
