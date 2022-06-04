@@ -111,7 +111,7 @@
   }
 </script>
 
-<style>
+<style scoped>
 div.stats-charts {
   border-style: solid;
   border-width: 0px;

@@ -22,7 +22,7 @@ function fmt_float(value) {
     if (num < 0) {
       num = 0;
     }
-    return value.toFixed(num);
+    return Number.parseFloat(value.toFixed(num));
   }
 }
 

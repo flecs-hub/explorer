@@ -4,7 +4,9 @@
       <span class="stat-name">{{name_fmt}}</stat>
     </template>
     <template v-slot:detail>
-      <stat-chart :values="values"></stat-chart>
+      <div class="stat">
+        <stat-chart :values="values"></stat-chart>
+      </div>
     </template>
   </detail-toggle>
 </template>
@@ -27,6 +29,11 @@
 </script>
 
 <style>
+
+div.stat {
+  margin-left: 18px;
+  margin-bottom: 10px;
+}
 
 span.stat-name {
   margin-top: 5px;

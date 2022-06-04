@@ -90,6 +90,7 @@ Vue.component('stat', httpVueLoader('js/components/stat.vue'));
 Vue.component('stats-period', httpVueLoader('js/components/stats_period.vue'));
 Vue.component('stat-chart', httpVueLoader('js/components/stat_chart.vue'));
 Vue.component('stats-world', httpVueLoader('js/components/stats_world.vue'));
+Vue.component('stats-pipeline', httpVueLoader('js/components/stats_pipeline.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
@@ -542,6 +543,7 @@ var app = new Vue({
     refresh_stats() {
       if (this.$refs.stats_world) {
         this.$refs.stats_world.refresh();
+        this.$refs.stats_pipeline.refresh();
       }
     },
 

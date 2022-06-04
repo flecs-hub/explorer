@@ -46,22 +46,20 @@ span.stats-period {
   padding-left: 8px;
   padding-right: 8px;
   border-style: solid;
-  border-color: #3f3f46;
-  margin-bottom: 10px;
-  background-color: #242832;
+  border-color: var(--steel-650);
+  border-bottom-width: 0px;
+  background-color: var(--panel-bg);
   color: #aaaeb5;
   transition: background-color 0.1s ease-out;
 }
 
 span.stats-period:hover {
-  background-color: #383c46;
+  background-color: var(--steel-650);
 }
 
 span.stats-period-left {
-  margin-left: 20px;
   margin-right: 0px;
-  border-top-left-radius: 5px;
-  border-bottom-left-radius: 5px;
+  border-top-left-radius: 2px;
 }
 span.stats-period-center {
   margin-left: 0px;
@@ -71,12 +69,11 @@ span.stats-period-center {
 }
 span.stats-period-right {
   margin-left: 0px;
-  border-top-right-radius: 5px;
-  border-bottom-right-radius: 5px;
+  border-top-right-radius: 2px;
   border-left-width: 0px;
 }
 span.stats-period-selected {
-  background-color: #4d515a;
+  background-color: var(--steel-650);
   color: #fff;
 }
 

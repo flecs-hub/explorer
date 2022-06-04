@@ -2,7 +2,8 @@ Vue.component('icon', {
   functional: true,
   props: {
     icon: { type: String, required: true },
-    size: { type: Number, required: false, default: 16 }
+    size: { type: Number, required: false, default: 16 },
+    rotate: { type: Number, required: false, default: 0 }
   },
   render: function (createElement, context) {
     let [iconset, icon] = context.props.icon.split(":");
@@ -21,6 +22,7 @@ Vue.component('icon', {
       style: {
         width: `${context.props.size}px`,
         height: `${context.props.size}px`,
+        transform: `rotate(${context.props.rotate}deg)`
       }
     }, [
       createElement('use', {

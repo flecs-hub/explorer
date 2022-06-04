@@ -1,25 +1,40 @@
 <template>
   <div class="stat-chart">
-  <svg class="noselect clickable stat-chart" :width="chart_width" :height="chart_height" v-on:click="toggle_zoom">
-    <line :x1="to_x(0)" :y1="scale_y(min_max.min)" :x2="to_x(59)" :y2="scale_y(min_max.min)" 
-        :stroke="stroke_color_ruler"/>
-    <line :x1="to_x(0)" :y1="scale_y(min_max.max)" :x2="to_x(59)" :y2="scale_y(min_max.max)" 
-        :stroke="stroke_color_ruler"/>
+  <svg class="noselect clickable stat-chart" :width="width" :height="chart_height" v-on:click="toggle_zoom_value">
+    <template v-if="zoom_value >= 2">
+      <line :x1="to_x(0)" :y1="scale_y(min_max.min)" :x2="to_x(59)" :y2="scale_y(min_max.min)" 
+          :stroke="stroke_color_ruler"/>
+      <line :x1="to_x(0)" :y1="scale_y(min_max.max)" :x2="to_x(59)" :y2="scale_y(min_max.max)" 
+          :stroke="stroke_color_ruler"/>
+    </template>
     <line :x1="to_x(0)" :y1="scale_y(min_max.avg)" :x2="to_x(59)" :y2="scale_y(min_max.avg)" 
         :stroke="stroke_color_ruler"/>
 
-    <text :font-size="text_size" :x="5" :y="chart_height - 10" :fill="text_color">{{min_max.min}}</text>
-    <text :font-size="text_size" :x="5" :y="19" :fill="text_color">{{min_max.max}}</text>
-    <text :font-size="text_size" :x="5" :y="chart_height / 2 + 5" :fill="text_color">{{min_max.avg}}</text>
+    <text :font-size="text_size" :x="5" :y="chart_height - 10" :fill="text_color">
+      {{fmt_float(min_max.min)}}
+    </text>
+    <text :font-size="text_size" :x="5" :y="19" :fill="text_color">
+      {{fmt_float(min_max.max)}}
+    </text>
 
-    <template v-if="zoom">
+    <template v-if="zoom_value >= 2">
+      <text :font-size="text_size" :x="5" :y="chart_height / 2 + 5" :fill="text_color">
+        {{fmt_float(min_max.avg)}}
+      </text>
+    </template>
+
+    <template v-if="zoom_value == 3">
       <line :x1="to_x(0)" :y1="scale_y(min_avg)" :x2="to_x(59)" :y2="scale_y(min_avg)" 
           :stroke="stroke_color_ruler"/>
       <line :x1="to_x(0)" :y1="scale_y(avg_max)" :x2="to_x(59)" :y2="scale_y(avg_max)" 
           :stroke="stroke_color_ruler"/>
 
-      <text :font-size="text_size" :x="5" :y="chart_height * 0.75 - 3" :fill="text_color">{{min_avg}}</text>
-      <text :font-size="text_size" :x="5" :y="chart_height * 0.25 + 12" :fill="text_color">{{avg_max}}</text>
+      <text :font-size="text_size" :x="5" :y="chart_height * 0.75 - 3" :fill="text_color">
+        {{fmt_float(min_avg)}}
+      </text>
+      <text :font-size="text_size" :x="5" :y="chart_height * 0.25 + 12" :fill="text_color">
+        {{fmt_float(avg_max)}}
+      </text>
     </template>
 
     <template v-for="i in 59">
@@ -45,11 +60,18 @@
   module.exports = {
     name: "stat-chart",
     props: {
-      values: Object
+      values: { type: Object, required: true },
+      zoom: { type: Number, required: false, default: 2 },
+      width: { type: Number, required: false, default: 500 },
     },
     data: function() {
       return {
-        zoom: false
+        zoom_value: 2
+      }
+    },
+    mounted: function() {
+      if (this.zoom) {
+        this.zoom_value = this.zoom;
       }
     },
     computed: {
@@ -90,18 +112,12 @@
         }
 
         min = Math.floor(min);
-        let avg = ((min + (max - min) / 2));
 
-        if (avg > 1) {
-          avg = avg.toFixed(1);
-        } else {
-          avg = avg.toFixed(3);
+        if (max - min < 0.001) {
+          max += 0.001;
         }
-        if (max > 1) {
-          max = max.toFixed(1);
-        } else {
-          max = max.toFixed(3);
-        }
+
+        let avg = ((min + (max - min) / 2));
 
         return {
           min: Number.parseFloat(min), 
@@ -123,21 +139,20 @@
         let result = avg + (max - avg) / 2.0;
         return Number.parseFloat(result.toFixed(1));
       },
-      chart_width() {
-        return 550;
-      },
       chart_height() {
-        if (this.zoom) {
+        if (this.zoom_value == 3) {
           return 200;
-        } else {
+        } else if (this.zoom_value == 2) {
           return 100;
+        } else if (this.zoom_value == 1) {
+          return 50;
         }
       },
       chart_padding() {
         return 15;
       },
       chart_y_ruler_width() {
-        return 60;
+        return 50;
       },
       stroke_color() {
         return "#A2D8B4";
@@ -161,7 +176,7 @@
     methods: {
       to_x(index) {
         const offset = this.chart_y_ruler_width;
-        const width = this.chart_width - offset;
+        const width = this.width - offset;
         return index * (width / 60) + offset;
       },
       scale_y(value) {
@@ -194,8 +209,14 @@
         } 
         return this.scale_y(this.values.max[index]);
       },
-      toggle_zoom() {
-        this.zoom = !this.zoom;
+      toggle_zoom_value() {
+        this.zoom_value = this.zoom_value + 1;
+        if (this.zoom_value == 4) {
+          this.zoom_value = 1;
+        }
+      },
+      fmt_float(v) {
+        return fmt_float(v);
       }
     }
   }
@@ -204,9 +225,6 @@
 <style>
 
 div.stat-chart {
-  margin-top: 5px;
-  margin-bottom: 10px;
-  margin-left: 18px;
 }
 
 div.stat-chart svg {
@@ -214,7 +232,7 @@ div.stat-chart svg {
   border-style: solid;
   border-width: 1px;
   border-color: #3f3f46;
-  border-radius: 5px;
+  border-radius: 2px;
 }
 
 </style>
