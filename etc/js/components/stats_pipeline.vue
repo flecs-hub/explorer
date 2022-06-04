@@ -32,7 +32,7 @@
                     )
                   </span>
                 </div>
-                <div>
+                <div v-if="sys.matched_entity_count">
                   <stat-chart
                     :zoom="1" 
                     :width="250"
@@ -45,7 +45,7 @@
                     )
                   </span>
                 </div>
-                <div>
+                <div v-if="sys.matched_table_count">
                   <stat-chart 
                     :zoom="1" 
                     :width="250"
@@ -157,7 +157,7 @@
 
         for (const sys of this.results) {
           let sum = 0;
-          if (sys.name == undefined) {
+          if (sys.matched_entity_count == undefined) {
             result.push(0);
             continue;
           }
@@ -176,7 +176,7 @@
 
         for (const sys of this.results) {
           let sum = 0;
-          if (sys.name == undefined) {
+          if (sys.matched_table_count == undefined) {
             result.push(0);
             continue;
           }
@@ -287,10 +287,6 @@ div.stats-charts {
   overflow-y: auto;
 }
 
-div.stats-systems {
-  width: 820px;
-}
-
 div.stats-system {
   background-color: var(--panel-bg);
 
@@ -303,6 +299,8 @@ div.stats-system {
   padding: 7px;
   padding-left: 15px;
   margin-bottom: 5px;
+
+  width: 790px;
 }
 
 div.stats-system-impact-01 {
