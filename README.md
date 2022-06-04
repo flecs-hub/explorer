@@ -85,6 +85,18 @@ In C++:
 world.import<flecs::monitor>();
 ```
 
+Note that the statistics collection systems run as part of the efault Flecs pipeline. If your application does not use systems, manually runs systems or uses a custom pipeline statistics collection will not run. To make sure the collection systems are ran, call this once in the main loop of your game:
+
+In C:
+```c
+ecs_progress(world, 0);
+```
+
+In C++
+```c
+world.progress();
+```
+
 You should now be able to see statistics in the explorer, which should look like this:
 
 <img width="1231" alt="Screen Shot 2022-06-04 at 1 14 49 AM" src="https://user-images.githubusercontent.com/9919222/171993359-d3d31208-6e7e-46ad-909e-c5f80fa492d3.png">
