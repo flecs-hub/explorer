@@ -72,6 +72,23 @@ docker run --name=explorer -p 80:80 --restart=unless-stopped -d sandermertens/fl
 
 You can now go to http://localhost to open the explorer.
 
+### Statistics
+The explorer can visualize statistics from Flecs applications. Statistics collection is disabled by default as it is not free. To enable it, import the `flecs.monitor` module:
+
+In C:
+```c
+ECS_IMPORT(world, FlecsMonitor);
+```
+
+In C++:
+```c
+world.import<flecs::monitor>();
+```
+
+You should now be able to see statistics in the explorer, which should look like this:
+
+<img width="1231" alt="Screen Shot 2022-06-04 at 1 14 49 AM" src="https://user-images.githubusercontent.com/9919222/171993359-d3d31208-6e7e-46ad-909e-c5f80fa492d3.png">
+
 ### URL options
 The following options can be added to the URL:
 
