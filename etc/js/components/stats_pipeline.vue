@@ -261,6 +261,9 @@
         if (pct == 0) {
           return "";
         }
+        if (pct < 0.001) {
+          return "stats-system-impact-01";
+        }
 
         let lbl = Math.round(pct * 20).toFixed(0) * 5;
         lbl = Math.max(lbl, 1);
@@ -302,48 +305,52 @@ div.stats-system {
   margin-bottom: 5px;
 }
 
+div.stats-system-impact-01 {
+  border-left-color: hsl(200, 54%, 15%);
+}
+
 div.stats-system-impact-1 {
   border-left-color: hsl(200, 54%, 22%);
 }
 
 div.stats-system-impact-5 {
-  border-left-color: hsl(220, 54%, 25%);
+  border-left-color: hsl(220, 54%, 30%);
 }
 
 div.stats-system-impact-10 {
-  border-left-color: hsl(240, 54%, 27%);
+  border-left-color: hsl(240, 54%, 32%);
 }
 
 div.stats-system-impact-15 {
-  border-left-color: hsl(250, 54%, 30%);
+  border-left-color: hsl(250, 54%, 34%);
 }
 
 div.stats-system-impact-20 {
-  border-left-color: hsl(260, 54%, 30%);
+  border-left-color: hsl(260, 54%, 32%);
 }
 
 div.stats-system-impact-25 {
-  border-left-color: hsl(270, 54%, 30%);
+  border-left-color: hsl(270, 54%, 32%);
 }
 
 div.stats-system-impact-30 {
-  border-left-color: hsl(280, 54%, 30%);
+  border-left-color: hsl(280, 54%, 32%);
 }
 
 div.stats-system-impact-35 {
-  border-left-color: hsl(290, 54%, 30%);
+  border-left-color: hsl(290, 54%, 32%);
 }
 
 div.stats-system-impact-40 {
-  border-left-color: hsl(300, 54%, 32%);
+  border-left-color: hsl(300, 54%, 34%);
 }
 
 div.stats-system-impact-45 {
-  border-left-color: hsl(310, 54%, 35%);
+  border-left-color: hsl(310, 54%, 36%);
 }
 
 div.stats-system-impact-50 {
-  border-left-color: hsl(320, 54%, 35%);
+  border-left-color: hsl(320, 54%, 36%);
 }
 
 div.stats-system-charts {
