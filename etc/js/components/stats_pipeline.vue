@@ -324,19 +324,19 @@ div.stats-system-impact-15 {
 }
 
 div.stats-system-impact-20 {
-  border-left-color: hsl(260, 54%, 32%);
+  border-left-color: hsl(260, 54%, 34%);
 }
 
 div.stats-system-impact-25 {
-  border-left-color: hsl(270, 54%, 32%);
+  border-left-color: hsl(270, 54%, 34%);
 }
 
 div.stats-system-impact-30 {
-  border-left-color: hsl(280, 54%, 32%);
+  border-left-color: hsl(280, 54%, 34%);
 }
 
 div.stats-system-impact-35 {
-  border-left-color: hsl(290, 54%, 32%);
+  border-left-color: hsl(290, 54%, 34%);
 }
 
 div.stats-system-impact-40 {

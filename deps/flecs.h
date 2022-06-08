@@ -96,7 +96,8 @@
 #define FLECS_PLECS         /* ECS data definition format */
 #define FLECS_RULES         /* Constraint solver for advanced queries */
 #define FLECS_SNAPSHOT      /* Snapshot & restore ECS data */
-#define FLECS_STATS         /* Keep track of runtime statistics */
+#define FLECS_STATS         /* Access runtime statistics */
+#define FLECS_MONITOR       /* Track runtime statistics periodically */
 #define FLECS_SYSTEM        /* System support */
 #define FLECS_PIPELINE      /* Pipeline support */
 #define FLECS_TIMER         /* Timer support */
@@ -181,6 +182,8 @@ extern "C" {
 #define EcsIdEventMask\
     (EcsIdHasOnAdd|EcsIdHasOnRemove|EcsIdHasOnSet|EcsIdHasUnSet)
 
+#define EcsIdMarkedForDelete            (1u << 30)
+
 /* Utilities for converting from flags to delete policies and vice versa */
 #define ECS_ID_ON_DELETE(flags) \
     ((ecs_entity_t[]){0, EcsRemove, EcsDelete, 0, EcsPanic}\
@@ -241,6 +244,8 @@ extern "C" {
 #define EcsTableHasOnRemove            (1u << 16u)
 #define EcsTableHasOnSet               (1u << 17u)
 #define EcsTableHasUnSet               (1u << 18u)
+
+#define EcsTableMarkedForDelete        (1u << 30u)
 
 /* Composite table flags */
 #define EcsTableHasLifecycle        (EcsTableHasCtors | EcsTableHasDtors)
@@ -2886,6 +2891,7 @@ void ecs_default_ctor(
 #else
 #define ECS_OFFSET(o, offset) (void*)(((uintptr_t)(o)) + ((uintptr_t)(offset)))
 #endif
+#define ECS_OFFSET_T(o, T) ECS_OFFSET(o, ECS_SIZEOF(T))
 
 #define ECS_ELEM(ptr, size, index) ECS_OFFSET(ptr, (size) * (index))
 #define ECS_ELEM_T(o, T, index) ECS_ELEM(o, ECS_SIZEOF(T), index)
@@ -6313,6 +6319,44 @@ FLECS_API
 bool ecs_query_orphaned(
     ecs_query_t *query);
 
+/** Convert query to string.
+ *
+ * @param query The query.
+ * @return The query string.
+ */
+FLECS_API
+char* ecs_query_str(
+    const ecs_query_t *query);
+
+/** Returns number of tables query matched with.
+ *
+ * @param query The query.
+ * @return The number of matched tables.
+ */
+FLECS_API
+int32_t ecs_query_table_count(
+    const ecs_query_t *query);
+
+/** Returns number of empty tables query matched with.
+ *
+ * @param query The query.
+ * @return The number of matched empty tables.
+ */
+FLECS_API
+int32_t ecs_query_empty_table_count(
+    const ecs_query_t *query);
+
+/** Returns number of entities query matched with.
+ * This operation iterates all non-empty tables in the query cache to find the
+ * total number of entities.
+ *
+ * @param query The query.
+ * @return The number of matched entities.
+ */
+FLECS_API
+int32_t ecs_query_entity_count(
+    const ecs_query_t *query);
+
 /** @} */
 
 
@@ -6563,7 +6607,7 @@ void ecs_iter_fini(
  * @return True if iterator has more results, false if not.
  */
 FLECS_API
-bool ecs_iter_count(
+int32_t ecs_iter_count(
     ecs_iter_t *it);
 
 /** Test if iterator is true.
@@ -7885,11 +7929,6 @@ void* ecs_record_get_column(
     ecs_add_path_w_sep(world, entity, 0, path, ".", NULL)
 
 
-/* -- Queries -- */
-
-#define ecs_query_table_count(query) query->cache.tables.count
-#define ecs_query_empty_table_count(query) query->cache.empty_tables.count
-
 /* -- Iterators -- */
 
 #define ecs_term_id(it, index)\
@@ -8034,6 +8073,9 @@ void* ecs_record_get_column(
 #endif
 #ifdef FLECS_NO_SNAPSHOT
 #undef FLECS_SNAPSHOT
+#endif
+#ifdef FLECS_NO_MONITOR
+#undef FLECS_MONITOR
 #endif
 #ifdef FLECS_NO_STATS
 #undef FLECS_STATS
@@ -8581,6 +8623,12 @@ int ecs_log_last_error(void);
 #endif // FLECS_LOG_H
 
 
+#ifdef FLECS_MONITOR
+#define FLECS_STATS
+#define FLECS_SYSTEM
+#define FLECS_TIMER
+#endif
+
 #ifdef FLECS_APP
 #ifdef FLECS_NO_APP
 #error "FLECS_NO_APP failed: APP is required by other addons"
@@ -8618,6 +8666,7 @@ typedef struct ecs_app_desc_t {
     FLECS_FLOAT delta_time;   /* Frame time increment (0 for measured values) */
     int32_t threads;          /* Number of threads. */
     bool enable_rest;         /* Allows HTTP clients to access ECS data */
+    bool enable_monitor;      /* Periodically collect statistics */
 
     ecs_app_init_action_t init; /* If set, function is ran before starting the
                                  * main loop. */
@@ -9498,6 +9547,432 @@ void* ecs_get_system_binding_ctx(
 
 FLECS_API
 void FlecsSystemImport(
+    ecs_world_t *world);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif
+
+#endif
+#ifdef FLECS_STATS
+#ifdef FLECS_NO_STATS
+#error "FLECS_NO_STATS failed: STATS is required by other addons"
+#endif
+/**
+ * @file stats.h
+ * @brief Statistics addon.
+ *
+ * The statistics addon enables an application to obtain detailed metrics about
+ * the storage, systems and operations of a world.
+ */
+
+#ifdef FLECS_STATS
+
+#ifndef FLECS_STATS_H
+#define FLECS_STATS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define ECS_STAT_WINDOW (60)
+
+/** Simple value that indicates current state */
+typedef struct ecs_gauge_t {
+    float avg[ECS_STAT_WINDOW];
+    float min[ECS_STAT_WINDOW];
+    float max[ECS_STAT_WINDOW];
+} ecs_gauge_t;
+
+/* Monotonically increasing counter */
+typedef struct ecs_counter_t {
+    ecs_gauge_t rate;                          /* Keep track of deltas too */
+    float value[ECS_STAT_WINDOW];
+} ecs_counter_t;
+
+/* Make all metrics the same size, so we can iterate over fields */
+typedef union ecs_metric_t {
+    ecs_gauge_t gauge;
+    ecs_counter_t counter;
+} ecs_metric_t;
+
+typedef struct ecs_world_stats_t {
+    int32_t first_;
+
+    ecs_metric_t entity_count;               /* Number of entities */
+    ecs_metric_t entity_not_alive_count;     /* Number of not alive (recyclable) entity ids */
+
+    /* Components and ids */
+    ecs_metric_t id_count;                   /* Number of ids (excluding wildcards) */
+    ecs_metric_t tag_id_count;               /* Number of tag ids (ids without data) */
+    ecs_metric_t component_id_count;         /* Number of components ids (ids with data) */
+    ecs_metric_t pair_id_count;              /* Number of pair ids */
+    ecs_metric_t wildcard_id_count;          /* Number of wildcard ids */
+    ecs_metric_t component_count;            /* Number of components  (non-zero sized types) */
+    ecs_metric_t id_create_count;            /* Number of times id has been created */
+    ecs_metric_t id_delete_count;            /* Number of times id has been deleted */
+
+    /* Tables */
+    ecs_metric_t table_count;                /* Number of tables */
+    ecs_metric_t empty_table_count;          /* Number of empty tables */
+    ecs_metric_t tag_table_count;            /* Number of tables with only tags */
+    ecs_metric_t trivial_table_count;        /* Number of tables with only trivial components */
+    ecs_metric_t table_record_count;         /* Number of table cache records */
+    ecs_metric_t table_storage_count;        /* Number of table storages */
+    ecs_metric_t table_create_count;         /* Number of times table has been created */
+    ecs_metric_t table_delete_count;         /* Number of times table has been deleted */
+
+    /* Queries & events */
+    ecs_metric_t query_count;                /* Number of queries */
+    ecs_metric_t trigger_count;              /* Number of triggers */
+    ecs_metric_t observer_count;             /* Number of observers */
+    ecs_metric_t system_count;               /* Number of systems */
+
+    /* Deferred operations */
+    ecs_metric_t new_count;
+    ecs_metric_t bulk_new_count;
+    ecs_metric_t delete_count;
+    ecs_metric_t clear_count;
+    ecs_metric_t add_count;
+    ecs_metric_t remove_count;
+    ecs_metric_t set_count;
+    ecs_metric_t discard_count;
+
+    /* Timing */
+    ecs_metric_t world_time_total_raw;       /* Actual time passed since simulation start (first time progress() is called) */
+    ecs_metric_t world_time_total;           /* Simulation time passed since simulation start. Takes into account time scaling */
+    ecs_metric_t frame_time_total;           /* Time spent processing a frame. Smaller than world_time_total when load is not 100% */
+    ecs_metric_t system_time_total;          /* Time spent on processing systems. */
+    ecs_metric_t merge_time_total;           /* Time spent on merging deferred actions. */
+    ecs_metric_t fps;                        /* Frames per second. */
+    ecs_metric_t delta_time;                 /* Delta_time. */
+    
+    /* Frame data */
+    ecs_metric_t frame_count_total;          /* Number of frames processed. */
+    ecs_metric_t merge_count_total;          /* Number of merges executed. */
+    ecs_metric_t pipeline_build_count_total; /* Number of system pipeline rebuilds (occurs when an inactive system becomes active). */
+    ecs_metric_t systems_ran_frame;          /* Number of systems ran in the last frame. */
+
+    /* OS API data */
+    ecs_metric_t alloc_count;                /* Allocs per frame */
+    ecs_metric_t realloc_count;              /* Reallocs per frame */
+    ecs_metric_t free_count;                 /* Frees per frame */
+    ecs_metric_t outstanding_alloc_count;    /* Difference between allocs & frees */
+
+    int32_t last_;
+
+    /** Current position in ringbuffer */
+    int32_t t;
+} ecs_world_stats_t;
+
+/* Statistics for a single query (use ecs_query_stats_get) */
+typedef struct ecs_query_stats_t {
+    int32_t first_;
+    ecs_metric_t matched_table_count;       /* Matched non-empty tables */    
+    ecs_metric_t matched_empty_table_count; /* Matched empty tables */
+    ecs_metric_t matched_entity_count;      /* Number of matched entities */
+    int32_t last_;
+
+    /** Current position in ringbuffer */
+    int32_t t; 
+} ecs_query_stats_t;
+
+/** Statistics for a single system (use ecs_system_stats_get) */
+typedef struct ecs_system_stats_t {
+    int32_t first_;
+    ecs_metric_t time_spent;       /* Time spent processing a system */
+    ecs_metric_t invoke_count;     /* Number of times system is invoked */
+    ecs_metric_t active;           /* Whether system is active (is matched with >0 entities) */
+    ecs_metric_t enabled;          /* Whether system is enabled */
+    int32_t last_;
+
+    bool task;                     /* Is system a task */
+
+    ecs_query_stats_t query;
+} ecs_system_stats_t;
+
+/** Statistics for all systems in a pipeline. */
+typedef struct ecs_pipeline_stats_t {
+    /** Vector with system ids of all systems in the pipeline. The systems are
+     * stored in the order they are executed. Merges are represented by a 0. */
+    ecs_vector_t *systems;
+
+    /** Map with system statistics. For each system in the systems vector, an
+     * entry in the map exists of type ecs_system_stats_t. */
+    ecs_map_t system_stats;
+
+    /** Current position in ringbuffer */
+    int32_t t;
+
+    int32_t system_count; /* Number of systems in pipeline */
+    int32_t active_system_count; /* Number of active systems in pipeline */
+    int32_t rebuild_count; /* Number of times pipeline has rebuilt */
+} ecs_pipeline_stats_t;
+
+/** Get world statistics.
+ *
+ * @param world The world.
+ * @param stats Out parameter for statistics.
+ */
+FLECS_API 
+void ecs_world_stats_get(
+    const ecs_world_t *world,
+    ecs_world_stats_t *stats);
+
+/** Reduce source measurement window into single destination measurement. */
+FLECS_API 
+void ecs_world_stats_reduce(
+    ecs_world_stats_t *dst,
+    const ecs_world_stats_t *src);
+
+/** Reduce last measurement into previous measurement, restore old value. */
+FLECS_API
+void ecs_world_stats_reduce_last(
+    ecs_world_stats_t *stats,
+    const ecs_world_stats_t *old,
+    int32_t count);
+
+/** Repeat last measurement. */
+FLECS_API
+void ecs_world_stats_repeat_last(
+    ecs_world_stats_t *stats);
+
+/** Copy last measurement from source to destination. */
+FLECS_API
+void ecs_world_stats_copy_last(
+    ecs_world_stats_t *dst,
+    const ecs_world_stats_t *src);
+
+FLECS_API 
+void ecs_world_stats_log(
+    const ecs_world_t *world,
+    const ecs_world_stats_t *stats);
+
+/** Get query statistics.
+ * Obtain statistics for the provided query.
+ *
+ * @param world The world.
+ * @param query The query.
+ * @param stats Out parameter for statistics.
+ */
+FLECS_API 
+void ecs_query_stats_get(
+    const ecs_world_t *world,
+    const ecs_query_t *query,
+    ecs_query_stats_t *stats);
+
+/** Reduce source measurement window into single destination measurement. */
+FLECS_API 
+void ecs_query_stats_reduce(
+    ecs_query_stats_t *dst,
+    const ecs_query_stats_t *src);
+
+/** Reduce last measurement into previous measurement, restore old value. */
+FLECS_API
+void ecs_query_stats_reduce_last(
+    ecs_query_stats_t *stats,
+    const ecs_query_stats_t *old,
+    int32_t count);
+
+/** Repeat last measurement. */
+FLECS_API
+void ecs_query_stats_repeat_last(
+    ecs_query_stats_t *stats);
+
+/** Copy last measurement from source to destination. */
+FLECS_API
+void ecs_query_stats_copy_last(
+    ecs_query_stats_t *dst,
+    const ecs_query_stats_t *src);
+
+#ifdef FLECS_SYSTEM
+/** Get system statistics.
+ * Obtain statistics for the provided system.
+ *
+ * @param world The world.
+ * @param system The system.
+ * @param stats Out parameter for statistics.
+ * @return true if success, false if not a system.
+ */
+FLECS_API 
+bool ecs_system_stats_get(
+    const ecs_world_t *world,
+    ecs_entity_t system,
+    ecs_system_stats_t *stats);
+
+/** Reduce source measurement window into single destination measurement */
+FLECS_API 
+void ecs_system_stats_reduce(
+    ecs_system_stats_t *dst,
+    const ecs_system_stats_t *src);
+
+/** Reduce last measurement into previous measurement, restore old value. */
+FLECS_API
+void ecs_system_stats_reduce_last(
+    ecs_system_stats_t *stats,
+    const ecs_system_stats_t *old,
+    int32_t count);
+
+/** Repeat last measurement. */
+FLECS_API
+void ecs_system_stats_repeat_last(
+    ecs_system_stats_t *stats);
+
+/** Copy last measurement from source to destination. */
+FLECS_API
+void ecs_system_stats_copy_last(
+    ecs_system_stats_t *dst,
+    const ecs_system_stats_t *src);
+#endif
+
+#ifdef FLECS_PIPELINE
+/** Get pipeline statistics.
+ * Obtain statistics for the provided pipeline.
+ *
+ * @param world The world.
+ * @param pipeline The pipeline.
+ * @param stats Out parameter for statistics.
+ * @return true if success, false if not a pipeline.
+ */
+FLECS_API 
+bool ecs_pipeline_stats_get(
+    ecs_world_t *world,
+    ecs_entity_t pipeline,
+    ecs_pipeline_stats_t *stats);
+
+/** Free pipeline stats.
+ * 
+ * @param stats The stats to free.
+ */
+FLECS_API
+void ecs_pipeline_stats_fini(
+    ecs_pipeline_stats_t *stats);
+
+/** Reduce source measurement window into single destination measurement */
+FLECS_API 
+void ecs_pipeline_stats_reduce(
+    ecs_pipeline_stats_t *dst,
+    const ecs_pipeline_stats_t *src);
+
+/** Reduce last measurement into previous measurement, restore old value. */
+FLECS_API
+void ecs_pipeline_stats_reduce_last(
+    ecs_pipeline_stats_t *stats,
+    const ecs_pipeline_stats_t *old,
+    int32_t count);
+
+/** Repeat last measurement. */
+FLECS_API
+void ecs_pipeline_stats_repeat_last(
+    ecs_pipeline_stats_t *stats);
+
+/** Copy last measurement to destination.
+ * This operation copies the last measurement into the destination. It does not
+ * modify the cursor.
+ * 
+ * @param dst The metrics.
+ * @param src The metrics to copy.
+ */
+FLECS_API
+void ecs_pipeline_stats_copy_last(
+    ecs_pipeline_stats_t *dst,
+    const ecs_pipeline_stats_t *src);
+
+#endif
+
+/** Reduce all measurements from a window into a single measurement. */
+FLECS_API 
+void ecs_metric_reduce(
+    ecs_metric_t *dst,
+    const ecs_metric_t *src,
+    int32_t t_dst,
+    int32_t t_src);
+
+/** Reduce last measurement into previous measurement */
+FLECS_API
+void ecs_metric_reduce_last(
+    ecs_metric_t *m,
+    int32_t t,
+    int32_t count);
+
+/** Copy measurement */
+FLECS_API
+void ecs_metric_copy(
+    ecs_metric_t *m,
+    int32_t dst,
+    int32_t src);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+
+#endif
+
+#endif
+#ifdef FLECS_MONITOR
+#ifdef FLECS_NO_MONITOR
+#error "FLECS_NO_MONITOR failed: MONITOR is required by other addons"
+#endif
+/**
+ * @file doc.h
+ * @brief Doc module.
+ *
+ * The monitor module automatically tracks statistics from the stats addon and
+ * stores them in components.
+ */
+
+#ifdef FLECS_MONITOR
+
+#ifndef FLECS_MONITOR_H
+#define FLECS_MONITOR_H
+
+#ifndef FLECS_MODULE
+#define FLECS_MODULE
+#endif
+
+#ifndef FLECS_STATS
+#define FLECS_STATS
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+FLECS_API extern ECS_COMPONENT_DECLARE(FlecsMonitor);
+
+FLECS_API extern ECS_COMPONENT_DECLARE(EcsWorldStats);
+FLECS_API extern ECS_COMPONENT_DECLARE(EcsPipelineStats);
+
+FLECS_API extern ECS_DECLARE(EcsPeriod1s);
+FLECS_API extern ECS_DECLARE(EcsPeriod1m);
+FLECS_API extern ECS_DECLARE(EcsPeriod1h);
+FLECS_API extern ECS_DECLARE(EcsPeriod1d);
+FLECS_API extern ECS_DECLARE(EcsPeriod1w);
+
+typedef struct {
+    FLECS_FLOAT elapsed;
+    int32_t reduce_count;
+} EcsStatsHeader;
+
+typedef struct {
+    EcsStatsHeader hdr; 
+    ecs_world_stats_t stats;
+} EcsWorldStats;
+
+typedef struct {
+    EcsStatsHeader hdr;
+    ecs_pipeline_stats_t stats;
+} EcsPipelineStats;
+
+/* Module import */
+FLECS_API
+void FlecsMonitorImport(
     ecs_world_t *world);
 
 #ifdef __cplusplus
@@ -11582,237 +12057,6 @@ void ecs_snapshot_free(
 #endif
 
 #endif
-#ifdef FLECS_STATS
-#ifdef FLECS_NO_STATS
-#error "FLECS_NO_STATS failed: STATS is required by other addons"
-#endif
-/**
- * @file stats.h
- * @brief Statistics addon.
- *
- * The statistics addon enables an application to obtain detailed metrics about
- * the storage, systems and operations of a world.
- */
-
-#ifdef FLECS_STATS
-
-#ifndef FLECS_STATS_H
-#define FLECS_STATS_H
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#define ECS_STAT_WINDOW (60)
-
-/** Simple value that indicates current state */
-typedef struct ecs_gauge_t {
-    float avg[ECS_STAT_WINDOW];
-    float min[ECS_STAT_WINDOW];
-    float max[ECS_STAT_WINDOW];
-} ecs_gauge_t;
-
-/* Monotonically increasing counter */
-typedef struct ecs_counter_t {
-    ecs_gauge_t rate;                          /* Keep track of deltas too */
-    float value[ECS_STAT_WINDOW];
-} ecs_counter_t;
-
-typedef struct ecs_world_stats_t {
-    /* Allows struct to be initialized with {0} */
-    int32_t dummy_;
-
-    ecs_gauge_t entity_count;                 /* Number of entities */
-    ecs_gauge_t entity_not_alive_count;       /* Number of not alive (recyclable) entity ids */
-
-    /* Components and ids */
-    ecs_gauge_t id_count;                     /* Number of ids (excluding wildcards) */
-    ecs_gauge_t tag_id_count;                 /* Number of tag ids (ids without data) */
-    ecs_gauge_t component_id_count;           /* Number of components ids (ids with data) */
-    ecs_gauge_t pair_id_count;                /* Number of pair ids */
-    ecs_gauge_t wildcard_id_count;            /* Number of wildcard ids */
-    ecs_gauge_t component_count;              /* Number of components  (non-zero sized types) */
-    ecs_counter_t id_create_count;            /* Number of times id has been created */
-    ecs_counter_t id_delete_count;            /* Number of times id has been deleted */
-
-    /* Tables */
-    ecs_gauge_t table_count;                  /* Number of tables */
-    ecs_gauge_t empty_table_count;            /* Number of empty tables */
-    ecs_gauge_t singleton_table_count;        /* Number of singleton tables. Singleton tables are tables with just a single entity that contains itself */
-    ecs_gauge_t tag_table_count;              /* Number of tables with only tags */
-    ecs_gauge_t trivial_table_count;          /* Number of tables with only trivial components */
-    ecs_gauge_t table_record_count;           /* Number of table cache records */
-    ecs_gauge_t table_storage_count;          /* Number of table storages */
-    ecs_counter_t table_create_count;         /* Number of times table has been created */
-    ecs_counter_t table_delete_count;         /* Number of times table has been deleted */
-
-    /* Queries & events */
-    ecs_gauge_t query_count;                  /* Number of queries */
-    ecs_gauge_t trigger_count;                /* Number of triggers */
-    ecs_gauge_t observer_count;               /* Number of observers */
-    ecs_gauge_t system_count;                 /* Number of systems */
-
-    /* Deferred operations */
-    ecs_counter_t new_count;
-    ecs_counter_t bulk_new_count;
-    ecs_counter_t delete_count;
-    ecs_counter_t clear_count;
-    ecs_counter_t add_count;
-    ecs_counter_t remove_count;
-    ecs_counter_t set_count;
-    ecs_counter_t discard_count;
-
-    /* Timing */
-    ecs_counter_t world_time_total_raw;       /* Actual time passed since simulation start (first time progress() is called) */
-    ecs_counter_t world_time_total;           /* Simulation time passed since simulation start. Takes into account time scaling */
-    ecs_counter_t frame_time_total;           /* Time spent processing a frame. Smaller than world_time_total when load is not 100% */
-    ecs_counter_t system_time_total;          /* Time spent on processing systems. */
-    ecs_counter_t merge_time_total;           /* Time spent on merging deferred actions. */
-    ecs_gauge_t fps;                          /* Frames per second. */
-    ecs_gauge_t delta_time;                   /* Delta_time. */
-    
-    /* Frame data */
-    ecs_counter_t frame_count_total;          /* Number of frames processed. */
-    ecs_counter_t merge_count_total;          /* Number of merges executed. */
-    ecs_counter_t pipeline_build_count_total; /* Number of system pipeline rebuilds (occurs when an inactive system becomes active). */
-    ecs_counter_t systems_ran_frame;          /* Number of systems ran in the last frame. */
-
-    /** Current position in ringbuffer */
-    int32_t t;
-} ecs_world_stats_t;
-
-/* Statistics for a single query (use ecs_query_stats_get) */
-typedef struct ecs_query_stats_t {
-    ecs_gauge_t matched_table_count;       /* Number of matched non-empty tables. This is the number of tables 
-                                            * iterated over when evaluating a query. */    
-
-    ecs_gauge_t matched_empty_table_count; /* Number of matched empty tables. Empty tables are not iterated over when
-                                            * evaluating a query. */
-    
-    ecs_gauge_t matched_entity_count;      /* Number of matched entities across all tables */
-
-    /** Current position in ringbuffer */
-    int32_t t; 
-} ecs_query_stats_t;
-
-/** Statistics for a single system (use ecs_system_stats_get) */
-typedef struct ecs_system_stats_t {
-    ecs_query_stats_t query_stats;
-    ecs_counter_t time_spent;       /* Time spent processing a system */
-    ecs_counter_t invoke_count;     /* Number of times system is invoked */
-    ecs_gauge_t active;             /* Whether system is active (is matched with >0 entities) */
-    ecs_gauge_t enabled;            /* Whether system is enabled */
-} ecs_system_stats_t;
-
-/** Statistics for all systems in a pipeline. */
-typedef struct ecs_pipeline_stats_t {
-    /** Vector with system ids of all systems in the pipeline. The systems are
-     * stored in the order they are executed. Merges are represented by a 0. */
-    ecs_vector_t *systems;
-
-    /** Map with system statistics. For each system in the systems vector, an
-     * entry in the map exists of type ecs_system_stats_t. */
-    ecs_map_t *system_stats;
-
-    int32_t system_count; /* Number of systems in pipeline */
-    int32_t active_system_count; /* Number of active systems in pipeline */
-    int32_t rebuild_count; /* Number of times pipeline has rebuilt */
-} ecs_pipeline_stats_t;
-
-/** Get world statistics.
- * Obtain statistics for the provided world. This operation loops several times
- * over the tables in the world, and can impact application performance.
- *
- * @param world The world.
- * @param stats Out parameter for statistics.
- */
-FLECS_API 
-void ecs_world_stats_get(
-    const ecs_world_t *world,
-    ecs_world_stats_t *stats);
-
-/** Print world statistics.
- * Print statistics obtained by ecs_get_world_statistics and in the
- * ecs_world_info_t struct.
- * 
- * @param world The world.
- * @param stats The statistics to print.
- */
-FLECS_API 
-void ecs_world_stats_log(
-    const ecs_world_t *world,
-    const ecs_world_stats_t *stats);
-
-/** Get query statistics.
- * Obtain statistics for the provided query.
- *
- * @param world The world.
- * @param query The query.
- * @param stats Out parameter for statistics.
- */
-FLECS_API 
-void ecs_query_stats_get(
-    const ecs_world_t *world,
-    const ecs_query_t *query,
-    ecs_query_stats_t *stats);
-
-#ifdef FLECS_SYSTEM
-/** Get system statistics.
- * Obtain statistics for the provided system.
- *
- * @param world The world.
- * @param system The system.
- * @param stats Out parameter for statistics.
- * @return true if success, false if not a system.
- */
-FLECS_API 
-bool ecs_system_stats_get(
-    const ecs_world_t *world,
-    ecs_entity_t system,
-    ecs_system_stats_t *stats);
-#endif
-
-#ifdef FLECS_PIPELINE
-/** Get pipeline statistics.
- * Obtain statistics for the provided pipeline.
- *
- * @param world The world.
- * @param pipeline The pipeline.
- * @param stats Out parameter for statistics.
- * @return true if success, false if not a pipeline.
- */
-FLECS_API 
-bool ecs_pipeline_stats_get(
-    ecs_world_t *world,
-    ecs_entity_t pipeline,
-    ecs_pipeline_stats_t *stats);
-
-/** Free pipeline stats.
- * 
- * @param stats The stats to free.
- */
-FLECS_API
-void ecs_pipeline_stats_fini(
-    ecs_pipeline_stats_t *stats);
-
-#endif
-
-FLECS_API 
-void ecs_gauge_reduce(
-    ecs_gauge_t *dst,
-    int32_t t_dst,
-    ecs_gauge_t *src,
-    int32_t t_src);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
-#endif
-
-#endif
 #ifdef FLECS_PARSER
 #ifdef FLECS_NO_PARSER
 #error "FLECS_NO_PARSER failed: PARSER is required by other addons"
@@ -12209,6 +12453,20 @@ ecs_entity_t ecs_import(
     ecs_module_action_t module,
     const char *module_name);
 
+/** Same as ecs_import, but with name to scope conversion.
+ * PascalCase names are automatically converted to scoped names.
+ *
+ * @param world The world.
+ * @param module The module import function.
+ * @param module_name_c The name of the module.
+ * @return The module entity.
+ */
+FLECS_API
+ecs_entity_t ecs_import_c(
+    ecs_world_t *world,
+    ecs_module_action_t module,
+    const char *module_name_c);
+
 /* Import a module from a library.
  * Similar to ecs_import, except that this operation will attempt to load the 
  * module from a dynamic library.
@@ -12242,8 +12500,8 @@ ecs_entity_t ecs_module_init(
 
 /** Define module
  */
-#define ECS_MODULE(world, id)\
-    ecs_entity_t ecs_id(id) = ecs_module_init(world, &(ecs_component_desc_t){\
+#define ECS_MODULE_DEFINE(world, id)\
+    ecs_id(id) = ecs_module_init(world, &(ecs_component_desc_t){\
         .entity = {\
             .name = #id,\
             .add = {EcsModule}\
@@ -12252,23 +12510,16 @@ ecs_entity_t ecs_module_init(
     ecs_set_scope(world, ecs_id(id));\
     (void)ecs_id(id);
 
+#define ECS_MODULE(world, id)\
+    ecs_entity_t ECS_MODULE_DEFINE(world, id)
+
 /** Wrapper around ecs_import.
  * This macro provides a convenient way to load a module with the world. It can
  * be used like this:
  *
- * ECS_IMPORT(world, FlecsSystemsPhysics, 0);
- * 
- * This macro will define entity and type handles for the component associated
- * with the module. The module component will be created as a singleton. 
- * 
- * The contents of a module component are module specific, although they
- * typically contain handles to the content of the module.
+ * ECS_IMPORT(world, FlecsSystemsPhysics);
  */
-#define ECS_IMPORT(world, id) \
-    char *FLECS__##id##_name = ecs_module_path_from_c(#id);\
-    ecs_id_t ecs_id(id) = ecs_import(world, id##Import, FLECS__##id##_name);\
-    ecs_os_free(FLECS__##id##_name);\
-    (void)ecs_id(id)
+#define ECS_IMPORT(world, id) ecs_import_c(world, id##Import, #id);
 
 #ifdef __cplusplus
 }
@@ -13812,9 +14063,10 @@ void init(flecs::world& world);
 #pragma once
 
 namespace flecs {
-namespace rest {
 
 using Rest = EcsRest;
+
+namespace rest {
 
 namespace _ {
 
@@ -14184,6 +14436,20 @@ units(flecs::world& world);
 }
 
 #endif
+#ifdef FLECS_MONITOR
+#pragma once
+
+namespace flecs {
+
+using WorldStats = EcsWorldStats;
+using PipelineStats = EcsPipelineStats;
+    
+struct monitor {
+    monitor(flecs::world& world);
+};
+
+}
+#endif
 #ifdef FLECS_JSON
 #pragma once
 
@@ -14232,6 +14498,11 @@ struct app_builder {
 
     app_builder& enable_rest(bool value = true) {
         m_desc.enable_rest = value;
+        return *this;
+    }
+
+    app_builder& enable_monitor(bool value = true) {
+        m_desc.enable_monitor = value;
         return *this;
     }
 
@@ -15545,13 +15816,13 @@ struct world {
     /** Delete all entities with specified component. */
     template <typename T>
     void delete_with() const {
-        delete_with(_::cpp_type<T>::id());
+        delete_with(_::cpp_type<T>::id(m_world));
     }
 
     /** Delete all entities with specified relation. */
     template <typename R, typename O>
     void delete_with() const {
-        delete_with(_::cpp_type<R>::id(), _::cpp_type<O>::id());
+        delete_with(_::cpp_type<R>::id(m_world), _::cpp_type<O>::id(m_world));
     }
 
     /** Remove all instances of specified id. */
@@ -15567,13 +15838,13 @@ struct world {
     /** Remove all instances of specified component. */
     template <typename T>
     void remove_all() const {
-        remove_all(_::cpp_type<T>::id());
+        remove_all(_::cpp_type<T>::id(m_world));
     }
 
     /** Remove all instances of specified relation. */
     template <typename R, typename O>
     void remove_all() const {
-        remove_all(_::cpp_type<R>::id(), _::cpp_type<O>::id());
+        remove_all(_::cpp_type<R>::id(m_world), _::cpp_type<O>::id(m_world));
     }
 
     /** Defer all operations called in function. If the world is already in
@@ -20518,7 +20789,9 @@ struct term_builder_i : term_id_builder_i<Base> {
     Base& add() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->inout = static_cast<ecs_inout_kind_t>(flecs::Out);
-        m_term->subj.set.mask = flecs::Nothing;
+        if (m_term->oper != EcsNot) {
+            m_term->subj.set.mask = flecs::Nothing;
+        }
         return *this;
     }
 
@@ -20526,7 +20799,9 @@ struct term_builder_i : term_id_builder_i<Base> {
     Base& write() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->inout = static_cast<ecs_inout_kind_t>(flecs::Out);
-        m_term->subj.set.mask = flecs::Nothing;
+        if (m_term->oper != EcsNot) {
+            m_term->subj.set.mask = flecs::Nothing;
+        }
         return *this;
     }
 
@@ -20534,7 +20809,9 @@ struct term_builder_i : term_id_builder_i<Base> {
     Base& read() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->inout = static_cast<ecs_inout_kind_t>(flecs::In);
-        m_term->subj.set.mask = flecs::Nothing;
+        if (m_term->oper != EcsNot) {
+            m_term->subj.set.mask = flecs::Nothing;
+        }
         return *this;
     }
 
@@ -20542,7 +20819,9 @@ struct term_builder_i : term_id_builder_i<Base> {
     Base& read_write() {
         ecs_assert(m_term != nullptr, ECS_INVALID_PARAMETER, NULL);
         m_term->inout = static_cast<ecs_inout_kind_t>(flecs::InOut);
-        m_term->subj.set.mask = flecs::Nothing;
+        if (m_term->oper != EcsNot) {
+            m_term->subj.set.mask = flecs::Nothing;
+        }
         return *this;
     }
 
@@ -22580,7 +22859,7 @@ namespace rest {
 namespace _ {
 
 inline void init(flecs::world& world) {
-    world.component<rest::Rest>("flecs::rest::Rest");
+    world.component<Rest>("flecs::rest::Rest");
 }
  
 } // namespace _
@@ -22980,6 +23259,19 @@ inline units::units(flecs::world& world) {
 
 }
 
+#endif
+#ifdef FLECS_MONITOR
+#pragma once
+
+namespace flecs {
+
+inline monitor::monitor(flecs::world& world) {
+    /* Import C module  */
+    FlecsMonitorImport(world);
+
+}
+
+}
 #endif
 
 
