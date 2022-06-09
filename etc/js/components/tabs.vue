@@ -2,19 +2,17 @@
 
   <div class="tabs-container">
     <div class="tabs">
-      <ul>
-        <li v-for="(tab, index) in tabs" :key="index">
-          <input
-            role="tab"
-            :id="`${index}`"
-            type="radio"
-            :name="`${index}-tab`"
-            :value="index + 1"
-            v-model="active_tab_index"
-          />
-          <label :for="`${index}`" v-text="tab">
-        </li>
-      </ul>
+      <div class="tab" v-for="(tab, index) in tabs" :key="index">
+        <input
+          role="tab"
+          :id="`${index}`"
+          type="radio"
+          :name="`${index}-tab`"
+          :value="index + 1"
+          v-model="active_tab_index"
+        />
+        <label :for="`${index}`" v-text="tab">
+      </div>
     </div>
 
     <div class="tabs-view" role="tabpanel">
@@ -56,7 +54,7 @@ module.exports = ({
   gap: var(--p-4);
 }
 
-ul {
+.tabs {
   list-style: none;
   display: flex;
   flex-direction: row;

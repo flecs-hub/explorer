@@ -52,8 +52,7 @@ Vue.component('query-editor', {
     },
     evt_focus(focus) {
       this.focus = focus;
-      this.$emit('enable_toggle', !focus);
-
+      this.$emit('allow-toggle', !focus);
       if (focus) {
         this.query = this.actual_query;
       } else {
@@ -101,7 +100,9 @@ Vue.component('query-editor', {
       </textarea>
       <div class="query-default-text" v-if="!query.length" 
         v-on:click.stop="set_focus">Search</div>
-      <icon-button icon="codicons:search" v-on:click.stop="set_focus" v-if="!focus"/>
+      <div style="padding-left: 2px;">
+        <icon-button icon="codicons:search" v-on:click.stop="set_focus" v-if="!focus"/>
+      </div>
     </div>
     `
 });

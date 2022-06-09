@@ -18,7 +18,7 @@ Vue.component('status', {
       let result = "content-status";
       if (this.has_status) {
         result += " content-status-visible";
-        if (this.kind == Status.Error) {
+        if (this.kind === undefined || this.kind == Status.Error) {
           result += " content-status-error";
         }
       }
@@ -35,13 +35,13 @@ Vue.component('status', {
         return;
       }
       let result = "content-status-text";
-      if (this.kind == Status.Error) {
+      if (this.kind === undefined || this.kind == Status.Error) {
         result += " content-status-text-error";
       }
       return result;
     },
     status_icon: function() {
-      if (this.kind == Status.Error) {
+      if (this.kind === undefined || this.kind == Status.Error) {
         return "error";
       }
     }

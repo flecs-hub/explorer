@@ -52,7 +52,7 @@ Vue.component('entity-tree-item', {
       }
     },
     width_select_box: function() {
-      return this.width - this.x - 29;
+      return Math.max(this.width - this.x - 29, 0);
     },
     css_text: function() {
       if (this.entity_data.path == this.selected_entity) {
@@ -65,38 +65,41 @@ Vue.component('entity-tree-item', {
       return this.entity_data.is_component && !this.entity_data.is_module;
     },
     search_icon_x: function() {
-      return this.width - 20;
+      return Math.max(this.width - 20, 0);
+    },
+    xp: function() {
+      return this.x + 3;
     }
   },
   template: `
     <svg>
-      <rect :x="x + 28" :y="y - 16" :width="width_select_box" height="23px" :class="css_select_box"
+      <rect :x="xp + 28" :y="y - 16" :width="width_select_box" height="23px" :class="css_select_box"
         v-on:click="select">
       </rect>
 
       <template v-if="entity_data.has_children">
-        <rect :x="x" :y="y - 5" :width="5" height="1" fill="#44464D"></rect>
+        <rect :x="xp" :y="y - 5" :width="5" height="1" fill="#44464D"></rect>
         <image v-if="!expand"
           class="entity-tree-icon" 
           href="img/nav-right.png" 
-          :x="x + 2" :y="y - 12" 
+          :x="xp + 2" :y="y - 12" 
           v-on:click="toggle">
         </image>
         <image v-else
           class="entity-tree-icon" 
           href="img/nav-down.png" 
-          :x="x + 2" 
+          :x="xp + 2" 
           :y="y - 12" 
           v-on:click="toggle">
         </image>
       </template>
       <template v-else>
-        <rect :x="x" :y="y - 5" :width="15" height="1" fill="#44464D"></rect>
+        <rect :x="xp" :y="y - 5" :width="15" height="1" fill="#44464D"></rect>
       </template>
 
-      <entity-icon :x="x + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
+      <entity-icon :x="xp + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
-      <text :class="css_text" :x="x + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
+      <text :class="css_text" :x="xp + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
       <rect 
         :x="search_icon_x - 2" 
         :y="y - 12" 
@@ -131,7 +134,7 @@ Vue.component('entity-tree-outline', {
   },
   template: `
     <svg>
-      <rect :x="x" :y="y + 2" :width="1" :height="height()" fill="#44464D"></rect>
+      <rect :x="x + 3" :y="y + 2" :width="1" :height="height()" fill="#44464D"></rect>
     </svg>`
 });
 
@@ -267,7 +270,20 @@ Vue.component('entity-tree-list', {
 });
 
 Vue.component('entity-tree', {
-  props: ['valid', 'selected_entity'],
+  props: ['valid'],
+  data: function() {
+    return {
+      width: 0,
+      disabled: false,
+      selected_entity: undefined,
+      root: {
+        path: "0",
+        entities: {},
+        expand: true,
+        selection: undefined
+      }
+    }
+  },
   beforeUpdate: function() {
     this.width = this.$el.clientWidth;
   },
@@ -346,6 +362,10 @@ Vue.component('entity-tree', {
       });
     },
     update_expanded: function(container) {
+      if (this.disabled) {
+        return;
+      }
+
       if (!container) {
         container = this.root;
       }
@@ -388,7 +408,7 @@ Vue.component('entity-tree', {
       this.update(cur, () => {
         let next = cur.entities[elems[i]];
         if (!next) {
-          console.error("entity-tree: cannot navigate to entity " + elems[i]);
+          // console.error("entity-tree: cannot navigate to entity " + elems[i]);
           this.collapse_all();
         }
 
@@ -414,6 +434,9 @@ Vue.component('entity-tree', {
         this.evt_select(item);
       });
     },
+    set_selected_entity(entity) {
+      this.selected_entity = entity;
+    },
     evt_select: function(entity) {
       if (entity) {
         if (entity.path == this.selected_entity) {
@@ -429,17 +452,14 @@ Vue.component('entity-tree', {
       this.$emit('select_query', entity);
     },
     evt_resize: function(elem) {
-    }
-  },
-  data: function() {
-    return {
-      width: 0,
-      root: {
-        path: "0",
-        entities: {},
-        expand: true,
-        selection: undefined
-      }
+    },
+    open: function() {
+      this.disabled = false;
+      this.$emit("panel-update");
+    },
+    close: function() {
+      this.disabled = true;
+      this.$emit("panel-update");
     }
   },
   computed: {
@@ -456,6 +476,9 @@ Vue.component('entity-tree', {
       let result = "entity-tree";
       if (!this.valid) {
         result += " invalid";
+      }
+      if (this.disabled) {
+        result += " disable";
       }
       return result;
     }

@@ -1,5 +1,4 @@
 
-
 // Track state of connection to remote app
 const ConnectionState = {
   Initializing:     Symbol('Initializing'),
@@ -68,23 +67,36 @@ function getParameterByName(name, url = window.location.href) {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+function paramStr(params) {
+  let url_params = "";
+  if (params) {
+    for (var k in params) {
+      url_params += "&" + k + "=" + params[k];
+    }
+  }
+  return url_params;
+}
+
 /*
   GLOBAL COMPONENT REGISTRATIONS
 */
 Vue.component('collapsible-panel', httpVueLoader('js/collapsible_panel.vue'));
 Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
-
-Vue.component('primary-button', httpVueLoader('js/components/button.vue'));
-Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
-Vue.component('popover', httpVueLoader('js/components/popover.vue'));
-Vue.component('tabs', httpVueLoader('js/components/tabs.vue'));
-
-// Popovers
+var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
+var popover_component = Vue.component('popover', httpVueLoader('js/components/popover.vue'));
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
 Vue.component('connection-popover', httpVueLoader('js/overlays/popovers/connection-popover.vue'));
-
-// Widgets
 Vue.component('connection-status', httpVueLoader('js/widgets/connection_status.vue'));
+Vue.component('tabs', httpVueLoader('js/components/tabs.vue'));
+Vue.component('primary-button', httpVueLoader('js/components/button.vue'));
+
+Vue.component('panel-menu', httpVueLoader('js/components/panel_menu.vue'));
+Vue.component('panel-button', httpVueLoader('js/components/panel_button.vue'));
+Vue.component('stat', httpVueLoader('js/components/stat.vue'));
+Vue.component('stats-period', httpVueLoader('js/components/stats_period.vue'));
+Vue.component('stat-chart', httpVueLoader('js/components/stat_chart.vue'));
+Vue.component('stats-world', httpVueLoader('js/components/stats_world.vue'));
+Vue.component('stats-pipeline', httpVueLoader('js/components/stats_pipeline.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
@@ -262,14 +274,8 @@ var app = new Vue({
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        let url_params = "";
-        if (params) {
-          for (var k in params) {
-            url_params += "&" + k + "=" + params[k];
-          }
-        }
         this.request(id, "GET",
-          "entity/" + path.replaceAll('.', '/') + url_params, recv, err);
+          "entity/" + path.replaceAll('.', '/') + paramStr(params), recv, err);
       }
     },
 
@@ -279,17 +285,20 @@ var app = new Vue({
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        let url_params = "";
-        if (params) {
-          for (var k in params) {
-            url_params += "&" + k + "=" + params[k];
-          }
-        }
         this.request(id,
-          "GET", "query?q=" + encodeURIComponent(q) + url_params,
+          "GET", "query?q=" + encodeURIComponent(q) + paramStr(params),
           recv, err);
       } else {
         err({error: "no connection"});
+      }
+    },
+
+    request_stats: function(id, category, recv, err, params) {
+      if (this.is_local()) {
+          return "{}";
+      } else if (this.is_remote()) {
+        this.request(id, "GET",
+          "stats/" + category + paramStr(params), recv, err);
       }
     },
 
@@ -324,8 +333,9 @@ var app = new Vue({
       }
 
       if (selected) {
-        this.selected_entity = selected;
+        this.set_entity(selected);
       }
+
       if (q) {
         this.$refs.query.set_query(q);
       }
@@ -342,17 +352,21 @@ var app = new Vue({
       this.refresh_query();
       this.refresh_entity();
       this.refresh_tree();
+      this.refresh_stats();
 
       // Refresh UI periodically
       this.refresh_timer = window.setInterval(() => {
         this.refresh_query();
         this.refresh_entity();
         this.refresh_tree();
+        this.refresh_stats();
       }, REFRESH_INTERVAL);
+
+      this.evt_panel_update();
     },
 
     ready_local() {
-      this.selected_entity = undefined;
+      this.set_entity();
 
       const q_encoded = getParameterByName("q");
       const p_encoded = getParameterByName("p");
@@ -391,6 +405,8 @@ var app = new Vue({
       this.$refs.tree.update_expanded();
 
       this.parse_interval = 150;
+
+      this.evt_panel_update();
     },
 
     disconnect() {
@@ -555,16 +571,8 @@ var app = new Vue({
 
     // Set inspector to entity by pathname
     set_entity(path) {
-      this.request_abort('inspector'); // Abort outstanding requests
-      this.entity_result = undefined;
-
-      this.selected_entity = path;
-      if (!path) {
-        return;
-      }
-
-      this.$refs.inspector.expand();
-      this.refresh_entity();
+      this.$refs.inspector.set_entity(path);
+      this.$refs.tree.set_selected_entity(path);
     },
 
     set_entity_by_tree_item(item) {
@@ -580,21 +588,18 @@ var app = new Vue({
     },
 
     refresh_entity() {
-      if (!this.selected_entity) {
-        return;
-      }
-      this.request_entity('inspector', this.selected_entity, (reply) => {
-        this.entity_error = reply.error;
-        if (this.entity_error === undefined) {
-          this.entity_result = reply;
-        }
-      }, () => {
-        this.entity_error = "request for entity '" + this.selected_entity + "' failed";
-      }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
+      this.$refs.inspector.refresh();
     },
 
     refresh_tree() {
       this.$refs.tree.update_expanded();
+    },
+
+    refresh_stats() {
+      if (this.$refs.stats_world) {
+        this.$refs.stats_world.refresh();
+        this.$refs.stats_pipeline.refresh();
+      }
     },
 
     // Code changed event
@@ -621,15 +626,28 @@ var app = new Vue({
       this.$refs.query.set_query(query);
     },
 
+    evt_panel_update() {
+      this.$nextTick(() => {
+        if (this.$refs.panes) {
+          this.$refs.panes.resize();
+        }
+        if (this.$refs.panel_menu) {
+          this.$refs.panel_menu.refresh();
+        }
+      });
+    },
+
     show_url_modal() {
       const query = this.$refs.query.get_query();
       
       let plecs;
       let plecs_encoded;
-      if (this.$refs.plecs) {
+      if (!this.remote_mode) {
         plecs = this.$refs.plecs.get_code();
         plecs_encoded = wq_encode(plecs);
       }
+
+      let entity = this.$refs.inspector.get_entity();
 
       const query_encoded = wq_encode(query);
       let sep = "?";
@@ -673,12 +691,11 @@ var app = new Vue({
         sep = "&";
       }
 
-      if (this.selected_entity) {
-        this.url += sep + "s=" + this.selected_entity;
+      if (entity) {
+        this.url += sep + "s=" + entity;
         sep = "&";
       }
 
-      // this.$refs.url.show();
       this.$refs.share_url_popover.show();
     },
     
@@ -713,11 +730,8 @@ var app = new Vue({
   data: {
     title: "Flecs",
     query_error: undefined,
-    entity_error: undefined,
     code_error: undefined,
     query_result: undefined,
-    entity_result: undefined,
-    selected_entity: undefined,
     selected_tree_item: undefined,
     url: undefined,
     params: {},

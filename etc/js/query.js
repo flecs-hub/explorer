@@ -8,7 +8,7 @@ Vue.component('query', {
       query_result: undefined,
       error: false,
       invalid_query: false,
-      request: undefined
+      request: undefined,
     }
   },
   methods: {
@@ -62,10 +62,13 @@ Vue.component('query', {
         this.query_result = undefined;
       }
     },
-    evt_enable_toggle(e) {
-      this.$refs.container.enable_toggle(e);
+    evt_allow_toggle(e) {
+      this.$refs.container.allow_toggle(e);
     },
     refresh() {
+      if (this.$refs.container.is_closed()) {
+        return;
+      }
       this.evt_query_changed(this.$refs.editor.get_query());
     },
     get_query() {
@@ -82,11 +85,20 @@ Vue.component('query', {
     get_error() {
       return this.query_error;
     },
+    result_count() {
+      return this.$refs.results.count();
+    },
+    open() {
+      this.$refs.container.open();
+    },
+    close() {
+      this.$refs.container.close();
+    },
     evt_close() {
       this.set_query();
     },
-    result_count() {
-      return this.$refs.results.count();
+    evt_panel_update() {
+      this.$emit("panel-update");
     }
   },
   computed: {
@@ -110,30 +122,17 @@ Vue.component('query', {
   template: `
     <content-container 
       ref="container"
-      :disable="query_result === undefined && !invalid_query"
-      :hidden="query_result === undefined"
+      :show_detail="query_result != undefined"
       :no_padding="true"
-      closable="true" 
-      v-on:close="evt_close">
+      v-on:close="evt_close"
+      v-on:panel-update="evt_panel_update">
 
       <template v-slot:summary>
         <query-editor
           ref="editor"
           :error="invalid_query"
           v-on:changed="evt_query_changed"
-          v-on:enable_toggle="evt_enable_toggle"/>
-
-
-
-        <span class="content-container-icon-close">
-
-          <icon-button 
-            icon="feather:x"
-            :size="20"
-            v-show="!(query_result === undefined && !invalid_query)"
-            v-on:click.stop="evt_close"
-            v-tooltip="'Clear'" />
-        </span>
+          v-on:allow-toggle="evt_allow_toggle"/>
       </template>
 
       <template v-slot:detail>

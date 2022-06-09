@@ -22,7 +22,7 @@ function fmt_float(value) {
     if (num < 0) {
       num = 0;
     }
-    return value.toFixed(num);
+    return Number.parseFloat(value.toFixed(num));
   }
 }
 
@@ -347,7 +347,7 @@ const inspector_component_component = Vue.component('inspector-component', {
   template: `
     <div class="inspector-component">
       <div class="inspector-component-name">
-        <detail-toggle :disable="value == undefined" summary_toggle="true">
+        <detail-toggle :show_detail="value != undefined" summary_toggle="true">
           <template v-slot:summary>
             <div :class="name_css">
               <entity-reference :entity="pred" :label="pred_label" :disabled="true" show_name="true" v-on="$listeners"/><template v-if="obj">:&nbsp;<span class="inspector-component-object"><entity-reference 
@@ -399,7 +399,7 @@ const inspector_components_component = Vue.component('inspector-components', {
   },
   template: `
     <div :class="css">
-      <detail-toggle :disable="!show_header" hide_disabled="true" show_divider="true" summary_toggle="true">
+      <detail-toggle :show_summary="show_header" :show_divider="true">
         <template v-slot:summary>
           <span class="inspector-header" v-if="show_header">
             <entity-reference 
@@ -414,7 +414,11 @@ const inspector_components_component = Vue.component('inspector-components', {
         <template v-slot:detail>
           <div :class="detail_css">
             <div class="inspector-components-content">
-              <inspector-component v-for="(elem, k) in entity_type" :entity="entity" :index="k" :key="k" v-on="$listeners"/>
+              <inspector-component v-for="(elem, k) in entity_type" 
+                :entity="entity" 
+                :index="k" 
+                :key="k" 
+                v-on="$listeners"/>
             </div>
           </div>
         </template>
@@ -425,20 +429,82 @@ const inspector_components_component = Vue.component('inspector-components', {
 
 // Top level inspector
 const inspector_component = Vue.component('inspector', {
-  props: ['entity', 'entity_name', 'valid'],
+  props: ['valid'],
+  data: function() {
+    return {
+      entity: undefined,
+      entity_name: undefined,
+      error: undefined
+    }
+  },
+  mounted: function() {
+    if (this.entity_name == undefined) {
+      this.close();
+    }
+  },
   methods: {
-    expand: function() {
+    expand() {
       this.$refs.container.expand();
     },
-    select_query: function() {
+    select_query() {
       this.$emit('select-query', this.entity_name);
     },
-    evt_close: function() {
-      this.$emit('select-entity');
+    refresh() {
+      if (!this.entity_name) {
+        return;
+      }
+
+      if (this.$refs.container.is_closed()) {
+        return;
+      }
+
+      app.request_entity('inspector', this.entity_name, (reply) => {
+        this.error = reply.error;
+        if (this.error === undefined) {
+          this.entity = reply;
+        }
+      }, () => {
+        this.error = "request for entity '" + this.entity_name + "' failed";
+      }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
     },
-    name_from_path: function(path) {
+    set_entity(path) {
+      if (path == this.entity_name) {
+        return;
+      }
+
+      app.request_abort('inspector');
+
+      this.entity = undefined;
+      this.entity_name = path;
+
+      if (path == undefined) {
+        this.close();
+        return;
+      } else {
+        this.open();
+      }
+
+      this.expand();
+      this.refresh();
+    },
+    name_from_path(path) {
       return name_from_path(path);
     },
+    open() {
+      this.$refs.container.open();
+    },
+    close() {
+      this.$refs.container.close();
+    },
+    get_entity() {
+      return this.entity_name;
+    },
+    evt_panel_update() {
+      this.$emit('panel-update');
+    },
+    evt_close() {
+      this.$emit('select-entity');
+    }
   },
   computed: {
     parent: function() {
@@ -474,11 +540,12 @@ const inspector_component = Vue.component('inspector', {
   },
   template: `
     <content-container 
-      ref="container" 
-      :disable="!entity_name" 
-      no_padding="true"
-      closable="true" 
-      v-on:close="evt_close">
+      ref="container"
+      :no_padding="true"
+      :closable="true"
+      :show_detail="entity_name != undefined"
+      v-on:close="evt_close"
+      v-on:panel-update="evt_panel_update">
       
       <template v-slot:summary>
         <template v-if="entity && entity.label">
@@ -493,17 +560,6 @@ const inspector_component = Vue.component('inspector', {
         <template v-else>
           Entity inspector
         </template>
-
-
-        <span class="content-container-icon-close">
-          <icon-button 
-            icon="feather:x"
-            :size="20"
-            v-show="entity_name"
-            v-on:click.stop="evt_close"
-            v-tooltip="'Clear'" 
-          />
-        </span>
       </template>
       <template v-slot:detail v-if="entity">
         <div :class="content_css">
@@ -529,7 +585,7 @@ const inspector_component = Vue.component('inspector', {
 
             <inspector-components 
               :entity="entity" 
-              :show_header="entity.is_a" 
+              :show_header="entity.is_a != undefined" 
               v-on="$listeners"/>
           </div>
         </div>

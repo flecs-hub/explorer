@@ -41,6 +41,7 @@ Vue.component('query-result', {
     </td>
     <td v-for="(variable, vi) in result.vars">
         <template v-if="variable !== '*'">
+        <entity-hierarchy :entity_path="variable" />
           <entity-reference :entity="variable" :label="var_label(vi)" :show_name="true" v-on="$listeners"/>
         </template>
         <template v-else>
