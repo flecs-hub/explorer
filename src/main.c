@@ -81,6 +81,7 @@ char* query(char *q) {
     desc.measure_eval_duration = true;
     desc.serialize_entity_labels = true;
     desc.serialize_variable_labels = true;
+    desc.serialize_colors = true;
     desc.serialize_type_info = true;
     if (ecs_iter_to_json_buf(world, &it, &reply, &desc) != 0) {
         ecs_strbuf_reset(&reply);
@@ -115,6 +116,7 @@ char* get_entity(char *path) {
     desc.serialize_label = true;
     desc.serialize_brief = true;
     desc.serialize_link = true;
+    desc.serialize_color = true;
     desc.serialize_id_labels = true;
     desc.serialize_values = true;
     desc.serialize_type_info = true;

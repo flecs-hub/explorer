@@ -2,7 +2,9 @@ Vue.component('entity-icon', {
   props: ['x', 'y', 'entity_data'],
   computed: {
     icon_color: function() {
-      if (this.entity_data.is_module) {
+      if (this.entity_data.color) {
+        return this.entity_data.color;
+      } else if (this.entity_data.is_module) {
         return "#FFE100";
       } else if (this.entity_data.is_component) {
         return "#4981B5";

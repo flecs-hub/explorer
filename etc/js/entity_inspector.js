@@ -465,7 +465,15 @@ const inspector_component = Vue.component('inspector', {
         }
       }, () => {
         this.error = "request for entity '" + this.entity_name + "' failed";
-      }, {type_info: true, label: true, brief: true, link: true, id_labels: true, values: true});
+      }, {
+        type_info: true, 
+        label: true,
+        brief: true, 
+        link: true, 
+        color: true,
+        id_labels: true, 
+        values: true
+      });
     },
     set_entity(path) {
       if (path == this.entity_name) {
@@ -548,6 +556,12 @@ const inspector_component = Vue.component('inspector', {
       v-on:panel-update="evt_panel_update">
       
       <template v-slot:summary>
+        <template>
+          <div v-if="entity">
+            <entity-icon :entity_data="entity" :x="0" :y="0"></entity-icon>
+            &nbsp;
+          </div>
+        </template>
         <template v-if="entity && entity.label">
           {{entity.label}}
         </template>

@@ -303,8 +303,15 @@ Vue.component('entity-tree', {
             let path = elem.entities[e];
             let name = this.get_name(path);
             let label;
+            let color;
             if (elem.entity_labels) {
               label = elem.entity_labels[e];
+            }
+            if (elem.colors) {
+              color = elem.colors[e];
+              if (!color) {
+                color = undefined;
+              }
             }
             if (!label) {
               label = name;
@@ -322,6 +329,7 @@ Vue.component('entity-tree', {
             }
 
             entity.label = label;
+            entity.color = color;
             entity.has_children = elem.is_set[1];
             entity.is_module = elem.is_set[2];
             entity.is_component = elem.is_set[3] || elem.is_set[4];
@@ -358,7 +366,8 @@ Vue.component('entity-tree', {
         term_ids: false, 
         subjects: false,
         entity_labels: true,
-        variable_labels: true
+        variable_labels: true,
+        colors: true
       });
     },
     update_expanded: function(container) {

@@ -70,6 +70,9 @@
   --ui-blue: rgba(79, 149, 255, 1.0);
   --ui-blue-30: rgba(79, 149, 255, 0.30);
 
+  --steel-transparent: rgb(26, 29, 35, 0.95);
+  --steel-transparent-light: rgb(46, 50, 60, 0.8);
+
   /* Color assignments */
   --app-bg: var(--grey-950);
   --app-bg-maximized: var(--steel-900);
@@ -81,6 +84,10 @@
   --panel-bg-secondary: var(--steel-800);
   --panel-select: var(--steel-700);
   --prop-bg: var(--steel-700);
+
+  --row-bg: var(--steel-800);
+  --cell-bg: var(--steel-transparent);
+  --cell-bg-hover: var(--steel-transparent-light);
 
   --primary-text: var(--grey-100);
   --secondary-text: var(--grey-400);
@@ -1188,7 +1195,7 @@ table.query-results-table th {
 }
 
 table.query-results-table thead.query-results-table-header {
-  background-color: var(--panel-bg-secondary);
+  background-color: var(--row-bg);
   position: sticky;
   top: 0px;
   z-index: 2;
@@ -1197,13 +1204,23 @@ table.query-results-table thead.query-results-table-header {
 
 table.query-results-table thead tr,
 table.query-results-table tbody tr {
-  background-color: transparent;
+  background-color: var(--row-bg);
+  transition: background-color 0.1s ease;
+}
+
+table.query-results-table tbody tr {
+  background-color: var(--row-bg);
+  transition: background-color 0.1s ease;
+}
+
+table.query-results-table tbody tr td {
+  background-color: var(--cell-bg);
   transition: background-color 0.1s ease;
 }
 
 table.query-results-table thead tr:hover,
-table.query-results-table tbody tr:hover {
-  background-color: rgba(255, 255, 255, 0.02);
+table.query-results-table tbody tr:hover td {
+  background-color: var(--cell-bg-hover);
 }
 
 th.query-results-header-term {
@@ -1230,6 +1247,11 @@ td.query-result-hierarchy {
 
 td.query-result-entity {
   white-space: nowrap;
+}
+
+span.query-result-color {
+  width: 10px;
+  max-width: 10px;
 }
 
 table.query-results-table td {

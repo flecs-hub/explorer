@@ -29,6 +29,10 @@
     color: #8B909D;
 }
 
+.ldt pre span.annotation {
+    color: rgb(93, 155, 76);
+}
+
 .ldt pre span.property {
     color: #51CC84;
 }

@@ -31,10 +31,58 @@ Vue.component('query-result', {
       } else {
         return this.entity;
       }
+    },
+    color: function() {
+      let color;
+      if (this.result.colors) {
+        color = this.result.colors[this.index];
+        if (!color) {
+          color = undefined;
+        }
+      }
+      return color;
+    },
+    row_color: function() {
+      let color;
+      if (this.result.colors) {
+        color = this.result.colors[this.index];
+        if (!color) {
+          color = "var(--row-bg)";
+        }
+      }
+      return color;
+    },
+    row_left_border_color: function() {
+      let color = 0;
+      if (this.result.colors) {
+        color = this.result.colors[this.index];
+      }
+      if (!color) {
+        color = "var(--steel-750)";
+      }
+      return color;
+    },
+    row_style: function() {
+      let style = "";
+
+      // highlight on the left
+      style += "border-style: solid; ";
+      style += "border-width: 0px; ";
+      style += "border-left-width: 3px; ";
+      style += "border-left-color: " + this.row_left_border_color + "; ";
+
+      // separating border on the bottom
+      style += "border-bottom-width: 1.1px; ";
+      style += "border-bottom-color: var(--row-bg); ";
+
+      // entity color
+      style += "background-color: " + this.row_color;
+      
+      return style;
     }
   },
   template: `
-  <tr>
+  <tr :style="row_style">
     <td class="query-result-entity" v-if="entity">
       <entity-hierarchy :entity_path="entity" />
       <entity-reference :entity="entity" :label="entity_label" :show_name="true" :show_parent="false" v-on="$listeners"/>

@@ -96,7 +96,7 @@ const frame = Vue.component('split-pane', {
     resizable: { type: Boolean, required: false, default: true },
     collapseable: { type: Boolean, required: false, default: true },
     initial_width: { type: Number, required: false },
-    min_width: { type: Number, required: false, default: 50 },
+    min_width: { type: Number, required: false, default: 45 },
     max_width: { type: Number, required: false, default: Infinity },
   },
   data() {

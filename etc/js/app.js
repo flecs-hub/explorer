@@ -27,33 +27,49 @@ const DEFAULT_PORT = "27750";
 const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 
 // Example content for local demo
-const example_selected = "Sun.Earth";
-const example_query = "Mass,\n?(ChildOf, $Parent)"
-const example_plecs = `// For C/C++ code, go to repository:
-//   https://github.com/SanderMertens/flecs
-//
-// C:   examples/c/explorer
-// C++: examples/cpp/explorer
+const example_selected = "Earth";
+const example_query = "Planet, Mass"
+const example_plecs = `// For C/C++ examples, go to:
+//  https://github.com/SanderMertens/flecs
 
 using flecs.meta
 using flecs.units.Mass
+using flecs.doc
 
-// Mass component
+@brief Mass component
 Struct(Mass) {
   value = {f64, unit: KiloGrams}
 }
 
-// Simple hierarchy
-Sun {
-  Mass = {1.988500e31}
+with Planet {
+@color #8c8c94
+Mercury = Mass{0.33e24}
+
+@color #e39e1c  
+Venus = Mass{4.87e24}
+
+@color #6b93d6  
+Earth = Mass{5.9722e24}
+
+@color #c1440e
+Mars = Mass{0.642e24}
+
+@color #e3dccb
+Jupiter = Mass{1898e24}
+ 
+@color #e3e0c0
+Saturn = Mass{568e24}
   
-  Earth {
-    Mass = {5.9722e24}
-      
-    Moon {
-      Mass = {7.34767309e22}
-    }    
-  }
+@color #3d5ef9
+Neptune = Mass{102e24}
+
+@color #93cdf1  
+Uranus = Mass{86.8e24}
+}
+
+Earth {
+  @color #dcdcdc
+  Moon = Mass{7.34767309e22}
 }
 `
 

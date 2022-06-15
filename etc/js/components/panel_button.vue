@@ -90,7 +90,7 @@ div.panel-button-dot {
 }
 
 div.panel-button-dot-active {
-  left: -12px;
+  left: -11px;
 }
 
 </style>
