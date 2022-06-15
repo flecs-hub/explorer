@@ -31,10 +31,8 @@ const example_selected = "Earth";
 const example_query = "Planet, Mass"
 const example_plecs = `// For C/C++ examples, go to:
 //  https://github.com/SanderMertens/flecs
-
 using flecs.meta
 using flecs.units.Mass
-using flecs.doc
 
 @brief Mass component
 Struct(Mass) {
@@ -585,6 +583,7 @@ var app = new Vue({
 
     evt_select_query(query) {
       this.$refs.query.set_query(query);
+      this.$refs.query.open();
     },
 
     evt_panel_update() {

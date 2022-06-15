@@ -323,6 +323,7 @@ typedef enum ecs_mixin_kind_t {
     EcsMixinWorld,
     EcsMixinObservable,
     EcsMixinIterable,
+    EcsMixinDtor,
     EcsMixinBase,        /* If mixin can't be found in object, look in base */
     EcsMixinMax
 } ecs_mixin_kind_t;
@@ -341,6 +342,9 @@ extern ecs_mixins_t ecs_world_t_mixins;
 extern ecs_mixins_t ecs_stage_t_mixins;
 extern ecs_mixins_t ecs_filter_t_mixins;
 extern ecs_mixins_t ecs_query_t_mixins;
+
+typedef void (*ecs_poly_dtor_t)(
+    ecs_poly_t *poly);
 
 /* Types that have no mixins */
 #define ecs_table_t_mixins (&(ecs_mixins_t){ NULL })
@@ -607,7 +611,6 @@ struct ecs_query_t {
     /* Flags for query properties */
     ecs_flags32_t flags;
 
-    uint64_t id;                /* Id of query in query storage */
     int32_t cascade_by;         /* Identify cascade column */
     int32_t match_count;        /* How often have tables been (un)matched */
     int32_t prev_match_count;   /* Track if sorting is needed */
@@ -616,6 +619,8 @@ struct ecs_query_t {
     /* Mixins */
     ecs_world_t *world;
     ecs_iterable_t iterable;
+    ecs_poly_dtor_t dtor;
+    ecs_entity_t entity;
 };
 
 /** All triggers for a specific (component) id */
@@ -831,7 +836,7 @@ struct ecs_world_t {
     /* -- Time management -- */
     ecs_time_t world_start_time; /* Timestamp of simulation start */
     ecs_time_t frame_start_time; /* Timestamp of frame start */
-    FLECS_FLOAT fps_sleep;       /* Sleep time to prevent fps overshoot */
+    ecs_ftime_t fps_sleep;       /* Sleep time to prevent fps overshoot */
 
 
     /* -- Metrics -- */
@@ -1474,6 +1479,9 @@ ecs_iterable_t* ecs_get_iterable(
 
 ecs_observable_t* ecs_get_observable(
     const ecs_poly_t *object);
+
+ecs_poly_dtor_t* ecs_get_dtor(
+    const ecs_poly_t *poly);
 
 #endif
 
@@ -4721,7 +4729,8 @@ ecs_mixins_t ecs_query_t_mixins = {
     .type_name = "ecs_query_t",
     .elems = {
         [EcsMixinWorld] = offsetof(ecs_query_t, world),
-        [EcsMixinIterable] = offsetof(ecs_query_t, iterable)
+        [EcsMixinIterable] = offsetof(ecs_query_t, iterable),
+        [EcsMixinDtor] = offsetof(ecs_query_t, dtor)
     }
 };
 
@@ -4871,6 +4880,12 @@ const ecs_world_t* ecs_get_world(
     const ecs_poly_t *poly)
 {
     return *(ecs_world_t**)assert_mixin(poly, EcsMixinWorld);
+}
+
+ecs_poly_dtor_t* ecs_get_dtor(
+    const ecs_poly_t *poly)
+{
+    return (ecs_poly_dtor_t*)assert_mixin(poly, EcsMixinDtor);
 }
 
 
@@ -9445,7 +9460,6 @@ void flecs_stage_init(
     ecs_stage_t *stage)
 {
     ecs_poly_assert(world, ecs_world_t);
-
     ecs_poly_init(stage, ecs_stage_t);
 
     stage->world = world;
@@ -9482,8 +9496,14 @@ void ecs_set_stage_count(
         ECS_INTERNAL_ERROR, NULL);
 
     bool auto_merge = true;
+    ecs_entity_t *lookup_path = NULL;
+    ecs_entity_t scope = 0;
+    ecs_entity_t with = 0;
     if (world->stage_count >= 1) {
         auto_merge = world->stages[0].auto_merge;
+        lookup_path = world->stages[0].lookup_path;
+        scope = world->stages[0].scope;
+        with = world->stages[0].with;
     }
 
     int32_t i, count = world->stage_count;
@@ -9524,6 +9544,9 @@ void ecs_set_stage_count(
      * property from the world */
     for (i = 0; i < stage_count; i ++) {
         world->stages[i].auto_merge = auto_merge;
+        world->stages[i].lookup_path = lookup_path;
+        world->stages[0].scope = scope;
+        world->stages[0].with = with;
     }
 
     world->stage_count = stage_count;
@@ -14190,7 +14213,7 @@ typedef struct EcsSystem {
 
     int32_t invoke_count;           /* Number of times system is invoked */
     float time_spent;               /* Time spent on running system */
-    FLECS_FLOAT time_passed;        /* Time passed since last invocation */
+    ecs_ftime_t time_passed;        /* Time passed since last invocation */
     int32_t last_frame;             /* Last frame for which the system was considered */
 
     ecs_entity_t self;              /* Entity associated with system */
@@ -14219,7 +14242,7 @@ ecs_entity_t ecs_run_intern(
     EcsSystem *system_data,
     int32_t stage_current,
     int32_t stage_count,
-    FLECS_FLOAT delta_time,
+    ecs_ftime_t delta_time,
     int32_t offset,
     int32_t limit,
     void *param);
@@ -14309,7 +14332,7 @@ void ecs_worker_end(
 void ecs_workers_progress(
     ecs_world_t *world,
     ecs_entity_t pipeline,
-    FLECS_FLOAT delta_time);
+    ecs_ftime_t delta_time);
 
 #endif
 
@@ -14567,7 +14590,7 @@ void ecs_worker_end(
 void ecs_workers_progress(
     ecs_world_t *world,
     ecs_entity_t pipeline,
-    FLECS_FLOAT delta_time)
+    ecs_ftime_t delta_time)
 {
     ecs_poly_assert(world, ecs_world_t);
     int32_t stage_count = ecs_get_stage_count(world);
@@ -15115,7 +15138,7 @@ bool ecs_pipeline_update(
 void ecs_run_pipeline(
     ecs_world_t *world,
     ecs_entity_t pipeline,
-    FLECS_FLOAT delta_time)
+    ecs_ftime_t delta_time)
 {
     ecs_assert(world != NULL, ECS_INVALID_OPERATION, NULL);
 
@@ -15212,7 +15235,7 @@ void ecs_run_pipeline(
 
 bool ecs_progress(
     ecs_world_t *world,
-    FLECS_FLOAT user_delta_time)
+    ecs_ftime_t user_delta_time)
 {
     float delta_time = ecs_frame_begin(world, user_delta_time);
 
@@ -15229,7 +15252,7 @@ bool ecs_progress(
 
 void ecs_set_time_scale(
     ecs_world_t *world,
-    FLECS_FLOAT scale)
+    ecs_ftime_t scale)
 {
     world->info.time_scale = scale;
 }
@@ -15450,7 +15473,7 @@ void MonitorStats(ecs_iter_t *it) {
     ecs_id_t kind = ecs_pair_first(it->world, ecs_term_id(it, 1));
     void *stats = ECS_OFFSET_T(hdr, EcsStatsHeader);
 
-    FLECS_FLOAT elapsed = hdr->elapsed;
+    ecs_ftime_t elapsed = hdr->elapsed;
     hdr->elapsed += it->delta_time;
 
     int32_t t_last = (int32_t)(elapsed * 60);
@@ -15741,11 +15764,11 @@ void ProgressTimers(ecs_iter_t *it) {
         }
 
         const ecs_world_info_t *info = ecs_get_world_info(it->world);
-        FLECS_FLOAT time_elapsed = timer[i].time + info->delta_time_raw;
-        FLECS_FLOAT timeout = timer[i].timeout;
+        ecs_ftime_t time_elapsed = timer[i].time + info->delta_time_raw;
+        ecs_ftime_t timeout = timer[i].timeout;
         
         if (time_elapsed >= timeout) {
-            FLECS_FLOAT t = time_elapsed - timeout;
+            ecs_ftime_t t = time_elapsed - timeout;
             if (t > timeout) {
                 t = 0;
             }
@@ -15816,7 +15839,7 @@ void ProgressTickSource(ecs_iter_t *it) {
 ecs_entity_t ecs_set_timeout(
     ecs_world_t *world,
     ecs_entity_t timer,
-    FLECS_FLOAT timeout)
+    ecs_ftime_t timeout)
 {
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
 
@@ -15835,7 +15858,7 @@ error:
     return timer;
 }
 
-FLECS_FLOAT ecs_get_timeout(
+ecs_ftime_t ecs_get_timeout(
     const ecs_world_t *world,
     ecs_entity_t timer)
 {
@@ -15853,7 +15876,7 @@ error:
 ecs_entity_t ecs_set_interval(
     ecs_world_t *world,
     ecs_entity_t timer,
-    FLECS_FLOAT interval)
+    ecs_ftime_t interval)
 {
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
 
@@ -15870,7 +15893,7 @@ error:
     return timer;  
 }
 
-FLECS_FLOAT ecs_get_interval(
+ecs_ftime_t ecs_get_interval(
     const ecs_world_t *world,
     ecs_entity_t timer)
 {
@@ -17158,6 +17181,10 @@ void plecs_apply_annotations(
     ecs_entity_t subj,
     plecs_state_t *state)
 {
+    (void)world;
+    (void)subj;
+    (void)state;
+#ifdef FLECS_DOC
     int32_t i = 0, count = state->annot_count;
     for (i = 0; i < count; i ++) {
         char *annot = state->annot[i];
@@ -17171,6 +17198,9 @@ void plecs_apply_annotations(
             ecs_doc_set_color(world, subj, annot + 7);
         }
     }
+#else
+    ecs_warn("cannot apply annotations, doc addon is missing");
+#endif
 }
 
 static
@@ -17730,7 +17760,7 @@ const char* plecs_parse_annotation(
         const char *start = ptr;
         for (; (ch = *ptr) && ch != '\n'; ptr ++) { }
 
-        int32_t len = ptr - start;
+        int32_t len = (int32_t)(ptr - start);
         char *annot = ecs_os_malloc_n(char, len + 1);
         ecs_os_memcpy_n(annot, start, char, len);
         annot[len] = '\0';
@@ -26565,7 +26595,7 @@ void ecs_metric_reduce(
     dst->gauge.min[t_dst] = 0;
     dst->gauge.max[t_dst] = 0;
 
-    FLECS_FLOAT fwindow = (FLECS_FLOAT)ECS_STAT_WINDOW;
+    ecs_float_t fwindow = (ecs_float_t)ECS_STAT_WINDOW;
 
     int32_t i;
     for (i = 0; i < ECS_STAT_WINDOW; i ++) {
@@ -26603,9 +26633,9 @@ void ecs_metric_reduce_last(
         m->gauge.max[prev] = m->gauge.max[t];
     }
 
-    FLECS_FLOAT fcount = (FLECS_FLOAT)(count + 1);
-    FLECS_FLOAT cur = m->gauge.avg[prev];
-    FLECS_FLOAT next = m->gauge.avg[t];
+    ecs_float_t fcount = (ecs_float_t)(count + 1);
+    ecs_float_t cur = m->gauge.avg[prev];
+    ecs_float_t next = m->gauge.avg[t];
 
     cur *= ((fcount - 1) / fcount);
     next *= 1 / fcount;
@@ -28718,12 +28748,12 @@ ecs_entity_t ecs_run_intern(
     EcsSystem *system_data,
     int32_t stage_current,
     int32_t stage_count,    
-    FLECS_FLOAT delta_time,
+    ecs_ftime_t delta_time,
     int32_t offset,
     int32_t limit,
     void *param) 
 {
-    FLECS_FLOAT time_elapsed = delta_time;
+    ecs_ftime_t time_elapsed = delta_time;
     ecs_entity_t tick_source = system_data->tick_source;
 
     /* Support legacy behavior */
@@ -28824,7 +28854,7 @@ ecs_entity_t ecs_run_intern(
 ecs_entity_t ecs_run_w_filter(
     ecs_world_t *world,
     ecs_entity_t system,
-    FLECS_FLOAT delta_time,
+    ecs_ftime_t delta_time,
     int32_t offset,
     int32_t limit,
     void *param)
@@ -28844,7 +28874,7 @@ ecs_entity_t ecs_run_worker(
     ecs_entity_t system,
     int32_t stage_current,
     int32_t stage_count,
-    FLECS_FLOAT delta_time,
+    ecs_ftime_t delta_time,
     void *param)
 {
     ecs_stage_t *stage = flecs_stage_from_world(&world);
@@ -28861,7 +28891,7 @@ ecs_entity_t ecs_run_worker(
 ecs_entity_t ecs_run(
     ecs_world_t *world,
     ecs_entity_t system,
-    FLECS_FLOAT delta_time,
+    ecs_ftime_t delta_time,
     void *param)
 {
     return ecs_run_w_filter(world, system, delta_time, 0, 0, param);
@@ -31481,7 +31511,7 @@ static
 void flecs_rest_array_append(
     ecs_strbuf_t *reply,
     const char *field,
-    const FLECS_FLOAT *values,
+    const ecs_float_t *values,
     int32_t t)
 {
     ecs_strbuf_list_append(reply, "\"%s\"", field);
@@ -31924,7 +31954,7 @@ static
 void DequeueRest(ecs_iter_t *it) {
     EcsRest *rest = ecs_term(it, EcsRest, 1);
 
-    if (it->delta_system_time > (FLECS_FLOAT)1.0) {
+    if (it->delta_system_time > (ecs_ftime_t)1.0) {
         ecs_warn(
             "detected large progress interval (%.2fs), REST request may timeout",
             (double)it->delta_system_time);
@@ -32194,11 +32224,11 @@ struct ecs_http_server_t {
     uint16_t port;
     const char *ipaddr;
 
-    FLECS_FLOAT dequeue_timeout; /* used to not lock request queue too often */
-    FLECS_FLOAT stats_timeout; /* used for periodic reporting of statistics */
+    ecs_ftime_t dequeue_timeout; /* used to not lock request queue too often */
+    ecs_ftime_t stats_timeout; /* used for periodic reporting of statistics */
 
-    FLECS_FLOAT request_time; /* time spent on requests in last stats interval */
-    FLECS_FLOAT request_time_total; /* total time spent on requests */
+    ecs_ftime_t request_time; /* time spent on requests in last stats interval */
+    ecs_ftime_t request_time_total; /* total time spent on requests */
     int32_t requests_processed; /* requests processed in last stats interval */
     int32_t requests_processed_total; /* total requests processed */
     int32_t dequeue_count; /* number of dequeues in last stats interval */
@@ -32250,7 +32280,7 @@ typedef struct {
     /* Connection is purged after both timeout expires and connection has
      * exceeded retry count. This ensures that a connection does not immediately
      * timeout when a frame takes longer than usual */
-    FLECS_FLOAT dequeue_timeout;
+    ecs_ftime_t dequeue_timeout;
     int32_t dequeue_retries;    
 } ecs_http_connection_impl_t;
 
@@ -32979,7 +33009,7 @@ int32_t dequeue_requests(
         conn->dequeue_retries ++;
         
         if ((conn->dequeue_timeout > 
-            (FLECS_FLOAT)ECS_HTTP_CONNECTION_PURGE_TIMEOUT) &&
+            (ecs_ftime_t)ECS_HTTP_CONNECTION_PURGE_TIMEOUT) &&
              (conn->dequeue_retries > ECS_HTTP_CONNECTION_PURGE_RETRY_COUNT)) 
         {
             ecs_dbg("http: purging connection '%s:%s' (sock = %d)", 
@@ -33143,7 +33173,7 @@ void ecs_http_server_dequeue(
     srv->stats_timeout += delta_time;
 
     if ((1000 * srv->dequeue_timeout) > 
-        (FLECS_FLOAT)ECS_HTTP_MIN_DEQUEUE_INTERVAL) 
+        (ecs_ftime_t)ECS_HTTP_MIN_DEQUEUE_INTERVAL) 
     {
         srv->dequeue_timeout = 0;
 
@@ -33152,19 +33182,19 @@ void ecs_http_server_dequeue(
         int32_t request_count = dequeue_requests(srv, srv->dequeue_timeout);
         srv->requests_processed += request_count;
         srv->requests_processed_total += request_count;
-        FLECS_FLOAT time_spent = (FLECS_FLOAT)ecs_time_measure(&t);
+        ecs_ftime_t time_spent = (ecs_ftime_t)ecs_time_measure(&t);
         srv->request_time += time_spent;
         srv->request_time_total += time_spent;
         srv->dequeue_count ++;
     }
 
     if ((1000 * srv->stats_timeout) > 
-        (FLECS_FLOAT)ECS_HTTP_MIN_STATS_INTERVAL) 
+        (ecs_ftime_t)ECS_HTTP_MIN_STATS_INTERVAL) 
     {
         srv->stats_timeout = 0;
         ecs_dbg("http: processed %d requests in %.3fs (avg %.3fs / dequeue)",
             srv->requests_processed, (double)srv->request_time, 
-            (double)(srv->request_time / (FLECS_FLOAT)srv->dequeue_count));
+            (double)(srv->request_time / (ecs_ftime_t)srv->dequeue_count));
         srv->requests_processed = 0;
         srv->request_time = 0;
         srv->dequeue_count = 0;
@@ -35336,6 +35366,7 @@ const ecs_entity_t ecs_id(EcsTrigger) =            3;
 const ecs_entity_t ecs_id(EcsQuery) =              4;
 const ecs_entity_t ecs_id(EcsObserver) =           5;
 const ecs_entity_t ecs_id(EcsIterable) =           6;
+const ecs_entity_t ecs_id(EcsPoly) =               7;
 
 /* System module component ids */
 const ecs_entity_t ecs_id(EcsSystem) =             10;
@@ -36597,7 +36628,7 @@ error:
 
 void ecs_set_target_fps(
     ecs_world_t *world,
-    FLECS_FLOAT fps)
+    ecs_ftime_t fps)
 {
     ecs_poly_assert(world, ecs_world_t);
     ecs_check(ecs_os_has_time(), ECS_MISSING_OS_API, NULL);
@@ -36776,29 +36807,29 @@ void flecs_type_info_fini(
 }
 
 static
-FLECS_FLOAT insert_sleep(
+ecs_ftime_t flecs_insert_sleep(
     ecs_world_t *world,
     ecs_time_t *stop)
 {
     ecs_poly_assert(world, ecs_world_t);  
 
     ecs_time_t start = *stop;
-    FLECS_FLOAT delta_time = (FLECS_FLOAT)ecs_time_measure(stop);
+    ecs_ftime_t delta_time = (ecs_ftime_t)ecs_time_measure(stop);
 
-    if (world->info.target_fps == (FLECS_FLOAT)0.0) {
+    if (world->info.target_fps == (ecs_ftime_t)0.0) {
         return delta_time;
     }
 
-    FLECS_FLOAT target_delta_time = 
-        ((FLECS_FLOAT)1.0 / (FLECS_FLOAT)world->info.target_fps);
+    ecs_ftime_t target_delta_time = 
+        ((ecs_ftime_t)1.0 / (ecs_ftime_t)world->info.target_fps);
 
     /* Calculate the time we need to sleep by taking the measured delta from the
      * previous frame, and subtracting it from target_delta_time. */
-    FLECS_FLOAT sleep = target_delta_time - delta_time;
+    ecs_ftime_t sleep = target_delta_time - delta_time;
 
     /* Pick a sleep interval that is 4 times smaller than the time one frame
      * should take. */
-    FLECS_FLOAT sleep_time = sleep / (FLECS_FLOAT)4.0;
+    ecs_ftime_t sleep_time = sleep / (ecs_ftime_t)4.0;
 
     do {
         /* Only call sleep when sleep_time is not 0. On some platforms, even
@@ -36808,36 +36839,36 @@ FLECS_FLOAT insert_sleep(
         }
 
         ecs_time_t now = start;
-        delta_time = (FLECS_FLOAT)ecs_time_measure(&now);
+        delta_time = (ecs_ftime_t)ecs_time_measure(&now);
     } while ((target_delta_time - delta_time) > 
-        (sleep_time / (FLECS_FLOAT)2.0));
+        (sleep_time / (ecs_ftime_t)2.0));
 
     return delta_time;
 }
 
 static
-FLECS_FLOAT start_measure_frame(
+ecs_ftime_t flecs_start_measure_frame(
     ecs_world_t *world,
-    FLECS_FLOAT user_delta_time)
+    ecs_ftime_t user_delta_time)
 {
     ecs_poly_assert(world, ecs_world_t);  
 
-    FLECS_FLOAT delta_time = 0;
+    ecs_ftime_t delta_time = 0;
 
     if ((world->flags & EcsWorldMeasureFrameTime) || (user_delta_time == 0)) {
         ecs_time_t t = world->frame_start_time;
         do {
             if (world->frame_start_time.nanosec || world->frame_start_time.sec){ 
-                delta_time = insert_sleep(world, &t);
+                delta_time = flecs_insert_sleep(world, &t);
 
                 ecs_time_measure(&t);
             } else {
                 ecs_time_measure(&t);
                 if (world->info.target_fps != 0) {
-                    delta_time = (FLECS_FLOAT)1.0 / world->info.target_fps;
+                    delta_time = (ecs_ftime_t)1.0 / world->info.target_fps;
                 } else {
                     /* Best guess */
-                    delta_time = (FLECS_FLOAT)1.0 / (FLECS_FLOAT)60.0; 
+                    delta_time = (ecs_ftime_t)1.0 / (ecs_ftime_t)60.0; 
                 }
             }
         
@@ -36847,27 +36878,27 @@ FLECS_FLOAT start_measure_frame(
         world->frame_start_time = t;  
 
         /* Keep track of total time passed in world */
-        world->info.world_time_total_raw += (FLECS_FLOAT)delta_time;
+        world->info.world_time_total_raw += (ecs_ftime_t)delta_time;
     }
 
-    return (FLECS_FLOAT)delta_time;
+    return (ecs_ftime_t)delta_time;
 }
 
 static
-void stop_measure_frame(
+void flecs_stop_measure_frame(
     ecs_world_t* world)
 {
     ecs_poly_assert(world, ecs_world_t);  
 
     if (world->flags & EcsWorldMeasureFrameTime) {
         ecs_time_t t = world->frame_start_time;
-        world->info.frame_time_total += (FLECS_FLOAT)ecs_time_measure(&t);
+        world->info.frame_time_total += (ecs_ftime_t)ecs_time_measure(&t);
     }
 }
 
-FLECS_FLOAT ecs_frame_begin(
+ecs_ftime_t ecs_frame_begin(
     ecs_world_t *world,
-    FLECS_FLOAT user_delta_time)
+    ecs_ftime_t user_delta_time)
 {
     ecs_poly_assert(world, ecs_world_t);
     ecs_check(!(world->flags & EcsWorldReadonly), ECS_INVALID_OPERATION, NULL);
@@ -36875,7 +36906,7 @@ FLECS_FLOAT ecs_frame_begin(
         ECS_MISSING_OS_API, "get_time");
 
     /* Start measuring total frame time */
-    FLECS_FLOAT delta_time = start_measure_frame(world, user_delta_time);
+    ecs_ftime_t delta_time = flecs_start_measure_frame(world, user_delta_time);
     if (user_delta_time == 0) {
         user_delta_time = delta_time;
     }  
@@ -36890,7 +36921,7 @@ FLECS_FLOAT ecs_frame_begin(
 
     return world->info.delta_time;
 error:
-    return (FLECS_FLOAT)0;
+    return (ecs_ftime_t)0;
 }
 
 void ecs_frame_end(
@@ -36907,7 +36938,7 @@ void ecs_frame_end(
         flecs_stage_merge_post_frame(world, &stages[i]);
     }
 
-    stop_measure_frame(world);
+    flecs_stop_measure_frame(world);
 error:
     return;
 }
@@ -42997,7 +43028,6 @@ ecs_query_t* ecs_query_init(
     ecs_world_t *world,
     const ecs_query_desc_t *desc)
 {
-    ecs_query_t *result = NULL;
     ecs_check(world != NULL, ECS_INTERNAL_ERROR, NULL);
     ecs_check(desc != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_check(desc->_canary == 0, ECS_INVALID_PARAMETER, NULL);
@@ -43009,9 +43039,7 @@ ecs_query_t* ecs_query_init(
      * change back to being in sync before processing pending events. */
     ecs_run_aperiodic(world, EcsAperiodicEmptyTableEvents);
 
-    result = flecs_sparse_add(world->queries, ecs_query_t);
-    ecs_poly_init(result, ecs_query_t);
-    result->id = flecs_sparse_last_id(world->queries);
+    ecs_query_t *result = ecs_poly_new(ecs_query_t);
 
     ecs_observer_desc_t observer_desc = { .filter = desc->filter };
     observer_desc.filter.match_empty_tables = true;
@@ -43041,6 +43069,7 @@ ecs_query_t* ecs_query_init(
 
     result->world = world;
     result->iterable.init = flecs_query_iter_init;
+    result->dtor = (ecs_poly_dtor_t)ecs_query_fini;
     result->system = desc->system;
     result->prev_match_count = -1;
 
@@ -43102,6 +43131,10 @@ ecs_query_t* ecs_query_init(
             desc->sort_table);
     }
 
+    ecs_entity_t e = ecs_new_id(world);
+    ecs_set(world, e, EcsPoly, { .poly = result });
+    result->entity = e;
+
     return result;
 error:
     if (result) {
@@ -43109,7 +43142,7 @@ error:
         if (result->observer) {
             ecs_delete(world, result->observer);
         }
-        flecs_sparse_remove(world->queries, result->id);
+        ecs_os_free(result);
     }
     return NULL;
 }
@@ -43143,6 +43176,14 @@ void ecs_query_fini(
     ecs_world_t *world = query->world;
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
 
+    if (query->entity) {
+        /* If query is associated with entity, delete it first */
+        ecs_entity_t entity = query->entity;
+        query->entity = 0;
+        ecs_delete(query->world, entity);
+        return;
+    }
+
     if (!(world->flags & EcsWorldFini)) {
         if (query->observer) {
             ecs_delete(world, query->observer);
@@ -43175,10 +43216,8 @@ void ecs_query_fini(
     ecs_vector_free(query->table_slices);
     ecs_filter_fini(&query->filter);
 
-    ecs_poly_fini(query, ecs_query_t);
-    
-    /* Remove query from storage */
-    flecs_sparse_remove(world->queries, query->id);
+    ecs_poly_free(query, ecs_query_t);
+
 error:
     return;
 }
@@ -47644,6 +47683,13 @@ static void ecs_on_remove(EcsObserver)(ecs_iter_t *it) {
     }
 }
 
+/* Destructor for poly component */
+ECS_DTOR(EcsPoly, ptr, {
+    ecs_poly_dtor_t *dtor = ecs_get_dtor(ptr->poly);
+    ecs_assert(dtor != NULL, ECS_INTERNAL_ERROR, NULL);
+    dtor[0](ptr->poly);
+})
+
 
 /* -- Builtin triggers -- */
 
@@ -48175,6 +48221,11 @@ void flecs_bootstrap(
         .on_remove = ecs_on_remove(EcsObserver)
     });
 
+    flecs_type_info_init(world, EcsPoly, {
+        .ctor = ecs_default_ctor,
+        .dtor = ecs_dtor(EcsPoly)
+    });
+
     flecs_type_info_init(world, EcsQuery, { 0 });
     flecs_type_info_init(world, EcsIterable, { 0 });
 
@@ -48195,6 +48246,7 @@ void flecs_bootstrap(
     bootstrap_component(world, table, EcsTrigger);
     bootstrap_component(world, table, EcsObserver);
     bootstrap_component(world, table, EcsIterable);
+    bootstrap_component(world, table, EcsPoly);
 
     world->info.last_component_id = EcsFirstUserComponentId;
     world->info.last_id = EcsFirstUserEntityId;
