@@ -118,9 +118,16 @@ const frame = Vue.component('split-pane', {
     index() {
       return this.$parent.frames.indexOf(this);
     },
+    first() {
+      return this.$parent.frames.indexOf(this) == 1;
+    },
+    last() {
+      const frames = this.$parent.frames;
+      return frames.indexOf(this) == frames.length - 1;
+    },
     css() {
       let result = "split-pane";
-      if (!this.visible) {
+      if (!this.visible && (this.first || this.last)) {
         result += " split-pane-hidden";
       }
       return result;

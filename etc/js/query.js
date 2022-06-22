@@ -125,6 +125,7 @@ Vue.component('query', {
       ref="container"
       :show_detail="query_result != undefined"
       :no_padding="true"
+      :closable="true"
       v-on:close="evt_close"
       v-on:panel-update="evt_panel_update">
 
