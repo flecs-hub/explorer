@@ -237,7 +237,7 @@ Vue.component('query-results-table', {
       for (let i = 0; i < rows.length; i ++) {
         let color;
         if (data.colors) {
-          color = data.colors[i];
+          color = data.colors[this.index(i)];
         }
         trs.push(this.create_row(h, rows[i], color));
       }
