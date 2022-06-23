@@ -1,115 +1,245 @@
 
-Vue.component('query-result', {
-  props: ['results', 'result', 'entity', 'index', 'show_terms'],
+Vue.component('query-results-table', {
+  props: {
+    columns: {type: Object, required: true}
+  },
   methods: {
-    var_label: function(var_index) {
-      if (this.result.var_labels) {
-        return this.result.var_labels[var_index];
-      } else {
-        return this.vars[var_index];
+    // Get type info for term
+    type_info(term) {
+      if (this.columns.type_info) {
+        return this.columns.type_info[this.columns.ids[term]];
       }
     },
-    get_value(value, index) {
-      if (Array.isArray(value)) {
-        // Owned
-        return value[index];
-      } else {
-        // Shared
-        return value;
-      }
+    // Format header of (component) term
+    id_elem(str) {
+      const elems = str.split('.');
+      return elems[elems.length - 1];
     },
-    type_info(index) {
-      if (this.results.type_info) {
-        return this.results.type_info[this.results.ids[index]];
-      }
-    }
-  },
-  computed: {
-    entity_label: function() {
-      if (this.result.entity_labels) {
-        return this.result.entity_labels[this.index];
+    term_header(term) {
+      const pair = this.columns.ids[term].split(',');
+      let result;
+      if (pair.length == 1) {
+        result = this.id_elem(pair[0]);
       } else {
-        return this.entity;
+        const first = this.id_elem(pair[0].slice(1));
+        const second = this.id_elem(pair[1].slice(0, -1));
+        result = "(" + first + "," + second + ")";
       }
-    },
-    color: function() {
-      let color;
-      if (this.result.colors) {
-        color = this.result.colors[this.index];
-        if (!color) {
-          color = undefined;
+      let ti = this.type_info(term);
+      if (ti) {
+        // If type info has a single member we can use its type info for the
+        // entire column, otherwise ignore.
+        const keys = Object.keys(ti);
+        if (keys.length == 1) {
+          ti = ti[keys[0]];
+        } else {
+          ti = undefined;
         }
       }
-      return color;
-    },
-    row_color: function() {
-      let color;
-      if (this.result.colors) {
-        color = this.result.colors[this.index];
-        if (!color) {
-          color = "var(--row-bg)";
+      if (ti) {
+        // Extended type properties are in the second element of the array
+        const ext = ti[1];
+        if (ext && ext.symbol) {
+          if (ext.quantity != "flecs.units.Duration") {
+            result += "\xa0(" + ext.symbol + ")";
+          }
         }
       }
-      return color;
+      return result;
     },
-    row_left_border_color: function() {
-      let color = 0;
-      if (this.result.colors) {
-        color = this.result.colors[this.index];
+    // Is term a component or a tag
+    term_is_tag(term) {
+      return this.columns.data.values[term] === 0;
+    },
+    create_none(h) {
+      return h('td', [h('span', { class: "query-result-no" }, ["None"])]);
+    },
+    // Create table header
+    create_header(h) {
+      const columns = this.columns;
+      const data = columns.data;
+      let ths = [];
+
+      if (data.entities && data.entities.length) {
+        ths.push(h('th', ["Entity"]));
       }
+
+      if (columns.vars) {
+        for (let var_name of columns.vars) {
+          ths.push(h('th', [var_name]));
+        }
+      }
+
+      if (columns.ids) {
+        for (let i = 0; i < columns.ids.length; i ++) {
+          if (!this.term_is_tag(i)) {
+            ths.push(h('th', [this.term_header(i)]));
+          }
+        }
+      }
+
+      ths.push( h('th', { class: 'query-results-squeeze'}) );
+
+      return h('thead', 
+        { class: 'query-results-table-header' },
+        [ h('tr', ths) ]
+      );
+    },
+    // Create entity table cells
+    create_entities(h, entities, labels) {
+      let td_entities = [];
+      if (entities.count && (!labels || !labels.count)) {
+        labels = entities;
+      }
+
+      for (let i = 0; i < entities.length; i ++) {
+        const entity = entities[i];
+        const label = labels[i];
+
+        if (entity === '*') {
+          td_entities.push(this.create_none(h));
+          continue;
+        }
+
+        const hierarchy = h('entity-hierarchy', {
+          props: { entity_path: entity } });
+
+        const ref = h('entity-reference', {
+          props: {
+            entity: entity, label: label, show_name: true, show_parent: false 
+          },
+          on: this.$listeners });
+
+        td_entities.push(h('td', [hierarchy, ref]));
+      }
+
+      return td_entities;
+    },
+    // Create variable table cells
+    create_vars(h) {
+      const columns = this.columns;
+      const data = this.columns.data;
+      let vars = [];
+
+      if (columns.vars) {
+        for (let i = 0; i < columns.vars.length; i ++) {
+          vars.push(
+            this.create_entities(h, data.vars[i], data.var_labels[i])
+          );
+        }
+      }
+
+      return vars;
+    },
+    // Create component value table cells
+    create_values(h) {
+      const columns = this.columns;
+      const data = this.columns.data;
+      let values = [];
+
+      for (let i = 0; i < columns.ids.length; i ++) {
+        if (this.term_is_tag(i)) {
+          continue;
+        }
+
+        let value_array = [];
+        for (let v = 0; v < data.values[i].length; v ++) {
+          if (!data.is_set[i][v]) {
+            value_array.push(this.create_none(h));
+          } else {
+            const inspector = h('inspector-props', {
+              props: {
+                value: data.values[i][v],
+                type: this.type_info(i),
+                list: true
+              }
+            });
+
+            value_array.push(h('td', [inspector]));
+          }
+        }
+        values.push( value_array );
+      }
+
+      return values;
+    },
+    // Create table row
+    create_row(h, children, color) {
+      let left_border_color = color;
+      let row_color = color;
+
       if (!color) {
-        color = "var(--steel-750)";
+        left_border_color = "var(--steel-750)";
+        row_color = "var(--row-bg)";
       }
-      return color;
-    },
-    row_style: function() {
-      let style = "";
-
-      // highlight on the left
-      style += "border-style: solid; ";
-      style += "border-width: 0px; ";
-      style += "border-left-width: 3px; ";
-      style += "border-left-color: " + this.row_left_border_color + "; ";
-
-      // separating border on the bottom
-      style += "border-bottom-width: 1.1px; ";
-      style += "border-bottom-color: var(--row-bg); ";
-
-      // entity color
-      style += "background-color: " + this.row_color;
       
-      return style;
+      let style = "border-left-color: " + left_border_color + "; ";
+      style += "background-color: " + row_color;
+
+      return h('tr', { class: "query-results-row", style: style }, children );
+    },
+    // Create table body
+    create_body(h) {
+      const columns = this.columns;
+      const data = columns.data;
+
+      // Create cells from columns
+      let tds = {
+        entities: this.create_entities(h, data.entities, data.labels),
+        vars: this.create_vars(h),
+        values: this.create_values(h)
+      };
+
+      // Initialize rows
+      let rows = [];
+      for (let i = 0; i < columns.count; i ++) {
+        rows.push([]);
+      }
+
+      // Populate row children arrays with td elements
+
+      // Add entity tds
+      for (let i = 0; i < tds.entities.length; i ++) {
+        rows[i].push(tds.entities[i]);
+      }
+
+      // Add variable tds
+      for (let var_tds of tds.vars) {
+        for (let i = 0; i < var_tds.length; i ++) {
+          rows[i].push(var_tds[i]);
+        }
+      }
+
+      // Add value tds
+      for (let value_tds of tds.values) {
+        for (let i = 0; i < value_tds.length; i ++) {
+          rows[i].push(value_tds[i]);
+        }
+      }
+
+      // Add td's at the end that push values to the left
+      for (let row of rows) {
+        row.push( h('td', { class: 'query-results-squeeze'}) );
+      }
+
+      // Create row elements
+      let trs = [];
+      for (let i = 0; i < rows.length; i ++) {
+        let color;
+        if (data.colors) {
+          color = data.colors[i];
+        }
+        trs.push(this.create_row(h, rows[i], color));
+      }
+
+      return h('tbody', trs);
     }
   },
-  template: `
-  <tr :style="row_style">
-    <td class="query-result-entity" v-if="entity">
-      <entity-hierarchy :entity_path="entity" />
-      <entity-reference :entity="entity" :label="entity_label" :show_name="true" :show_parent="false" v-on="$listeners"/>
-    </td>
-    <td v-for="(variable, vi) in result.vars">
-        <template v-if="variable !== '*'">
-        <entity-hierarchy :entity_path="variable" />
-          <entity-reference :entity="variable" :label="var_label(vi)" :show_name="true" v-on="$listeners"/>
-        </template>
-        <template v-else>
-          <span class="query-result-no">None</span>
-        </template>
-    </td>
-    <td v-for="(value, vi) in result.values" v-if="value !== 0">
-      <template v-if="result.is_set[vi]">
-        <inspector-props :value="get_value(value, index)" :type="type_info(vi)" :list="true"/>
-      </template>
-      <template v-else>
-        <span class="query-result-no">None</span>
-      </template>
-    </td>
-    <td v-if="show_terms" v-for="term in result.terms" class="content-container-term">
-      {{term}}
-    </td>
-    <td class="content-container-squeeze"></td>
-  </tr>
-  `
+  render: function(h) {
+    const header = this.create_header(h);
+    const body = this.create_body(h);
+    return h('table', {class: 'query-results-table'}, [header, body]);
+  }
 });
 
 Vue.component('query-results', {
@@ -167,6 +297,37 @@ Vue.component('query-results', {
           }
         }
         return result;
+      },
+      result_count(result) {
+        if (result.entities) {
+          return result.entities.length;
+        } else if (result.values) {
+          let count = 0;
+          for (let i = 0; i < result.values.length; i ++) {
+            if (result.values[i].length > count) {
+              count = result.values[i].length;
+            }
+            if (count) {
+              return count;
+            }
+          }
+        }
+        if (result.vars) {
+          return 1;
+        }
+      },
+      append_to(dst, src, count) {
+        if (src === 0) {
+          return;
+        }
+
+        if (Array.isArray(src)) {
+          dst.push(...src);
+        } else {
+          for (let i = 0; i < count; i ++) {
+            dst.push(src);
+          }
+        }
       }
     },
     computed: {
@@ -224,9 +385,6 @@ Vue.component('query-results', {
           return [];
         }
       },
-      values: function(result) {
-        return result.values;
-      },
       term_count: function() {
         if (this.data && this.data.ids) {
           return this.data.ids.length;
@@ -247,6 +405,78 @@ Vue.component('query-results', {
           result += " invalid";
         }
         return result;
+      },
+      columns: function() {
+        // Function that combines data from all results into single arrays.
+        let r = {
+          ids: this.data.ids,
+          vars: this.data.vars,
+          type_info: this.data.type_info,
+          data: {
+            entities: [],
+            labels: [],
+            colors: [],
+            is_set: [],
+            values: [],
+            vars: [],
+            var_labels: []
+          },
+          count: 0
+        };
+
+        for (let result of this.results) {
+          let count = this.result_count(result);
+          
+          // Append entity names, labels and colors
+          if (result.entities) {
+            r.data.entities.push(...result.entities);
+          }
+          if (result.entity_labels) {
+            r.data.labels.push(...result.entity_labels);
+          }
+          if (result.colors) {
+            r.data.colors.push(...result.colors);
+          }
+
+          // Append component values
+          for (let i = 0; i < result.values.length; i ++) {
+            if (r.data.values.length <= i) {
+              if (result.values[i] === 0) {
+                r.data.values.push(0);
+              } else {
+                r.data.values.push([]);
+              }
+              r.data.is_set.push([]);
+            }
+
+            this.append_to(r.data.values[i], result.values[i], count);
+            this.append_to(r.data.is_set[i], result.is_set[i], count);
+          }
+
+          // Append variables
+          if (result.vars) {
+            for (let i = 0; i < result.vars.length; i ++) {
+              if (r.data.vars.length <= i) {
+                r.data.vars.push([]);
+              }
+              this.append_to(r.data.vars[i], result.vars[i], count);
+            }
+          }
+
+          // Append variable labels
+          if (result.var_labels) {
+            for (let i = 0; i < result.var_labels.length; i ++) {
+              if (r.data.var_labels.length <= i) {
+                r.data.var_labels.push([]);
+              }
+              this.append_to(r.data.var_labels[i], result.var_labels[i], count);
+            }
+          }
+
+          r.count += count;
+        }
+
+        return r;
       }
     },
     template: `
@@ -256,46 +486,9 @@ Vue.component('query-results', {
           <div v-else class="noselect query-result-no"> No </div>
         </template>
         <template v-else>
-          <table class="query-results-table" v-if="data">
-            <thead class="query-results-table-header">
-              <tr>
-                <th v-if="has_this">Entity</th>
-                <th v-for="var_name in variables" class="query-results-header">
-                  {{var_name}}
-                </th>
-                <th v-for="(id, i) in data.ids" v-if="term_has_values(i)">
-                  {{term_id(i)}}
-                </th>
-                <th v-for="(n, index) in term_count" class="query-results-header-term" v-if="show_terms">
-                  Term {{index + 1}}
-                </th>
-                <th class="query-results-squeeze"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <template v-for="result in results">
-                <template v-if="has_this">
-                  <template v-for="(entity, index) in result.entities">
-                    <query-result 
-                      :results="data"
-                      :result="result"
-                      :entity="entity"
-                      :index="index"
-                      :show_terms="show_terms"
-                      v-on="$listeners"/>
-                  </template>
-                </template>
-                <template v-else>
-                  <query-result 
-                    :results="data"
-                    :result="result"
-                    :index="0"
-                    :show_terms="show_terms"
-                    v-on="$listeners"/>
-                </template>
-              </template>
-            </tbody>
-          </table>
+          <query-results-table :columns="columns"
+            v-on="$listeners">
+          </query-results-table>
         </template>
       </div>`
   });
