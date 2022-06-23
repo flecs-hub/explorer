@@ -16,7 +16,7 @@ In C:
 ecs_singleton_set(world, EcsRest, {0});
 ```
 
-In C with the flecs app addon:
+In C with the app addon:
 ```c
 ecs_app_run(world, &(ecs_app_desc_t) {
   .enable_rest = true
@@ -26,6 +26,13 @@ ecs_app_run(world, &(ecs_app_desc_t) {
 In C++:
 ```c
 world.set<flecs::Rest>({});
+```
+
+In C++ with the app addon:
+```cpp
+world.app()
+  .enable_rest()
+  .run();
 ```
 
 When the application is running, verify that the server works by going to:
