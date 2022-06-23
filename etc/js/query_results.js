@@ -250,54 +250,6 @@ Vue.component('query-results', {
       }
     },
     methods: {
-      term_has_values(term) {
-        if (this.data && this.data.results && this.data.results[0] && this.data.results[0].values) {
-          if (this.data.results[0].values[term] !== 0) {
-            return true;
-          } else {
-            return false;
-          }
-        }
-        return false;
-      },
-      id_elem(str) {
-        const elems = str.split('.');
-        return elems[elems.length - 1];
-      },
-      type_info(term) {
-        if (this.data.type_info) {
-          const ti = this.data.type_info[this.data.ids[term]];
-
-          // If type info has a single member we can use its type info for the
-          // entire column, otherwise ignore.
-          const keys = Object.keys(ti);
-          if (keys.length == 1) {
-            return ti[keys[0]];
-          }
-        }
-      },
-      term_id(term) {
-        const pair = this.data.ids[term].split(',');
-        let result;
-        if (pair.length == 1) {
-          result = this.id_elem(pair[0]);
-        } else {
-          const first = this.id_elem(pair[0].slice(1));
-          const second = this.id_elem(pair[1].slice(0, -1));
-          result = "(" + first + "," + second + ")";
-        }
-        const ti = this.type_info(term);
-        if (ti) {
-          // Extended type properties are in the second element of the array
-          const ext = ti[1];
-          if (ext && ext.symbol) {
-            if (ext.quantity != "flecs.units.Duration") {
-              result += "\xa0(" + ext.symbol + ")";
-            }
-          }
-        }
-        return result;
-      },
       result_count(result) {
         if (result.entities) {
           return result.entities.length;
@@ -346,21 +298,6 @@ Vue.component('query-results', {
         }
         return true;
       },
-      show_results: function() {
-        if (this.is_true == false) {
-          return false;
-        }
-        if (this.show_terms) {
-          return true;
-        }
-        if (this.has_this) {
-          return true;
-        }
-        if (this.variable_count != 0) {
-          return true;
-        }
-        return false;
-      },
       has_this: function() {
         if (this.data && this.data.results) {
           if (this.data.results.length) {
@@ -384,13 +321,6 @@ Vue.component('query-results', {
         } else {
           return [];
         }
-      },
-      term_count: function() {
-        if (this.data && this.data.ids) {
-          return this.data.ids.length;
-        } else {
-          return [];
-        } 
       },
       results: function() {
         if (this.data) {
