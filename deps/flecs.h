@@ -237,6 +237,7 @@ extern "C" {
 #define EcsFilterMatchAnything         (1u << 6u)  /* False if filter has no/only Not terms */
 #define EcsFilterIsFilter              (1u << 7u)  /* When true, data fields won't be populated */
 #define EcsFilterIsInstanced           (1u << 8u)  /* Is filter instanced (see ecs_filter_desc_t) */
+#define EcsFilterPopulate              (1u << 9u)  /* Populate data, ignore non-matching fields */
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -254,7 +255,7 @@ extern "C" {
 #define EcsTableHasDtors               (1u << 9u)
 #define EcsTableHasCopy                (1u << 10u)
 #define EcsTableHasMove                (1u << 11u)
-#define EcsTableHasUnion              (1u << 12u)
+#define EcsTableHasUnion               (1u << 12u)
 #define EcsTableHasDisabled            (1u << 13u)
 #define EcsTableHasOverrides           (1u << 14u)
 
@@ -287,8 +288,9 @@ extern "C" {
 //// Aperiodic action flags (used by ecs_run_aperiodic)
 ////////////////////////////////////////////////////////////////////////////////
 
-#define EcsAperiodicEmptyTableEvents   (1u << 1u)  /* Process pending empty table events */
+#define EcsAperiodicEmptyTables        (1u << 1u)  /* Process pending empty table events */
 #define EcsAperiodicComponentMonitors  (1u << 2u)  /* Process component monitors */
+#define EcsAperiodicEmptyQueries       (1u << 4u)  /* Process empty queries */
 
 #ifdef __cplusplus
 }
@@ -361,11 +363,11 @@ extern "C" {
 
 /* Convenience macro for exporting symbols */
 #ifndef flecs_STATIC
-#if defined(flecs_EXPORTS) && (defined(_MSC_VER) || defined(__MINGW32__))
+#if flecs_EXPORTS && (defined(_MSC_VER) || defined(__MINGW32__))
   #define FLECS_API __declspec(dllexport)
-#elif defined(flecs_EXPORTS)
+#elif flecs_EXPORTS
   #define FLECS_API __attribute__((__visibility__("default")))
-#elif defined(_MSC_VER)
+#elif defined _MSC_VER
   #define FLECS_API __declspec(dllimport)
 #else
   #define FLECS_API
@@ -524,6 +526,8 @@ typedef int32_t ecs_size_t;
 #define ecs_pair_second(world, pair) ecs_get_alive(world, ECS_PAIR_SECOND(pair))
 #define ecs_pair_relation ecs_pair_first
 #define ecs_pair_object ecs_pair_second
+
+#define ecs_poly_id(tag) ecs_pair(ecs_id(EcsPoly), tag)
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Debug macro's
@@ -2343,6 +2347,10 @@ typedef void (*ecs_move_t)(
     int32_t count,
     const ecs_type_info_t *type_info);
 
+/* Destructor function for poly objects */
+typedef void (*ecs_poly_dtor_t)(
+    ecs_poly_t *poly);
+
 /** @} */
 
 /**
@@ -2471,6 +2479,8 @@ struct ecs_filter_t {
 
 /** A trigger reacts to events matching a single term */
 struct ecs_trigger_t {
+    ecs_header_t hdr;
+
     ecs_term_t term;            /* Term describing the trigger condition id */
 
     /* Trigger events */
@@ -2484,9 +2494,6 @@ struct ecs_trigger_t {
 
     ecs_ctx_free_t ctx_free;    /* Callback to free ctx */
     ecs_ctx_free_t binding_ctx_free; /* Callback to free binding_ctx */
-    
-    ecs_entity_t entity;        /* Trigger entity */
-    ecs_entity_t self;          /* Entity associated with observer */
 
     ecs_observable_t *observable;  /* Observable for trigger */
 
@@ -2494,13 +2501,19 @@ struct ecs_trigger_t {
     bool match_disabled;        /* Should trigger ignore disabled entities */
     bool instanced;             /* See ecs_filter_desc_t */
 
-    uint64_t id;                /* Internal id */
     int32_t *last_event_id;     /* Optional pointer to observer last_event_id */
     ecs_id_t register_id;       /* Id with with trigger is registered */
+
+    /* Mixins */
+    ecs_world_t *world;
+    ecs_entity_t entity;
+    ecs_poly_dtor_t dtor;
 };
 
 /* An observer reacts to events matching a filter */
 struct ecs_observer_t {
+    ecs_header_t hdr;
+    
     ecs_filter_t filter;
 
     /* Triggers created by observer */
@@ -2518,18 +2531,19 @@ struct ecs_observer_t {
 
     ecs_ctx_free_t ctx_free;    /* Callback to free ctx */
     ecs_ctx_free_t binding_ctx_free; /* Callback to free binding_ctx */
-    
-    ecs_entity_t entity;        /* Observer entity */
-    ecs_entity_t self;          /* Entity associated with observer */
 
     ecs_observable_t *observable;  /* Observable for observer */
 
-    uint64_t id;                /* Internal id */  
     int32_t last_event_id;      /* Last handled event id */
 
     bool is_monitor;            /* If true, the observer only triggers when the
                                  * filter did not match with the entity before
                                  * the event happened. */
+
+    /* Mixins */
+    ecs_world_t *world;
+    ecs_entity_t entity;
+    ecs_poly_dtor_t dtor;
 };
 
 /** Type that contains component lifecycle callbacks. */
@@ -3670,9 +3684,6 @@ typedef struct ecs_trigger_desc_t {
     /* Callback to invoke on an event */
     ecs_iter_action_t callback;
 
-    /* Associate with entity */
-    ecs_entity_t self;
-
     /* User context to pass to callback */
     void *ctx;
 
@@ -3722,9 +3733,6 @@ typedef struct ecs_observer_desc_t {
      * the general purpose query matcher. */
     ecs_run_action_t run;
 
-    /* Associate with entity */
-    ecs_entity_t self;
-
     /* User context to pass to callback */
     void *ctx;
 
@@ -3763,21 +3771,6 @@ typedef struct EcsComponent {
     ecs_size_t size;           /* Component size */
     ecs_size_t alignment;      /* Component alignment */
 } EcsComponent;
-
-/** Component that stores reference to trigger */
-typedef struct EcsTrigger {
-    const ecs_trigger_t *trigger;
-} EcsTrigger;
-
-/** Component that stores reference to observer */
-typedef struct EcsObserver {
-    const ecs_observer_t *observer;
-} EcsObserver;
-
-/** Component for storing a query */
-typedef struct EcsQuery {
-    ecs_query_t *query;
-} EcsQuery;
 
 /** Component for storing a poly object */
 typedef struct EcsPoly {
@@ -3907,14 +3900,15 @@ FLECS_API extern const ecs_id_t ECS_DISABLED;
 /** Builtin component ids */
 FLECS_API extern const ecs_entity_t ecs_id(EcsComponent);
 FLECS_API extern const ecs_entity_t ecs_id(EcsIdentifier);
-FLECS_API extern const ecs_entity_t ecs_id(EcsTrigger);
-FLECS_API extern const ecs_entity_t ecs_id(EcsQuery);
-FLECS_API extern const ecs_entity_t ecs_id(EcsObserver);
 FLECS_API extern const ecs_entity_t ecs_id(EcsIterable);
 FLECS_API extern const ecs_entity_t ecs_id(EcsPoly);
 
+FLECS_API extern const ecs_entity_t EcsQuery;
+FLECS_API extern const ecs_entity_t EcsTrigger;
+FLECS_API extern const ecs_entity_t EcsObserver;
+
 /* System module component ids */
-FLECS_API extern const ecs_entity_t ecs_id(EcsSystem);
+FLECS_API extern const ecs_entity_t EcsSystem;
 FLECS_API extern const ecs_entity_t ecs_id(EcsTickSource);
 
 /** Pipeline module component ids */
@@ -4128,8 +4122,8 @@ FLECS_API extern const ecs_entity_t EcsPanic;
  * component does not change the behavior of core ECS operations. */
 FLECS_API extern const ecs_entity_t EcsDefaultChildComponent;
 
-/* System module tags */
-FLECS_API extern const ecs_entity_t EcsInactive;
+/* Tag used to indicate query is empty */
+FLECS_API extern const ecs_entity_t EcsEmpty;
 
 /* Pipeline module tags */
 FLECS_API extern const ecs_entity_t ecs_id(EcsPipeline);
@@ -4147,7 +4141,7 @@ FLECS_API extern const ecs_entity_t EcsPhase;
 
 /* Value used to quickly check if component is builtin. This is used to quickly
  * filter out tables with builtin components (for example for ecs_delete) */
-#define EcsLastInternalComponentId (ecs_id(EcsSystem))
+#define EcsLastInternalComponentId (ecs_id(EcsPoly))
 
 /* The first user-defined component starts from this id. Ids up to this number
  * are reserved for builtin components */
@@ -7389,6 +7383,16 @@ FLECS_API
 const ecs_type_t* ecs_table_get_type(
     const ecs_table_t *table);
 
+/** Get column from table.
+ * This operation returns the component array for the provided index.
+ * 
+ * @param table The table.
+ * @return The component array, or NULL if the index is not a component.
+ */
+void* ecs_table_get_column(
+    ecs_table_t *table,
+    int32_t index);
+
 /** Get storage type for table.
  *
  * @param table The table.
@@ -9275,21 +9279,7 @@ FLECS_API
 void ecs_run_pipeline(
     ecs_world_t *world,
     ecs_entity_t pipeline,
-    ecs_ftime_t delta_time);    
-    
-/** Deactivate systems that are not matched with tables.
- * By default Flecs deactivates systems that are not matched with any tables.
- * However, once a system has been matched with a table it remains activated, to
- * prevent systems from continuously becoming active and inactive.
- *
- * To re-deactivate systems, an application can invoke this function, which will
- * deactivate all systems that are not matched with any tables.
- *
- * @param world The world.
- */
-FLECS_API
-void ecs_deactivate_systems(
-    ecs_world_t *world);
+    ecs_ftime_t delta_time);
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -9364,45 +9354,11 @@ typedef struct EcsTickSource {
 //// Systems API
 ////////////////////////////////////////////////////////////////////////////////
 
-/** System status change callback */
-typedef enum ecs_system_status_t {
-    EcsSystemStatusNone = 0,
-    EcsSystemEnabled,
-    EcsSystemDisabled,
-    EcsSystemActivated,
-    EcsSystemDeactivated
-} ecs_system_status_t;
-
-/** System status action.
- * The status action is invoked whenever a system is enabled or disabled. Note
- * that a system may be enabled but may not actually match any entities. In this
- * case the system is enabled but not _active_.
- *
- * In addition to communicating the enabled / disabled status, the action also
- * communicates changes in the activation status of the system. A system becomes
- * active when it has one or more matching entities, and becomes inactive when
- * it no longer matches any entities.
- * 
- * A system switches between enabled and disabled when an application invokes the
- * ecs_enable operation with a state different from the state of the system, for
- * example the system is disabled, and ecs_enable is invoked with enabled: true.
- *
- * @param world The world.
- * @param system The system for which the action has changed.
- * @param status The status that triggered the callback.
- * @param ctx Context passed to ecs_system_desc_t as status_ctx.
- */
-typedef void (*ecs_system_status_action_t)(
-    ecs_world_t *world,
-    ecs_entity_t system,
-    ecs_system_status_t status,
-    void *ctx);
-
 /* Use with ecs_system_init */
 typedef struct ecs_system_desc_t {
     int32_t _canary;
 
-    /* System entity creation parameters */
+    /* Entity creation parameters */
     ecs_entity_desc_t entity;
 
     /* System query parameters */
@@ -9426,9 +9382,6 @@ typedef struct ecs_system_desc_t {
      * means that this callback can be invoked multiple times per system per
      * frame, typically once for each matching table. */
     ecs_iter_action_t callback;
-
-    /* System status callback, invoked when system status changes */
-    ecs_system_status_action_t status_callback;
 
     /* Associate with entity. */
     ecs_entity_t self;    
@@ -12844,12 +12797,14 @@ enum var_kind_t {
 /* Builtin components */
 using Component = EcsComponent;
 using Identifier = EcsIdentifier;
-using Query = EcsQuery;
-using Trigger = EcsTrigger;
-using Observer = EcsObserver;
+using Poly = EcsPoly;
+
+static const flecs::entity_t Query = EcsQuery;
+static const flecs::entity_t Trigger = EcsTrigger;
+static const flecs::entity_t Observer = EcsObserver;
 
 /* Builtin opaque components */
-static const flecs::entity_t System = ecs_id(EcsSystem);
+static const flecs::entity_t System = EcsSystem;
 
 /* Builtin set constants */
 static const uint8_t DefaultSet = EcsDefaultSet;
@@ -12866,7 +12821,7 @@ static const flecs::entity_t Private = EcsPrivate;
 static const flecs::entity_t Module = EcsModule;
 static const flecs::entity_t Prefab = EcsPrefab;
 static const flecs::entity_t Disabled = EcsDisabled;
-static const flecs::entity_t Inactive = EcsInactive;
+static const flecs::entity_t Empty = EcsEmpty;
 static const flecs::entity_t Monitor = EcsMonitor;
 static const flecs::entity_t Pipeline = ecs_id(EcsPipeline);
 static const flecs::entity_t Phase = EcsPhase;
@@ -16296,11 +16251,6 @@ ecs_ftime_t get_target_fps() const;
  */
 void reset_clock() const;
 
-/** Deactivate systems.
- * @see ecs_deactivate_systems.
- */
-void deactivate_systems() const;
-
 /** Set number of threads.
  * @see ecs_set_threads
  */
@@ -18671,6 +18621,18 @@ struct component_binding_ctx {
     ecs_ctx_free_t free_on_add = nullptr;
     ecs_ctx_free_t free_on_remove = nullptr;
     ecs_ctx_free_t free_on_set = nullptr;
+
+    ~component_binding_ctx() {
+        if (on_add && free_on_add) {
+            free_on_add(on_add);
+        }
+        if (on_remove && free_on_remove) {
+            free_on_remove(on_remove);
+        }
+        if (on_set && free_on_set) {
+            free_on_set(on_set);
+        }
+    }
 };
 
 // Utility to convert template argument pack to array of term ptrs
@@ -20039,7 +20001,7 @@ private:
     BindingCtx* get_binding_ctx(flecs::type_hooks_t& h){        
         BindingCtx *result = static_cast<BindingCtx*>(h.binding_ctx);
         if (!result) {
-            result = new BindingCtx;
+            result = FLECS_NEW(BindingCtx);
             h.binding_ctx = result;
             h.binding_ctx_free = reinterpret_cast<ecs_ctx_free_t>(
                 _::free_obj<BindingCtx>);
@@ -22023,12 +21985,6 @@ struct trigger_builder_i : term_builder_i<Base> {
         return *this;
     }
 
-    /** Associate trigger with entity */
-    Base& self(flecs::entity self) {
-        m_desc->self = self;
-        return *this;
-    }
-
     /** Set system context */
     Base& ctx(void *ptr) {
         m_desc->ctx = ptr;
@@ -22155,12 +22111,6 @@ struct observer_builder_i : filter_builder_i<Base, Components ...> {
     /** Invoke observer for anything that matches its filter on creation */
     Base& yield_existing(bool value = true) {
         m_desc->yield_existing = value;
-        return *this;
-    }
-
-    /** Associate observer with entity */
-    Base& self(flecs::entity self) {
-        m_desc->self = self;
         return *this;
     }
 
@@ -22419,12 +22369,6 @@ public:
      */
     Base& rate(int32_t rate) {
         m_desc->rate = rate;
-        return *this;
-    }
-
-    /** Associate system with entity */
-    Base& self(flecs::entity self) {
-        m_desc->self = self;
         return *this;
     }
 
@@ -22763,10 +22707,6 @@ inline void world::set_target_fps(ecs_ftime_t target_fps) const {
 
 inline void world::reset_clock() const {
     ecs_reset_clock(m_world);
-}
-
-inline void world::deactivate_systems() const {
-    ecs_deactivate_systems(m_world);
 }
 
 inline void world::set_threads(int32_t threads) const {
@@ -23494,9 +23434,7 @@ inline void emplace(world_t *world, id_t entity, Args&&... args) {
 inline void world::init_builtin_components() {
     component<Component>("flecs::core::Component");
     component<Identifier>("flecs::core::Identifier");
-    component<Trigger>("flecs::core::Trigger");
-    component<Observer>("flecs::core::Observer");
-    component<Query>("flecs::core::Query");
+    component<Poly>("flecs::core::Poly");
 
 #   ifdef FLECS_SYSTEM
     _::system_init(*this);
