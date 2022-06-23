@@ -71,7 +71,7 @@
   --ui-blue-30: rgba(79, 149, 255, 0.30);
 
   --steel-transparent: rgb(26, 29, 35, 0.96);
-  --steel-transparent-light: rgb(46, 50, 60, 0.8);
+  --steel-transparent-light: rgb(46, 50, 60, 0.85);
 
   /* Color assignments */
   --app-bg: var(--grey-950);

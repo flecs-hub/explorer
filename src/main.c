@@ -80,6 +80,7 @@ char* query(char *q) {
     ecs_iter_to_json_desc_t desc = ECS_ITER_TO_JSON_INIT;
     desc.measure_eval_duration = true;
     desc.serialize_entity_labels = true;
+    desc.serialize_entity_ids = true;
     desc.serialize_variable_labels = true;
     desc.serialize_colors = true;
     desc.serialize_type_info = true;

@@ -4,6 +4,14 @@ Vue.component('query-results-table', {
     columns: {type: Object, required: true}
   },
   methods: {
+    // Get sorted index for i
+    index(i) {
+      if (this.columns.data.index && this.columns.data.index.length != 0) {
+        return this.columns.data.index[i].index;
+      } else {
+        return i;
+      }
+    },
     // Get type info for term
     type_info(term) {
       if (this.columns.type_info) {
@@ -93,8 +101,9 @@ Vue.component('query-results-table', {
       }
 
       for (let i = 0; i < entities.length; i ++) {
-        const entity = entities[i];
-        const label = labels[i];
+        const index = this.index(i);
+        const entity = entities[index];
+        const label = labels[index];
 
         if (entity === '*') {
           td_entities.push(this.create_none(h));
@@ -144,12 +153,13 @@ Vue.component('query-results-table', {
 
         let value_array = [];
         for (let v = 0; v < data.values[i].length; v ++) {
-          if (!data.is_set[i][v]) {
+          const index = this.index(v);
+          if (!data.is_set[i][index]) {
             value_array.push(this.create_none(h));
           } else {
             const inspector = h('inspector-props', {
               props: {
-                value: data.values[i][v],
+                value: data.values[i][index],
                 type: this.type_info(i),
                 list: true
               }
@@ -343,6 +353,7 @@ Vue.component('query-results', {
           vars: this.data.vars,
           type_info: this.data.type_info,
           data: {
+            index: [], /* Used for sorting */
             entities: [],
             labels: [],
             colors: [],
@@ -357,6 +368,23 @@ Vue.component('query-results', {
         for (let result of this.results) {
           let count = this.result_count(result);
           
+          // Build index for sorting
+          if (result.entity_ids) {
+            let index = 0;
+            for (let entity_id of result.entity_ids) {
+              r.data.index.push({
+                index: index + r.count,
+                order_by: entity_id
+              });
+              index ++;
+            }
+          }
+
+          // Sort indices used for iterating the results
+          r.data.index.sort((a, b) => {
+            return a.order_by - b.order_by;
+          });
+
           // Append entity names, labels and colors
           if (result.entities) {
             r.data.entities.push(...result.entities);

@@ -43,10 +43,10 @@ with Planet {
 @color #8c8c94
 Mercury = Mass{0.33e24}
 
-@color #e39e1c  
+@color #e39e1c
 Venus = Mass{4.87e24}
 
-@color #6b93d6  
+@color #6b93d6
 Earth = Mass{5.9722e24}
 
 @color #c1440e
@@ -61,7 +61,7 @@ Saturn = Mass{568e24}
 @color #3d5ef9
 Neptune = Mass{102e24}
 
-@color #93cdf1  
+@color #93cdf1
 Uranus = Mass{86.8e24}
 }
 
