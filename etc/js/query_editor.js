@@ -63,6 +63,9 @@ Vue.component('query-editor', {
     set_focus() {
       this.$refs.input.focus();
       this.$refs.input.select();
+    },
+    clear() {
+      this.set_query("");
     }
   },
   computed: {
@@ -101,7 +104,16 @@ Vue.component('query-editor', {
       <div class="query-default-text" v-if="!query.length" 
         v-on:click.stop="set_focus">Search</div>
       <div style="padding-left: 2px;">
-        <icon-button icon="codicons:search" v-on:click.stop="set_focus" v-if="!focus"/>
+        <template v-if="!focus">
+          <icon-button 
+            icon="codicons:chrome-close" 
+            v-on:click.stop="clear" 
+            v-if="query && query.length"/>
+          <icon-button 
+            icon="codicons:search" 
+            v-on:click.stop="set_focus"
+            v-if="!query || !query.length"/>
+        </template>
       </div>
     </div>
     `

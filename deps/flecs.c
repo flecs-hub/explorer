@@ -1557,7 +1557,7 @@ void flecs_stage_merge_post_frame(
     ecs_world_t *world,
     ecs_stage_t *stage);  
 
-bool flecs_defer_none(
+bool flecs_defer_begin(
     ecs_world_t *world,
     ecs_stage_t *stage);
 
@@ -1633,7 +1633,7 @@ bool flecs_defer_set(
     void **value_out,
     bool *is_added);
 
-bool flecs_defer_flush(
+bool flecs_defer_end(
     ecs_world_t *world,
     ecs_stage_t *stage);
 
@@ -6157,7 +6157,7 @@ const ecs_entity_t* new_w_data(
             });
     }
 
-    flecs_defer_none(world, &world->stages[0]);
+    flecs_defer_begin(world, &world->stages[0]);
 
     flecs_notify_on_add(world, table, NULL, row, count, diff, 
         component_data == NULL);
@@ -6203,7 +6203,7 @@ const ecs_entity_t* new_w_data(
         flecs_notify_on_set(world, table, row, count, &diff->on_set, false);
     }
 
-    flecs_defer_flush(world, &world->stages[0]);
+    flecs_defer_end(world, &world->stages[0]);
 
     if (row_out) {
         *row_out = row;
@@ -6260,7 +6260,7 @@ void add_id(
 
     flecs_commit(world, entity, r, dst_table, &diff, true, true);
 
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 }
 
 static
@@ -6288,7 +6288,7 @@ void remove_id(
     flecs_commit(world, entity, r, dst_table, &diff, true, true);
 
 done:
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 }
 
 static
@@ -6670,7 +6670,7 @@ ecs_entity_t ecs_new_w_id(
 
         flecs_entities_set(world, entity, &(ecs_record_t){ 0 });
     }
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 
     return entity;
 error:
@@ -7267,7 +7267,7 @@ const ecs_entity_t* ecs_bulk_new_w_id(
 
     ecs_table_diff_t td = diff_to_table_diff(&diff);
     ids = new_w_data(world, table, NULL, NULL, count, NULL, false, NULL, &td);
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 
     return ids;
 error:
@@ -7302,7 +7302,7 @@ void ecs_clear(
         r->table = NULL;
     }    
 
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 error:
     return;
 }
@@ -7702,7 +7702,7 @@ void ecs_delete_with(
     }
 
     flecs_on_delete(world, id, EcsDelete);
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 }
 
 void ecs_remove_all(
@@ -7715,7 +7715,7 @@ void ecs_remove_all(
     }
 
     flecs_on_delete(world, id, EcsRemove);
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 }
 
 void ecs_delete(
@@ -7766,7 +7766,7 @@ void ecs_delete(
         flecs_entities_remove(world, entity);
     }
 
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 error:
     return;
 }
@@ -7837,7 +7837,7 @@ ecs_entity_t ecs_clone(
     }
 
 done:
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
     return dst;
 error:
     return 0;
@@ -7913,7 +7913,7 @@ void* ecs_get_mut_id(
     result = get_mutable(world, entity, id, r, is_added);
     ecs_check(result != NULL, ECS_INVALID_PARAMETER, NULL);
     
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 
     return result;
 error:
@@ -8009,7 +8009,7 @@ void* ecs_emplace_id(
     void *ptr = get_component(world, r->table, ECS_RECORD_TO_ROW(r->row), id);
     ecs_check(ptr != NULL, ECS_INVALID_PARAMETER, NULL);
 
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 
     return ptr;
 error:
@@ -8043,7 +8043,7 @@ void ecs_modified_id(
     flecs_notify_on_set(world, table, ECS_RECORD_TO_ROW(r->row), 1, &ids, true);
 
     flecs_table_mark_dirty(world, table, id);
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 error:
     return;
 }
@@ -8112,7 +8112,7 @@ ecs_entity_t set_ptr_w_id(
             world, r->table, ECS_RECORD_TO_ROW(r->row), 1, &ids, true);
     }
 
-    flecs_defer_flush(world, stage);
+    flecs_defer_end(world, stage);
 
     return entity;
 error:
@@ -8789,7 +8789,7 @@ bool ecs_defer_begin(
 {
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_stage_t *stage = flecs_stage_from_world(&world);
-    return flecs_defer_none(world, stage);
+    return flecs_defer_begin(world, stage);
 error:
     return false;
 }
@@ -8799,7 +8799,7 @@ bool ecs_defer_end(
 {
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_stage_t *stage = flecs_stage_from_world(&world);
-    return flecs_defer_flush(world, stage);
+    return flecs_defer_end(world, stage);
 error:
     return false;
 }
@@ -9064,7 +9064,7 @@ bool remove_invalid(
 }
 
 /* Leave safe section. Run all deferred commands. */
-bool flecs_defer_flush(
+bool flecs_defer_end(
     ecs_world_t *world,
     ecs_stage_t *stage)
 {
@@ -9225,41 +9225,6 @@ ecs_defer_op_t* new_defer_op(ecs_stage_t *stage) {
 }
 
 static
-bool defer_add_remove(
-    ecs_world_t *world,
-    ecs_stage_t *stage,
-    ecs_defer_op_kind_t op_kind,
-    ecs_entity_t entity,
-    ecs_id_t id)
-{
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
-        if (!id) {
-            return true;
-        }
-
-        ecs_defer_op_t *op = new_defer_op(stage);
-        op->kind = op_kind;
-        op->id = id;
-        op->is._1.entity = entity;
-
-        if (op_kind == EcsOpNew) {
-            world->info.new_count ++;
-        } else if (op_kind == EcsOpAdd) {
-            world->info.add_count ++;
-        } else if (op_kind == EcsOpRemove) {
-            world->info.remove_count ++;
-        }
-
-        return true;
-    } else {
-        stage->defer ++;
-    }
-    
-    return false;
-}
-
-static
 void merge_stages(
     ecs_world_t *world,
     bool force_merge)
@@ -9275,11 +9240,15 @@ void merge_stages(
         ecs_os_get_time(&t_start);
     }
 
+    ecs_dbg_3("#[magenta]merge");
+
     if (is_stage) {
         /* Check for consistency if force_merge is enabled. In practice this
          * function will never get called with force_merge disabled for just
          * a single stage. */
         if (force_merge || stage->auto_merge) {
+            ecs_assert(stage->defer == 1, ECS_INVALID_OPERATION, 
+                "mismatching defer_begin/defer_end detected");
             ecs_defer_end((ecs_world_t*)stage);
         }
     } else {
@@ -9290,7 +9259,7 @@ void merge_stages(
             ecs_stage_t *s = (ecs_stage_t*)ecs_get_stage(world, i);
             ecs_poly_assert(s, ecs_stage_t);
             if (force_merge || s->auto_merge) {
-                flecs_defer_flush(world, s);
+                flecs_defer_end(world, s);
             }
         }
     }
@@ -9323,7 +9292,7 @@ void do_manual_merge(
     merge_stages(world, true);
 }
 
-bool flecs_defer_none(
+bool flecs_defer_begin(
     ecs_world_t *world,
     ecs_stage_t *stage)
 {
@@ -9332,24 +9301,70 @@ bool flecs_defer_none(
     return (++ stage->defer) == 1;
 }
 
+static
+bool flecs_defer_op(
+    ecs_world_t *world,
+    ecs_stage_t *stage)
+{
+    (void)world;
+
+    /* If deferring is suspended, do operation as usual */
+    if (stage->defer_suspend) return false;
+
+    if (stage->defer) {
+        /* If deferring is enabled, defer operation */
+        return true;
+    }
+
+    /* Deferring is disabled, defer while operation is executed */
+    stage->defer ++;
+    return false;
+}
+
+static
+bool flecs_defer_add_remove(
+    ecs_world_t *world,
+    ecs_stage_t *stage,
+    ecs_defer_op_kind_t op_kind,
+    ecs_entity_t entity,
+    ecs_id_t id)
+{
+    if (flecs_defer_op(world, stage)) {
+        if (!id) {
+            return true;
+        }
+
+        ecs_defer_op_t *op = new_defer_op(stage);
+        op->kind = op_kind;
+        op->id = id;
+        op->is._1.entity = entity;
+
+        if (op_kind == EcsOpNew) {
+            world->info.new_count ++;
+        } else if (op_kind == EcsOpAdd) {
+            world->info.add_count ++;
+        } else if (op_kind == EcsOpRemove) {
+            world->info.remove_count ++;
+        }
+
+        return true;
+    }
+    return false;
+}
+
 bool flecs_defer_modified(
     ecs_world_t *world,
     ecs_stage_t *stage,
     ecs_entity_t entity,
     ecs_id_t id)
 {
-    (void)world;
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         ecs_defer_op_t *op = new_defer_op(stage);
         op->kind = EcsOpModified;
         op->id = id;
         op->is._1.entity = entity;
         return true;
-    } else {
-        stage->defer ++;
     }
-    
     return false;
 }
 
@@ -9360,19 +9375,14 @@ bool flecs_defer_clone(
     ecs_entity_t src,
     bool clone_value)
 {   
-    (void)world;
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         ecs_defer_op_t *op = new_defer_op(stage);
         op->kind = EcsOpClone;
         op->id = src;
         op->is._1.entity = entity;
         op->is._1.clone_value = clone_value;
         return true;
-    } else {
-        stage->defer ++;
     }
-    
     return false;   
 }
 
@@ -9381,16 +9391,12 @@ bool flecs_defer_delete(
     ecs_stage_t *stage,
     ecs_entity_t entity)
 {
-    (void)world;
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         ecs_defer_op_t *op = new_defer_op(stage);
         op->kind = EcsOpDelete;
         op->is._1.entity = entity;
         world->info.delete_count ++;
         return true;
-    } else {
-        stage->defer ++;
     }
     return false;
 }
@@ -9400,16 +9406,12 @@ bool flecs_defer_clear(
     ecs_stage_t *stage,
     ecs_entity_t entity)
 {
-    (void)world;
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         ecs_defer_op_t *op = new_defer_op(stage);
         op->kind = EcsOpClear;
         op->is._1.entity = entity;
         world->info.clear_count ++;
         return true;
-    } else {
-        stage->defer ++;
     }
     return false;
 }
@@ -9420,17 +9422,13 @@ bool flecs_defer_on_delete_action(
     ecs_id_t id,
     ecs_entity_t action)
 {
-    (void)world;
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         ecs_defer_op_t *op = new_defer_op(stage);
         op->kind = EcsOpOnDeleteAction;
         op->id = id;
         op->is._1.entity = action;
         world->info.clear_count ++;
         return true;
-    } else {
-        stage->defer ++;
     }
     return false;
 }
@@ -9442,16 +9440,12 @@ bool flecs_defer_enable(
     ecs_id_t id,
     bool enable)
 {
-    (void)world;
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         ecs_defer_op_t *op = new_defer_op(stage);
         op->kind = enable ? EcsOpEnable : EcsOpDisable;
         op->is._1.entity = entity;
         op->id = id;
         return true;
-    } else {
-        stage->defer ++;
     }
     return false;
 }
@@ -9463,8 +9457,7 @@ bool flecs_defer_bulk_new(
     ecs_id_t id,
     const ecs_entity_t **ids_out)
 {
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         ecs_entity_t *ids = ecs_os_malloc(count * ECS_SIZEOF(ecs_entity_t));
         world->info.bulk_new_count ++;
 
@@ -9484,10 +9477,7 @@ bool flecs_defer_bulk_new(
         op->is._n.count = count;
 
         return true;
-    } else {
-        stage->defer ++;
     }
-
     return false;
 }
 
@@ -9497,7 +9487,7 @@ bool flecs_defer_new(
     ecs_entity_t entity,
     ecs_id_t id)
 {   
-    return defer_add_remove(world, stage, EcsOpNew, entity, id);
+    return flecs_defer_add_remove(world, stage, EcsOpNew, entity, id);
 }
 
 bool flecs_defer_add(
@@ -9506,7 +9496,7 @@ bool flecs_defer_add(
     ecs_entity_t entity,
     ecs_id_t id)
 {   
-    return defer_add_remove(world, stage, EcsOpAdd, entity, id);
+    return flecs_defer_add_remove(world, stage, EcsOpAdd, entity, id);
 }
 
 bool flecs_defer_remove(
@@ -9515,7 +9505,7 @@ bool flecs_defer_remove(
     ecs_entity_t entity,
     ecs_id_t id)
 {
-    return defer_add_remove(world, stage, EcsOpRemove, entity, id);
+    return flecs_defer_add_remove(world, stage, EcsOpRemove, entity, id);
 }
 
 bool flecs_defer_set(
@@ -9529,8 +9519,7 @@ bool flecs_defer_set(
     void **value_out,
     bool *is_added)
 {
-    if (stage->defer_suspend) return false;
-    if (stage->defer) {
+    if (flecs_defer_op(world, stage)) {
         world->info.set_count ++;
         if (!size) {
             ecs_id_record_t *idr = flecs_id_record_ensure(world, id);
@@ -9578,10 +9567,7 @@ bool flecs_defer_set(
         }
 
         return true;
-    } else {
-        stage->defer ++;
     }
-
 error:
     return false;
 }
@@ -9742,10 +9728,15 @@ bool ecs_readonly_begin(
 
     flecs_process_pending_tables(world);
 
+    ecs_dbg_3("#[bold]readonly");
+    ecs_log_push_3();
+
     int32_t i, count = ecs_get_stage_count(world);
     for (i = 0; i < count; i ++) {
         ecs_stage_t *stage = &world->stages[i];
         stage->lookup_path = world->stages[0].lookup_path;
+        ecs_assert(stage->defer == 0, ECS_INVALID_OPERATION, 
+            "deferred mode cannot be enabled when entering readonly mode");
         ecs_defer_begin((ecs_world_t*)stage);
     }
 
@@ -9767,7 +9758,7 @@ void ecs_readonly_end(
     /* After this it is safe again to mutate the world directly */
     ECS_BIT_CLEAR(world->flags, EcsWorldReadonly);
 
-    ecs_dbg_3("staging: end");
+    ecs_log_pop_3();
 
     do_auto_merge(world);
 error:
@@ -14369,11 +14360,9 @@ typedef struct ecs_system_t {
     ecs_entity_t self;              /* Entity associated with system */
 
     void *ctx;                      /* Userdata for system */
-    void *status_ctx;               /* User data for status action */ 
     void *binding_ctx;              /* Optional language binding context */
 
     ecs_ctx_free_t ctx_free;
-    ecs_ctx_free_t status_ctx_free;
     ecs_ctx_free_t binding_ctx_free;
 
     /* Mixins */
@@ -14430,6 +14419,13 @@ typedef struct {
     ecs_entity_t last_system;   /* Last system ran by pipeline */
 
     ecs_id_record_t *idr_inactive; /* Cached record for quick inactive test */
+
+    ecs_iter_t *iters;          /* Iterator for worker(s) */
+    int32_t iter_count;
+
+    /* Members for continuing pipeline iteration after pipeline rebuild */
+    ecs_pipeline_op_t *cur_op;  /* Current pipeline op */
+    int32_t cur_i;              /* Index in current result */
 } EcsPipeline;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -14459,12 +14455,9 @@ bool ecs_pipeline_update(
     ecs_entity_t pipeline,
     bool start_of_frame); 
 
-int32_t ecs_pipeline_reset_iter(
+void ecs_pipeline_reset_iter(
     ecs_world_t *world,
-    const EcsPipeline *q,
-    ecs_iter_t *iter_out,
-    ecs_pipeline_op_t **op_out,
-    ecs_pipeline_op_t **last_op_out);
+    EcsPipeline *q);
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Worker API
@@ -14473,13 +14466,9 @@ int32_t ecs_pipeline_reset_iter(
 void ecs_worker_begin(
     ecs_world_t *world);
 
-int32_t ecs_worker_sync(
+bool ecs_worker_sync(
     ecs_world_t *world,
-    const EcsPipeline *p,
-    ecs_iter_t *it,
-    int32_t i,
-    ecs_pipeline_op_t **op_out,
-    ecs_pipeline_op_t **last_op_out);
+    EcsPipeline *p);
 
 void ecs_worker_end(
     ecs_world_t *world);
@@ -14498,7 +14487,9 @@ void* worker(void *arg) {
     ecs_stage_t *stage = arg;
     ecs_world_t *world = stage->world;
 
-    /* Start worker thread, increase counter so main thread knows how many
+    ecs_dbg_2("worker %d: start", stage->id);
+
+    /* Start worker, increase counter so main thread knows how many
      * workers are ready */
     ecs_os_mutex_lock(world->sync_mutex);
     world->workers_running ++;
@@ -14511,6 +14502,8 @@ void* worker(void *arg) {
 
     while (!(world->flags & EcsWorldQuitWorkers)) {
         ecs_entity_t old_scope = ecs_set_scope((ecs_world_t*)stage, 0);
+
+        ecs_dbg_3("worker %d: run", stage->id);
  
         ecs_run_pipeline(
             (ecs_world_t*)stage, 
@@ -14520,9 +14513,13 @@ void* worker(void *arg) {
         ecs_set_scope((ecs_world_t*)stage, old_scope);
     }
 
+    ecs_dbg_2("worker %d: finalizing", stage->id);
+
     ecs_os_mutex_lock(world->sync_mutex);
     world->workers_running --;
     ecs_os_mutex_unlock(world->sync_mutex);
+
+    ecs_dbg_2("worker %d: stop", stage->id);
 
     return NULL;
 }
@@ -14564,7 +14561,7 @@ void wait_for_workers(
     } while (wait);
 }
 
-/* Synchronize worker threads */
+/* Synchronize workers */
 static
 void sync_worker(
     ecs_world_t *world)
@@ -14590,6 +14587,8 @@ void wait_for_sync(
 {
     int32_t stage_count = ecs_get_stage_count(world);
 
+    ecs_dbg_3("#[bold]pipeline: waiting for worker sync");
+
     ecs_os_mutex_lock(world->sync_mutex);
     if (world->workers_waiting != stage_count) {
         ecs_os_cond_wait(world->sync_cond, world->sync_mutex);
@@ -14600,6 +14599,8 @@ void wait_for_sync(
         ECS_INTERNAL_ERROR, NULL);
 
     ecs_os_mutex_unlock(world->sync_mutex);
+
+    ecs_dbg_3("#[bold]pipeline: workers synced");
 }
 
 /* Signal workers that they can start/resume work */
@@ -14607,12 +14608,13 @@ static
 void signal_workers(
     ecs_world_t *world)
 {
+    ecs_dbg_3("#[bold]pipeline: signal workers");
     ecs_os_mutex_lock(world->sync_mutex);
     ecs_os_cond_broadcast(world->worker_cond);
     ecs_os_mutex_unlock(world->sync_mutex);
 }
 
-/** Stop worker threads */
+/** Stop workers */
 static
 bool ecs_stop_threads(
     ecs_world_t *world)
@@ -14680,21 +14682,21 @@ void ecs_worker_begin(
     }
 }
 
-int32_t ecs_worker_sync(
+bool ecs_worker_sync(
     ecs_world_t *world,
-    const EcsPipeline *pq,
-    ecs_iter_t *it,
-    int32_t i,
-    ecs_pipeline_op_t **op_out,
-    ecs_pipeline_op_t **last_op_out)
+    EcsPipeline *pq)
 {
+    ecs_assert(pq != NULL, ECS_INTERNAL_ERROR, NULL);
+    ecs_assert(pq->cur_op != NULL, ECS_INTERNAL_ERROR, NULL);
+    bool rebuild = false;
+
     int32_t stage_count = ecs_get_stage_count(world);
     ecs_assert(stage_count != 0, ECS_INTERNAL_ERROR, NULL);
     int32_t build_count = world->info.pipeline_build_count_total;
 
     /* If there are no threads, merge in place */
     if (stage_count == 1) {
-        if (!op_out[0]->no_staging) {
+        if (!pq->cur_op->no_staging) {
             ecs_readonly_end(world);
         }
 
@@ -14707,18 +14709,16 @@ int32_t ecs_worker_sync(
     }
 
     if (build_count != world->info.pipeline_build_count_total) {
-        i = ecs_pipeline_reset_iter(world, pq, it, op_out, last_op_out);
-    } else {
-        op_out[0] ++;
+        rebuild = true;
     }
 
     if (stage_count == 1) {
-        if (!op_out[0]->no_staging) {
+        if (!pq->cur_op->no_staging) {
             ecs_readonly_begin(world);
         }
     }
 
-    return i;
+    return rebuild;
 }
 
 void ecs_worker_end(
@@ -14748,6 +14748,7 @@ void ecs_workers_progress(
     ecs_ftime_t delta_time)
 {
     ecs_poly_assert(world, ecs_world_t);
+    ecs_assert(!ecs_is_deferred(world), ECS_INVALID_OPERATION, NULL);
     int32_t stage_count = ecs_get_stage_count(world);
 
     ecs_time_t start = {0};
@@ -14755,22 +14756,28 @@ void ecs_workers_progress(
         ecs_time_measure(&start);
     }
 
+    EcsPipeline *pq = ecs_get_mut(world, pipeline, EcsPipeline, 0);
+    ecs_assert(pq != NULL, ECS_INTERNAL_ERROR, NULL);
+
+    if (stage_count != pq->iter_count) {
+        pq->iters = ecs_os_realloc_n(pq->iters, ecs_iter_t, stage_count);
+        pq->iter_count = stage_count;
+    }
+
+    ecs_pipeline_update(world, pipeline, true);
+    ecs_vector_t *ops = pq->ops;
+    ecs_pipeline_op_t *op = ecs_vector_first(ops, ecs_pipeline_op_t);
+    if (!op) {
+        return;
+    }
+
     if (stage_count == 1) {
-        ecs_pipeline_update(world, pipeline, true);
         ecs_entity_t old_scope = ecs_set_scope(world, 0);
         ecs_world_t *stage = ecs_get_stage(world, 0);
         ecs_run_pipeline(stage, pipeline, delta_time);
         ecs_set_scope(world, old_scope);
     } else {
-        ecs_pipeline_update(world, pipeline, true);
-
-        const EcsPipeline *pq = ecs_get(world, pipeline, EcsPipeline);
-        ecs_vector_t *ops = pq->ops;
-        ecs_pipeline_op_t *op = ecs_vector_first(ops, ecs_pipeline_op_t);
         ecs_pipeline_op_t *op_last = ecs_vector_last(ops, ecs_pipeline_op_t);
-        if (!op) {
-            return;
-        }
 
         /* Make sure workers are running and ready */
         wait_for_workers(world);
@@ -14794,13 +14801,12 @@ void ecs_workers_progress(
             }
 
             if (ecs_pipeline_update(world, pipeline, false)) {
+                ecs_assert(!ecs_is_deferred(world), ECS_INVALID_OPERATION, NULL);
+                pq = ecs_get_mut(world, pipeline, EcsPipeline, 0);
                 /* Refetch, in case pipeline itself has moved */
-                pq = ecs_get(world, pipeline, EcsPipeline);
-
-                /* Pipeline has changed, reset position in pipeline */
-                ecs_iter_t it;
-                ecs_pipeline_reset_iter(world, pq, &it, &op, &op_last);
-                op --;
+                op = pq->cur_op - 1;
+                op_last = ecs_vector_last(pq->ops, ecs_pipeline_op_t);
+                ecs_assert(op <= op_last, ECS_INTERNAL_ERROR, NULL);
             }
         }
     }
@@ -14847,6 +14853,7 @@ void ecs_set_threads(
 
 static ECS_DTOR(EcsPipeline, ptr, {
     ecs_vector_free(ptr->ops);
+    ecs_os_free(ptr->iters);
 })
 
 typedef enum ComponentWriteState {
@@ -15174,7 +15181,7 @@ bool flecs_pipeline_build(
         ecs_assert(op != NULL, ECS_INTERNAL_ERROR, NULL);
 
         /* Add schedule to debug tracing */
-        ecs_dbg("#[green]pipeline#[reset] rebuild:");
+        ecs_dbg("#[bold]pipeline rebuild");
         ecs_log_push_1();
 
         ecs_dbg("#[green]schedule#[reset]: threading: %d, staging: %d:", 
@@ -15235,48 +15242,65 @@ bool flecs_pipeline_build(
     return true;
 }
 
-int32_t ecs_pipeline_reset_iter(
+void ecs_pipeline_reset_iter(
     ecs_world_t *world,
-    const EcsPipeline *pq,
-    ecs_iter_t *iter_out,
-    ecs_pipeline_op_t **op_out,
-    ecs_pipeline_op_t **last_op_out)
+    EcsPipeline *pq)
 {
     ecs_pipeline_op_t *op = ecs_vector_first(pq->ops, ecs_pipeline_op_t);
-    int32_t i, ran_since_merge = 0, op_index = 0;
+    int32_t i, ran_since_merge = 0, op_index = 0, iter_count = pq->iter_count;
+
+    /* Free state of existing iterators */
+    for (i = 0; i < iter_count; i ++) {
+        ecs_iter_fini(&pq->iters[i]);
+    }
 
     if (!pq->last_system) {
         /* It's possible that all systems that were ran were removed entirely
          * from the pipeline (they could have been deleted or disabled). In that
          * case (which should be very rare) the pipeline can't make assumptions
          * about where to continue, so end frame. */
-        return -1;
+        pq->cur_i = -1;
+        return;
+    }
+
+    /* Create new iterators */
+    for (i = 0; i < iter_count; i ++) {
+        pq->iters[i] = ecs_query_iter(world, pq->query);
     }
 
     /* Move iterator to last ran system */
-    *iter_out = ecs_query_iter(world, pq->query);
-    while (ecs_query_next(iter_out)) {
-        if (flecs_pipeline_is_inactive(pq, iter_out->table)) {
+    ecs_iter_t *it = &pq->iters[0];
+    while (ecs_query_next(it)) {
+        /* Progress worker iterators */
+        for (i = 1; i < iter_count; i ++) {
+            bool hasnext = ecs_query_next(&pq->iters[i]);
+            ecs_assert_var(hasnext, ECS_INTERNAL_ERROR, NULL);
+            ecs_assert(it->table == pq->iters[i].table, 
+                ECS_INTERNAL_ERROR, NULL);
+            ecs_assert(it->count == pq->iters[i].count,
+                ECS_INTERNAL_ERROR, NULL);
+        }
+
+        if (flecs_pipeline_is_inactive(pq, it->table)) {
             continue;
         }
-        for (i = 0; i < iter_out->count; i ++) {
+
+        for (i = 0; i < it->count; i ++) {
             ran_since_merge ++;
             if (ran_since_merge == op[op_index].count) {
                 ran_since_merge = 0;
                 op_index ++;
             }
 
-            if (iter_out->entities[i] == pq->last_system) {
-                *op_out = &op[op_index];
-                *last_op_out = ecs_vector_last(pq->ops, ecs_pipeline_op_t);
-                return i;
+            if (it->entities[i] == pq->last_system) {
+                pq->cur_op = &op[op_index];
+                pq->cur_i = i;
+                return;
             }
         }
     }
 
     ecs_abort(ECS_INTERNAL_ERROR, NULL);
-
-    return -1;
 }
 
 bool ecs_pipeline_update(
@@ -15301,7 +15325,23 @@ bool ecs_pipeline_update(
     ecs_assert(pq != NULL, ECS_INTERNAL_ERROR, NULL);
     ecs_assert(pq->query != NULL, ECS_INTERNAL_ERROR, NULL);
 
-    return flecs_pipeline_build(world, pipeline, pq);
+    bool rebuilt = flecs_pipeline_build(world, pipeline, pq);
+     if (start_of_frame) {
+        /* Initialize iterators */
+        int32_t i, count = pq->iter_count;
+        for (i = 0; i < count; i ++) {
+            pq->iters[i] = ecs_query_iter(world, pq->query);
+        }
+        pq->cur_op = ecs_vector_first(pq->ops, ecs_pipeline_op_t);
+    } else if (rebuilt) {
+        /* If pipeline got updated and we were mid frame, reset iterators */
+        ecs_pipeline_reset_iter(world, pq);
+        return true;
+    } else {
+        pq->cur_op += 1;
+    }
+
+    return false;
 }
 
 void ecs_run_pipeline(
@@ -15337,7 +15377,7 @@ void ecs_run_pipeline(
 
     ecs_stage_t *stage = flecs_stage_from_world(&world);  
 
-    const EcsPipeline *pq = ecs_get(world, pipeline, EcsPipeline);
+    EcsPipeline *pq = (EcsPipeline*)ecs_get(world, pipeline, EcsPipeline);
     ecs_assert(pq != NULL, ECS_INTERNAL_ERROR, NULL);
     ecs_assert(pq->query != NULL, ECS_INTERNAL_ERROR, NULL);
 
@@ -15351,22 +15391,19 @@ void ecs_run_pipeline(
 
     ecs_worker_begin(stage->thread_ctx);
 
-    ecs_iter_t it = ecs_query_iter(world, pq->query);
-    while (ecs_query_next(&it)) {
-        if (flecs_pipeline_is_inactive(pq, it.table)) {
+    ecs_iter_t *it = &pq->iters[stage_index];
+    while (ecs_query_next(it)) {
+        if (flecs_pipeline_is_inactive(pq, it->table)) {
             continue; /* Skip inactive systems */
         }
 
-        EcsPoly *poly = flecs_pipeline_term_system(&it);
-        int32_t i, count = it.count;
+        EcsPoly *poly = flecs_pipeline_term_system(it);
+        int32_t i, count = it->count;
         for(i = 0; i < count; i ++) {
-            ecs_entity_t e = it.entities[i];
+            ecs_entity_t e = it->entities[i];
             ecs_system_t *sys = ecs_poly(poly[i].poly, ecs_system_t);
 
             ecs_assert(sys->entity == e, ECS_INTERNAL_ERROR, NULL);
-            if (!stage_index) {
-                ecs_dbg_3("pipeline: run system %s", ecs_get_name(world, e));
-            }
 
             sys->last_frame = world->info.frame_count_total + 1;
 
@@ -15386,18 +15423,21 @@ void ecs_run_pipeline(
             if (op != op_last && ran_since_merge == op->count) {
                 ran_since_merge = 0;
 
-                if (!stage_index) {
-                    ecs_dbg_3("merge");
-                }
-
                 /* If the set of matched systems changed as a result of the
                  * merge, we have to reset the iterator and move it to our
                  * current position (system). If there are a lot of systems
                  * in the pipeline this can be an expensive operation, but
                  * should happen infrequently. */
-                i = ecs_worker_sync(world, pq, &it, i, &op, &op_last);
-                poly = flecs_pipeline_term_system(&it);
-                count = it.count;
+                bool rebuild = ecs_worker_sync(world, pq);
+                pq = (EcsPipeline*)ecs_get(world, pipeline, EcsPipeline);
+                if (rebuild) {
+                    i = pq->cur_i;
+                    count = it->count;
+                }
+
+                poly = flecs_pipeline_term_system(it);
+                op = pq->cur_op;
+                op_last = ecs_vector_last(pq->ops, ecs_pipeline_op_t);
             }
         }
     }
@@ -15410,12 +15450,11 @@ bool ecs_progress(
     ecs_ftime_t user_delta_time)
 {
     float delta_time = ecs_frame_begin(world, user_delta_time);
-
-    ecs_dbg_3("#[normal]begin progress(dt = %.2f)", (double)delta_time);
-
+    
+    ecs_dbg_3("#[bold]progress#[reset](dt = %.2f)", (double)delta_time);
+    ecs_log_push_3();
     ecs_run_pipeline(world, 0, delta_time);
-
-    ecs_dbg_3("#[normal]end progress");
+    ecs_log_pop_3();
 
     ecs_frame_end(world);
 
@@ -15505,6 +15544,8 @@ void FlecsPipelineFini(
     if (ecs_get_stage_count(world)) {
         ecs_set_threads(world, 0);
     }
+
+    ecs_assert(world->workers_running == 0, ECS_INTERNAL_ERROR, NULL);
 }
 
 #define flecs_bootstrap_phase(world, phase, depends_on)\
@@ -18770,7 +18811,7 @@ ecs_rule_var_t* term_id_to_var(
     ecs_rule_t *rule,
     ecs_term_id_t *id)
 {
-    if (id->var == EcsVarIsVariable) {;
+    if (id->var == EcsVarIsVariable) {
         return find_variable(rule, EcsRuleVarKindUnknown, term_id_var_name(id));
     }
     return NULL;
@@ -19716,12 +19757,16 @@ int scan_variables(
         *pred = term_pred(rule, term),
         *obj = term_obj(rule, term);
 
-        if (!pred && term_id_is_variable(&term->pred)) {
+        if (!pred && term_id_is_variable(&term->pred) && 
+            term->pred.entity != EcsAny)
+        {
             rule_error(rule, "missing predicate variable '%s'", 
                 term_id_var_name(&term->pred));
             goto error;
         }
-        if (!obj && term_id_is_variable(&term->obj)) {
+        if (!obj && term_id_is_variable(&term->obj) && 
+            term->obj.entity != EcsAny)
+        {
             rule_error(rule, "missing object variable '%s'", 
                 term_id_var_name(&term->obj));
             goto error;
@@ -20258,7 +20303,7 @@ void insert_select_or_with(
     }
 
     /* Only insert implicit IsA if filter isn't already an IsA */
-    if (!filter.transitive || filter.pred.ent != EcsIsA) {
+    if ((!filter.transitive || filter.pred.ent != EcsIsA) && term->oper != EcsNot) {
         if (!var) {
             ecs_rule_pair_t isa_pair = {
                 .pred.ent = EcsIsA,
@@ -20974,6 +21019,23 @@ ecs_rule_t* ecs_rule_init(
     if (i == term_count) {
         rule_error(result, "rule cannot only have terms with Not operator");
         goto error;
+    }
+
+    /* Translate terms with a Not operator and Wildcard to Any, as we don't need
+     * implicit variables for those */
+    for (i = 0; i < term_count; i ++) {
+        ecs_term_t *term = &terms[i];
+        if (term->oper == EcsNot) {
+            if (term->pred.entity == EcsWildcard) {
+                term->pred.entity = EcsAny;
+            }
+            if (term->subj.entity == EcsWildcard) {
+                term->subj.entity = EcsAny;
+            }
+            if (term->obj.entity == EcsWildcard) {
+                term->obj.entity = EcsAny;
+            }
+        }
     }
 
     /* Find all variables & resolve dependencies */
@@ -28822,7 +28884,7 @@ ecs_entity_t ecs_run_intern(
     ecs_stage_t *stage,
     ecs_entity_t system,
     ecs_system_t *system_data,
-    int32_t stage_current,
+    int32_t stage_index,
     int32_t stage_count,    
     ecs_ftime_t delta_time,
     int32_t offset,
@@ -28858,6 +28920,12 @@ ecs_entity_t ecs_run_intern(
         }
     }
 
+    if (ecs_should_log_3()) {
+        char *path = ecs_get_fullpath(world, system);
+        ecs_dbg_3("worker %d: %s", stage_index, path);
+        ecs_os_free(path);
+    }
+
     ecs_time_t time_start;
     bool measure_time = ECS_BIT_IS_SET(world->flags, EcsWorldMeasureSystemTime);
     if (measure_time) {
@@ -28881,7 +28949,7 @@ ecs_entity_t ecs_run_intern(
     }
 
     if (stage_count > 1 && system_data->multi_threaded) {
-        wit = ecs_worker_iter(it, stage_current, stage_count);
+        wit = ecs_worker_iter(it, stage_index, stage_count);
         it = &wit;
     }
 
@@ -28945,7 +29013,7 @@ ecs_entity_t ecs_run_w_filter(
 ecs_entity_t ecs_run_worker(
     ecs_world_t *world,
     ecs_entity_t system,
-    int32_t stage_current,
+    int32_t stage_index,
     int32_t stage_count,
     ecs_ftime_t delta_time,
     void *param)
@@ -28955,7 +29023,7 @@ ecs_entity_t ecs_run_worker(
     ecs_assert(system_data != NULL, ECS_INVALID_PARAMETER, NULL);
 
     return ecs_run_intern(
-        world, stage, system, system_data, stage_current, stage_count, 
+        world, stage, system, system_data, stage_index, stage_count, 
         delta_time, 0, 0, param);
 }
 
@@ -29011,10 +29079,6 @@ void flecs_system_fini(ecs_system_t *sys) {
         sys->ctx_free(sys->ctx);
     }
 
-    if (sys->status_ctx_free) {
-        sys->status_ctx_free(sys->status_ctx);
-    }
-
     if (sys->binding_ctx_free) {
         sys->binding_ctx_free(sys->binding_ctx);
     }
@@ -29064,11 +29128,9 @@ ecs_entity_t ecs_system_init(
 
         system->self = desc->self;
         system->ctx = desc->ctx;
-        system->status_ctx = desc->status_ctx;
         system->binding_ctx = desc->binding_ctx;
 
         system->ctx_free = desc->ctx_free;
-        system->status_ctx_free = desc->status_ctx_free;
         system->binding_ctx_free = desc->binding_ctx_free;
 
         system->tick_source = desc->tick_source;
@@ -36496,6 +36558,8 @@ int ecs_fini(
     ecs_poly_assert(world, ecs_world_t);
     ecs_assert(!(world->flags & EcsWorldReadonly), ECS_INVALID_OPERATION, NULL);
     ecs_assert(!(world->flags & EcsWorldFini), ECS_INVALID_OPERATION, NULL);
+    ecs_assert(world->stages[0].defer == 0, ECS_INVALID_OPERATION, 
+        "call defer_end before destroying world");
 
     ecs_trace("#[bold]shutting down world");
     ecs_log_push();
@@ -37012,7 +37076,7 @@ void flecs_process_empty_queries(
 
     /* Make sure that we defer adding the inactive tags until after iterating
      * the query */
-    flecs_defer_none(world, &world->stages[0]);
+    flecs_defer_begin(world, &world->stages[0]);
 
     ecs_table_cache_iter_t it;
     const ecs_table_record_t *tr;
@@ -37032,7 +37096,7 @@ void flecs_process_empty_queries(
         }
     }
 
-    flecs_defer_flush(world, &world->stages[0]);
+    flecs_defer_end(world, &world->stages[0]);
 }
 
 /** Walk over tables that had a state change which requires bookkeeping */
@@ -37127,6 +37191,7 @@ void flecs_table_set_empty(
 {
     ecs_poly_assert(world, ecs_world_t);
     ecs_assert(!(world->flags & EcsWorldReadonly), ECS_INTERNAL_ERROR, NULL);
+    ecs_assert(table != NULL, ECS_INTERNAL_ERROR, NULL);
 
     if (ecs_table_count(table)) {
         table->generation = 0;
@@ -37542,15 +37607,6 @@ int finalize_term_var(
             if (oneof && identifier != &term->pred) {
                 if (!e) {
                     e = ecs_lookup_child(world, oneof, identifier->name);
-                } else if (e) {
-                    if (!ecs_has_pair(world, e, EcsChildOf, oneof)) {
-                        char *rel_str = ecs_get_fullpath(world, pred);
-                        term_error(world, term, name, 
-                            "invalid object '%s' for relation %s",
-                            identifier->name, rel_str);
-                        ecs_os_free(rel_str);
-                        return -1;
-                    }
                 }
             }
 
@@ -37965,6 +38021,22 @@ int verify_term_consistency(
                     "term id does not match pred/obj (%s)", id_str);
                 ecs_os_free(id_str);
                 return -1;
+            }
+        }
+
+        if (pred != EcsWildcard) {
+            ecs_entity_t oneof = flecs_get_oneof(world, pred);
+            if (oneof && !ecs_id_is_wildcard(obj)) {
+                if (!ecs_has_pair(world, obj, EcsChildOf, oneof)) {
+                    char *rel_str = ecs_get_fullpath(world, pred);
+                    char *obj_str = ecs_get_fullpath(world, obj);
+                    term_error(world, term, name, 
+                        "invalid object '%s' for relation %s",
+                        obj_str, rel_str);
+                    ecs_os_free(rel_str);
+                    ecs_os_free(obj_str);
+                    return -1;
+                }
             }
         }
     } else if (term->pred.entity != (id & ECS_COMPONENT_MASK)) {
@@ -43172,7 +43244,8 @@ ecs_query_t* ecs_query_init(
 
     if (ecs_should_log_1()) {
         char *filter_expr = ecs_filter_str(world, &result->filter);
-        ecs_dbg_1("#[green]query#[normal] [%s] created", filter_expr);
+        ecs_dbg_1("#[green]query#[normal] [%s] created", 
+            filter_expr ? filter_expr : "");
         ecs_os_free(filter_expr);
     }
 

@@ -8511,6 +8511,10 @@ void _ecs_parser_errorv(
     assert(condition) /* satisfy compiler/static analyzers */
 #endif // FLECS_NDEBUG
 
+#define ecs_assert_var(var, error_code, ...)\
+    ecs_assert(var, error_code, __VA_ARGS__);\
+    (void)var
+
 /** Debug assert 
  * Assert that is only valid in debug mode (ignores FLECS_KEEP_ASSERT) */
 #ifndef FLECS_NDEBUG
@@ -9377,9 +9381,6 @@ typedef struct ecs_system_desc_t {
     /* Context to be passed to callback (as ecs_iter_t::param) */
     void *ctx;
 
-    /* Context to be passed to system status callback */
-    void *status_ctx;
-
     /* Binding context, for when system is implemented in other language */
     void *binding_ctx;
 
@@ -9387,8 +9388,7 @@ typedef struct ecs_system_desc_t {
      * When set, functions are called unconditionally, even when the ctx
      * pointers are NULL. */
     ecs_ctx_free_t ctx_free;
-    ecs_ctx_free_t status_ctx_free;
-    ecs_ctx_free_t binding_ctx_free;   
+    ecs_ctx_free_t binding_ctx_free;
 
     /* Interval in seconds at which the system should run */
     ecs_ftime_t interval;
@@ -16164,6 +16164,13 @@ template <typename... Comps, typename... Args>
 flecs::query_builder<Comps...> query_builder(Args &&... args) const;
 
 
+/** Convert enum constant to entity
+ */
+template <typename E, if_t< is_enum<E>::value > = 0>
+flecs::entity to_entity(E constant) const;
+
+
+
 #   ifdef FLECS_MODULE
 
 /** Create a module.
@@ -17199,7 +17206,7 @@ struct entity_view : public id {
      * @tparam R the relation type.
      * @param constant the enum constant.
      */
-    template<typename R, typename O, if_t< is_enum<O>::value> = 0>
+    template<typename R, typename O, if_t<is_enum<O>::value> = 0>
     const R* get(O constant) const {
         const auto& et = enum_type<O>(this->m_world);
         flecs::entity_t object = et.entity(constant);
@@ -17579,6 +17586,14 @@ const char* doc_color() {
 }
 
 #   endif
+
+
+/** Convert entity to enum cosnstant
+ */
+template <typename E>
+E to_constant() const;
+
+
 
 private:
     flecs::entity set_stage(world_t *stage);
@@ -22200,6 +22215,24 @@ inline observer_builder<Comps...> world::observer(Args &&... args) const {
 
 } // namespace flecs
 
+#pragma once
+
+namespace flecs {
+
+template <typename E>
+inline E entity_view::to_constant() const {
+    const E* ptr = this->get<E>();
+    ecs_assert(ptr != NULL, ECS_INVALID_PARAMETER, "entity is not a constant");
+    return ptr[0];
+}
+
+template <typename E, if_t< is_enum<E>::value >>
+inline flecs::entity world::to_entity(E constant) const {
+    const auto& et = enum_type<E>(m_world);
+    return flecs::entity(m_world, et.entity(constant));
+}
+
+}
 #ifdef FLECS_MODULE
 #pragma once
 
