@@ -359,6 +359,9 @@ extern ecs_mixins_t ecs_observer_t_mixins;
 /* Types that have no mixins */
 #define ecs_table_t_mixins (&(ecs_mixins_t){ NULL })
 
+/* Scope for flecs internals, like triggers & observers used for features */
+extern const ecs_entity_t EcsFlecsInternals;
+
 /** Type used for internal string hashmap */
 typedef struct ecs_hashed_string_t {
     char *value;
@@ -587,9 +590,6 @@ struct ecs_query_t {
     /* Query filter */
     ecs_filter_t filter;
 
-    /* Query observer */
-    ecs_entity_t observer;
-
     /* Tables matched with query */
     ecs_table_cache_t cache;
 
@@ -598,9 +598,6 @@ struct ecs_query_t {
 
     /* Contains head/tail to nodes of query groups (if group_by is used) */
     ecs_map_t groups;
-
-    /* Handle to system (optional) */
-    ecs_entity_t system;
 
     /* Used for sorting */
     ecs_entity_t order_by_component;
@@ -1492,11 +1489,6 @@ ecs_poly_t* _ecs_poly_get(
 
 #define ecs_poly_get(world, entity, T) \
     ((T*)_ecs_poly_get(world, entity, T##_tag))
-
-/* Create entity for poly */
-ecs_entity_t ecs_poly_entity_init(
-    ecs_world_t *world,
-    const ecs_entity_desc_t *desc);
 
 /* Utilities for testing/asserting an object type */
 #ifndef FLECS_NDEBUG
@@ -4963,20 +4955,6 @@ ecs_poly_t* _ecs_poly_get(
     return NULL;
 }
 
-ecs_entity_t ecs_poly_entity_init(
-    ecs_world_t *world,
-    const ecs_entity_desc_t *desc)
-{
-    ecs_entity_t existing = desc->entity;
-    ecs_entity_t result = ecs_entity_init(world, desc);
-    if (!existing && (ecs_get_name(world, result) == NULL)) {
-        /* If not associated with an existing entity and is anonymous, add it to
-         * the flecs.hidden scope so it won't clutter up the root. */
-        ecs_add_pair(world, result, EcsChildOf, EcsFlecsHidden);
-    }
-    return result;
-}
-
 #define assert_object(cond, file, line, type_name)\
     _ecs_assert((cond), ECS_INVALID_PARAMETER, #cond, file, line, type_name);\
     assert(cond)
@@ -6845,7 +6823,7 @@ int traverse_add(
         bool should_add = true;
         if (ECS_HAS_ROLE(id, PAIR) && ECS_PAIR_FIRST(id) == EcsChildOf) {
             scope = ECS_PAIR_SECOND(id);
-            if (!desc->entity || (name && !name_assigned)) {
+            if ((!desc->entity && desc->name) || (name && !name_assigned)) {
                 /* If name is added to entity, pass scope to add_path instead
                  * of adding it to the table. The provided name may have nested
                  * elements, in which case the parent provided here is not the
@@ -7417,6 +7395,17 @@ ecs_entity_t flecs_get_delete_action(
 }
 
 static
+void flecs_update_monitors_for_delete(
+    ecs_world_t *world,
+    ecs_id_t id)
+{
+    update_component_monitors(world, NULL, &(ecs_type_t){
+        .array = (ecs_id_t[]){id},
+        .count = 1
+    });
+}
+
+static
 void flecs_id_mark_for_delete(
     ecs_world_t *world,
     ecs_id_record_t *idr,
@@ -7463,6 +7452,26 @@ void flecs_id_mark_for_delete(
         ecs_table_record_t *tr;
         while ((tr = flecs_table_cache_next(&it, ecs_table_record_t))) {
             tr->hdr.table->flags |= EcsTableMarkedForDelete;
+        }
+    }
+
+    /* Signal query cache monitors */
+    flecs_update_monitors_for_delete(world, id);
+
+    /* If id is a wildcard pair, update cache monitors for non-wildcard ids */
+    if (ecs_id_is_wildcard(id)) {
+        ecs_assert(ECS_HAS_ROLE(id, PAIR), ECS_INTERNAL_ERROR, NULL);
+        ecs_id_record_t *cur = idr;
+        if (ECS_PAIR_SECOND(id) == EcsWildcard) {
+            while ((cur = cur->first.next)) {
+                flecs_update_monitors_for_delete(world, cur->id);
+            }
+        } else {
+            ecs_assert(ECS_PAIR_FIRST(id) == EcsWildcard, 
+                ECS_INTERNAL_ERROR, NULL);
+            while ((cur = cur->second.next)) {
+                flecs_update_monitors_for_delete(world, cur->id);
+            }
         }
     }
 }
@@ -29096,7 +29105,7 @@ ecs_entity_t ecs_system_init(
     ecs_assert(!(world->flags & EcsWorldReadonly), 
         ECS_INVALID_WHILE_READONLY, NULL);
 
-    ecs_entity_t entity = ecs_poly_entity_init(world, &desc->entity);
+    ecs_entity_t entity = ecs_entity_init(world, &desc->entity);
     EcsPoly *poly = ecs_poly_bind(world, entity, ecs_system_t);
     if (!poly->poly) {
         ecs_system_t *system = ecs_poly_new(ecs_system_t);
@@ -29109,7 +29118,7 @@ ecs_entity_t ecs_system_init(
 
         ecs_query_desc_t query_desc = desc->query;
         query_desc.filter.name = desc->entity.name;
-        query_desc.system = entity;
+        query_desc.entity = entity;
 
         ecs_query_t *query = ecs_query_init(world, &query_desc);
         if (!query) {
@@ -32124,7 +32133,6 @@ void FlecsCoreDocImport(
     ecs_doc_set_link(world, EcsFlecs, "https://github.com/SanderMertens/flecs");
 
     ecs_doc_set_brief(world, EcsFlecsCore, "Flecs module with builtin components");
-    ecs_doc_set_brief(world, EcsFlecsHidden, "Flecs module with internal/anonymous entities");
 
     ecs_doc_set_brief(world, EcsWorld, "Entity associated with world");
 
@@ -35489,7 +35497,7 @@ const ecs_entity_t ecs_id(EcsUnitPrefix) =         25;
 const ecs_entity_t EcsWorld =                 ECS_HI_COMPONENT_ID + 0;
 const ecs_entity_t EcsFlecs =                 ECS_HI_COMPONENT_ID + 1;
 const ecs_entity_t EcsFlecsCore =             ECS_HI_COMPONENT_ID + 2;
-const ecs_entity_t EcsFlecsHidden =           ECS_HI_COMPONENT_ID + 3;
+const ecs_entity_t EcsFlecsInternals =           ECS_HI_COMPONENT_ID + 3;
 const ecs_entity_t EcsModule =                ECS_HI_COMPONENT_ID + 4;
 const ecs_entity_t EcsPrivate =               ECS_HI_COMPONENT_ID + 5;
 const ecs_entity_t EcsPrefab =                ECS_HI_COMPONENT_ID + 6;
@@ -40490,7 +40498,7 @@ ecs_entity_t ecs_observer_init(
     ecs_check(desc->callback != NULL || desc->run != NULL, 
         ECS_INVALID_OPERATION, NULL);
 
-    ecs_entity_t entity = ecs_poly_entity_init(world, &desc->entity);
+    ecs_entity_t entity = ecs_entity_init(world, &desc->entity);
     EcsPoly *poly = ecs_poly_bind(world, entity, ecs_observer_t);
     if (!poly->poly) {
         ecs_observer_t *observer = ecs_poly_new(ecs_observer_t);
@@ -40570,6 +40578,9 @@ ecs_entity_t ecs_observer_init(
             }
         }
 
+        /* Create triggers as children of observer */
+        ecs_entity_t old_scope = ecs_set_scope(world, entity);
+
         for (i = 0; i < filter->term_count; i ++) {
             tdesc.term = filter->terms[i];
             ecs_oper_kind_t oper = tdesc.term.oper;
@@ -40643,6 +40654,8 @@ ecs_entity_t ecs_observer_init(
                 break;
             }
         }
+
+        ecs_set_scope(world, old_scope);
 
         if (desc->entity.name) {
             ecs_trace("#[green]observer#[reset] %s created", 
@@ -41705,8 +41718,8 @@ void flecs_query_insert_table_node(
         ECS_INTERNAL_ERROR, NULL);
 
     /* If this is the first match, activate system */
-    if (!query->list.first && query->system) {
-        ecs_remove_id(query->world, query->system, EcsEmpty);
+    if (!query->list.first && query->entity) {
+        ecs_remove_id(query->world, query->entity, EcsEmpty);
     }
 
     flecs_query_compute_group_id(query, node->match);
@@ -43156,12 +43169,6 @@ void flecs_query_fini(
 {
     ecs_world_t *world = query->world;
 
-    if (!(world->flags & EcsWorldFini)) {
-        if (query->observer) {
-            ecs_delete(world, query->observer);
-        }
-    }
-
     if (query->group_by_ctx_free) {
         if (query->group_by_ctx) {
             query->group_by_ctx_free(query->group_by_ctx);
@@ -43203,14 +43210,10 @@ ecs_query_t* ecs_query_init(
     ecs_check(desc->_canary == 0, ECS_INVALID_PARAMETER, NULL);
     ecs_check(!(world->flags & EcsWorldFini), ECS_INVALID_OPERATION, NULL);
 
-    /* Ensure that while initially populating the query with tables, they are
-     * in the right empty/non-empty list. This ensures the query won't miss
-     * empty/non-empty events for tables that are currently out of sync, but
-     * change back to being in sync before processing pending events. */
-    ecs_run_aperiodic(world, EcsAperiodicEmptyTables);
-
     ecs_query_t *result = ecs_poly_new(ecs_query_t);
     ecs_observer_desc_t observer_desc = { .filter = desc->filter };
+    ecs_entity_t entity = desc->entity;
+
     observer_desc.filter.match_empty_tables = true;
 
     if (ecs_filter_init(world, &result->filter, &observer_desc.filter)) {
@@ -43218,6 +43221,7 @@ ecs_query_t* ecs_query_init(
     }
 
     if (result->filter.term_count) {
+        observer_desc.entity.entity = entity;
         observer_desc.run = flecs_query_on_event;
         observer_desc.ctx = result;
         observer_desc.events[0] = EcsOnTableEmpty;
@@ -43230,8 +43234,8 @@ ecs_query_t* ecs_query_init(
         observer_desc.filter.terms_buffer_count = result->filter.term_count;
         observer_desc.filter.expr = NULL; /* Already parsed */
 
-        result->observer = ecs_observer_init(world, &observer_desc);
-        if (!result->observer) {
+        entity = ecs_observer_init(world, &observer_desc);
+        if (!entity) {
             goto error;
         }
     }
@@ -43239,7 +43243,6 @@ ecs_query_t* ecs_query_init(
     result->world = world;
     result->iterable.init = flecs_query_iter_init;
     result->dtor = (ecs_poly_dtor_t)flecs_query_fini;
-    result->system = desc->system;
     result->prev_match_count = -1;
 
     if (ecs_should_log_1()) {
@@ -43274,19 +43277,33 @@ ecs_query_t* ecs_query_init(
         result->flags |= EcsQueryIsSubquery;
     }
 
-    /* If a system is specified, ensure that if there are any subjects in the
-     * filter that refer to the system, the component is added */
-    if (desc->system)  {
+    /* If the query refers to itself, add the components that were queried for
+     * to the query itself. */
+    if (entity)  {
         int32_t t, term_count = result->filter.term_count;
         ecs_term_t *terms = result->filter.terms;
 
         for (t = 0; t < term_count; t ++) {
             ecs_term_t *term = &terms[t];
-            if (term->subj.entity == desc->system) {
-                ecs_add_id(world, desc->system, term->id);
+            if (term->subj.entity == entity) {
+                ecs_add_id(world, entity, term->id);
             }
         }        
     }
+
+    if (!entity) {
+        entity = ecs_new_id(world);
+    }
+
+    EcsPoly *poly = ecs_poly_bind(world, entity, ecs_query_t);
+    poly->poly = result;
+    result->entity = entity;
+
+    /* Ensure that while initially populating the query with tables, they are
+     * in the right empty/non-empty list. This ensures the query won't miss
+     * empty/non-empty events for tables that are currently out of sync, but
+     * change back to being in sync before processing pending events. */
+    ecs_run_aperiodic(world, EcsAperiodicEmptyTables);
 
     ecs_table_cache_init(&result->cache);
 
@@ -43303,17 +43320,8 @@ ecs_query_t* ecs_query_init(
             desc->sort_table);
     }
 
-    ecs_entity_t e = desc->system;
-    if (!e) {
-        e = ecs_new_w_pair(world, EcsChildOf, EcsFlecsHidden);
-    }
-
-    EcsPoly *poly = ecs_poly_bind(world, e, ecs_query_t);
-    poly->poly = result;
-    result->entity = e;
-
     if (!ecs_query_table_count(result) && result->filter.term_count) {
-        ecs_add_id(world, e, EcsEmpty);
+        ecs_add_id(world, entity, EcsEmpty);
     }
 
     ecs_log_pop_1();
@@ -43322,9 +43330,6 @@ ecs_query_t* ecs_query_init(
 error:
     if (result) {
         ecs_filter_fini(&result->filter);
-        if (result->observer) {
-            ecs_delete(world, result->observer);
-        }
         ecs_os_free(result);
     }
     return NULL;
@@ -46277,7 +46282,7 @@ bool ecs_page_next_instanced(
 
     do {
         if (!ecs_iter_next(chain_it)) {
-            goto done;
+            goto depleted;
         }
 
         ecs_page_iter_t *iter = &it->priv.iter.page;
@@ -46298,7 +46303,7 @@ bool ecs_page_next_instanced(
             if (it->count) {
                 goto yield;
             } else {
-                goto done;
+                goto depleted;
             }
         }
 
@@ -46339,6 +46344,9 @@ yield:
 
     return true;
 done:
+    /* Cleanup iterator resources if it wasn't yet depleted */
+    ecs_iter_fini(chain_it);
+depleted:
 error:
     return false;
 }
@@ -47287,7 +47295,7 @@ ecs_entity_t ecs_trigger_init(
         observable = ecs_get_observable(world);
     }
 
-    ecs_entity_t entity = ecs_poly_entity_init(world, &desc->entity);
+    ecs_entity_t entity = ecs_entity_init(world, &desc->entity);
     EcsPoly *poly = ecs_poly_bind(world, entity, ecs_trigger_t);
     if (!poly->poly) {        
         const char *name = ecs_get_name(world, entity);
@@ -47995,6 +48003,7 @@ void register_symmetric(ecs_iter_t *it) {
         /* Create trigger that adds the reverse relationship when R(X, Y) is
          * added, or remove the reverse relationship when R(X, Y) is removed. */
         ecs_trigger_init(world, &(ecs_trigger_desc_t) {
+            .entity.add = { ecs_childof(EcsFlecsInternals) },
             .term.id = ecs_pair(r, EcsWildcard),
             .callback = on_symmetric_add_remove,
             .events = {EcsOnAdd, EcsOnRemove}
@@ -48324,6 +48333,7 @@ void flecs_bootstrap(
     ecs_set(world, EcsOnSet, EcsIterable, { .init = on_event_iterable_init });
 
     ecs_trigger_init(world, &(ecs_trigger_desc_t){
+        .entity.add = { ecs_childof(EcsFlecsInternals) },
         .term = {.id = EcsTag, .subj.set.mask = EcsSelf },
         .events = {EcsOnAdd, EcsOnRemove},
         .callback = register_tag,
@@ -48356,9 +48366,9 @@ void flecs_bootstrap(
     ecs_set_name(world, EcsFlecsCore, "core");
     ecs_add_id(world, EcsFlecsCore, EcsModule);
 
-    ecs_add_pair(world, EcsFlecsHidden, EcsChildOf, EcsFlecs);
-    ecs_set_name(world, EcsFlecsHidden, "hidden");
-    ecs_add_id(world, EcsFlecsHidden, EcsModule);
+    ecs_add_pair(world, EcsFlecsInternals, EcsChildOf, EcsFlecsCore);
+    ecs_set_name(world, EcsFlecsInternals, "internals");
+    ecs_add_id(world, EcsFlecsInternals, EcsModule);
 
     /* Initialize builtin entities */
     bootstrap_entity(world, EcsWorld, "World", EcsFlecsCore);
@@ -48424,6 +48434,9 @@ void flecs_bootstrap(
     /* The (IsA, *) id record is used often in searches, so cache it */
     world->idr_isa_wildcard = flecs_id_record_ensure(world, 
         ecs_pair(EcsIsA, EcsWildcard));
+
+    /* Create triggers in internals scope */
+    ecs_set_scope(world, EcsFlecsInternals);
 
     ecs_trigger_init(world, &(ecs_trigger_desc_t) {
         .term = { 
@@ -48496,6 +48509,9 @@ void flecs_bootstrap(
         .events = {EcsOnAdd},
         .callback = ensure_module_tag
     });
+
+    /* Set scope back to flecs core */
+    ecs_set_scope(world, EcsFlecsCore);
 
     /* Acyclic components */
     ecs_add_id(world, EcsIsA, EcsAcyclic);
@@ -48719,6 +48735,7 @@ void on_set_symbol(ecs_iter_t *it) {
 
 void flecs_bootstrap_hierarchy(ecs_world_t *world) {
     ecs_trigger_init(world, &(ecs_trigger_desc_t){
+        .entity.add = { ecs_childof(EcsFlecsInternals) },
         .term = {.id = ecs_pair(ecs_id(EcsIdentifier), EcsSymbol), .subj.set.mask = EcsSelf },
         .callback = on_set_symbol,
         .events = {EcsOnSet},
