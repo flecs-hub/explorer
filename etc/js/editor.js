@@ -70,13 +70,13 @@ Vue.component('editor-textarea', {
 });
 
 Vue.component('editor', {
+  props: ["disable"],
   data: function() {
     return {
       status: undefined,
       status_kind: undefined
     }
   },
-  props: ["disable"],
   methods: {
     run() {
       this.$refs.textarea.run();

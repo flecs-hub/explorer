@@ -449,6 +449,9 @@ const inspector_component = Vue.component('inspector', {
     select_query() {
       this.$emit('select-query', this.entity_name);
     },
+    invalid_entity_error(msg) {
+      this.error = msg;
+    },
     refresh() {
       if (!this.entity_name) {
         return;
@@ -462,9 +465,13 @@ const inspector_component = Vue.component('inspector', {
         this.error = reply.error;
         if (this.error === undefined) {
           this.entity = reply;
+          this.error = undefined;
+        } else {
+          this.invalid_entity_error(this.error);
         }
       }, () => {
-        this.error = "request for entity '" + this.entity_name + "' failed";
+        this.invalid_entity_error(
+          "request for entity '" + this.entity_name + "' failed");
       }, {
         type_info: true, 
         label: true,
@@ -538,8 +545,11 @@ const inspector_component = Vue.component('inspector', {
     has_doc: function() {
       return this.brief || this.link;
     },
+    is_valid: function() {
+      return this.valid && (this.error === undefined);
+    },
     content_css: function() {
-      if (!this.valid) {
+      if (!this.is_valid) {
         return "inspector invalid";
       } else {
         return "inspector";
@@ -575,6 +585,7 @@ const inspector_component = Vue.component('inspector', {
           Entity inspector
         </template>
       </template>
+
       <template v-slot:detail v-if="entity">
         <div :class="content_css">
           <div class="inspector-doc" v-if="has_doc">
@@ -603,6 +614,12 @@ const inspector_component = Vue.component('inspector', {
               v-on="$listeners"/>
           </div>
         </div>
+      </template>
+
+      <template v-slot:footer>
+        <status :status="error"
+          :kind="Status.Error">
+        </status>
       </template>
     </content-container>
     `

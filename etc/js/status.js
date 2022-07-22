@@ -49,8 +49,10 @@ Vue.component('status', {
   template: `
     <div :class="css">
       <template v-if="has_status">
-        <old-icon-button :src="status_icon" v-if="status_icon"></old-icon-button>
-        <span :class="text_css">{{text}}</span>
+        <div class="content-status-body">
+          <old-icon-button :src="status_icon" v-if="status_icon"></old-icon-button>
+          <span :class="text_css">{{text}}</span>
+        </div>
       </template>
     </div>
     `

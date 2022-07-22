@@ -112,6 +112,9 @@ char* get_entity(char *path) {
     ecs_strbuf_t reply = ECS_STRBUF_INIT;
 
     ecs_entity_t ent = ecs_lookup_path(world, 0, path);
+    if (!ent) {
+        return ecs_os_strdup("{\"error\": \"entity not found\"}");
+    }
 
     ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
     desc.serialize_label = true;

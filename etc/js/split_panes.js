@@ -75,7 +75,6 @@ const resize_handle = Vue.component('resize-handle', {
       let result = "handle";
       if (this.last) {
         result += " handle-last";
-        console.log(this.right_frame.visible);
         if (!this.right_frame.visible) {
           result += " handle-hidden";
         }

@@ -28,7 +28,6 @@ Vue.component('query', {
     invalid_query_error(msg) {
       this.query_error(msg);
       this.invalid_query = true;
-      this.query_result = undefined;
     },
     // Query changed event
     evt_query_changed(query) {
@@ -119,6 +118,9 @@ Vue.component('query', {
         }
       }
       return result;
+    },
+    is_valid: function() {
+      return this.valid && !this.error;
     }
   },
   template: `
@@ -143,7 +145,7 @@ Vue.component('query', {
           ref="results"
           v-if="query_result"
           :data="query_result" 
-          :valid="valid"
+          :valid="is_valid"
           v-on="$listeners"/>
       </template>
 

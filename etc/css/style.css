@@ -70,7 +70,8 @@
   --ui-blue: rgba(79, 149, 255, 1.0);
   --ui-blue-30: rgba(79, 149, 255, 0.30);
 
-  --steel-transparent: rgb(26, 29, 35, 0.96);
+  --steel-transparent-96: rgb(26, 29, 35, 0.96);
+  --steel-transparent-90: rgb(26, 29, 35, 0.80);
   --steel-transparent-light: rgb(46, 50, 60, 0.85);
 
   /* Color assignments */
@@ -86,7 +87,7 @@
   --prop-bg: var(--steel-700);
 
   --row-bg: var(--steel-800);
-  --cell-bg: var(--steel-transparent);
+  --cell-bg: var(--steel-transparent-96);
   --cell-bg-hover: var(--steel-transparent-light);
 
   --primary-text: var(--grey-100);
@@ -1122,33 +1123,28 @@ div.content-detail ecs-value {
 }
 
 div.content-status {
-  padding-top: 0px;
+  padding: 0px;
   opacity: 0;
-  transition: padding-top 0.2s, opacity 0.2s;
+  transition: opacity 0.2s;
 }
 
 div.content-status-visible {
   display: flex;
-  min-height: 25px;
-  align-items: center;
-  padding-left: var(--p-1);
-  padding-top: var(--p-1);
-
   opacity: 1;
+}
 
-  background-color: var(--panel-footer-bg);
+div.content-status-body {
+  display: flex;
+  background-color: var(--steel-transparent-90);
   color: var(--footer-text);
-  border-style: solid;
-  border-width: 0px;
-  border-top-width: 1px;
-  border-bottom-width: 1px;
-  border-color: var(--panel-border);
+  width: calc(100% - 3px);
+  margin-left: 3px;
+  min-height: 30px;
+  align-items: center;
 }
 
 div.content-status-error {
-  border-left-width: 2px;
-  border-left-color: var(--error);
-  border-left-width: 4px;
+  background-color: var(--red);
 }
 
 span.content-status-text {
