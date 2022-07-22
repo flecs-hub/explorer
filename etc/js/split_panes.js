@@ -271,7 +271,9 @@ const frame_container = Vue.component('split-pane-container', {
         }
 
         if (!active) {
-          collapsed_width += frame.width - 1;
+          if (frame.fixed) {
+            collapsed_width += frame.width - 1;
+          }
           frame.collapse();
         } else {
           frame.expand();
@@ -289,7 +291,7 @@ const frame_container = Vue.component('split-pane-container', {
           active = this.has_active_children(frame);
         }
 
-        if (active && !frame.fixed) {
+        if (!frame.fixed) {
           let r = frame.width / demanded_sp;
           let resized_width = r * free_sp;
           frame.width = resized_width >= frame.min_width ? resized_width : frame.min_width;
