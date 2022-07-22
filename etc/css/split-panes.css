@@ -30,6 +30,10 @@ div.handle-last {
   margin-left: auto;
 }
 
+div.handle-hidden {
+  display: none;
+}
+
 div.handle-grab-box {
   border-radius: 3px;
   position: relative;
