@@ -34,6 +34,10 @@ function fmt_percentage(value) {
 function fmt_duration(seconds) {
   let result = "";
 
+  if (seconds === 0) {
+    return "0s";
+  }
+
   let days = Math.floor(seconds / (24 * 60 * 60));
   seconds -= days * (24 * 60 * 60);
 
