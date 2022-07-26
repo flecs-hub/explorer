@@ -490,6 +490,7 @@ const inspector_component = Vue.component('inspector', {
       app.request_abort('inspector');
 
       this.entity = undefined;
+      this.error = undefined;
       this.entity_name = path;
 
       if (path == undefined) {
