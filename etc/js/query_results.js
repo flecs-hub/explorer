@@ -283,7 +283,7 @@ Vue.component('query-results', {
           return;
         }
 
-        if (Array.isArray(src)) {
+        if (Array.isArray(src) && src.length) {
           dst.push(...src);
         } else {
           for (let i = 0; i < count; i ++) {
