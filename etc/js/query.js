@@ -51,7 +51,7 @@ Vue.component('query', {
           }
         }, {
           ids: false, 
-          subjects: false,
+          sources: false,
           entity_labels: true,
           entity_ids: true,
           variable_labels: true,
