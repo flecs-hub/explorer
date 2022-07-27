@@ -354,11 +354,15 @@ Vue.component('entity-tree', {
         container = this.root;
       }
 
-      const q = "(ChildOf, " + container.path + "), ?ChildOf(_, This), ?Module, ?Component, ?Tag, ?Prefab";
+      const q = "(ChildOf, " + container.path + "), ?ChildOf(_, $This), ?Module, ?Component, ?Tag, ?Prefab";
       app.request_query('tree-' + container.path,  q, (reply) => {
-        container.entities = this.update_scope(container.entities, reply);
-        if (onready) {
-          onready();
+        if (reply.error) {
+          console.error("treeview: " + reply.error);
+        } else {
+          container.entities = this.update_scope(container.entities, reply);
+          if (onready) {
+            onready();
+          }
         }
       }, undefined, {
         values: false, 
