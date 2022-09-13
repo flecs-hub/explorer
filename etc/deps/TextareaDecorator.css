@@ -85,6 +85,10 @@
     color: #B5894B;
 }
 
+.ldt pre span.multiline_string {
+    color: #B5894B;
+}
+
 .ldt pre span.other {
     color: #B5494B;
 }
