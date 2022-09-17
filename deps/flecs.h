@@ -1171,6 +1171,7 @@ typedef struct ecs_block_allocator_t {
     int32_t data_size;
     int32_t chunks_per_block;
     int32_t block_size;
+    int32_t alloc_count;
 } ecs_block_allocator_t;
 
 FLECS_DBG_API
@@ -1530,15 +1531,26 @@ ecs_block_allocator_t* flecs_allocator_get(
     ecs_allocator_t *a, 
     ecs_size_t size);
 
+char* flecs_strdup(
+    ecs_allocator_t *a, 
+    const char* str);
+
+void flecs_strfree(
+    ecs_allocator_t *a, 
+    char* str);
+
 #define flecs_allocator(obj) (&obj->allocators.dyn)
 
 #define flecs_alloc(a, size) flecs_balloc(flecs_allocator_get(a, size))
+#define flecs_alloc_t(a, T) flecs_alloc(a, ECS_SIZEOF(T))
 #define flecs_alloc_n(a, T, count) flecs_alloc(a, ECS_SIZEOF(T) * (count))
 
 #define flecs_calloc(a, size) flecs_bcalloc(flecs_allocator_get(a, size))
+#define flecs_calloc_t(a, T) flecs_calloc(a, ECS_SIZEOF(T))
 #define flecs_calloc_n(a, T, count) flecs_calloc(a, ECS_SIZEOF(T) * (count))
 
 #define flecs_free(a, size, ptr) flecs_bfree(flecs_allocator_get(a, size), ptr)
+#define flecs_free_t(a, T, ptr) flecs_free(a, ECS_SIZEOF(T), ptr)
 #define flecs_free_n(a, T, count, ptr) flecs_free(a, ECS_SIZEOF(T) * (count), ptr)
 
 #define flecs_realloc(a, size_dst, size_src, ptr)\
@@ -2039,6 +2051,9 @@ void ecs_os_fini(void);
 FLECS_API
 void ecs_os_set_api(
     ecs_os_api_t *os_api);
+
+FLECS_API
+ecs_os_api_t ecs_os_get_api(void);
 
 FLECS_API
 void ecs_os_set_api_defaults(void);
@@ -3984,6 +3999,12 @@ typedef ecs_iterable_t EcsIterable;
  * @defgroup misc_types Miscalleneous types
  * @{
  */
+
+/* Utility to hold a value of a dynamic type */
+typedef struct ecs_value_t {
+    ecs_entity_t type;
+    void *ptr;
+} ecs_value_t;
 
 /** Type that contains information about the world. */
 typedef struct ecs_world_info_t {
@@ -7939,6 +7960,172 @@ void* ecs_record_get_column(
 /** @} */
 
 /**
+ * @defgroup values API for dynamic values.
+ * @brief Construct, destruct, copy and move dynamically created values.
+ * @{
+ */
+
+/** Construct a value in existing storage 
+ *
+ * @param world The world.
+ * @param type The type of the value to create.
+ * @param ptr Pointer to a value of type 'type'
+ * @return Zero if success, nonzero if failed.
+ */
+FLECS_API
+int ecs_value_init(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    void *ptr);
+
+/** Construct a value in existing storage 
+ *
+ * @param world The world.
+ * @param ti The type info of the type to create.
+ * @param ptr Pointer to a value of type 'type'
+ * @return Zero if success, nonzero if failed.
+ */
+FLECS_API
+int ecs_value_init_w_type_info(
+    const ecs_world_t *world,
+    const ecs_type_info_t *ti,
+    void *ptr);
+
+/** Construct a value in new storage 
+ * 
+ * @param world The world.
+ * @param type The type of the value to create.
+ * @return Pointer to type if success, NULL if failed.
+ */
+FLECS_API
+void* ecs_value_new(
+    ecs_world_t *world,
+    ecs_entity_t type);
+
+/** Destruct a value 
+ * 
+ * @param world The world.
+ * @param ti Type info of the value to destruct.
+ * @param ptr Pointer to constructed value of type 'type'.
+ * @return Zero if success, nonzero if failed. 
+ */
+int ecs_value_fini_w_type_info(
+    const ecs_world_t *world,
+    const ecs_type_info_t *ti,
+    void *ptr);
+
+/** Destruct a value 
+ * 
+ * @param world The world.
+ * @param type The type of the value to destruct.
+ * @param ptr Pointer to constructed value of type 'type'.
+ * @return Zero if success, nonzero if failed. 
+ */
+FLECS_API
+int ecs_value_fini(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    void* ptr);
+
+/** Destruct a value, free storage
+ * 
+ * @param world The world.
+ * @param type The type of the value to destruct.
+ * @return Zero if success, nonzero if failed. 
+ */
+FLECS_API
+int ecs_value_free(
+    ecs_world_t *world,
+    ecs_entity_t type,
+    void* ptr);
+
+/** Copy value.
+ * 
+ * @param world The world.
+ * @param ti Type info of the value to copy.
+ * @param dst Pointer to the storage to copy to.
+ * @param src Pointer to the value to copy.
+ * @return Zero if success, nonzero if failed. 
+ */
+FLECS_API
+int ecs_value_copy_w_type_info(
+    const ecs_world_t *world,
+    const ecs_type_info_t *ti,
+    void* dst,
+    const void *src);
+
+/** Copy value.
+ * 
+ * @param world The world.
+ * @param type The type of the value to copy.
+ * @param dst Pointer to the storage to copy to.
+ * @param src Pointer to the value to copy.
+ * @return Zero if success, nonzero if failed. 
+ */
+FLECS_API
+int ecs_value_copy(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    void* dst,
+    const void *src);
+
+/** Move value.
+ * 
+ * @param world The world.
+ * @param ti Type info of the value to move.
+ * @param dst Pointer to the storage to move to.
+ * @param src Pointer to the value to move.
+ * @return Zero if success, nonzero if failed. 
+ */
+int ecs_value_move_w_type_info(
+    const ecs_world_t *world,
+    const ecs_type_info_t *ti,
+    void* dst,
+    void *src);
+
+/** Move value.
+ * 
+ * @param world The world.
+ * @param type The type of the value to move.
+ * @param dst Pointer to the storage to move to.
+ * @param src Pointer to the value to move.
+ * @return Zero if success, nonzero if failed. 
+ */
+int ecs_value_move(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    void* dst,
+    void *src);
+
+/** Move construct value.
+ * 
+ * @param world The world.
+ * @param ti Type info of the value to move.
+ * @param dst Pointer to the storage to move to.
+ * @param src Pointer to the value to move.
+ * @return Zero if success, nonzero if failed. 
+ */
+int ecs_value_move_ctor_w_type_info(
+    const ecs_world_t *world,
+    const ecs_type_info_t *ti,
+    void* dst,
+    void *src);
+
+/** Move construct value.
+ * 
+ * @param world The world.
+ * @param type The type of the value to move.
+ * @param dst Pointer to the storage to move to.
+ * @param src Pointer to the value to move.
+ * @return Zero if success, nonzero if failed. 
+ */
+int ecs_value_move_ctor(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    void* dst,
+    void *src);
+
+/**
  * @file flecs_c.h
  * @brief Extends the core API with convenience functions/macros for C applications.
  */
@@ -8443,6 +8630,16 @@ void* ecs_record_get_column(
 #define ecs_isa(e)       ecs_pair(EcsIsA, e)
 #define ecs_childof(e)   ecs_pair(EcsChildOf, e)
 #define ecs_dependson(e) ecs_pair(EcsDependsOn, e)
+
+/** @} */
+
+/**
+ * @defgroup values Utility macro's for values
+ * @{
+ */
+
+#define ecs_value(T, ptr) ((ecs_value_t){ecs_id(T), ptr})
+#define ecs_value_new_t(world, T) ecs_value_new(world, ecs_id(T))
 
 /** @} */
 
@@ -11625,6 +11822,11 @@ FLECS_API
 int ecs_meta_set_null(
     ecs_meta_cursor_t *cursor);
 
+/** Set field with dynamic value */
+FLECS_API
+int ecs_meta_set_value(
+    ecs_meta_cursor_t *cursor,
+    const ecs_value_t *value);
 
 /** Functions for getting members. */
 
@@ -11666,7 +11868,6 @@ const char* ecs_meta_get_string(
 FLECS_API
 ecs_entity_t ecs_meta_get_entity(
     const ecs_meta_cursor_t *cursor);
-
 
 /** API functions for creating meta types */
 
@@ -11963,6 +12164,69 @@ char* ecs_astresc(
     char delimiter, 
     const char *in);
 
+/** Storage for parser variables. Variables make it possible to parameterize
+ * expression strings, and are referenced with the $ operator (e.g. $var). */
+typedef struct ecs_expr_var_t {
+    char *name;
+    ecs_value_t value;
+} ecs_expr_var_t;
+
+typedef struct ecs_expr_var_scope_t {
+    ecs_hashmap_t var_index;
+    ecs_vec_t vars;
+    struct ecs_expr_var_scope_t *parent;
+} ecs_expr_var_scope_t;
+
+typedef struct ecs_vars_t {
+    ecs_world_t *world;
+    ecs_expr_var_scope_t root;
+    ecs_expr_var_scope_t *cur;
+} ecs_vars_t;
+
+/** Init variable storage */
+FLECS_API
+void ecs_vars_init(
+    ecs_world_t *world,
+    ecs_vars_t *vars);
+
+/** Cleanup variable storage */
+FLECS_API
+void ecs_vars_fini(
+    ecs_vars_t *vars);
+
+/** Push variable scope */
+FLECS_API
+void ecs_vars_push(
+    ecs_vars_t *vars);
+
+/** Pop variable scope */
+FLECS_API
+int ecs_vars_pop(
+    ecs_vars_t *vars);
+
+/** Declare variable in current scope */
+FLECS_API
+ecs_expr_var_t* ecs_vars_declare(
+    ecs_vars_t *vars,
+    const char *name,
+    ecs_entity_t type);
+
+/** Declare variable in current scope from value.
+ * This operation takes ownership of the value. The value pointer must be 
+ * allocated with ecs_value_new.
+ */
+FLECS_API
+ecs_expr_var_t* ecs_vars_declare_w_value(
+    ecs_vars_t *vars,
+    const char *name,
+    ecs_value_t *value);
+
+/** Lookup variable in scope and parent scopes */
+FLECS_API
+ecs_expr_var_t* ecs_vars_lookup(
+    ecs_vars_t *vars,
+    const char *name);
+
 /** Used with ecs_parse_expr. */
 typedef struct ecs_parse_expr_desc_t {
     const char *name;
@@ -11972,25 +12236,28 @@ typedef struct ecs_parse_expr_desc_t {
         const char *value, 
         void *ctx);
     void *lookup_ctx;
+    ecs_vars_t *vars;
 } ecs_parse_expr_desc_t;
 
 /** Parse expression into value.
  * This operation parses a flecs expression into the provided pointer. The
  * memory pointed to must be large enough to contain a value of the used type.
  * 
+ * If no type and pointer are provided for the value argument, the operation 
+ * will discover the type from the expression and allocate storage for the 
+ * value. The allocated value must be freed with ecs_value_free.
+ * 
  * @param world The world.
  * @param ptr The pointer to the expression to parse.
- * @param type The type of the expression to parse.
- * @param data_out Pointer to the memory to write to.
+ * @param value The value containing type & pointer to write to.
  * @param desc Configuration parameters for deserializer.
  * @return Pointer to the character after the last one read, or NULL if failed.
  */
 FLECS_API
 const char* ecs_parse_expr(
-    const ecs_world_t *world,
+    ecs_world_t *world,
     const char *ptr,
-    ecs_entity_t type,
-    void *data_out,
+    ecs_value_t *value,
     const ecs_parse_expr_desc_t *desc);
 
 /** Serialize value into expression string.
