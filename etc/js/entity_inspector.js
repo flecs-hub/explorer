@@ -277,10 +277,13 @@ const inspector_component_component = Vue.component('inspector-component', {
   methods: {
     search_component() {
       if (this.obj) {
-        this.$emit('select-query', '(' + this.pred + ", " + this.obj + ')');
+        this.$emit('append-query', '(' + this.pred + ", " + this.obj + ')');
       } else {
-        this.$emit('select-query', this.pred);
+        this.$emit('append-query', this.pred);
       }
+    },
+    search_relationship() {
+      this.$emit('append-query', '$(' + this.pred + ')');
     }
   },
   computed: {
@@ -361,6 +364,9 @@ const inspector_component_component = Vue.component('inspector-component', {
                 click_name="true"
                 v-on="$listeners"/></span></template>
               <icon-button icon="codicons:search" :size="16" v-on:click.stop="search_component"/>
+              <template v-if="obj">
+                <icon-button icon="codicons:regex" :size="16" v-on:click.stop="search_relationship"/>
+              </template>
             </div>
           </template>
           <template v-slot:detail>

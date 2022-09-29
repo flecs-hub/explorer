@@ -781,7 +781,7 @@ div.editor-textarea {
   border: none;
   resize: none;
   color: var(--primary-text);
-  font-family: "Roboto Mono", Menlo, Monaco, "Courier New", monospace;
+  font-family: Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   font-size: var(--text-fs-md);
   letter-spacing: 0.0px;
 }
@@ -807,9 +807,9 @@ div.ecs-query {
   padding-left: 8px;
   margin-left: -5px; /* offset padding */
 
-  font-family: "Roboto Mono", Menlo, Monaco, "Courier New", monospace;
-  font-size: 13px;
+  font-family: Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   letter-spacing: 0.0px;
+  font-size: 14;
 
   transition: background-color 0.2s;
   border-radius: 6px;
@@ -1088,7 +1088,10 @@ div.content-container > div.detail-toggle > div.detail-toggle-detail {
 
 span.content-container-icon-close {
   position: absolute;
-  right: 5px;
+  right: 0px;
+  padding-right: 5px;
+  padding-left: 2px;
+  background-color: var(--panel-header-bg);
 }
 
 span.content-summary {
@@ -1100,6 +1103,7 @@ span.content-summary {
   /* 24px subtraction accounts for chevron space to left of content-summary */
   height: 30px;
   align-items: center;
+  white-space: nowrap;
   z-index: 3;
 }
 

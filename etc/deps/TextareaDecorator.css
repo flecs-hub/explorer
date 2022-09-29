@@ -15,7 +15,7 @@
     /* resize algorithm depends on a monospaced font */
     font-family: inherit;
     font-feature-settings: "liga" 0, "calt" 0;
-    line-height: 18px;
+    line-height: 20px;
     font-weight: 400;
 }
 

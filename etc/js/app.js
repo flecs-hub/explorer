@@ -586,6 +586,17 @@ var app = new Vue({
       this.$refs.query.open();
     },
 
+    evt_append_query(query) {
+      let q = this.$refs.query.get_query();
+      if (q.length) {
+        q += ", " + query;
+      } else {
+        q = query;
+      }
+      this.$refs.query.set_query(q);
+      this.$refs.query.open();
+    },
+
     evt_panel_update() {
       this.$nextTick(() => {
         if (this.$refs.panes) {
