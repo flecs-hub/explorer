@@ -39,9 +39,6 @@ Vue.component('entity-tree-item', {
     select: function() {
       this.$emit('select', this.entity_data);
     },
-    search_x: function() {
-      return 50;
-    }
   },
   computed: {
     css_select_box: function() {
@@ -60,12 +57,6 @@ Vue.component('entity-tree-item', {
       } else {
         return "entity-tree-text noselect";
       }
-    },
-    show_search_icon: function() {
-      return this.entity_data.is_component && !this.entity_data.is_module;
-    },
-    search_icon_x: function() {
-      return Math.max(this.width - 20, 0);
     },
     xp: function() {
       return this.x + 3;
@@ -100,19 +91,6 @@ Vue.component('entity-tree-item', {
       <entity-icon :x="xp + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
       <text :class="css_text" :x="xp + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
-      <rect 
-        :x="search_icon_x - 2" 
-        :y="y - 12" 
-        :width="31" 
-        height="15"
-        :class="css_select_box"
-        v-if="show_search_icon"></rect>
-
-      <image v-if="show_search_icon"
-        href="img/search.png" 
-        :x="search_icon_x" :y="y - 12" height="13px"
-        v-on:click="search" class="entity-tree-icon">
-      </image>
     </svg>`
 });
 

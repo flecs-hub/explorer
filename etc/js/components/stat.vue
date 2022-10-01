@@ -1,14 +1,21 @@
 <template>
-  <detail-toggle>
-    <template v-slot:summary>
-      <span class="stat-name">{{name_fmt}}</stat>
-    </template>
-    <template v-slot:detail>
-      <div class="stat">
-        <stat-chart :values="values"></stat-chart>
-      </div>
-    </template>
-  </detail-toggle>
+  <div class="stat">
+    <div class="stat-name">
+      <span>{{name_fmt}}</span>
+    </div>
+    <div class="stat-content">
+      <stat-chart 
+        :values="values"
+        :width="440"
+        :width_scale="true" 
+        :width_margin="10 + 5 + 2"
+        :background_fill="false">
+      </stat-chart>
+    </div>
+    <div class="stat-brief" v-if="values.brief">
+      <span>{{values.brief}}</span>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -31,12 +38,33 @@
 <style>
 
 div.stat {
-  margin-left: 18px;
-  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background-color: var(--panel-bg-secondary);
+  border-color: var(--steel-700);
+  border-width: 1px;
+  border-style: solid;
+  margin: 10px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  padding-top: 10px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
-span.stat-name {
-  margin-top: 5px;
+div.stat-content {
+}
+
+div.stat-name {
+  font-weight: bold;
+  color: var(--secondary-text);
+}
+
+div.stat-brief {
+  color: var(--secondary-text);
+  font-size: 13px;
 }
 
 </style>

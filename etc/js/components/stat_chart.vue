@@ -1,6 +1,9 @@
 <template>
-  <div class="stat-chart">
-  <svg class="noselect clickable stat-chart" :width="width" :height="chart_height" v-on:click="toggle_zoom_value">
+  <div :class="css">
+  <svg class="noselect clickable stat-chart" :width="chart_width" :height="chart_height" 
+    v-on:click="toggle_zoom_in"
+    v-on:click.right="toggle_zoom_out"
+    v-on:contextmenu.prevent>
     <template v-if="zoom_value >= 2">
       <line :x1="to_x(0)" :y1="scale_y(min_max.min)" :x2="to_x(59)" :y2="scale_y(min_max.min)" 
           :stroke="stroke_color_ruler"/>
@@ -23,7 +26,7 @@
       </text>
     </template>
 
-    <template v-if="zoom_value == 3">
+    <template v-if="zoom_value >= 3">
       <line :x1="to_x(0)" :y1="scale_y(min_avg)" :x2="to_x(59)" :y2="scale_y(min_avg)" 
           :stroke="stroke_color_ruler"/>
       <line :x1="to_x(0)" :y1="scale_y(avg_max)" :x2="to_x(59)" :y2="scale_y(avg_max)" 
@@ -49,7 +52,7 @@
 
     <template v-for="i in 59">
       <line :x1="to_x(i - 1)" :y1="to_y(i - 1)" :x2="to_x(i)" :y2="to_y(i)" 
-        :stroke="stroke_color"/>
+        :stroke="stroke_color" stroke-width="1.5"/>
     </template>
 
   </svg>
@@ -63,6 +66,9 @@
       values: { type: Object, required: true },
       zoom: { type: Number, required: false, default: 2 },
       width: { type: Number, required: false, default: 500 },
+      width_scale: { type: Boolean, required: false, default: false },
+      width_margin: { type: Number, required: false, default: 0 },
+      background_fill: { type: Boolean, required: false, default: true }
     },
     data: function() {
       return {
@@ -140,12 +146,19 @@
         return Number.parseFloat(result.toFixed(1));
       },
       chart_height() {
-        if (this.zoom_value == 3) {
+        if (this.zoom_value >= 3) {
           return 200;
-        } else if (this.zoom_value == 2) {
+        } else if (this.zoom_value >= 2) {
           return 100;
-        } else if (this.zoom_value == 1) {
+        } else if (this.zoom_value >= 1) {
           return 50;
+        }
+      },
+      chart_width() {
+        if (this.zoom_value >= 4) {
+          return (this.width + this.width_margin) * 2;
+        } else {
+          return this.width;
         }
       },
       chart_padding() {
@@ -171,12 +184,22 @@
       },
       text_size() {
         return 12;
+      },
+      max_zoom() {
+        return this.width_scale ? 5 : 4;
+      },
+      css() {
+        let result = "stat-chart";
+        if (this.background_fill) {
+          result += " stat-chart-bg-fill";
+        }
+        return result;
       }
     },
     methods: {
       to_x(index) {
         const offset = this.chart_y_ruler_width;
-        const width = this.width - offset;
+        const width = this.chart_width - offset;
         return index * (width / 60) + offset;
       },
       scale_y(value) {
@@ -209,9 +232,15 @@
         } 
         return this.scale_y(this.values.max[index]);
       },
-      toggle_zoom_value() {
+      toggle_zoom_in() {
         this.zoom_value = this.zoom_value + 1;
-        if (this.zoom_value == 4) {
+        if (this.zoom_value == this.max_zoom) {
+          this.zoom_value = 1;
+        }
+      },
+      toggle_zoom_out() {
+        this.zoom_value = this.zoom_value - 1;
+        if (this.zoom_value == 0) {
           this.zoom_value = 1;
         }
       },
@@ -224,15 +253,17 @@
 
 <style>
 
-div.stat-chart {
-}
+div.stat-chart { }
 
 div.stat-chart svg {
+  border-width: 1px;
+  border-color: var(--steel-700);
+  border-radius: 2px;
+}
+
+div.stat-chart-bg-fill svg {
   background-color: #101115;
   border-style: solid;
-  border-width: 1px;
-  border-color: #3f3f46;
-  border-radius: 2px;
 }
 
 </style>

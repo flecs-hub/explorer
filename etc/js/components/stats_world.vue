@@ -11,9 +11,22 @@
       <template v-if="remote_mode">
         <stats-period ref="period"></stats-period>
 
-        <div class="stats-charts">
-          <div v-for="(v, k) in results">
-            <stat :name="k" :values="v"></stat>
+        <div class="stats-groups">
+          <div :class="group_css(i)" v-for="(group, k, i) in groups">
+            <detail-toggle>
+              <template v-slot:summary>
+                <span class="stats-group-name">{{name_fmt(k)}}</span>
+              </template>
+              <template v-slot:detail>
+                <div class="stats-group-stats">
+                  <template v-for="(v, k) in group">
+                    <div>
+                      <stat :name="k" :values="v"></stat>
+                    </div>
+                  </template>
+                </div>
+              </template>
+            </detail-toggle>
           </div>
         </div>
 
@@ -76,6 +89,28 @@
       },
       connected() {
         return app.connection == ConnectionState.Remote;
+      },
+      groups() {
+        let groups = {};
+
+        for (const k in this.results) {
+          const elems = k.split(".");
+          let group = "";
+          let stat;
+
+          if (elems.length == 2) {
+            group = elems[0];
+            stat = elems[1];
+          }
+
+          if (groups[group] === undefined) {
+            groups[group] = {};
+          }
+
+          groups[group][stat] = this.results[k];
+        }
+
+        return groups;
       }
     },
     methods: {
@@ -106,13 +141,45 @@
       },
       evt_panel_update() {
         this.$emit('panel-update');
+      },
+      name_fmt(name) {
+        let str = name.replaceAll("_", " ");
+        str = str.charAt(0).toUpperCase() + str.slice(1);
+        return str;
+      },
+      group_css(index) {
+        return "stats-group stats-group-color-" + (index % 2);
       }
     }
   }
 </script>
 
 <style scoped>
-div.stats-charts {
+span.stats-group-name {
+  font-weight: bold;
+}
+
+div.stats-group-stats {
+  display: flex;
+  flex-flow: row wrap;
+  padding-left: 10px;
+  padding-bottom: 10px;
+}
+
+div.stats-group {
+  display: flex;
+  background-color: var(--panel-bg);
+  border-color: var(--panel-header-bg);
+  border-style: solid;
+  border-width: 0px;
+  border-left-width: 10px;
+  padding-top: 10px;
+  padding-left: 5px;
+  padding-bottom: 10px;
+  margin-bottom: 5px;
+}
+
+div.stats-groups {
   border-style: solid;
   border-width: 0px;
   border-top-width: 1px;
@@ -121,4 +188,13 @@ div.stats-charts {
   height: 100%;
   overflow-y: auto;
 }
+
+div.stats-group-color-0 {
+  border-left-color: hsl(200, 54%, 15%);
+}
+
+div.stats-group-color-1 {
+  border-left-color: hsl(200, 54%, 22%);
+}
+
 </style>
