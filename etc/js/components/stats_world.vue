@@ -95,12 +95,16 @@
 
         for (const k in this.results) {
           const elems = k.split(".");
-          let group = "";
+          let group;
           let stat;
 
           if (elems.length == 2) {
             group = elems[0];
             stat = elems[1];
+          } else {
+            // Backwards compatibility
+            group = "";
+            stat = k;
           }
 
           if (groups[group] === undefined) {
