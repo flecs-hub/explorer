@@ -323,6 +323,8 @@ div.stats-system {
   padding-left: 15px;
   padding-bottom: 15px;
   margin-bottom: 5px;
+
+  width: 950px;
 }
 
 div.stats-system-impact-01 {
