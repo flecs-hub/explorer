@@ -22,7 +22,7 @@
                   <div class="stats-system-chart">
                     <stat-chart 
                       :zoom="1" 
-                      :width="300"
+                      :width="280"
                       :values="sys.time_spent"
                       :disabled="!valid">
                     </stat-chart>
@@ -39,7 +39,7 @@
                   <div class="stats-system-chart">
                     <stat-chart
                       :zoom="1" 
-                      :width="300"
+                      :width="280"
                       :values="sys.matched_entity_count"
                       :disabled="!valid">
                     </stat-chart>
@@ -55,7 +55,7 @@
                   <div class="stats-system-chart">
                     <stat-chart 
                       :zoom="1" 
-                      :width="300"
+                      :width="280"
                       :values="sys.matched_table_count"
                       :disabled="!valid">
                     </stat-chart>
@@ -294,6 +294,7 @@ div.stats-charts {
   border-top-width: 1px;
   border-color: #3f3f46;
   padding-top: 10px;
+  margin-left: 10px;
   height: 100%;
   overflow-y: auto;
 }
@@ -303,9 +304,6 @@ div.stats-system-chart {
   border-color: var(--steel-700);
   border-width: 1px;
   border-style: solid;
-  margin: 10px;
-  margin-right: 0px;
-  margin-bottom: 0px;
   padding-top: 10px;
   padding-bottom: 5px;
   padding-left: 10px;
@@ -384,7 +382,7 @@ div.stats-system-charts div {
   display: flex;
   flex-direction: column;
   margin-top: 2px;
-  margin-right: 7px;
+  margin-right: 5px;
 }
 
 div.stats-merge {
