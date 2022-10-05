@@ -565,6 +565,9 @@ const inspector_component = Vue.component('inspector', {
       } else {
         return "inspector";
       }
+    },
+    status_error: function() {
+      return Status.Error;
     }
   },
   template: `
@@ -629,7 +632,7 @@ const inspector_component = Vue.component('inspector', {
 
       <template v-slot:footer>
         <status :status="error"
-          :kind="Status.Error">
+          :kind="status_error">
         </status>
       </template>
     </content-container>

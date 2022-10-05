@@ -68,7 +68,8 @@
       width: { type: Number, required: false, default: 500 },
       width_scale: { type: Boolean, required: false, default: false },
       width_margin: { type: Number, required: false, default: 0 },
-      background_fill: { type: Boolean, required: false, default: true }
+      background_fill: { type: Boolean, required: false, default: true },
+      disabled: { type: Boolean, required: false, default: false }
     },
     data: function() {
       return {
@@ -168,7 +169,11 @@
         return 50;
       },
       stroke_color() {
-        return "#A2D8B4";
+        if (!this.disabled) {
+          return "#A2D8B4";
+        } else {
+          return "#71717a";
+        }
       },
       stroke_color_min() {
         return "#4d515a";

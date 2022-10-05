@@ -9,7 +9,8 @@
         :width="440"
         :width_scale="true" 
         :width_margin="10 + 5 + 2"
-        :background_fill="false">
+        :background_fill="false"
+        :disabled="!valid">
       </stat-chart>
     </div>
     <div class="stat-brief" v-if="values.brief">
@@ -23,7 +24,8 @@
     name: "stat",
     props: {
       name: String,
-      values: Object
+      values: Object,
+      valid: Boolean
     },
     computed: {
       name_fmt() {

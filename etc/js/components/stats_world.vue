@@ -21,7 +21,7 @@
                 <div class="stats-group-stats">
                   <template v-for="(v, k) in group">
                     <div>
-                      <stat :name="k" :values="v"></stat>
+                      <stat :name="k" :values="v" :valid="valid"></stat>
                     </div>
                   </template>
                 </div>
@@ -90,6 +90,9 @@
       connected() {
         return app.connection == ConnectionState.Remote;
       },
+      valid() {
+        return this.error === undefined;
+      },
       groups() {
         let groups = {};
 
@@ -134,7 +137,6 @@
           }
         }, () => {
           this.error = "request for statistics failed";
-          this.results = {};
         }, { period: this.$refs.period.period });
       },
       open() {
