@@ -9,7 +9,6 @@
         :width="440"
         :width_scale="true" 
         :width_margin="10 + 5 + 2"
-        :background_fill="false"
         :disabled="!valid">
       </stat-chart>
     </div>

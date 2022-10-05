@@ -19,44 +19,53 @@
               </entity-reference>
               <div class="stats-system-charts">
                 <div>
-                  <stat-chart 
-                    :zoom="1" 
-                    :width="250"
-                    :values="sys.time_spent">
-                  </stat-chart>
-                  <span class="noselect stats-chart-label">
-                    Time spent 
-                    (
-                      {{get_system_time_avg(i)}},
-                      {{(system_time_pct.system_pct[i] * 100).toFixed(0)}}%
-                    )
-                  </span>
+                  <div class="stats-system-chart">
+                    <stat-chart 
+                      :zoom="1" 
+                      :width="300"
+                      :values="sys.time_spent"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Time spent 
+                      (
+                        {{get_system_time_avg(i)}},
+                        {{(system_time_pct.system_pct[i] * 100).toFixed(0)}}%
+                      )
+                    </span>
+                  </div>
                 </div>
                 <div v-if="sys.matched_entity_count">
-                  <stat-chart
-                    :zoom="1" 
-                    :width="250"
-                    :values="sys.matched_entity_count">
-                  </stat-chart>
-                  <span class="noselect stats-chart-label">
-                    Matched entities
-                    (
-                      {{get_system_entities_avg(i)}}
-                    )
-                  </span>
+                  <div class="stats-system-chart">
+                    <stat-chart
+                      :zoom="1" 
+                      :width="300"
+                      :values="sys.matched_entity_count"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Matched entities
+                      (
+                        {{get_system_entities_avg(i)}}
+                      )
+                    </span>
+                  </div>
                 </div>
                 <div v-if="sys.matched_table_count">
-                  <stat-chart 
-                    :zoom="1" 
-                    :width="250"
-                    :values="sys.matched_table_count">
-                  </stat-chart>
-                  <span class="noselect stats-chart-label">
-                    Matched tables
-                    (
-                      {{get_system_tables_avg(i)}}
-                    )
-                  </span>
+                  <div class="stats-system-chart">
+                    <stat-chart 
+                      :zoom="1" 
+                      :width="300"
+                      :values="sys.matched_table_count"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Matched tables
+                      (
+                        {{get_system_tables_avg(i)}}
+                      )
+                    </span>
+                  </div>
                 </div>
               </div>
             </template>
@@ -125,6 +134,9 @@
       },
       connected() {
         return app.connection == ConnectionState.Remote;
+      },
+      valid() {
+        return this.error === undefined;
       },
       system_time_pct() {
         let result = [];
@@ -208,7 +220,6 @@
           }
         }, () => {
           this.error = "request for statistics failed";
-          this.results = {};
         }, { period: this.$refs.period.period });
       },
       open() {
@@ -287,6 +298,20 @@ div.stats-charts {
   overflow-y: auto;
 }
 
+div.stats-system-chart {
+  background-color: var(--panel-bg-secondary);
+  border-color: var(--steel-700);
+  border-width: 1px;
+  border-style: solid;
+  margin: 10px;
+  margin-right: 0px;
+  margin-bottom: 0px;
+  padding-top: 10px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
 div.stats-system {
   background-color: var(--panel-bg);
 
@@ -298,9 +323,8 @@ div.stats-system {
 
   padding: 7px;
   padding-left: 15px;
+  padding-bottom: 15px;
   margin-bottom: 5px;
-
-  width: 790px;
 }
 
 div.stats-system-impact-01 {
