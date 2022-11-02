@@ -372,9 +372,15 @@ Vue.component('query-results', {
           if (result.entity_ids) {
             let index = 0;
             for (let entity_id of result.entity_ids) {
+              let order_by_value = entity_id;
+              if (result.entity_labels && result.entity_labels[index]) {
+                order_by_value = result.entity_labels[index];
+              } else if (result.entity_path && result.entity_path[index]) {
+                order_by_value = result.entity_path[index];
+              }
               r.data.index.push({
                 index: index + r.count,
-                order_by: entity_id
+                order_by: order_by_value
               });
               index ++;
             }
@@ -382,7 +388,15 @@ Vue.component('query-results', {
 
           // Sort indices used for iterating the results
           r.data.index.sort((a, b) => {
-            return a.order_by - b.order_by;
+            let a_str = a.order_by;
+            let b_str = b.order_by;
+            if (typeof a_str === 'number') {
+              a_str = "" + a_str;
+            }
+            if (typeof b_str === 'number') {
+              b_str = "" + b_str;
+            }
+            return a_str.localeCompare(b_str);
           });
 
           // Append entity names, labels and colors
