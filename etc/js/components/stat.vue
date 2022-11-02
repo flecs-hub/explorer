@@ -1,7 +1,7 @@
 <template>
   <div class="stat">
-    <div class="stat-name">
-      <span>{{name_fmt}}</span>
+    <div>
+      <span class="stat-name">{{name_fmt}}</span>
     </div>
     <div class="stat-content">
       <stat-chart 
@@ -31,6 +31,13 @@
         let str = this.name.replaceAll("_", " ");
         str = str.charAt(0).toUpperCase() + str.slice(1);
         return str;
+      },
+      stat_value() {
+        let avg = 0;
+        for (let i = 0; i < 60; i ++) {
+          avg += this.values.avg[i];
+        }
+        return (avg / 60).toFixed(2);
       }
     }
   }
@@ -58,8 +65,12 @@ div.stat {
 div.stat-content {
 }
 
-div.stat-name {
+span.stat-name {
   font-weight: bold;
+  color: var(--secondary-text);
+}
+
+span.stat-value {
   color: var(--secondary-text);
 }
 

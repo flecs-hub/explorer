@@ -137,14 +137,14 @@
         const min = min_max.min;
         const avg = min_max.avg;
         let result = min + (avg - min) / 2.0;
-        return Number.parseFloat(result.toFixed(1));
+        return Number.parseFloat(result);
       },
       avg_max() {
         const min_max = this.min_max;
         const avg = min_max.avg;
         const max = min_max.max;
         let result = avg + (max - avg) / 2.0;
-        return Number.parseFloat(result.toFixed(1));
+        return Number.parseFloat(result);
       },
       chart_height() {
         if (this.zoom_value >= 3) {

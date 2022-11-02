@@ -135,7 +135,11 @@ Vue.component('entity-tree-list', {
           if (e1.is_prefab == e2.is_prefab) {
             if (e1.has_children == e2.has_children) {
               if (e1.is_component == e2.is_component) {
-                return e1.name.localeCompare(e2.name);
+                if (e1.label && e2.label) {
+                  return e1.label.localeCompare(e2.label);
+                } else {
+                  return e1.name.localeCompare(e2.name);
+                }
               } else {
                 if (e1.is_component) {
                   return -1;
