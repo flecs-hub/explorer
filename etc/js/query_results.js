@@ -60,7 +60,7 @@ Vue.component('query-results-table', {
       return this.columns.data.values[term] === 0;
     },
     create_none(h) {
-      return h('td', [h('span', { class: "query-result-no" }, ["None"])]);
+      return h('td', [h('span', { class: "query-result-cell-none" }, ["None"])]);
     },
     // Create table header
     create_header(h) {
@@ -455,7 +455,7 @@ Vue.component('query-results', {
       <div :class="css">
         <template v-if="data && valid && !has_this && ((variable_count == 0) || !results.length)">
           <div v-if="data && is_true" class="noselect query-result-yes"> Yes </div>
-          <div v-else class="noselect query-result-no"> No </div>
+          <div v-else class="noselect query-result-no"> No results </div>
         </template>
         <template v-else>
           <query-results-table :columns="columns"

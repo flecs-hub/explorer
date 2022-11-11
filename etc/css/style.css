@@ -1003,11 +1003,14 @@ div.query-result-yes {
 }
 
 div.query-result-no {
-  color: var(--tertiary-text); 
+  color: var(--secondary-text);
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 10px;
 }
 
-span.query-result-no {
-  color: var(--tertiary-text); 
+span.query-result-cell-none {
+  color: var(--tertiary-text);
 }
 
 div.query-results {
@@ -1253,14 +1256,14 @@ span.query-result-color {
 table.query-results-table td {
   padding-left: var(--p-4);
   padding-right: var(--p-4);
-  padding-bottom: var(--p-3);
-  padding-top: var(--p-3);
+  padding-bottom: 0px;
+  padding-top: 0px;
   border-top-color: var(--grey-800);
   border-top-style: solid;
   border-top-width: 1px;
   font-size: inherit;
   font-feature-settings: "tnum";
-  height: 44px;
+  height: 50px;
 }
 
 /* detail toggle */
