@@ -82,15 +82,15 @@ div.panel-button-dot {
   position: absolute;
   background-color: #A2D8B4;
   top: 4px;
-  left: -20px;
+  left: -15px;
   height: 14px;
   width: 4px;
   border-radius: 0px 2px 2px 0px;
-  transition: left 0.3s, height 0.3ms, top 0.3ms;
+  transition: left 0.1s, height 0.3ms, top 0.3ms;
 }
 
 div.panel-button-dot-active {
-  left: -11px;
+  left: -10px;
 }
 
 </style>
