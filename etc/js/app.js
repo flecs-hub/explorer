@@ -300,6 +300,14 @@ var app = new Vue({
       }
     },
 
+    enable_entity(path) {
+      this.request("enable", "PUT", "enable/" + path.replaceAll('.', '/'));
+    },
+
+    disable_entity(path) {
+      this.request("disable", "PUT", "disable/" + path.replaceAll('.', '/'));
+    },
+
     insert_code: function(code, recv, timeout) {
       if (this.is_local()) {
         if (this.parse_timer) {

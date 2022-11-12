@@ -530,6 +530,29 @@ const inspector_component = Vue.component('inspector', {
     },
     evt_close() {
       this.$emit('select-entity');
+    },
+    has_id(look_for) {
+      const entity = this.entity;
+      if (entity && entity.ids) {
+        for (let i = 0; i < entity.ids.length; i ++) {
+          const id = entity.ids[i].join(",");
+          if (id === look_for) {
+            return true;
+          }
+        }
+      }
+      return false;
+    },
+    set_as_query() {
+      if (this.entity) {
+        this.$emit('select-query', "?- " + this.entity.path);
+      }
+    },
+    enable_entity() {
+      app.enable_entity(this.entity.path);
+    },
+    disable_entity() {
+      app.disable_entity(this.entity.path);
     }
   },
   computed: {
@@ -568,6 +591,12 @@ const inspector_component = Vue.component('inspector', {
     },
     status_error: function() {
       return Status.Error;
+    },
+    is_query: function() {
+      return this.has_id("flecs.core.Poly,flecs.core.Query");
+    },
+    is_disabled: function() {
+      return this.has_id("flecs.core.Disabled");
     }
   },
   template: `
@@ -614,7 +643,30 @@ const inspector_component = Vue.component('inspector', {
             <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{name_from_path(entity.path)}}</span>
           </div>
           <div class="inspector-entity-name" v-if="has_parent">
-            <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-entity-name"><entity-reference :entity="parent" v-on="$listeners"/></span>
+            <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-component-object"><entity-reference 
+              :entity="parent"
+              show_name="true" 
+              click_name="true"
+              v-on="$listeners"/></span>
+          </div>
+
+          <div class="inspector-buttons">
+            <template v-if="is_disabled">
+              <span class="inspector-button" v-on:click="enable_entity">
+                Enable
+              </span>
+            </template>
+            <template v-else>
+              <span class="inspector-button" v-on:click="disable_entity">
+                Disable
+              </span>
+            </template>
+            <template v-if="is_query">
+              <span class="inspector-button"
+                v-on:click="set_as_query">
+                Query
+              </span>
+            </template>
           </div>
 
           <div class="inspector-content">
