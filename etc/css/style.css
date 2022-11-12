@@ -57,7 +57,7 @@
   --steel-650: #383c46;
   --steel-675: #2e323c;
   --steel-700: #242832;
-  --steel-750: #1f222a;
+  --steel-750: #1D2028;
   --steel-800: #1a1d23;
   --steel-850: #16171c;
   --steel-900: #101115;
@@ -1267,7 +1267,7 @@ table.query-results-table td {
   border-top-width: 1px;
   font-size: inherit;
   font-feature-settings: "tnum";
-  height: 50px;
+  height: 46px;
 }
 
 /* detail toggle */
