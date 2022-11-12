@@ -152,20 +152,22 @@ Vue.component('query-results-table', {
         }
 
         let value_array = [];
-        for (let v = 0; v < data.values[i].length; v ++) {
-          const index = this.index(v);
-          if (!data.is_set[i][index]) {
-            value_array.push(this.create_none(h));
-          } else {
-            const inspector = h('inspector-props', {
-              props: {
-                value: data.values[i][index],
-                type: this.type_info(i),
-                list: true
-              }
-            });
+        if (data.values[i]) {
+          for (let v = 0; v < data.values[i].length; v ++) {
+            const index = this.index(v);
+            if (!data.is_set[i][index]) {
+              value_array.push(this.create_none(h));
+            } else {
+              const inspector = h('inspector-props', {
+                props: {
+                  value: data.values[i][index],
+                  type: this.type_info(i),
+                  list: true
+                }
+              });
 
-            value_array.push(h('td', [inspector]));
+              value_array.push(h('td', [inspector]));
+            }
           }
         }
         values.push( value_array );

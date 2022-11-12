@@ -276,9 +276,16 @@ var app = new Vue({
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {
-        this.request(id,
-          "GET", "query?q=" + encodeURIComponent(q) + paramStr(params),
-          recv, err);
+        if (q.slice(0, 2) == "?-") {
+          const query_name = q.slice(2).trim();
+          this.request(id,
+            "GET", "query?name=" + encodeURIComponent(query_name) + paramStr(params),
+            recv, err);
+        } else {
+          this.request(id,
+            "GET", "query?q=" + encodeURIComponent(q) + paramStr(params),
+            recv, err);
+        }
       } else {
         err({error: "no connection"});
       }
@@ -314,14 +321,26 @@ var app = new Vue({
       }
     },
 
-    init_remote() {
+    get_query_from_params() {
       const q_encoded = getParameterByName("q");
-      var selected = getParameterByName("s");
-      var q;
+      const q_string = getParameterByName("query");
+      const q_name = getParameterByName("query_name");
 
       if (q_encoded) {
-        q = wq_decode(q_encoded);
+        return wq_decode(q_encoded);
+      } else if (q_string) {
+        return decodeURIComponent(q_string);
+      } else if (q_name) {
+        return "?- " + decodeURIComponent(q_name);
       }
+
+      return undefined;
+    },
+
+    init_remote() {
+      const show_tree = getParameterByName("show_tree");
+      const q = this.get_query_from_params();
+      var selected = getParameterByName("s");
 
       if (selected) {
         this.set_entity(selected);
@@ -329,6 +348,10 @@ var app = new Vue({
 
       if (q) {
         this.$refs.query.set_query(q);
+      }
+
+      if (show_tree === "false") {
+        this.$refs.tree.close();
       }
     },
 
@@ -359,25 +382,22 @@ var app = new Vue({
     ready_local() {
       this.set_entity();
 
-      const q_encoded = getParameterByName("q");
       const p_encoded = getParameterByName("p");
+      var q = this.get_query_from_params();
       var selected = getParameterByName("s");
-      var p, q;
+      var p;
 
       if (p_encoded) {
         p = wq_decode(p_encoded);
       }
-      if (q_encoded) {
-        q = wq_decode(q_encoded);
-      }
-      if (selected === undefined && !p_encoded && !q_encoded) {
+      if (selected === undefined && !p_encoded && !q) {
         selected = example_selected;
       }
 
       if (!p && !p_encoded) {
         p = example_plecs;
       }
-      if (!q && !q_encoded) {
+      if (!q) {
         q = example_query;
       }
 
@@ -609,6 +629,8 @@ var app = new Vue({
     },
 
     show_url_modal() {
+      const tree_component = this.$refs.tree;
+      const show_tree = !tree_component.$el.classList.contains("disable");
       const query = this.$refs.query.get_query();
       
       let plecs;
@@ -619,8 +641,6 @@ var app = new Vue({
       }
 
       let entity = this.$refs.inspector.get_entity();
-
-      const query_encoded = wq_encode(query);
       let sep = "?";
     
       this.url = window.location.protocol + '//' + 
@@ -652,8 +672,19 @@ var app = new Vue({
         sep = "&";
       }
 
-      if (query_encoded) {
-        this.url += sep + "q=" + query_encoded;
+      if (query) {
+        if (query.slice(0, 2) == "?-") {
+          const query_encoded = encodeURIComponent(query.slice(2).trim());
+          this.url += sep + "query_name=" + query_encoded;
+        } else {
+          const query_encoded = encodeURIComponent(query);
+          this.url += sep + "query=" + query_encoded;
+        }
+        sep = "&";
+      }
+
+      if (!show_tree) {
+        this.url += sep + "show_tree=false";
         sep = "&";
       }
 

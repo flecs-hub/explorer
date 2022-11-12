@@ -1,7 +1,7 @@
 
 const top_margin = 20;
-const item_height = 24;
-const indent_width = 9;
+const item_height = 26;
+const indent_width = 12;
 const tree_width = 215;
 
 function subtree_height(entity_data) {
@@ -90,7 +90,7 @@ Vue.component('entity-tree-item', {
 
       <entity-icon :x="xp + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
-      <text :class="css_text" :x="xp + 30" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
+      <text :class="css_text" :x="xp + 33" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
     </svg>`
 });
 

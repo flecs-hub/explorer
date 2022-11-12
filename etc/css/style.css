@@ -75,7 +75,7 @@
   --steel-transparent-light: rgb(46, 50, 60, 0.85);
 
   /* Color assignments */
-  --app-bg: var(--grey-950);
+  --app-bg: var(--steel-900);
   --app-bg-maximized: var(--steel-900);
   --panel-border: var(--steel-850);
   --panel-header-bg: var(--steel-700);
@@ -139,7 +139,6 @@ body {
   background-color: var(--app-bg);
   color: var(--primary-text);
   margin: 0px;
-
 }
 
 input {
@@ -423,8 +422,13 @@ div.result-box {
 /* UI elements */
 
 div.entity-tree {
-  background-color: var(--panel-bg);
-  width: 100%;
+  background-color: var(--steel-750);
+  border-color: var(--panel-bg);
+  border-style: solid;
+  border-width: 0px;
+  border-left-width: 1px;
+  border-right-width: 1px;
+  width: calc(100% - 1px);
   height: 100%;
   overflow: auto;
 }
@@ -454,13 +458,13 @@ image.entity-tree-icon:hover {
 }
 
 rect.entity-tree-select {
-  fill: var(--panel-bg);
+  fill: var(--steel-750);
   border-radius: 2px;
   cursor: pointer;
 }
 
 rect.entity-tree-selected {
-  fill: var(--panel-select);
+  fill: var(--steel-650);
 }
 
 /* -- begin of inspector -- */
