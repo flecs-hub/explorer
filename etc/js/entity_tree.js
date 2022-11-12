@@ -52,11 +52,14 @@ Vue.component('entity-tree-item', {
       return Math.max(this.width - this.x - 29, 0);
     },
     css_text: function() {
+      let result = "entity-tree-text";
       if (this.entity_data.path == this.selected_entity) {
-        return "entity-tree-text entity-tree-text-select noselect";
-      } else {
-        return "entity-tree-text noselect";
+        result += " entity-tree-text-select noselect";
       }
+      if (this.entity_data.is_disabled) {
+        result += " entity-tree-text-disabled";
+      }
+      return result;
     },
     xp: function() {
       return this.x + 3;
@@ -316,6 +319,7 @@ Vue.component('entity-tree', {
             entity.is_module = elem.is_set[2];
             entity.is_component = elem.is_set[3] || elem.is_set[4];
             entity.is_prefab = elem.is_set[5];
+            entity.is_disabled = elem.is_set[6];
 
             Vue.set(result, name, entity);
           }
@@ -336,7 +340,7 @@ Vue.component('entity-tree', {
         container = this.root;
       }
 
-      const q = "(ChildOf, " + container.path + "), ?ChildOf(_, $This), ?Module, ?Component, ?Tag, ?Prefab";
+      const q = "(ChildOf, " + container.path + "), ?ChildOf(_, $This), ?Module, ?Component, ?Tag, ?Prefab, ?Disabled";
       app.request_query('tree-' + container.path,  q, (reply) => {
         if (reply.error) {
           console.error("treeview: " + reply.error);

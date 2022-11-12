@@ -597,7 +597,10 @@ const inspector_component = Vue.component('inspector', {
     },
     is_disabled: function() {
       return this.has_id("flecs.core.Disabled");
-    }
+    },
+    connected() {
+      return app.connection == ConnectionState.Remote;
+    },
   },
   template: `
     <content-container 
@@ -650,7 +653,7 @@ const inspector_component = Vue.component('inspector', {
               v-on="$listeners"/></span>
           </div>
 
-          <div class="inspector-buttons">
+          <div class="inspector-buttons" v-if="connected">
             <template v-if="is_disabled">
               <span class="inspector-button" v-on:click="enable_entity">
                 Enable

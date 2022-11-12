@@ -438,12 +438,12 @@ text.entity-tree-text {
   cursor: pointer;
 }
 
-text.entity-tree-text:hover {
+text.entity-tree-text-select {
   fill: var(--primary-text);
 }
 
-text.entity-tree-text-select {
-  fill: var(--primary-text);
+text.entity-tree-text-disabled {
+  fill: var(--secondary-text);
 }
 
 image.entity-tree-icon {
