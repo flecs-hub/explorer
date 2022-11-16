@@ -374,7 +374,8 @@ var app = new Vue({
     ready_remote(reply) {
       // Get application name from reply
       if (reply.label && reply.label != "World") {
-        this.title = reply.label;
+        this.app_name = reply.label;
+        this.title = this.app_name;
       }
 
       this.parse_interval = 150;
@@ -564,6 +565,15 @@ var app = new Vue({
       this.connect();
     },
 
+    // Set subtitle for browser tab
+    set_subtitle(subtitle) {
+      if (subtitle && subtitle.length) {
+        this.title = subtitle + " (" + this.app_name + ")";
+      } else {
+        this.title = this.app_name;
+      }
+    },
+
     // Set inspector to entity by pathname
     set_entity(path) {
       this.$refs.inspector.set_entity(path);
@@ -734,6 +744,7 @@ var app = new Vue({
 
   data: {
     title: "Flecs",
+    app_name: "Flecs",
     query_error: undefined,
     code_error: undefined,
     query_result: undefined,

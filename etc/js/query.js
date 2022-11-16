@@ -58,9 +58,12 @@ Vue.component('query', {
           type_info: true,
           colors: true
         });
+
+        app.set_subtitle(this.query_name);
       } else {
         this.query_ok();
         this.query_result = undefined;
+        app.set_subtitle();
       }
     },
     evt_allow_toggle(e) {
@@ -121,6 +124,16 @@ Vue.component('query', {
     },
     is_valid: function() {
       return this.valid && !this.error;
+    },
+    query_name: function() {
+      let q = this.get_query();
+      if (q.slice(0, 2) == "?-") {
+        const name = q.slice(2).trim();
+        const name_elems = name.split(".");
+        return name_elems[name_elems.length - 1];
+      } else {
+        return;
+      }
     }
   },
   template: `
