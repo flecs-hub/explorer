@@ -74,6 +74,9 @@ Vue.component('query-results-table', {
 
       if (columns.vars) {
         for (let var_name of columns.vars) {
+          var_name_elems = var_name.split(".");
+          var_name = var_name_elems[var_name_elems.length - 1];
+
           ths.push(h('th', [var_name]));
         }
       }
