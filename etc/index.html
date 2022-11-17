@@ -19,12 +19,13 @@
       <!-- Overlays -->
       <tooltip ref="tooltip"></tooltip>
       <url-popover :url="url" ref="share_url_popover"></url-popover>
-        
+
       <!-- Top bar -->
       <div class="top-box">
         <div class="top-content">
           <app-title ref="title" 
-            :value="title" 
+            :app_name="app_name"
+            :subtitle="subtitle"
             :connection="connection"
             :retry_count="retry_count">
           </app-title>

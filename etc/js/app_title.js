@@ -1,16 +1,41 @@
 
 Vue.component('app-title', {
-  props: ['value', 'connection', 'retry_count'],
+  props: ['app_name', 'subtitle', 'connection', 'retry_count'],
   mounted: function() {
     var elem = document.getElementsByTagName("title");
     if (elem) {
-      document.title = this.title;
+      document.title = this.page_title;
     }
   },
   updated: function() {
     var elem = document.getElementsByTagName("title");
     if (elem) {
-      document.title = this.title;
+      document.title = this.page_title;
+    }
+  },
+  methods: {
+    build_title(add_subtitle) {
+      if (this.connection == ConnectionState.Remote || 
+        this.connection == ConnectionState.Local ||
+        this.connection == ConnectionState.RetryConnecting) 
+      {
+        let str;
+        if (this.subtitle && add_subtitle) {
+          str = this.subtitle + " (" + this.app_name + ")";
+        } else {
+          str = this.app_name;
+        }
+
+        str = str.replaceAll("_", " ");
+        str = str.charAt(0).toUpperCase() + str.slice(1);
+        return str;
+      } else if (this.connection == ConnectionState.Connecting ||
+        this.connection == ConnectionState.Initializing)
+      {
+        return "Connecting";
+      } else if (this.connection == ConnectionState.ConnectionFailed) {
+        return "Failed to connect :(";
+      }
     }
   },
   computed: {
@@ -30,20 +55,10 @@ Vue.component('app-title', {
       }
     },
     title: function() {
-      if (this.connection == ConnectionState.Remote || 
-          this.connection == ConnectionState.Local ||
-          this.connection == ConnectionState.RetryConnecting) 
-      {
-        let str = this.value.replaceAll("_", " ");
-        str = str.charAt(0).toUpperCase() + str.slice(1);
-        return str;
-      } else if (this.connection == ConnectionState.Connecting ||
-        this.connection == ConnectionState.Initializing)
-      {
-        return "Connecting";
-      } else if (this.connection == ConnectionState.ConnectionFailed) {
-        return "Failed to connect :(";
-      }
+      return this.build_title(false);
+    },
+    page_title: function() {
+      return this.build_title(true);
     },
     title_text: function() {
       if (this.connection == ConnectionState.Remote || 

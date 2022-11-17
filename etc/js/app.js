@@ -567,11 +567,7 @@ var app = new Vue({
 
     // Set subtitle for browser tab
     set_subtitle(subtitle) {
-      if (subtitle && subtitle.length) {
-        this.title = subtitle + " (" + this.app_name + ")";
-      } else {
-        this.title = this.app_name;
-      }
+      this.subtitle = subtitle;
     },
 
     // Set inspector to entity by pathname
@@ -743,8 +739,8 @@ var app = new Vue({
   },
 
   data: {
-    title: "Flecs",
     app_name: "Flecs",
+    subtitle: "Flecs",
     query_error: undefined,
     code_error: undefined,
     query_result: undefined,
