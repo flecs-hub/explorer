@@ -202,7 +202,7 @@ var app = new Vue({
               if (err) {
                 err(Request.responseText);
               }
-            } else if (Request.responseText && Request.responseText.length) {
+            } else {
               if (recv) {
                 recv(Request.responseText);
               }
@@ -219,8 +219,14 @@ var app = new Vue({
     // Utility for sending HTTP requests that have a JSON reply
     json_request(method, host, path, recv, err, timeout, retry_interval) {
       return this.http_request(method, host, path, (r) => {
-        const reply = JSON.parse(r);
-        recv(reply);
+        if (recv) {
+          if (r) {
+            const reply = JSON.parse(r);
+            recv(reply);
+          } else {
+            recv();
+          }
+        }
       }, (r) => {
         if (err) {
           if (r != undefined && r.length) {
@@ -304,7 +310,10 @@ var app = new Vue({
       if (this.is_local()) {
         wq_enable_entity(path, true);
       } else {
-        this.request("enable", "PUT", "enable/" + path.replaceAll('.', '/'));
+        this.request("enable", "PUT", "enable/" + path.replaceAll('.', '/'), () => {
+          this.refresh_entity();
+          this.refresh_tree();
+        });
       }
     },
 
@@ -312,7 +321,10 @@ var app = new Vue({
       if (this.is_local()) {
         wq_enable_entity(path, false);
       } else {
-        this.request("disable", "PUT", "disable/" + path.replaceAll('.', '/'));
+        this.request("disable", "PUT", "disable/" + path.replaceAll('.', '/'), () => {
+          this.refresh_entity();
+          this.refresh_tree();
+        });
       }
     },
 
