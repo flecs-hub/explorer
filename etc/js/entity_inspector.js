@@ -659,24 +659,24 @@ const inspector_component = Vue.component('inspector', {
           </div>
 
           <div class="inspector-buttons">
-            <span class="inspector-button inspector-icon-button"
+            <span class="inspector-button inspector-icon-button noselect"
               v-on:click="navigate">
                 &nbsp;<icon icon="codicons:list-tree" size="16"></icon>&nbsp;
             </span>
             <template v-if="is_query">
-              <span class="inspector-button"
+              <span class="inspector-button noselect"
                 v-on:click="set_as_query">
                 &nbsp;<icon icon="codicons:search" size="16"></icon>&nbsp;
               </span>
             </template>
             <template v-if="connected">
               <template v-if="is_disabled">
-                <span class="inspector-button" v-on:click="enable_entity">
+                <span class="inspector-button noselect" v-on:click="enable_entity">
                   Enable
                 </span>
               </template>
               <template v-else>
-                <span class="inspector-button" v-on:click="disable_entity">
+                <span class="inspector-button noselect" v-on:click="disable_entity">
                   Disable
                 </span>
               </template>

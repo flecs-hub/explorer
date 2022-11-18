@@ -438,6 +438,10 @@ text.entity-tree-text {
   cursor: pointer;
 }
 
+text.entity-tree-text::selection {
+  background: none;
+}
+
 text.entity-tree-text-select {
   fill: var(--primary-text);
 }
@@ -723,6 +727,10 @@ span.inspector-button  {
 
 span.inspector-button:hover  {
   background-color: var(--steel-650);
+}
+
+span.inspector-button:active  {
+  background-color: var(--steel-600);
 }
 
 span.entity-reference span {
