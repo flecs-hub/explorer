@@ -658,7 +658,7 @@ const inspector_component = Vue.component('inspector', {
               v-on="$listeners"/></span>
           </div>
 
-          <div class="inspector-buttons" v-if="connected">
+          <div class="inspector-buttons">
             <span class="inspector-button inspector-icon-button"
               v-on:click="navigate">
                 &nbsp;<icon icon="codicons:list-tree" size="16"></icon>&nbsp;
@@ -669,15 +669,17 @@ const inspector_component = Vue.component('inspector', {
                 &nbsp;<icon icon="codicons:search" size="16"></icon>&nbsp;
               </span>
             </template>
-            <template v-if="is_disabled">
-              <span class="inspector-button" v-on:click="enable_entity">
-                Enable
-              </span>
-            </template>
-            <template v-else>
-              <span class="inspector-button" v-on:click="disable_entity">
-                Disable
-              </span>
+            <template v-if="connected">
+              <template v-if="is_disabled">
+                <span class="inspector-button" v-on:click="enable_entity">
+                  Enable
+                </span>
+              </template>
+              <template v-else>
+                <span class="inspector-button" v-on:click="disable_entity">
+                  Disable
+                </span>
+              </template>
             </template>
           </div>
 
