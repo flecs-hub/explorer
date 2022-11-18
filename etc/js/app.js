@@ -623,6 +623,11 @@ var app = new Vue({
       this.set_entity(entity);
     },
 
+    evt_tree_navigate(entity) {
+      this.$refs.tree.select(entity);
+      this.$refs.tree.open();
+    },
+
     evt_select_query(query) {
       this.$refs.query.set_query(query);
       this.$refs.query.open();

@@ -19,19 +19,14 @@ function subtree_height(entity_data) {
 
 Vue.component('entity-tree-item', {
   props: ['x', 'y', 'entity_data', 'selected_entity', 'width'],
-  mounted: function() {
-    this.expand = this.entity_data.expand;
-  },
   data: function() {
     return {
-      expand: false,
       text_elem: undefined
     }
   },
   methods: {
     toggle: function() {
       this.$emit('toggle', this.entity_data);
-      this.expand = this.entity_data.expand;
     },
     search: function() {
       this.$emit('select_query', this.entity_data.path);
@@ -73,7 +68,7 @@ Vue.component('entity-tree-item', {
 
       <template v-if="entity_data.has_children">
         <rect :x="xp" :y="y - 5" :width="5" height="1" fill="#44464D"></rect>
-        <image v-if="!expand"
+        <image v-if="!entity_data.expand"
           class="entity-tree-icon" 
           href="img/nav-right.png" 
           :x="xp + 2" :y="y - 12" 
@@ -341,7 +336,7 @@ Vue.component('entity-tree', {
       }
 
       const q = "(ChildOf, " + container.path + "), ?ChildOf(_, $This), ?Module, ?Component, ?Tag, ?Prefab, ?Disabled";
-      app.request_query('tree-' + container.path,  q, (reply) => {
+      app.request_query('tree-' + container.path, q, (reply) => {
         if (reply.error) {
           console.error("treeview: " + reply.error);
         } else {
@@ -389,6 +384,8 @@ Vue.component('entity-tree', {
         cur = this.root;
       }
 
+      app.request_abort('tree-' + cur.path);
+
       for (let k in cur.entities) {
         let ent = cur.entities[k];
         this.collapse_all(ent);
@@ -402,12 +399,11 @@ Vue.component('entity-tree', {
         return;
       }
 
-      cur.expand = true;
-
       this.update(cur, () => {
+        cur.expand = true;
+
         let next = cur.entities[elems[i]];
         if (!next) {
-          // console.error("entity-tree: cannot navigate to entity " + elems[i]);
           this.collapse_all();
         }
 
@@ -430,7 +426,9 @@ Vue.component('entity-tree', {
       this.collapse_all();
 
       this.select_recursive(entity, cur, elems, 0, (item) => {
-        this.evt_select(item);
+        if (entity != this.selected_entity) {
+          this.evt_select(item);
+        }
       });
     },
     set_selected_entity(entity) {
@@ -450,11 +448,10 @@ Vue.component('entity-tree', {
     evt_select_query: function(entity) {
       this.$emit('select_query', entity);
     },
-    evt_resize: function(elem) {
-    },
     open: function() {
       this.disabled = false;
       this.$emit("panel-update");
+      this.update_expanded();
     },
     close: function() {
       this.disabled = true;

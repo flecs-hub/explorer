@@ -548,6 +548,11 @@ const inspector_component = Vue.component('inspector', {
         this.$emit('select-query', "?- " + this.entity.path);
       }
     },
+    navigate() {
+      if (this.entity) {
+        this.$emit('tree-navigate', this.entity.path);
+      }
+    },
     enable_entity() {
       app.enable_entity(this.entity.path);
     },
@@ -654,6 +659,16 @@ const inspector_component = Vue.component('inspector', {
           </div>
 
           <div class="inspector-buttons" v-if="connected">
+            <span class="inspector-button inspector-icon-button"
+              v-on:click="navigate">
+                &nbsp;<icon icon="codicons:list-tree" size="16"></icon>&nbsp;
+            </span>
+            <template v-if="is_query">
+              <span class="inspector-button"
+                v-on:click="set_as_query">
+                &nbsp;<icon icon="codicons:search" size="16"></icon>&nbsp;
+              </span>
+            </template>
             <template v-if="is_disabled">
               <span class="inspector-button" v-on:click="enable_entity">
                 Enable
@@ -662,12 +677,6 @@ const inspector_component = Vue.component('inspector', {
             <template v-else>
               <span class="inspector-button" v-on:click="disable_entity">
                 Disable
-              </span>
-            </template>
-            <template v-if="is_query">
-              <span class="inspector-button"
-                v-on:click="set_as_query">
-                Query
               </span>
             </template>
           </div>

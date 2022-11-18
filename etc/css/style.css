@@ -718,6 +718,7 @@ span.inspector-button  {
   padding-left: 10px;
   padding-right: 10px;
   cursor: pointer;
+  height: 18px;
 }
 
 span.inspector-button:hover  {
