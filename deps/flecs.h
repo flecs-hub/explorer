@@ -2110,12 +2110,28 @@ bool ecs_strbuf_appendstr_zerocpy(
     ecs_strbuf_t *buffer,
     char *str);
 
+/* Append string to buffer, transfer ownership to buffer.
+ * Returns false when max is reached, true when there is still space */
+FLECS_API
+bool ecs_strbuf_appendstr_zerocpyn(
+    ecs_strbuf_t *buffer,
+    char *str,
+    int32_t n);
+
 /* Append string to buffer, do not free/modify string.
  * Returns false when max is reached, true when there is still space */
 FLECS_API
 bool ecs_strbuf_appendstr_zerocpy_const(
     ecs_strbuf_t *buffer,
     const char *str);
+
+/* Append string to buffer, transfer ownership to buffer.
+ * Returns false when max is reached, true when there is still space */
+FLECS_API
+bool ecs_strbuf_appendstr_zerocpyn_const(
+    ecs_strbuf_t *buffer,
+    const char *str,
+    int32_t n);
 
 /* Append n characters to buffer.
  * Returns false when max is reached, true when there is still space */
@@ -3030,13 +3046,14 @@ typedef enum ecs_oper_kind_t {
 #define EcsSelf                       (1u << 1) /* Match on self */
 #define EcsUp                         (1u << 2) /* Match by traversing upwards */
 #define EcsDown                       (1u << 3) /* Match by traversing downwards (derived, cannot be set) */
-#define EcsCascade                    (1u << 4) /* Sort results breadth first */
-#define EcsParent                     (1u << 5) /* Short for up(ChildOf) */
-#define EcsIsVariable                 (1u << 6) /* Term id is a variable */
-#define EcsIsEntity                   (1u << 7) /* Term id is an entity */
-#define EcsFilter                     (1u << 8) /* Prevent observer from triggering on term */
+#define EcsTraverseAll                (1u << 4) /* Match all entities encountered through traversal */
+#define EcsCascade                    (1u << 5) /* Sort results breadth first */
+#define EcsParent                     (1u << 6) /* Short for up(ChildOf) */
+#define EcsIsVariable                 (1u << 7) /* Term id is a variable */
+#define EcsIsEntity                   (1u << 8) /* Term id is an entity */
+#define EcsFilter                     (1u << 9) /* Prevent observer from triggering on term */
 
-#define EcsTraverseFlags              (EcsUp|EcsDown|EcsSelf|EcsCascade|EcsParent)
+#define EcsTraverseFlags              (EcsUp|EcsDown|EcsTraverseAll|EcsSelf|EcsCascade|EcsParent)
 
 /** Type that describes a single identifier in a term */
 typedef struct ecs_term_id_t {
@@ -3099,10 +3116,13 @@ struct ecs_filter_t {
 
     ecs_flags32_t flags;       /* Filter flags */
     
-    char *name;                /* Name of filter (optional) */
     char *variable_names[1];   /* Array with variable names */
 
+    /* Mixins */
+    ecs_entity_t entity;       /* Entity associated with filter (optional) */
+    ecs_world_t *world;
     ecs_iterable_t iterable;   /* Iterable mixin */
+    ecs_poly_dtor_t dtor;      /* Dtor mixin */
 };
 
 /* An observer reacts to events matching a filter */
@@ -3138,8 +3158,6 @@ struct ecs_observer_t {
     bool is_multi;              /* If true, the observer triggers on more than one term */
 
     /* Mixins */
-    ecs_world_t *world;
-    ecs_entity_t entity;
     ecs_poly_dtor_t dtor;
 };
 
@@ -4017,9 +4035,8 @@ typedef struct ecs_filter_desc_t {
     /* Filter expression. Should not be set at the same time as terms array */
     const char *expr;
 
-    /* Optional name of filter, used for debugging. If a filter is created for
-     * a system, the provided name should match the system name. */
-    const char *name;
+    /* Entity associated with query (optional) */
+    ecs_entity_t entity;
 } ecs_filter_desc_t;
 
 
@@ -4075,9 +4092,6 @@ typedef struct ecs_query_desc_t {
      * queries need to be matched with new tables.
      * Subqueries can be nested. */
     ecs_query_t *parent;
-
-    /* Entity associated with query (optional) */
-    ecs_entity_t entity;
 } ecs_query_desc_t;
 
 /** Used with ecs_observer_init. */
@@ -4875,6 +4889,23 @@ int32_t ecs_delete_empty_tables(
     int32_t min_id_count,
     double time_budget_seconds);
 
+/** Get world from poly.
+ *
+ * @param poly A pointer to a poly object.
+ * @return The world.
+ */
+FLECS_API
+const ecs_world_t* ecs_get_world(
+    const ecs_poly_t *poly);
+
+/** Get entity from poly.
+ *
+ * @param poly A pointer to a poly object.
+ * @return Entity associated with the poly object.
+ */
+FLECS_API
+ecs_entity_t ecs_get_entity(
+    const ecs_poly_t *poly);
 
 /** Test if pointer is of specified type.
  * Usage:
@@ -6504,7 +6535,7 @@ ecs_flags32_t ecs_id_get_flags(
  */
 FLECS_API
 ecs_filter_t * ecs_filter_init(
-    const ecs_world_t *world,
+    ecs_world_t *world,
     const ecs_filter_desc_t *desc);
 
 /** Deinitialize filter.
@@ -6953,12 +6984,6 @@ int32_t ecs_query_empty_table_count(
  */
 FLECS_API
 int32_t ecs_query_entity_count(
-    const ecs_query_t *query);
-
-/** Get entity associated with query.
- */
-FLECS_API
-ecs_entity_t ecs_query_entity(
     const ecs_query_t *query);
 
 /** @} */
@@ -7832,15 +7857,6 @@ FLECS_API
 ecs_world_t* ecs_get_stage(
     const ecs_world_t *world,
     int32_t stage_id);
-
-/** Get actual world from world.
- *
- * @param world A pointer to a stage or the world.
- * @return The world.
- */
-FLECS_API
-const ecs_world_t* ecs_get_world(
-    const ecs_poly_t *world);
 
 /** Test whether the current world is readonly.
  * This function allows the code to test whether the currently used world
@@ -13818,6 +13834,7 @@ void ecs_cpp_component_validate(
     ecs_world_t *world,
     ecs_entity_t id,
     const char *name,
+    const char *symbol,
     size_t size,
     size_t alignment,
     bool implicit_name);
@@ -21454,7 +21471,7 @@ struct component : untyped_component {
              * this operation does nothing besides returning the existing id */
             id = _::cpp_type<T>::id_explicit(world, name, allow_tag, id);
 
-            ecs_cpp_component_validate(world, id, n,
+            ecs_cpp_component_validate(world, id, n, _::symbol_name<T>(),
                 _::cpp_type<T>::size(),
                 _::cpp_type<T>::alignment(),
                 implicit_name);
@@ -23010,10 +23027,17 @@ namespace _ {
 
 template <typename ... Components>
 struct filter_builder final : _::filter_builder_base<Components...> {
-    filter_builder(flecs::world_t* world)
+    filter_builder(flecs::world_t* world, const char *name = nullptr)
         : _::filter_builder_base<Components...>(world)
     {
         _::sig<Components...>(world).populate(this);
+        if (name != nullptr) {
+            ecs_entity_desc_t entity_desc = {};
+            entity_desc.name = name;
+            entity_desc.sep = "::",
+            entity_desc.root_sep = "::",
+            this->m_desc.entity = ecs_entity_init(world, &entity_desc);
+        }
     }
 };
 
@@ -23096,6 +23120,10 @@ struct filter_base {
         }
         ecs_filter_move(&m_filter, &obj.m_filter);
         return *this; 
+    }
+
+    flecs::entity entity() {
+        return flecs::entity(m_world, ecs_get_entity(m_filter_ptr));
     }
 
     operator const flecs::filter_t*() const {
@@ -23471,9 +23499,10 @@ struct query_builder final : _::query_builder_base<Components...> {
         if (name != nullptr) {
             ecs_entity_desc_t entity_desc = {};
             entity_desc.name = name;
-            this->m_desc.entity = ecs_entity_init(world, &entity_desc);
+            entity_desc.sep = "::",
+            entity_desc.root_sep = "::",
+            this->m_desc.filter.entity = ecs_entity_init(world, &entity_desc);
         }
-
     }
 };
 
@@ -23601,7 +23630,7 @@ struct query_base {
     }
 
     flecs::entity entity() {
-        return flecs::entity(m_world, ecs_query_entity(m_query));
+        return flecs::entity(m_world, ecs_get_entity(m_query));
     }
     
     operator query<>() const;
@@ -24656,10 +24685,17 @@ namespace _ {
 
 template <typename ... Components>
 struct rule_builder final : _::rule_builder_base<Components...> {
-    rule_builder(flecs::world_t* world)
+    rule_builder(flecs::world_t* world, const char *name = nullptr)
         : _::rule_builder_base<Components...>(world)
     {
         _::sig<Components...>(world).populate(this);
+        if (name != nullptr) {
+            ecs_entity_desc_t entity_desc = {};
+            entity_desc.name = name;
+            entity_desc.sep = "::",
+            entity_desc.root_sep = "::",
+            this->m_desc.entity = ecs_entity_init(world, &entity_desc);
+        }
     }
 };
 
@@ -24697,6 +24733,10 @@ struct rule_base {
 
     operator rule_t*() const {
         return m_rule;
+    }
+
+    flecs::entity entity() {
+        return flecs::entity(m_world, ecs_get_entity(m_rule));
     }
 
     /** Free the rule.
@@ -24818,12 +24858,18 @@ inline void init(flecs::world& world) {
         flecs::_::cpp_type<iptr_t>::init(world, flecs::Iptr, true);
         ecs_assert(flecs::type_id<iptr_t>() == flecs::Iptr, 
             ECS_INTERNAL_ERROR, NULL);
+        // Remove symbol to prevent validation errors, as it doesn't match with 
+        // the typename
+        ecs_remove_pair(world, flecs::Iptr, ecs_id(EcsIdentifier), EcsSymbol);
     }
 
     if (!flecs::is_same<u32_t, uptr_t>() && !flecs::is_same<u64_t, uptr_t>()) {
         flecs::_::cpp_type<uptr_t>::init(world, flecs::Uptr, true);
         ecs_assert(flecs::type_id<uptr_t>() == flecs::Uptr, 
             ECS_INTERNAL_ERROR, NULL);
+        // Remove symbol to prevent validation errors, as it doesn't match with 
+        // the typename
+        ecs_remove_pair(world, flecs::Uptr, ecs_id(EcsIdentifier), EcsSymbol);
     }
 }
 
