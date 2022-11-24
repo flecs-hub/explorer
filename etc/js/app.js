@@ -293,7 +293,9 @@ var app = new Vue({
             recv, err);
         }
       } else {
-        err({error: "no connection"});
+        if (err) {
+          err({error: "no connection"});
+        }
       }
     },
 
@@ -380,6 +382,13 @@ var app = new Vue({
 
       if (show_tree === "false") {
         this.$refs.tree.close();
+      } else if (show_tree === "true") {
+        this.$refs.tree.open();
+      } else {
+        if (getParameterByName("query_name") != undefined) {
+          // By default close tree if query name is provided
+          this.$refs.tree.close();
+        }
       }
     },
 
@@ -671,6 +680,7 @@ var app = new Vue({
       const tree_component = this.$refs.tree;
       const show_tree = !tree_component.$el.classList.contains("disable");
       const query = this.$refs.query.get_query();
+      let query_name = false;
       
       let plecs;
       let plecs_encoded;
@@ -715,6 +725,7 @@ var app = new Vue({
         if (query.slice(0, 2) == "?-") {
           const query_encoded = encodeURIComponent(query.slice(2).trim());
           this.url += sep + "query_name=" + query_encoded;
+          query_name = true;
         } else {
           const query_encoded = encodeURIComponent(query);
           this.url += sep + "query=" + query_encoded;
@@ -723,8 +734,17 @@ var app = new Vue({
       }
 
       if (!show_tree) {
-        this.url += sep + "show_tree=false";
-        sep = "&";
+        if (!query_name) {
+          this.url += sep + "show_tree=false";
+          sep = "&";
+        } else {
+          // if query name is provided, hiding tree is the default
+        }
+      } else {
+        if (query_name) {
+          this.url += sep + "show_tree=true";
+          sep = "&";
+        }
       }
 
       if (plecs_encoded) {
