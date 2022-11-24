@@ -626,7 +626,8 @@ div.inspector-props span.inspector-key {
 div.inspector-props span.inspector-value {
   padding: var(--p-3);
   border-radius: var(--br-2);
-  min-width: 200px;
+  width: 200px;
+  overflow-x: auto;
   background-color: var(--prop-bg);
 }
 
