@@ -88,8 +88,9 @@ const inspector_value_component = Vue.component('inspector-value', {
       return undefined;
     })();
 
+    const type = context.props.type ? context.props.type[0] : undefined;
+
     let formatted_value = (function() {
-      const type = context.props.type ? context.props.type[0] : undefined;
       let value = context.props.value;
 
       if (typeof(value) == "object") {
@@ -144,11 +145,9 @@ const inspector_value_component = Vue.component('inspector-value', {
       return context.props.symbol;
     })();
 
-    let css_classes = {
-      "inspector-value": true,
-    }
+    let css_classes = ["inspector-value"];
     if (context.props.type) {
-      css_classes[`inspector-value-${context.props.type[0]}`] = true;
+      css_classes.push(`inspector-value-${context.props.type[0]}`);
     }
 
     let content = "";
@@ -158,6 +157,28 @@ const inspector_value_component = Vue.component('inspector-value', {
     content += formatted_value.toString().trim();
     if (actual_symbol && actual_symbol.length) {
       content += "\xa0" + actual_symbol;
+    }
+
+    if (type == "entity") {
+      if (content != "0") {
+        content = 
+          createElement(
+            'entity-reference', { 
+              props: {
+                entity: content,
+                show_name: true,
+                click_name: true
+              },
+              on: {
+                click: function() { context.$emit('select-entity', content) }
+              }
+            }
+          );
+
+          css_classes.push("inspector-component-object");
+      } else {
+        content = "null";
+      }
     }
 
     return createElement(
@@ -202,11 +223,11 @@ const inspector_kv_component = Vue.component('inspector-kv', {
         </template>
         <template v-else>
           <inspector-key :prop_key="prop_key"/>
-          <inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol"/>
+          <inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol" v-on="$listeners"/>
         </template>
       </template>
       <template v-else>
-        <inspector-value :type="type" :value="value" :separator="!first" />
+        <inspector-value :type="type" :value="value" :separator="!first" v-on="$listeners"/>
       </template>
     </div>
     `
@@ -256,10 +277,10 @@ const inspector_props_component = Vue.component('inspector-props', {
     <div :class="css">
       <template v-if="is_object">
         <template v-if="is_array">
-          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :type="prop_type(k)" ":value="v" :list="list"/></div>
+          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :type="prop_type(k)" ":value="v" :list="list" v-on="$listeners"/></div>
         </template>
         <template v-else>
-          <div class="inspector-prop" v-for="(v, k, i) in value"><inspector-kv :prop_key="k" :type="prop_type(k)" :value="v" :list="list" :first="i == 0"/></div>
+          <div class="inspector-prop" v-for="(v, k, i) in value"><inspector-kv :prop_key="k" :type="prop_type(k)" :value="v" :list="list" :first="i == 0" v-on="$listeners"/></div>
         </template>
       </template>
       <template v-else>
@@ -372,7 +393,8 @@ const inspector_component_component = Vue.component('inspector-component', {
           <template v-slot:detail>
             <inspector-props v-if="value !== undefined" 
               :type="type_info" 
-              :value="value"/>
+              :value="value"
+              v-on="$listeners"/>
           </template>
         </detail-toggle>
       </div>

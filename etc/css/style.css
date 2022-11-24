@@ -609,7 +609,6 @@ div.inspector-props-list span.inspector-value {
 
 span.inspector-key, span.inspector-value {
   padding: var(--p-2);
-  color: var(--primary-text);
 }
 
 span.inspector-separator {
