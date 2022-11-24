@@ -524,7 +524,7 @@ div.inspector-component-name {
 }
 
 div.inspector-component-name {
-  color: var(--primary-text);
+  color: var(--secondary-text);
   font-weight: 400;
 }
 
@@ -629,6 +629,17 @@ div.inspector-props span.inspector-value {
   width: 200px;
   overflow-x: auto;
   background-color: var(--prop-bg);
+}
+
+div.inspector-category {
+  margin-top: 5px;
+}
+
+div.inspector-category > div.detail-toggle > div.detail-toggle-summary {
+  background-color: var(--panel-bg);
+  border-radius: 3px;
+  padding-top: 5px;
+  padding-bottom: 5px;
 }
 
 span.inspector-value-bool {

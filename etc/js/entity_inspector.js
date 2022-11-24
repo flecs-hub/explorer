@@ -449,19 +449,24 @@ const inspector_components_component = Vue.component('inspector-components', {
           <div :class="detail_css">
             <div class="inspector-components-content">
               <div v-for="(category_ids, k) in categories">
-                <detail-toggle>
-                  <template v-slot:summary>
-                    <entity-hierarchy :entity_path="k" :is_path="true"></entity-hierarchy>
-                  </template>
-                  <template v-slot:detail>
-                    <div class="inspector-props">
-                      <inspector-component v-for="k in category_ids" 
-                        :entity="entity" 
-                        :index="k"
-                        :key="k" 
-                        v-on="$listeners"/>
-                    </div>
-                  </template>
+                <div class="inspector-category">
+                  <detail-toggle>
+                    <template v-slot:summary>
+                      <div class="inspector-category-header">
+                        <entity-hierarchy :entity_path="k" :is_path="true"></entity-hierarchy>
+                      </div>
+                    </template>
+                    <template v-slot:detail>
+                      <div class="inspector-props">
+                        <inspector-component v-for="k in category_ids" 
+                          :entity="entity" 
+                          :index="k"
+                          :key="k" 
+                          v-on="$listeners"/>
+                      </div>
+                    </template>
+                  <detail-toggle>
+                </div>
               </div>
             </div>
           </div>
