@@ -2,9 +2,15 @@ Vue.component('entity-hierarchy', {
   functional: true,
   props: {
     entity_path: { type: String, required: true },
+    is_path: { type: Boolean, required: false, default: false }
   },
   render: function (createElement, context) {
-    let entities = context.props.entity_path.split(".").slice(0, -1);
+    let entities;
+    if (!context.props.is_path) {
+      entities = context.props.entity_path.split(".").slice(0, -1);
+    } else {
+      entities = context.props.entity_path.split(".");
+    }
 
     return createElement(
       'div', 

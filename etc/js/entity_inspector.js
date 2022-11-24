@@ -384,11 +384,35 @@ const inspector_component_component = Vue.component('inspector-component', {
 const inspector_components_component = Vue.component('inspector-components', {
   props: ['entity', 'show_header', 'is_base'],
   computed: {
-    entity_type: function() {
-      if (this.entity) {
-        return this.entity.ids;
+    ids: function() {
+      if (!this.entity) {
+        return [];
       }
-      return [];
+      return this.entity.ids;
+    },
+    categories: function() {
+      if (!this.entity) {
+        return [];
+      }
+
+      let parents = {};
+      const ids = this.entity.ids;
+      
+      for (let i = 0; i < ids.length; i ++) {
+        let id = this.entity.ids[i];
+        let parent = parent_from_path(id[0]);
+        if (!parent.length) {
+          parent = "root";
+        }
+
+        if (parents[parent] === undefined) {
+          parents[parent] = [];
+        }
+
+        parents[parent].push(i);
+      }
+
+      return parents;
     },
     css: function() {
       let result = "inspector-components";
@@ -424,11 +448,21 @@ const inspector_components_component = Vue.component('inspector-components', {
         <template v-slot:detail>
           <div :class="detail_css">
             <div class="inspector-components-content">
-              <inspector-component v-for="(elem, k) in entity_type" 
-                :entity="entity" 
-                :index="k" 
-                :key="k" 
-                v-on="$listeners"/>
+              <div v-for="(category_ids, k) in categories">
+                <detail-toggle>
+                  <template v-slot:summary>
+                    <entity-hierarchy :entity_path="k" :is_path="true"></entity-hierarchy>
+                  </template>
+                  <template v-slot:detail>
+                    <div class="inspector-props">
+                      <inspector-component v-for="k in category_ids" 
+                        :entity="entity" 
+                        :index="k"
+                        :key="k" 
+                        v-on="$listeners"/>
+                    </div>
+                  </template>
+              </div>
             </div>
           </div>
         </template>
