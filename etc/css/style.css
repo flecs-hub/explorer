@@ -374,6 +374,7 @@ span.app-title-detail {
   padding-right: 5px;  
 
   font-weight: 300;
+  line-height: 1.125em;
   margin-left: 5px;
   transition: 0.3s margin-left, 0.3s opacity;
 }
