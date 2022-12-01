@@ -3,6 +3,7 @@ Vue.component('icon', {
   props: {
     icon: { type: String, required: true },
     size: { type: Number, required: false, default: 16 },
+    opacity: { type: Number, required: false, default: 1.0 },
     rotate: { type: Number, required: false, default: 0 }
   },
   render: function (createElement, context) {
@@ -15,21 +16,20 @@ Vue.component('icon', {
       css = "feather-icon";
     }
 
-    return createElement('svg', {
-      class: [
-        css
-      ],
-      style: {
-        width: `${context.props.size}px`,
-        height: `${context.props.size}px`,
-        transform: `rotate(${context.props.rotate}deg)`
-      }
-    }, [
-      createElement('use', {
+    return createElement('img', {
+        class: [
+          css
+        ],
+        style: {
+          width: `${context.props.size}px`,
+          height: `${context.props.size}px`,
+          transform: `rotate(${context.props.rotate}deg)`,
+          opacity: context.props.opacity
+        },
         attrs: {
-          href: `./img/icons/${iconset}.svg#${icon}`,
+          src: `./img/icons/${iconset}-set/${icon}.svg`
         }
-      })
-    ]);
+      }
+    );
   }
 })

@@ -216,7 +216,7 @@ const inspector_kv_component = Vue.component('inspector-kv', {
                 <span>{{prop_key}}</span>
               </template>
               <template v-slot:detail>
-                <inspector-props :type="type" :value="value"></inspector-props>
+                <inspector-props :type="type" :value="value" v-on="$listeners"></inspector-props>
               </template>
             </detail-toggle>
           </div>

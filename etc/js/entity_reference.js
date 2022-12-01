@@ -38,8 +38,7 @@ Vue.component('entity-reference', {
       <span class="entity-reference">
         <span v-if="!disabled && !click_name">
           <template v-if="text && text.length">{{text}}&nbsp;</template><span>{{entity_name}}</span><template v-if="has_parent">&nbsp;-&nbsp;<entity-parent :entity="entity"/></template>
-          <icon-button :size="16" icon="feather:arrow-up-right" v-on:click.stop="clicked" v-if="show_icon" v-tooltip="'Inspect'"
-          />
+          <icon-button :size="16" :opacity="0.7" icon="feather:arrow-up-right" v-on:click.stop="clicked" v-if="show_icon" v-tooltip="'Inspect'"/>
         </span>
         <span class="entity-reference-clickable-name" v-else-if="!disabled && click_name" v-on:click.stop="clicked">
           <template v-if="text && text.length">{{text}}&nbsp;</template><span>{{entity_name}}</span><template v-if="has_parent">&nbsp;-&nbsp;<entity-parent :entity="entity"/></template>

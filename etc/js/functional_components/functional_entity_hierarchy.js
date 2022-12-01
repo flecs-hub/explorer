@@ -32,6 +32,7 @@ Vue.component('entity-hierarchy', {
                     props: {
                       icon: 'feather:chevron-right',
                       size: 12,
+                      opacity: 0.4
                     }
                   }
                 )
