@@ -69,100 +69,89 @@ function fmt_date(seconds) {
 }
 
 // Key (property name)
-const inspector_key_component = Vue.component('inspector-key', {
-  props: ['prop_key'],
+Vue.component('inspector-key', {
+  props: {
+    prop_key: { type: String, required: true },
+  },
   template: `<span v-if="prop_key !== undefined" class="inspector-key">{{prop_key}}</span>`
 });
 
 // Inspector-value component
-const inspector_value_component = Vue.component('inspector-value', {
-  props: ["type", "value", "symbol", "separator"],
+Vue.component('inspector-value', {
+  props: {
+    type: { type: Array, required: true },
+    value: { type: [Boolean, Number, String, Object, Array], required: true },
+    symbol: { type: String, required: false },
+    separator: { type: Boolean, required: false },
+  },
   functional: true,
-  render: function (createElement, context) {
-    let unit = (function() {
-      if (context.props.type && context.props.type.length > 1) {
-        if (inspector_is_object(undefined, context.props.type[1])) {
-          return context.props.type[1].unit;
-        }
+  render: function (h, context) {
+    const props = context.props;
+    const type = props.type ? props.type[0] : undefined;
+    const value = props.value;
+
+    let unit;
+    if (type && type.length > 1) {
+      if (inspector_is_object(undefined, type[1])) {
+        unit = type[1].unit;
       }
-      return undefined;
-    })();
+    }
 
-    const type = context.props.type ? context.props.type[0] : undefined;
+    let formatted_value = value;
+    let actual_symbol = props.symbol;
+    let css_classes = ["inspector-value"];
+    let content = props.separator ? ",\xa0" : "";
 
-    let formatted_value = (function() {
-      let value = context.props.value;
-
-      if (typeof(value) == "object") {
-        return JSON.stringify(value); // TODO
-      }
-
-      if (!type) {
-        return value;
-      }
-
+    if (typeof(value) == "object") {
+      formatted_value = JSON.stringify(value); // TODO
+    } else
+    if (type) {
+      css_classes.push(`inspector-value-${context.props.type[0]}`);
       if (type === "text") {
         if (value) {
-          return "\"" + value + "\"";
+          formatted_value = "\"" + value + "\"";
         } else {
-          return "";
+          formatted_value = "";
         }
-      }
-
-      if (unit == "flecs.units.Percentage") {
-        value = fmt_percentage(value);
-      }
-      if (unit == "flecs.units.Duration.Seconds") {
-        value = fmt_duration(value);
-      }
-      if (unit == "flecs.units.Duration.Minutes") {
-        value = fmt_duration(value * 60);
-      }
-      if (unit == "flecs.units.Duration.Minutes") {
-        value = fmt_duration(value * 60);
-      }
-      if (unit == "flecs.units.Duration.Hours") {
-        value = fmt_duration(value * 60 * 60);
-      }
-      if (unit == "flecs.units.Duration.Days") {
-        value = fmt_duration(value * 60 * 60 * 24);
-      }
-      if (unit == "flecs.units.Time.Date") {
-        value = fmt_date(value);
-      }
-
+      } else
+      if (unit) {
+        if (unit === "flecs.units.Percentage") {
+          formatted_value = fmt_percentage(value);
+        } else 
+        if (unit === "flecs.units.Duration.Seconds") {
+          formatted_value = fmt_duration(value);
+          actual_symbol = undefined;
+        } else
+        if (unit === "flecs.units.Duration.Minutes") {
+          formatted_value = fmt_duration(value * 60);
+        } else
+        if (unit === "flecs.units.Duration.Minutes") {
+          formatted_value = fmt_duration(value * 60);
+        } else
+        if (unit === "flecs.units.Duration.Hours") {
+          formatted_value = fmt_duration(value * 60 * 60);
+        } else
+        if (unit === "flecs.units.Duration.Days") {
+          formatted_value = fmt_duration(value * 60 * 60 * 24);
+        } else
+        if (unit === "flecs.units.Time.Date") {
+          formatted_value = fmt_date(value);
+        }
+      } else
       if (typeof(value) == "number") {
-        value = fmt_float(value);
+        formatted_value = fmt_float(value);
       }
-
-      return value;
-    })();
-
-    let actual_symbol = (function() {
-      if (unit == "flecs.units.Duration.Seconds") {
-        return "";
-      }
-      return context.props.symbol;
-    })();
-
-    let css_classes = ["inspector-value"];
-    if (context.props.type) {
-      css_classes.push(`inspector-value-${context.props.type[0]}`);
     }
 
-    let content = "";
-    if (context.props.separator) {
-      content += ",\xa0";
-    }
     content += formatted_value.toString().trim();
-    if (actual_symbol && actual_symbol.length) {
+    if (actual_symbol) {
       content += "\xa0" + actual_symbol;
     }
 
     if (type == "entity") {
       if (content != "0") {
         content = 
-          createElement(
+          h(
             'entity-reference', { 
               props: {
                 entity: content,
@@ -181,15 +170,122 @@ const inspector_value_component = Vue.component('inspector-value', {
       }
     }
 
-    return createElement(
+    return h(
       'span', { class: css_classes, }, [content]
     );
   }
 });
 
+// Inspector-value component
+Vue.component('inspector-editable-value-input', {
+  props: {
+    type: { type: Array, required: true },
+  },
+  data: function() {
+    return {
+      edit_value: ""
+    }
+  },
+  methods: {
+    focus(value) {
+      this.edit_value = value;
+      this.$refs.input.focus();
+      this.$nextTick(() => {
+        this.$refs.input.select();
+      });
+    },
+    to_json() {
+      return this.edit_value;
+    },
+    on_submit() {
+      this.$emit("submit-value");
+    }
+  },
+  template: `
+    <div>
+      <input type="text" 
+        class="inspector-editable-value-input" 
+        @focus="$event.target.select()"
+        @keydown.enter="on_submit"
+        v-model="edit_value"
+        ref="input">
+      </input>
+    </div>
+  `
+});
+
+// Inspector-value component
+Vue.component('inspector-editable-value', {
+  props: {
+    type: { type: Array, required: true },
+    value: { type: [Boolean, Number, String, Object, Array], required: true },
+    symbol: { type: String, required: false },
+    value_css: { type: String, required: true },
+  },
+  data: function() {
+    return {
+      edit: false
+    }
+  },
+  methods: {
+    on_edit() {
+      this.edit = true;
+      this.$nextTick(() => {
+        this.$refs.input.focus(this.value);
+        this.$emit("edit-value", this);
+      });
+    },
+    on_discard() {
+      this.edit = false;
+      this.$emit("discard-value");
+    },
+    to_json() {
+      return this.$refs.input.to_json();
+    },
+    discard() {
+      this.on_discard();
+    },
+    on_submit() {
+      this.$emit("submit-value");
+    }
+  },
+  template: `
+    <div class="inspector-editable-value">
+      <template v-if="edit">
+        <inspector-editable-value-input
+          :css="value_css"
+          :type="type"
+          ref="input"
+          v-on:submit-value="on_submit"/>
+          <icon-button icon="codicons:discard" :size="16" v-on:click="on_discard"/>
+      </template>
+      <template v-else>
+        <inspector-value 
+          :css="value_css" 
+          :type="type" 
+          :value="value" 
+          :symbol="symbol" 
+          v-on="$listeners"/>
+        <icon-button icon="codicons:edit" :size="16" v-on:click="on_edit"/>
+      </template>
+    </div>
+  `
+});
+
 // Key-value pair (as shown in entity inspector)
-const inspector_kv_component = Vue.component('inspector-kv', {
-  props: ['prop_key', 'type', 'value', 'list', 'first'],
+Vue.component('inspector-kv', {
+  props: ['parent_prop', 'prop_key', 'type', 'value', 'list', 'first'],
+  methods: {
+    edit_value(input) {
+      this.$emit("edit-key-value", {
+        key: this.full_prop,
+        input: input
+      });
+    },
+    discard_value(input) {
+      this.$emit("discard-key-value");
+    }
+  },
   computed: {
     is_object: function() {
       return inspector_is_object(this.type, this.value);
@@ -204,6 +300,12 @@ const inspector_kv_component = Vue.component('inspector-kv', {
         }
       }
       return "";
+    },
+    full_prop: function() {
+      if (this.parent_prop) {
+        return this.parent_prop + '.' + this.prop_key;
+      }
+      return this.prop_key;
     }
   },
   template: `
@@ -216,26 +318,36 @@ const inspector_kv_component = Vue.component('inspector-kv', {
                 <span>{{prop_key}}</span>
               </template>
               <template v-slot:detail>
-                <inspector-props :type="type" :value="value" v-on="$listeners"></inspector-props>
+                <inspector-props :parent_prop="full_prop" :type="type" :value="value"
+                  v-on="$listeners">
+                </inspector-props>
               </template>
             </detail-toggle>
           </div>
         </template>
         <template v-else>
           <inspector-key :prop_key="prop_key"/>
-          <inspector-value :css="value_css" :type="type" :value="value" :symbol="symbol" v-on="$listeners"/>
+          <inspector-editable-value 
+            :value_css="value_css" 
+            :type="type" 
+            :value="value" 
+            :symbol="symbol"
+            v-on:edit-value="edit_value"
+            v-on:discard-value="discard_value"
+            v-on="$listeners"/>
         </template>
       </template>
       <template v-else>
-        <inspector-value :type="type" :value="value" :separator="!first" v-on="$listeners"/>
+        <inspector-value :type="type" :value="value" :separator="!first" 
+          v-on="$listeners"/>
       </template>
     </div>
     `
 });
 
 // Component properties
-const inspector_props_component = Vue.component('inspector-props', {
-  props: ['value', 'type', 'list'],
+Vue.component('inspector-props', {
+  props: ['parent_prop', 'value', 'type', 'list'],
   methods: {
     prop_type: function(prop_name) {
       if (this.type) {
@@ -277,15 +389,16 @@ const inspector_props_component = Vue.component('inspector-props', {
     <div :class="css">
       <template v-if="is_object">
         <template v-if="is_array">
-          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :type="prop_type(k)" ":value="v" :list="list" v-on="$listeners"/></div>
+          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :parent_prop="parent_prop" :type="prop_type(k)" ":value="v" :list="list" v-on="$listeners"/></div>
         </template>
         <template v-else>
-          <div class="inspector-prop" v-for="(v, k, i) in value"><inspector-kv :prop_key="k" :type="prop_type(k)" :value="v" :list="list" :first="i == 0" v-on="$listeners"/></div>
+          <div class="inspector-prop" v-for="(v, k, i) in value"><inspector-kv :parent_prop="parent_prop" :prop_key="k" :type="prop_type(k)" :value="v" :list="list" :first="i == 0" v-on="$listeners"/></div>
         </template>
       </template>
       <template v-else>
         <div class="inspector-prop">
-          <inspector-kv :type="type" :value="value" :list="list"/>
+          <inspector-kv :parent_prop="parent_prop" :type="type" :value="value" :list="list" 
+            v-on="$listeners"/>
         </div>
       </template>
     </div>
@@ -293,7 +406,7 @@ const inspector_props_component = Vue.component('inspector-props', {
 });
 
 // Component
-const inspector_component_component = Vue.component('inspector-component', {
+Vue.component('inspector-component', {
   props: ['entity', 'index'],
   methods: {
     search_component() {
@@ -305,6 +418,17 @@ const inspector_component_component = Vue.component('inspector-component', {
     },
     search_relationship() {
       this.$emit('append-query', '$(' + this.pred + ')');
+    },
+    edit_key_value(kv) {
+      this.$emit("edit-component", {
+        id: this.id,
+        kv: kv
+      })
+    },
+    discard_key_value() {
+      this.$emit("discard-component", {
+        id: this.id,
+      });
     }
   },
   computed: {
@@ -394,6 +518,8 @@ const inspector_component_component = Vue.component('inspector-component', {
             <inspector-props v-if="value !== undefined" 
               :type="type_info" 
               :value="value"
+              v-on:edit-key-value="edit_key_value"
+              v-on:discard-key-value="discard_key_value"
               v-on="$listeners"/>
           </template>
         </detail-toggle>
@@ -403,7 +529,7 @@ const inspector_component_component = Vue.component('inspector-component', {
 });
 
 // Components of entity and/or base entities
-const inspector_components_component = Vue.component('inspector-components', {
+Vue.component('inspector-components', {
   props: ['entity', 'show_header', 'is_base'],
   computed: {
     ids: function() {
@@ -479,15 +605,16 @@ const inspector_components_component = Vue.component('inspector-components', {
                       </div>
                     </template>
                     <template v-slot:detail>
-                      <div class="inspector-props">
+                      <div class="inspector-props" v-on="$listeners">
                         <inspector-component v-for="k in category_ids" 
                           :entity="entity" 
                           :index="k"
                           :key="k" 
-                          v-on="$listeners"/>
+                          v-on="$listeners">
+                        </inspector-component>
                       </div>
                     </template>
-                  <detail-toggle>
+                  </detail-toggle>
                 </div>
               </div>
             </div>
@@ -505,7 +632,9 @@ const inspector_component = Vue.component('inspector', {
     return {
       entity: undefined,
       entity_name: undefined,
-      error: undefined
+      error: undefined,
+      edit_count: 0,
+      edit_inputs: {}
     }
   },
   mounted: function() {
@@ -533,7 +662,9 @@ const inspector_component = Vue.component('inspector', {
       }
 
       app.request_entity('inspector', this.entity_name, (reply) => {
-        this.error = reply.error;
+        if (reply) {
+          this.error = reply.error;
+        }
         if (this.error === undefined) {
           this.entity = reply;
           this.error = undefined;
@@ -619,6 +750,62 @@ const inspector_component = Vue.component('inspector', {
     },
     disable_entity() {
       app.disable_entity(this.entity.path);
+    },
+    set_components() {
+      let set_request = {
+        ids: [],
+        values: []
+      };
+
+      for (const component in this.edit_inputs) {
+        const comp_input = this.edit_inputs[component];
+        const comp_input_value = comp_input.value;
+        if (typeof comp_input_value === 'object') {
+          let comp_value = {};
+          for (const key in comp_input_value) {
+            const input = comp_input_value[key];
+            comp_value[key] = input.to_json();
+            input.discard();
+          }
+          set_request.ids.push(comp_input.id);
+          set_request.values.push(comp_value);
+        } else {
+          set_request.ids.push(comp_input.id);
+          set_request.values.push(comp_input_value.to_json());
+          comp_input_value.discard();
+        }
+      }
+
+      app.set_components(this.entity.path, set_request);
+    },
+    delete_entity() {
+      app.delete_entity(this.entity.path);
+    },
+    edit_component(evt) {
+      this.edit_count ++;
+
+      let id = evt.id.join(",");
+      if (!this.edit_inputs[id]) {
+        this.edit_inputs[id] = {count: 0, id: evt.id};
+      }
+
+      const edit_comp = this.edit_inputs[id];
+      if (evt.kv.key) {
+        if (!edit_comp.value) {
+          edit_comp.value = {};
+        }
+        edit_comp.value[evt.kv.key] = evt.kv.input;
+      } else {
+        edit_comp.value = evt.kv.input;
+      }
+      edit_comp.count ++;
+    },
+    discard_component(evt) {
+      this.edit_count --;
+      this.edit_inputs[evt.id].count --;
+      if (!this.edit_inputs[evt.id].count) {
+        delete this.edit_inputs[evt.id];
+      }
     }
   },
   computed: {
@@ -666,7 +853,7 @@ const inspector_component = Vue.component('inspector', {
     },
     connected() {
       return app.connection == ConnectionState.Remote;
-    },
+    }
   },
   template: `
     <content-container 
@@ -722,25 +909,45 @@ const inspector_component = Vue.component('inspector', {
           <div class="inspector-buttons">
             <span class="inspector-button inspector-icon-button noselect"
               v-on:click="navigate">
-                &nbsp;<icon icon="codicons:list-tree" size="16"></icon>&nbsp;
+                &nbsp;<icon icon="codicons:list-tree" :size="16"></icon>&nbsp;
             </span>
             <template v-if="is_query">
               <span class="inspector-button noselect"
                 v-on:click="set_as_query">
-                &nbsp;<icon icon="codicons:search" size="16"></icon>&nbsp;
+                &nbsp;<icon icon="codicons:search" :size="16"></icon>&nbsp;
               </span>
             </template>
             <template v-if="connected">
               <template v-if="is_disabled">
-                <span class="inspector-button noselect" v-on:click="enable_entity">
+                <span class="inspector-button noselect" 
+                    style="display: inline-block; width: 50px; text-align: center;"
+                    v-on:click="enable_entity">
                   Enable
                 </span>
               </template>
               <template v-else>
-                <span class="inspector-button noselect" v-on:click="disable_entity">
+                <span class="inspector-button noselect" 
+                    style="display: inline-block; width: 50px; text-align: center;"
+                    v-on:click="disable_entity">
                   Disable
                 </span>
               </template>
+              <template v-if="edit_count">
+                <span class="inspector-button inspector-icon-button noselect"
+                  v-on:click="set_components">
+                    &nbsp;<icon icon="codicons:save" :size="16"></icon>&nbsp;
+                </span>
+              </template>
+              <template v-else>
+                <span class="inspector-button inspector-button-disabled inspector-icon-button noselect"
+                  v-on:click="set_components">
+                    &nbsp;<icon icon="codicons:save" :size="16"></icon>&nbsp;
+                </span>
+              </template>
+              <span class="inspector-button inspector-icon-button noselect"
+                v-on:click="delete_entity">
+                  &nbsp;<icon icon="codicons:trash" :size="16"></icon>&nbsp;
+              </span>
             </template>
           </div>
 
@@ -752,7 +959,9 @@ const inspector_component = Vue.component('inspector', {
             <inspector-components 
               :entity="entity" 
               :show_header="entity.is_a != undefined" 
-              v-on="$listeners"/>
+              v-on:edit-component="edit_component"
+              v-on:discard-component="discard_component"
+              v-on:submit-value="set_components"/>
           </div>
         </div>
       </template>

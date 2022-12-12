@@ -309,9 +309,7 @@ var app = new Vue({
     },
 
     enable_entity(path) {
-      if (this.is_local()) {
-        wq_enable_entity(path, true);
-      } else {
+      if (!this.is_local()) {
         this.request("enable", "PUT", "enable/" + path.replaceAll('.', '/'), () => {
           this.refresh_entity();
           this.refresh_tree();
@@ -320,13 +318,30 @@ var app = new Vue({
     },
 
     disable_entity(path) {
-      if (this.is_local()) {
-        wq_enable_entity(path, false);
-      } else {
+      if (!this.is_local()) {
         this.request("disable", "PUT", "disable/" + path.replaceAll('.', '/'), () => {
           this.refresh_entity();
           this.refresh_tree();
         });
+      }
+    },
+
+    delete_entity(path) {
+      if (!this.is_local()) {
+        this.request("delete", "PUT", "delete/" + path.replaceAll('.', '/'), () => {
+          this.$refs.inspector.close();
+          this.refresh_tree();
+        });
+      }
+    },
+
+    set_components(path, data) {
+      if (!this.is_local()) {
+        this.request("set", "PUT", "set/" + path.replaceAll('.', '/') +
+          "?data=" + encodeURIComponent(JSON.stringify(data)), 
+          () => {
+            this.refresh_entity();
+          });
       }
     },
 

@@ -84,7 +84,11 @@
   --panel-bg: var(--steel-850);
   --panel-bg-secondary: var(--steel-800);
   --panel-select: var(--steel-700);
+  
   --prop-bg: var(--steel-700);
+  --prop-input-bg: var(--steel-750);
+  --prop-input-border: var(--steel-650);
+  --prop-input-border-focus: var(--green);
 
   --row-bg: var(--steel-800);
   --cell-bg: var(--steel-transparent-96);
@@ -617,6 +621,31 @@ span.inspector-separator {
   color: var(--primary-text);
 }
 
+div.inspector-editable-value {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: right;
+}
+
+input.inspector-editable-value-input {
+  color: white;
+  background-color: var(--prop-input-bg);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--prop-input-border);
+  border-radius: var(--br-2);
+  padding: calc(var(--p-3) - 1px);
+  width: 180px;
+  margin-right: 5px;
+  overflow-x: auto;
+  transition: 0.1s border-color;
+}
+
+input.inspector-editable-value-input:focus {
+  border-color: var(--prop-input-border-focus);
+}
+
 div.inspector-props span.inspector-key {
   right: 220px;
   cursor: default;
@@ -626,7 +655,8 @@ div.inspector-props span.inspector-key {
 div.inspector-props span.inspector-value {
   padding: var(--p-3);
   border-radius: var(--br-2);
-  width: 200px;
+  width: 180px;
+  margin-right: 5px;
   overflow-x: auto;
   background-color: var(--prop-bg);
 }
@@ -740,6 +770,16 @@ span.inspector-button  {
 span.inspector-button:hover  {
   background-color: var(--steel-650);
 }
+
+span.inspector-button-disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+span.inspector-button-disabled:hover {
+  background-color: var(--prop-bg);
+}
+
 
 span.inspector-button:active  {
   background-color: var(--steel-600);
