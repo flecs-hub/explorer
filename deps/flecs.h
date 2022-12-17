@@ -11718,6 +11718,7 @@ FLECS_API extern         ECS_DECLARE(EcsMilliMeters);
 FLECS_API extern         ECS_DECLARE(EcsCentiMeters);
 FLECS_API extern         ECS_DECLARE(EcsKiloMeters);
 FLECS_API extern     ECS_DECLARE(EcsMiles);
+FLECS_API extern     ECS_DECLARE(EcsPixels);
 
 FLECS_API extern ECS_DECLARE(EcsPressure);
 FLECS_API extern     ECS_DECLARE(EcsPascal);
@@ -15625,6 +15626,7 @@ struct Data { };
 struct DataRate { };
 struct Angle { };
 struct Frequency { };
+struct Uri { };
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -15681,6 +15683,7 @@ struct MilliMeters { };
 struct CentiMeters { };
 struct KiloMeters { };
 struct Miles { };
+struct Pixels { };
 };
 
 struct pressure {
@@ -15731,6 +15734,12 @@ struct Hertz { };
 struct KiloHertz { };
 struct MegaHertz { };
 struct GigaHertz { };
+};
+
+struct uri {
+struct Hyperlink { };
+struct Image { };
+struct File { };
 };
 
 struct Percentage { };
@@ -25360,6 +25369,8 @@ inline units::units(flecs::world& world) {
     world.entity<Data>("::flecs::units::Data");
     world.entity<DataRate>("::flecs::units::DataRate");
     world.entity<Angle>("::flecs::units::Angle");
+    world.entity<Frequency>("::flecs::units::Frequency");
+    world.entity<Uri>("::flecs::units::Uri");
 
     // Initialize duration units
     world.entity<duration::PicoSeconds>(
@@ -25409,6 +25420,7 @@ inline units::units(flecs::world& world) {
     world.entity<length::CentiMeters>("::flecs::units::Length::CentiMeters");
     world.entity<length::KiloMeters>("::flecs::units::Length::KiloMeters");
     world.entity<length::Miles>("::flecs::units::Length::Miles");
+    world.entity<length::Pixels>("::flecs::units::Length::Pixels");
 
     // Initialize pressure units
     world.entity<pressure::Pascal>("::flecs::units::Pressure::Pascal");
@@ -25474,7 +25486,7 @@ inline units::units(flecs::world& world) {
     world.entity<datarate::GigaBytesPerSecond>(
         "::flecs::units::DataRate::GigaBytesPerSecond");
 
-    // Initialize datarate units
+    // Initialize hertz units
     world.entity<frequency::Hertz>(
         "::flecs::units::Frequency::Hertz");
     world.entity<frequency::KiloHertz>(
@@ -25483,6 +25495,14 @@ inline units::units(flecs::world& world) {
         "::flecs::units::Frequency::MegaHertz");
     world.entity<frequency::GigaHertz>(
         "::flecs::units::Frequency::GigaHertz");
+
+    // Initialize uri units
+    world.entity<uri::Hyperlink>(
+        "::flecs::units::Uri::Hyperlink");
+    world.entity<uri::Image>(
+        "::flecs::units::Uri::Image");
+    world.entity<uri::File>(
+        "::flecs::units::Uri::File");
 
     // Initialize angles
     world.entity<angle::Radians>(
