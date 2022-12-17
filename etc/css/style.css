@@ -596,6 +596,18 @@ span.inspector-kv-after-key {
   border-bottom-left-radius: 0px !important;
 }
 
+div.inspector-kv-column-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+div.inspector-kv-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 div.inspector-prop {
   display: flex;
   margin-bottom: 1px; /* for when row collapses */
@@ -700,6 +712,25 @@ div.inspector-component-expand-nodata {
 
 div.inspector-component-expand-nodata span {
   text-align: center;
+}
+
+a.inspector-link {
+  color: var(--green);
+  cursor: pointer;
+}
+
+a.inspector-link:hover {
+  color: white;
+}
+
+img.inspector-image {
+  display: block;
+  object-fit: scale-down;
+  max-width: 200px;
+  max-height: 100px;
+  margin-top: 10px;
+  margin-bottom: 20px;
+  border-radius: 5px;
 }
 
 span.inspector-parent {

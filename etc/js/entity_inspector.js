@@ -10,6 +10,14 @@ function inspector_is_object(type, value) {
   return (typeof value) === "object";
 }
 
+function unit_from_type(type) {
+  if (type && type.length > 1) {
+    if (inspector_is_object(undefined, type[1])) {
+      return type[1].unit;
+    }
+  }
+}
+
 function fmt_float(value) {
   let str = value.toString();
   if (str.indexOf('.') == -1 || str.indexOf('e') != -1) {
@@ -89,13 +97,7 @@ Vue.component('inspector-value', {
     const props = context.props;
     const type = props.type ? props.type[0] : undefined;
     const value = props.value;
-
-    let unit;
-    if (type && type.length > 1) {
-      if (inspector_is_object(undefined, type[1])) {
-        unit = type[1].unit;
-      }
-    }
+    let unit = unit_from_type(props.type);
 
     let formatted_value = value;
     let actual_symbol = props.symbol;
@@ -108,10 +110,13 @@ Vue.component('inspector-value', {
     if (type) {
       css_classes.push(`inspector-value-${context.props.type[0]}`);
       if (type === "text") {
-        if (value) {
-          formatted_value = "\"" + value + "\"";
-        } else {
-          formatted_value = "";
+        if (unit === undefined) {
+          console.log("no unit: " + value);
+          if (value) {
+            formatted_value = "\"" + value + "\"";
+          } else {
+            formatted_value = "";
+          }
         }
       } else
       if (unit) {
@@ -168,6 +173,19 @@ Vue.component('inspector-value', {
       } else {
         content = "null";
       }
+    }
+
+    if (unit === "flecs.units.Uri.Hyperlink") {
+      content = h(
+        'a', { 
+          attrs: {
+            href: content,
+            target: "_blank"
+          },
+          class: ["inspector-link"]
+        }, 
+        [content]
+      );
     }
 
     return h(
@@ -272,6 +290,34 @@ Vue.component('inspector-editable-value', {
   `
 });
 
+// Inspector-value component
+Vue.component('inspector-extended-value', {
+  props: {
+    type: { type: Array, required: true },
+    value: { type: [Boolean, Number, String, Object, Array], required: true },
+  },
+  functional: true,
+  render: function (h, context) {
+    const props = context.props;
+    const unit = unit_from_type(props.type);
+    if (unit === "flecs.units.Uri.Image") {
+      const img = h('img', {
+        attrs: {
+          src: props.value
+        },
+        class: ["inspector-image"]
+      });
+
+      return h('a', {
+        attrs: {
+          href: props.value,
+          target: "_blank"
+        }
+      }, [ img ]);
+    }
+  }
+});
+
 // Key-value pair (as shown in entity inspector)
 Vue.component('inspector-kv', {
   props: ['parent_prop', 'prop_key', 'type', 'value', 'list', 'first'],
@@ -306,6 +352,13 @@ Vue.component('inspector-kv', {
         return this.parent_prop + '.' + this.prop_key;
       }
       return this.prop_key;
+    },
+    extended_value: function() {
+      let unit = unit_from_type(this.type);
+      if (unit == "flecs.units.Uri.Image") {
+        return true;
+      }
+      return false;
     }
   },
   template: `
@@ -326,15 +379,26 @@ Vue.component('inspector-kv', {
           </div>
         </template>
         <template v-else>
-          <inspector-key :prop_key="prop_key"/>
-          <inspector-editable-value 
-            :value_css="value_css" 
-            :type="type" 
-            :value="value" 
-            :symbol="symbol"
-            v-on:edit-value="edit_value"
-            v-on:discard-value="discard_value"
-            v-on="$listeners"/>
+          <div class="inspector-kv-column">
+            <div class="inspector-kv-column-row">
+              <inspector-key :prop_key="prop_key"/>
+              <inspector-editable-value 
+                :value_css="value_css" 
+                :type="type" 
+                :value="value" 
+                :symbol="symbol"
+                v-on:edit-value="edit_value"
+                v-on:discard-value="discard_value"
+                v-on="$listeners">
+              </inspector-editable-value>
+            </div>
+            <template v-if="extended_value">
+              <inspector-extended-value
+                :type="type" 
+                :value="value">
+              </inspector-extended-value>
+            </template>
+          </div>
         </template>
       </template>
       <template v-else>

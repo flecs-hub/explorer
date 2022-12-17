@@ -1,14 +1,11 @@
 <template>
-
     <div class="tooltip noselect" :class="show_state ? 'tooltip-visible' : ''">
       {{ label }}
     </div>
-
 </template>
 
 <script>
-/* 
-
+/*
   WARNING: Tooltip will persist after its trigger element is mounted.
 */
 module.exports = {
@@ -70,20 +67,14 @@ module.exports = {
     border-radius: var(--br-3);
     white-space: nowrap;
     box-shadow: 0px 0px 0px rgba(0,0,0,0);
-
-    z-index: 100;
-
-    opacity: 0;
     transform: translateY(-2px);
-
-    transition: opacity 0.20s ease-in-out, transform 0.20s ease-in-out;
+    display: none;
   }
 
   .tooltip-visible {
     box-shadow: 0px 2px 4px rgba(0,0,0,0.3);
-
-    opacity: 1;
     transform: translateY(0px);
-    transition: opacity 0.20s 0.8s ease-in-out, transform 0.20s 0.8s ease-in-out;
+    display: inherit;
+    z-index: 100;
   }
 </style>
