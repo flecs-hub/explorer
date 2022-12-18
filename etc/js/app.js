@@ -671,6 +671,9 @@ var app = new Vue({
 
     evt_append_query(query) {
       let q = this.$refs.query.get_query();
+      if (q.slice(0, 2) === "?-") {
+        q = "";
+      }
       if (q.length) {
         q += ", " + query;
       } else {
