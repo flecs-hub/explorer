@@ -1025,7 +1025,8 @@ const inspector_component = Vue.component('inspector', {
               :show_header="entity.is_a != undefined" 
               v-on:edit-component="edit_component"
               v-on:discard-component="discard_component"
-              v-on:submit-value="set_components"/>
+              v-on:submit-value="set_components"
+              v-on="$listeners"/>
           </div>
         </div>
       </template>
