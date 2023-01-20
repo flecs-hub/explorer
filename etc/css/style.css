@@ -948,7 +948,7 @@ div.ecs-query div.ldt {
   min-width: 36px;
   max-width: 100%;
   min-height: 19px;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 div.ecs-query-empty div.ldt {
