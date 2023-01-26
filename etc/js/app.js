@@ -450,7 +450,7 @@ var app = new Vue({
       if (!p && !p_encoded) {
         p = example_plecs;
       }
-      if (!q) {
+      if (!q && !p) {
         q = example_query;
       }
 
