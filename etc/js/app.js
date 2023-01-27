@@ -447,11 +447,11 @@ var app = new Vue({
         selected = example_selected;
       }
 
-      if (!p && !p_encoded) {
-        p = example_plecs;
-      }
       if (!q && !p) {
         q = example_query;
+      }
+      if (!p && !p_encoded) {
+        p = example_plecs;
       }
 
       if (p && !this.remote_mode) {
