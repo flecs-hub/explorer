@@ -104,6 +104,9 @@ Vue.component('inspector-value', {
     let css_classes = ["inspector-value"];
     let content = props.separator ? ",\xa0" : "";
 
+    console.log("value: " + value);
+    console.log("type: " + type);
+
     if (typeof(value) == "object") {
       formatted_value = JSON.stringify(value); // TODO
     } else
@@ -111,7 +114,6 @@ Vue.component('inspector-value', {
       css_classes.push(`inspector-value-${context.props.type[0]}`);
       if (type === "text") {
         if (unit === undefined) {
-          console.log("no unit: " + value);
           if (value) {
             formatted_value = "\"" + value + "\"";
           } else {
@@ -141,9 +143,10 @@ Vue.component('inspector-value', {
         } else
         if (unit === "flecs.units.Time.Date") {
           formatted_value = fmt_date(value);
+        } else if (typeof(value) == "number") {
+          formatted_value = fmt_float(value);
         }
-      } else
-      if (typeof(value) == "number") {
+      } else if (typeof(value) == "number") {
         formatted_value = fmt_float(value);
       }
     }
