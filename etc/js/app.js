@@ -149,9 +149,9 @@ var app = new Vue({
     // Utility for sending HTTP requests
     http_request(method, host, path, recv, err, timeout, retry_interval) {
       const Request = new XMLHttpRequest();
-      const url = host + "/" + path;
+      const url = "http://" + host + "/" + path;
 
-      Request.open(method, "http://" + url);
+      Request.open(method, url);
     
       if (timeout) {
         Request.timeout = timeout;
@@ -204,7 +204,7 @@ var app = new Vue({
               }
             } else {
               if (recv) {
-                recv(Request.responseText);
+                recv(Request.responseText, url);
               }
             }
           }
@@ -218,13 +218,13 @@ var app = new Vue({
 
     // Utility for sending HTTP requests that have a JSON reply
     json_request(method, host, path, recv, err, timeout, retry_interval) {
-      return this.http_request(method, host, path, (r) => {
+      return this.http_request(method, host, path, (r, url) => {
         if (recv) {
           if (r) {
             const reply = JSON.parse(r);
-            recv(reply);
+            recv(reply, url);
           } else {
-            recv();
+            recv(url);
           }
         }
       }, (r) => {

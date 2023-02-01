@@ -2576,8 +2576,6 @@ void ecs_os_set_api_defaults(void);
 #define ecs_os_strdup(str) ecs_os_api.strdup_(str)
 #endif
 
-#define ecs_os_strset(dst, src) ecs_os_free(*dst); *dst = ecs_os_strdup(src)
-
 #ifdef __cplusplus
 #define ecs_os_strlen(str) static_cast<ecs_size_t>(strlen(str))
 #define ecs_os_strncmp(str1, str2, num) strncmp(str1, str2, static_cast<size_t>(num))
@@ -2685,6 +2683,9 @@ void ecs_os_fatal(const char *file, int32_t line, const char *msg);
 
 FLECS_API
 const char* ecs_os_strerror(int err);
+
+FLECS_API
+void ecs_os_strset(char **str, const char *value);
 
 #ifdef FLECS_ACCURATE_COUNTERS
 #define ecs_os_inc(v)  (ecs_os_ainc(v))
@@ -3168,6 +3169,7 @@ struct ecs_observer_t {
     ecs_observable_t *observable; /**< Observable for observer */
 
     int32_t *last_event_id;     /**< Last handled event id */
+    int32_t last_event_id_storage;
 
     ecs_id_t register_id;       /**< Id observer is registered with (single term observers only) */
     int32_t term_index;         /**< Index of the term in parent observer (single term observers only) */
@@ -4380,10 +4382,10 @@ FLECS_API extern const ecs_entity_t EcsMonitor;
 FLECS_API extern const ecs_entity_t EcsOnDelete;
 
 /** Event. Triggers when a table is created. */
-// FLECS_API extern const ecs_entity_t EcsOnCreateTable;
+FLECS_API extern const ecs_entity_t EcsOnTableCreate;
 
 /** Event. Triggers when a table is deleted. */
-// FLECS_API extern const ecs_entity_t EcsOnDeleteTable;
+FLECS_API extern const ecs_entity_t EcsOnTableDelete;
 
 /** Event. Triggers when a table becomes empty (doesn't emit on creation). */
 FLECS_API extern const ecs_entity_t EcsOnTableEmpty;
@@ -4440,7 +4442,7 @@ FLECS_API extern const ecs_entity_t EcsPhase;
 
 /** The first user-defined component starts from this id. Ids up to this number
  * are reserved for builtin components */
-#define EcsFirstUserComponentId (32)
+#define EcsFirstUserComponentId (8)
 
 /** The first user-defined entity starts from this id. Ids up to this number
  * are reserved for builtin components */
@@ -5506,12 +5508,13 @@ void ecs_ref_update(
     ecs_ref_t *ref);
 
 /** Get a mutable pointer to a component.
- * This operation is similar to ecs_get_id but it returns a mutable 
- * pointer. If this operation is invoked from inside a system, the entity will
- * be staged and a pointer to the staged component will be returned.
- *
- * If the entity did not yet have the component, the component will be added by
- * this operation. In this case the is_added out parameter will be set to true.
+ * This operation returns a mutable pointer to a component. If the component did
+ * not yet exist, it will be added.
+ * 
+ * If get_mut is called when the world is in deferred/readonly mode, the 
+ * function will:
+ * - return a pointer to a temp storage if the component does not yet exist, or
+ * - return a pointer to the existing component if it exists
  *
  * @param world The world.
  * @param entity The entity.
@@ -8996,6 +8999,11 @@ int ecs_value_move_ctor(
 
 #endif // FLECS_C_
 
+
+#ifdef __cplusplus
+}
+#endif
+
 /**
  * @file addons.h
  * @brief Include enabled addons.
@@ -12229,6 +12237,7 @@ FLECS_API extern const ecs_entity_t ecs_id(EcsMember);
 FLECS_API extern const ecs_entity_t ecs_id(EcsStruct);
 FLECS_API extern const ecs_entity_t ecs_id(EcsArray);
 FLECS_API extern const ecs_entity_t ecs_id(EcsVector);
+FLECS_API extern const ecs_entity_t ecs_id(EcsMetaCustomType);
 FLECS_API extern const ecs_entity_t ecs_id(EcsUnit);
 FLECS_API extern const ecs_entity_t ecs_id(EcsUnitPrefix);
 FLECS_API extern const ecs_entity_t EcsConstant;
@@ -12261,6 +12270,7 @@ typedef enum ecs_type_kind_t {
     EcsStructType,
     EcsArrayType,
     EcsVectorType,
+    EcsCustomType,
     EcsTypeKindLast = EcsVectorType
 } ecs_type_kind_t;
 
@@ -12371,6 +12381,59 @@ typedef struct EcsVector {
 } EcsVector;
 
 
+/* Custom type support */
+
+#if !defined(__cplusplus) || !defined(FLECS_CPP)
+
+/** Serializer interface */
+typedef struct ecs_meta_serializer_t {
+    /* Serialize value */
+    int (*value)(
+        const struct ecs_meta_serializer_t *ser, /**< Serializer */
+        ecs_entity_t type,              /**< Type of the value to serialize */
+        const void *value);             /**< Pointer to the value to serialize */
+
+    const ecs_world_t *world;
+    void *ctx;
+} ecs_meta_serializer_t;
+
+#elif defined(__cplusplus)
+
+} /* extern "C" { */
+
+/** Serializer interface (same layout as C, but with convenience methods) */
+typedef struct ecs_meta_serializer_t {
+    /* Serialize value */
+    int (*value_)(
+        const struct ecs_meta_serializer_t *ser,
+        ecs_entity_t type,
+        const void *value);
+
+    /* Serialize value */
+    int value(ecs_entity_t type, const void *value) const;
+    
+    /* Serialize value */
+    template <typename T>
+    int value(const T& value) const;
+
+    const ecs_world_t *world;
+    void *ctx;
+} ecs_meta_serializer_t;
+
+extern "C" {
+#endif
+
+/** Callback invoked for a custom type. */
+typedef int (*ecs_meta_serialize_t)(
+    const ecs_meta_serializer_t *ser,
+    const void *src);                  /**< Pointer to value to serialize */
+
+typedef struct EcsMetaCustomType {
+    ecs_entity_t as_type;              /**< Type that describes the serialized output */
+    ecs_meta_serialize_t serialize;    /**< Serialize action */
+} EcsMetaCustomType;
+
+
 /* Units */
 
 /* Helper type to describe translation between two units. Note that this
@@ -12404,6 +12467,7 @@ typedef struct EcsUnitPrefix {
 typedef enum ecs_meta_type_op_kind_t {
     EcsOpArray,
     EcsOpVector,
+    EcsOpCustomType,
     EcsOpPush,
     EcsOpPop,
 
@@ -12655,8 +12719,7 @@ ecs_entity_t ecs_meta_get_entity(
 
 /** Used with ecs_primitive_init. */
 typedef struct ecs_primitive_desc_t {
-    /* Existing entity to associate with primitive (optional) */
-    ecs_entity_t entity;
+    ecs_entity_t entity; /**< Existing entity to use for type (optional) */
     ecs_primitive_kind_t kind;
 } ecs_primitive_desc_t;
 
@@ -12668,8 +12731,7 @@ ecs_entity_t ecs_primitive_init(
 
 /** Used with ecs_enum_init. */
 typedef struct ecs_enum_desc_t {
-    /* Existing entity to associate with enum (optional) */
-    ecs_entity_t entity;
+    ecs_entity_t entity; /**< Existing entity to use for type (optional) */
     ecs_enum_constant_t constants[ECS_MEMBER_DESC_CACHE_SIZE];
 } ecs_enum_desc_t;
 
@@ -12682,8 +12744,7 @@ ecs_entity_t ecs_enum_init(
 
 /** Used with ecs_bitmask_init. */
 typedef struct ecs_bitmask_desc_t {
-    /* Existing entity to associate with bitmask (optional) */
-    ecs_entity_t entity;
+    ecs_entity_t entity; /**< Existing entity to use for type (optional) */
     ecs_bitmask_constant_t constants[ECS_MEMBER_DESC_CACHE_SIZE];
 } ecs_bitmask_desc_t;
 
@@ -12696,8 +12757,7 @@ ecs_entity_t ecs_bitmask_init(
 
 /** Used with ecs_array_init. */
 typedef struct ecs_array_desc_t {
-    /* Existing entity to associate with array (optional) */
-    ecs_entity_t entity;
+    ecs_entity_t entity; /**< Existing entity to use for type (optional) */
     ecs_entity_t type;
     int32_t count;
 } ecs_array_desc_t;
@@ -12711,8 +12771,7 @@ ecs_entity_t ecs_array_init(
 
 /** Used with ecs_vector_init. */
 typedef struct ecs_vector_desc_t {
-    /* Existing entity to associate with vector (optional) */
-    ecs_entity_t entity;
+    ecs_entity_t entity; /**< Existing entity to use for type (optional) */
     ecs_entity_t type;
 } ecs_vector_desc_t;
 
@@ -12725,8 +12784,7 @@ ecs_entity_t ecs_vector_init(
 
 /** Used with ecs_struct_init. */
 typedef struct ecs_struct_desc_t {
-    /* Existing entity to associate with struct (optional) */
-    ecs_entity_t entity;
+    ecs_entity_t entity; /**< Existing entity to use for type (optional) */
     ecs_member_t members[ECS_MEMBER_DESC_CACHE_SIZE];
 } ecs_struct_desc_t;
 
@@ -12735,6 +12793,19 @@ FLECS_API
 ecs_entity_t ecs_struct_init(
     ecs_world_t *world,
     const ecs_struct_desc_t *desc);
+
+/** Used with ecs_custom_type_init. */
+typedef struct ecs_custom_type_desc_t {
+    ecs_entity_t entity;
+    ecs_entity_t as_type;            /**< Type that describes the serialized output */
+    ecs_meta_serialize_t serialize;  /**< Serialize action */
+} ecs_custom_type_desc_t;
+
+/** Create a new custom type */
+FLECS_API
+ecs_entity_t ecs_custom_type_init(
+    ecs_world_t *world,
+    const ecs_custom_type_desc_t *desc);
 
 /** Used with ecs_unit_init. */
 typedef struct ecs_unit_desc_t {
@@ -12811,6 +12882,9 @@ ecs_entity_t ecs_quantity_init(
 
 #define ecs_vector(world, ...)\
     ecs_vector_init(world, &(ecs_vector_desc_t) __VA_ARGS__ )
+
+#define ecs_custom_type(world, ...)\
+    ecs_custom_type_init(world, &(ecs_custom_type_desc_t) __VA_ARGS__ )
 
 #define ecs_struct(world, ...)\
     ecs_struct_init(world, &(ecs_struct_desc_t) __VA_ARGS__ )
@@ -14364,8 +14438,6 @@ int32_t ecs_cpp_reset_count_inc(void);
 
 
 #ifdef __cplusplus
-}
-
 /**
  * @file addons/cpp/flecs.hpp
  * @brief Flecs C++11 API.
@@ -14493,6 +14565,8 @@ static const flecs::entity_t OnAdd = EcsOnAdd;
 static const flecs::entity_t OnRemove = EcsOnRemove;
 static const flecs::entity_t OnSet = EcsOnSet;
 static const flecs::entity_t UnSet = EcsUnSet;
+static const flecs::entity_t OnTableCreate = EcsOnTableCreate;
+static const flecs::entity_t OnTableDelete = EcsOnTableDelete;
 
 /* Builtin term flags */
 static const uint32_t Self = EcsSelf;
@@ -16124,6 +16198,9 @@ static const flecs::entity_t Quantity = EcsQuantity;
 
 namespace meta {
 
+using serializer_t = ecs_meta_serializer_t;
+using serialize_t = ecs_meta_serialize_t;
+
 /** Class for reading/writing dynamic values.
  * 
  * \ingroup cpp_addons_meta
@@ -17519,7 +17596,7 @@ template <typename T, if_not_t< is_flecs_constructible<T>::value > = 0>
 inline void set(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t id) {
     ecs_assert(_::cpp_type<T>::size() != 0, ECS_INVALID_PARAMETER, NULL);
 
-    T& dst = *static_cast<T*>(ecs_get_mut_id(world, entity, id));
+    T& dst = *static_cast<remove_reference_t<T>*>(ecs_get_mut_id(world, entity, id));
 
     dst = FLECS_MOV(value);
 
@@ -18903,26 +18980,47 @@ int plecs_from_file(const char *filename) const {
  * @{
  */
 
+/** Convert value to string */
 flecs::string to_expr(flecs::entity_t tid, const void* value) {
     char *expr = ecs_ptr_to_expr(m_world, tid, value);
     return flecs::string(expr);
 }
 
+/** Convert value to string */
 template <typename T>
 flecs::string to_expr(const T* value) {
     flecs::entity_t tid = _::cpp_type<T>::id(m_world);
     return to_expr(tid, value);
 }
 
+/** Return meta cursor to value */
 flecs::meta::cursor cursor(flecs::entity_t tid, void *ptr) {
     return flecs::meta::cursor(m_world, tid, ptr);
 }
 
+/** Return meta cursor to value */
 template <typename T>
 flecs::meta::cursor cursor(void *ptr) {
     flecs::entity_t tid = _::cpp_type<T>::id(m_world);
     return cursor(tid, ptr);
 }
+
+/** Create primitive type */
+flecs::entity primitive(flecs::primitive_kind_t kind);
+
+/** Create array type. */
+flecs::entity array(flecs::entity_t elem_id, int32_t array_count);
+
+/** Create array type. */
+template <typename T>
+flecs::entity array(int32_t array_count);
+
+/** Create vector type. */
+flecs::entity vector(flecs::entity_t elem_id);
+
+/** Create vector type. */
+template <typename T>
+flecs::entity vector();
 
 /** @} */
 
@@ -23137,6 +23235,16 @@ untyped_component& bit(const char *name, uint32_t value) {
     return *this;
 }
 
+/** Add custom reflection. */
+untyped_component& custom_type(flecs::meta::serialize_t serialize, flecs::id_t as_type) {
+    ecs_custom_type_desc_t desc = {};
+    desc.entity = m_id;
+    desc.as_type = as_type;
+    desc.serialize = serialize;
+    ecs_custom_type_init(m_world, &desc);
+    return *this;
+}
+
 /** @} */
 #   endif
 };
@@ -27163,7 +27271,56 @@ inline flecs::entity cursor::get_entity() const {
 }
 
 } // namespace meta
+
+/** Create primitive type */
+inline flecs::entity world::primitive(flecs::primitive_kind_t kind) {
+    ecs_primitive_desc_t desc = {};
+    desc.kind = kind;
+    flecs::entity_t eid = ecs_primitive_init(m_world, &desc);
+    ecs_assert(eid != 0, ECS_INVALID_OPERATION, NULL);
+    return flecs::entity(m_world, eid);
+}
+
+/** Create array type. */
+inline flecs::entity world::array(flecs::entity_t elem_id, int32_t array_count) {
+    ecs_array_desc_t desc = {};
+    desc.type = elem_id;
+    desc.count = array_count;
+    flecs::entity_t eid = ecs_array_init(m_world, &desc);
+    ecs_assert(eid != 0, ECS_INVALID_OPERATION, NULL);
+    return flecs::entity(m_world, eid);
+}
+
+/** Create array type. */
+template <typename T>
+inline flecs::entity world::array(int32_t array_count) {
+    return this->array(_::cpp_type<T>::id(m_world), array_count);
+}
+
+inline flecs::entity world::vector(flecs::entity_t elem_id) {
+    ecs_vector_desc_t desc = {};
+    desc.type = elem_id;
+    flecs::entity_t eid = ecs_vector_init(m_world, &desc);
+    ecs_assert(eid != 0, ECS_INVALID_OPERATION, NULL);
+    return flecs::entity(m_world, eid);
+}
+
+template <typename T>
+inline flecs::entity world::vector() {
+    return this->vector(_::cpp_type<T>::id());
+}
+
 } // namespace flecs
+
+inline int ecs_meta_serializer_t::value(ecs_entity_t type, const void *v) const {
+    return this->value_(this, type, v);
+}
+
+template <typename T>
+inline int ecs_meta_serializer_t::value(const T& v) const {
+    return this->value(flecs::_::cpp_type<T>::id(
+        const_cast<flecs::world_t*>(this->world)), &v);
+}
 
 #endif
 #ifdef FLECS_UNITS
@@ -27693,18 +27850,12 @@ inline flecs::scoped_world world::scope() const {
 
 /** @} */
 
-
-extern "C" {
 #endif // __cplusplus
 
 #endif // FLECS_CPP
 
 #endif
 
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

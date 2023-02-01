@@ -104,9 +104,6 @@ Vue.component('inspector-value', {
     let css_classes = ["inspector-value"];
     let content = props.separator ? ",\xa0" : "";
 
-    console.log("value: " + value);
-    console.log("type: " + type);
-
     if (typeof(value) == "object") {
       formatted_value = JSON.stringify(value); // TODO
     } else
@@ -701,7 +698,8 @@ const inspector_component = Vue.component('inspector', {
       entity_name: undefined,
       error: undefined,
       edit_count: 0,
-      edit_inputs: {}
+      edit_inputs: {},
+      url: undefined
     }
   },
   mounted: function() {
@@ -728,12 +726,13 @@ const inspector_component = Vue.component('inspector', {
         return;
       }
 
-      app.request_entity('inspector', this.entity_name, (reply) => {
+      app.request_entity('inspector', this.entity_name, (reply, url) => {
         if (reply) {
           this.error = reply.error;
         }
         if (this.error === undefined) {
           this.entity = reply;
+          this.url = url;
           this.error = undefined;
         } else {
           this.invalid_entity_error(this.error);
@@ -873,6 +872,9 @@ const inspector_component = Vue.component('inspector', {
       if (!this.edit_inputs[evt.id].count) {
         delete this.edit_inputs[evt.id];
       }
+    },
+    rest_link() {
+      window.open(this.url, '_blank');
     }
   },
   computed: {
@@ -1014,6 +1016,10 @@ const inspector_component = Vue.component('inspector', {
               <span class="inspector-button inspector-icon-button noselect"
                 v-on:click="delete_entity">
                   &nbsp;<icon icon="codicons:trash" :size="16"></icon>&nbsp;
+              </span>
+              <span class="inspector-button inspector-icon-button noselect"
+                v-on:click="rest_link">
+                &nbsp;<icon icon="codicons:code" :size="16"></icon>&nbsp;
               </span>
             </template>
           </div>

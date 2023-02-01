@@ -798,6 +798,10 @@ span.inspector-button  {
   height: 18px;
 }
 
+span.inspector-button a  {
+  text-decoration: none;
+}
+
 span.inspector-button:hover  {
   background-color: var(--steel-650);
 }
