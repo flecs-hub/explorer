@@ -34,7 +34,7 @@
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
-          <div class="save-button-box" v-on:click="rest_world_link" ref="save_url_button" >
+          <div class="save-button-box" v-on:click="rest_world_link" ref="save_url_button" v-if="remote_mode">
             <icon-button :size="20" icon="feather:download" />
           </div>
           <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
