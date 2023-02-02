@@ -25698,16 +25698,16 @@ ecs_entity_t ecs_struct_init(
     return t;
 }
 
-ecs_entity_t ecs_custom_type_init(
+ecs_entity_t ecs_opaque_init(
     ecs_world_t *world,
-    const ecs_custom_type_desc_t *desc)
+    const ecs_opaque_desc_t *desc)
 {
     ecs_entity_t t = desc->entity;
     if (!t) {
         t = ecs_new_low_id(world);
     }
 
-    ecs_set(world, t, EcsMetaCustomType, {
+    ecs_set(world, t, EcsOpaque, {
         .as_type = desc->as_type,
         .serialize = desc->serialize
     });
@@ -25954,7 +25954,7 @@ ecs_vector_t* serialize_custom_type(
 {
     (void)world;
 
-    ecs_meta_type_op_t *op = ops_add(&ops, EcsOpCustomType);
+    ecs_meta_type_op_t *op = ops_add(&ops, EcsOpOpaque);
     op->offset = offset;
     op->type = type;
     op->size = type_size(world, type);
@@ -26058,7 +26058,7 @@ ecs_vector_t* serialize_type(
         ops = serialize_vector(world, type, offset, ops);
         break;
 
-    case EcsCustomType:
+    case EcsOpaqueType:
         ops = serialize_custom_type(world, type, offset, ops);
         break;
     }
@@ -26939,12 +26939,12 @@ void flecs_set_vector(ecs_iter_t *it) {
 static
 void flecs_set_custom_type(ecs_iter_t *it) {
     ecs_world_t *world = it->world;
-    EcsMetaCustomType *custom_type = ecs_field(it, EcsMetaCustomType, 1);
+    EcsOpaque *serialize = ecs_field(it, EcsOpaque, 1);
 
     int i, count = it->count;
     for (i = 0; i < count; i ++) {
         ecs_entity_t e = it->entities[i];
-        ecs_entity_t elem_type = custom_type[i].as_type;
+        ecs_entity_t elem_type = serialize[i].as_type;
 
         if (!elem_type) {
             ecs_err("custom type '%s' has no mapping type", ecs_get_name(world, e));
@@ -26958,7 +26958,7 @@ void flecs_set_custom_type(ecs_iter_t *it) {
             continue;
         }
 
-        if (flecs_init_type(world, e, EcsCustomType, comp->size, comp->alignment)) {
+        if (flecs_init_type(world, e, EcsOpaqueType, comp->size, comp->alignment)) {
             continue;
         }
     }
@@ -27161,7 +27161,7 @@ void FlecsMetaImport(
     flecs_bootstrap_component(world, EcsStruct);
     flecs_bootstrap_component(world, EcsArray);
     flecs_bootstrap_component(world, EcsVector);
-    flecs_bootstrap_component(world, EcsMetaCustomType);
+    flecs_bootstrap_component(world, EcsOpaque);
     flecs_bootstrap_component(world, EcsUnit);
     flecs_bootstrap_component(world, EcsUnitPrefix);
 
@@ -27269,7 +27269,7 @@ void FlecsMetaImport(
     });
 
     ecs_observer_init(world, &(ecs_observer_desc_t){
-        .filter.terms[0] = { .id = ecs_id(EcsMetaCustomType), .src.flags = EcsSelf },
+        .filter.terms[0] = { .id = ecs_id(EcsOpaque), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_custom_type
     });
@@ -27432,7 +27432,7 @@ void FlecsMetaImport(
     });
 
     ecs_struct_init(world, &(ecs_struct_desc_t){
-        .entity = ecs_id(EcsMetaCustomType),
+        .entity = ecs_id(EcsOpaque),
         .members = {
             { .name = (char*)"type", .type = ecs_id(ecs_entity_t) },
             { .name = (char*)"serialize", .type = ecs_id(ecs_uptr_t) }
@@ -33822,7 +33822,7 @@ int json_ser_custom_type(
     const void *base, 
     ecs_strbuf_t *str)
 {
-    const EcsMetaCustomType *ct = ecs_get(world, op->type, EcsMetaCustomType);
+    const EcsOpaque *ct = ecs_get(world, op->type, EcsOpaque);
     ecs_assert(ct != NULL, ECS_INVALID_OPERATION, NULL);
     ecs_assert(ct->as_type != 0, ECS_INVALID_OPERATION, NULL);
 
@@ -33906,7 +33906,7 @@ int json_ser_type_op(
             goto error;
         }
         break;
-    case EcsOpCustomType:
+    case EcsOpOpaque:
         if (json_ser_custom_type(world, op, ECS_OFFSET(ptr, op->offset), str)) {
             goto error;
         }
@@ -35364,8 +35364,8 @@ int json_typeinfo_ser_type_op(
     case EcsOpVector:
         json_typeinfo_ser_vector(world, op->type, str);
         break;
-    case EcsOpCustomType: {
-        const EcsMetaCustomType *ct = ecs_get(world, op->type, EcsMetaCustomType);
+    case EcsOpOpaque: {
+        const EcsOpaque *ct = ecs_get(world, op->type, EcsOpaque);
         ecs_assert(ct != NULL, ECS_INTERNAL_ERROR, NULL);
         json_typeinfo_ser_type(world, ct->as_type, str);
         break;
@@ -40635,7 +40635,7 @@ const ecs_entity_t ecs_id(EcsMember) =                ECS_HI_COMPONENT_ID + 102;
 const ecs_entity_t ecs_id(EcsStruct) =                ECS_HI_COMPONENT_ID + 103;
 const ecs_entity_t ecs_id(EcsArray) =                 ECS_HI_COMPONENT_ID + 104;
 const ecs_entity_t ecs_id(EcsVector) =                ECS_HI_COMPONENT_ID + 105;
-const ecs_entity_t ecs_id(EcsMetaCustomType) =        ECS_HI_COMPONENT_ID + 106;
+const ecs_entity_t ecs_id(EcsOpaque) =        ECS_HI_COMPONENT_ID + 106;
 const ecs_entity_t ecs_id(EcsUnit) =                  ECS_HI_COMPONENT_ID + 107;
 const ecs_entity_t ecs_id(EcsUnitPrefix) =            ECS_HI_COMPONENT_ID + 108;
 const ecs_entity_t EcsConstant =                      ECS_HI_COMPONENT_ID + 109;

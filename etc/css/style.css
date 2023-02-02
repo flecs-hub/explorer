@@ -400,16 +400,28 @@ div.play-button-box {
   cursor: pointer;
 }
 
-div.share-button-box {
+div.play-button-box img {
+  height: 22px;
+}
+
+div.save-button-box {
   position: absolute;
-  right: 12px;
+  right: 26px;
   top: 10px;
 
   cursor: pointer;
 }
 
-div.play-button-box img {
-  height: 22px;
+div.save-button-box img {
+  height: 25px;
+}
+
+div.share-button-box {
+  position: absolute;
+  right: 4px;
+  top: 10px;
+
+  cursor: pointer;
 }
 
 div.share-button-box img {

@@ -12237,7 +12237,7 @@ FLECS_API extern const ecs_entity_t ecs_id(EcsMember);
 FLECS_API extern const ecs_entity_t ecs_id(EcsStruct);
 FLECS_API extern const ecs_entity_t ecs_id(EcsArray);
 FLECS_API extern const ecs_entity_t ecs_id(EcsVector);
-FLECS_API extern const ecs_entity_t ecs_id(EcsMetaCustomType);
+FLECS_API extern const ecs_entity_t ecs_id(EcsOpaque);
 FLECS_API extern const ecs_entity_t ecs_id(EcsUnit);
 FLECS_API extern const ecs_entity_t ecs_id(EcsUnitPrefix);
 FLECS_API extern const ecs_entity_t EcsConstant;
@@ -12270,7 +12270,7 @@ typedef enum ecs_type_kind_t {
     EcsStructType,
     EcsArrayType,
     EcsVectorType,
-    EcsCustomType,
+    EcsOpaqueType,
     EcsTypeKindLast = EcsVectorType
 } ecs_type_kind_t;
 
@@ -12428,10 +12428,10 @@ typedef int (*ecs_meta_serialize_t)(
     const ecs_meta_serializer_t *ser,
     const void *src);                  /**< Pointer to value to serialize */
 
-typedef struct EcsMetaCustomType {
+typedef struct EcsOpaque {
     ecs_entity_t as_type;              /**< Type that describes the serialized output */
     ecs_meta_serialize_t serialize;    /**< Serialize action */
-} EcsMetaCustomType;
+} EcsOpaque;
 
 
 /* Units */
@@ -12467,7 +12467,7 @@ typedef struct EcsUnitPrefix {
 typedef enum ecs_meta_type_op_kind_t {
     EcsOpArray,
     EcsOpVector,
-    EcsOpCustomType,
+    EcsOpOpaque,
     EcsOpPush,
     EcsOpPop,
 
@@ -12794,18 +12794,18 @@ ecs_entity_t ecs_struct_init(
     ecs_world_t *world,
     const ecs_struct_desc_t *desc);
 
-/** Used with ecs_custom_type_init. */
-typedef struct ecs_custom_type_desc_t {
+/** Used with ecs_opaque_init. */
+typedef struct ecs_opaque_desc_t {
     ecs_entity_t entity;
     ecs_entity_t as_type;            /**< Type that describes the serialized output */
     ecs_meta_serialize_t serialize;  /**< Serialize action */
-} ecs_custom_type_desc_t;
+} ecs_opaque_desc_t;
 
 /** Create a new custom type */
 FLECS_API
-ecs_entity_t ecs_custom_type_init(
+ecs_entity_t ecs_opaque_init(
     ecs_world_t *world,
-    const ecs_custom_type_desc_t *desc);
+    const ecs_opaque_desc_t *desc);
 
 /** Used with ecs_unit_init. */
 typedef struct ecs_unit_desc_t {
@@ -12883,8 +12883,8 @@ ecs_entity_t ecs_quantity_init(
 #define ecs_vector(world, ...)\
     ecs_vector_init(world, &(ecs_vector_desc_t) __VA_ARGS__ )
 
-#define ecs_custom_type(world, ...)\
-    ecs_custom_type_init(world, &(ecs_custom_type_desc_t) __VA_ARGS__ )
+#define ecs_opaque(world, ...)\
+    ecs_opaque_init(world, &(ecs_opaque_desc_t) __VA_ARGS__ )
 
 #define ecs_struct(world, ...)\
     ecs_struct_init(world, &(ecs_struct_desc_t) __VA_ARGS__ )
@@ -23236,12 +23236,12 @@ untyped_component& bit(const char *name, uint32_t value) {
 }
 
 /** Add custom reflection. */
-untyped_component& custom_type(flecs::meta::serialize_t serialize, flecs::id_t as_type) {
-    ecs_custom_type_desc_t desc = {};
+untyped_component& serialize(flecs::meta::serialize_t serialize, flecs::id_t as_type) {
+    ecs_opaque_desc_t desc = {};
     desc.entity = m_id;
     desc.as_type = as_type;
     desc.serialize = serialize;
-    ecs_custom_type_init(m_world, &desc);
+    ecs_opaque_init(m_world, &desc);
     return *this;
 }
 

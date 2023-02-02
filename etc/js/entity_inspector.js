@@ -1019,7 +1019,7 @@ const inspector_component = Vue.component('inspector', {
               </span>
               <span class="inspector-button inspector-icon-button noselect"
                 v-on:click="rest_link">
-                &nbsp;<icon icon="codicons:code" :size="16"></icon>&nbsp;
+                &nbsp;<icon icon="feather:download" :size="16"></icon>&nbsp;
               </span>
             </template>
           </div>

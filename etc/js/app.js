@@ -777,6 +777,10 @@ var app = new Vue({
 
       this.$refs.share_url_popover.show();
     },
+
+    rest_world_link() {
+      window.open("http://" + this.host + "/world", '_blank');
+    }
   },
 
   computed: {
