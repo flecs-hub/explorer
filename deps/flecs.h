@@ -241,9 +241,9 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
 
 #define EcsEntityObserved             (1u << 31)
-#define EcsEntityObservedId           (1u << 30)
-#define EcsEntityObservedTarget       (1u << 29)
-#define EcsEntityObservedAcyclic      (1u << 28)
+#define EcsEntityIsId           (1u << 30)
+#define EcsEntityIsTarget       (1u << 29)
+#define EcsEntityIsTraversable      (1u << 28)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -265,7 +265,7 @@ extern "C" {
 
 #define EcsIdExclusive                 (1u << 6)
 #define EcsIdDontInherit               (1u << 7)
-#define EcsIdAcyclic                   (1u << 8)
+#define EcsIdTraversable                   (1u << 8)
 #define EcsIdTag                       (1u << 9)
 #define EcsIdWith                      (1u << 10)
 #define EcsIdUnion                     (1u << 11)
@@ -11506,11 +11506,11 @@ void FlecsDocImport(
 extern "C" {
 #endif
 
-/** Used with ecs_parse_json. */
-typedef struct ecs_parse_json_desc_t {
+/** Used with ecs_ptr_from_json. */
+typedef struct ecs_from_json_desc_t {
     const char *name; /* Name of expression (used for logging) */
     const char *expr; /* Full expression (used for logging) */
-} ecs_parse_json_desc_t;
+} ecs_from_json_desc_t;
 
 /** Parse JSON string into value.
  * This operation parses a JSON expression into the provided pointer. The
@@ -11524,23 +11524,23 @@ typedef struct ecs_parse_json_desc_t {
  * @return Pointer to the character after the last one read, or NULL if failed.
  */
 FLECS_API
-const char* ecs_parse_json(
+const char* ecs_ptr_from_json(
     const ecs_world_t *world,
     const char *ptr,
     ecs_entity_t type,
     void *data_out,
-    const ecs_parse_json_desc_t *desc);
+    const ecs_from_json_desc_t *desc);
 
 /** Parse JSON object with multiple component values into entity. The format
  * is the same as the one outputted by ecs_entity_to_json, but at the moment
  * only supports the "ids" and "values" member.
  */
 FLECS_API
-const char* ecs_parse_json_values(
+const char* ecs_entity_from_json(
     ecs_world_t *world,
     ecs_entity_t e,
     const char *ptr,
-    const ecs_parse_json_desc_t *desc);
+    const ecs_from_json_desc_t *desc);
 
 /** Serialize value into JSON string.
  * This operation serializes a value of the provided type to a JSON string. The 
@@ -13822,7 +13822,7 @@ extern "C" {
  * @return Pointer to the next non-whitespace character.
  */
 FLECS_API
-const char* ecs_parse_whitespace(
+const char* ecs_parse_ws(
     const char *ptr);
 
 /** Skip whitespace and newline characters.
@@ -13832,7 +13832,7 @@ const char* ecs_parse_whitespace(
  * @return Pointer to the next non-whitespace character.
  */
 FLECS_API
-const char* ecs_parse_eol_and_whitespace(
+const char* ecs_parse_ws_eol(
     const char *ptr);
 
 /** Parse digit.
@@ -13855,7 +13855,7 @@ const char* ecs_parse_digit(
  * @return pointer to the next non-whitespace character.
  */
 FLECS_API
-const char* ecs_parse_fluff(
+const char* ecs_parse_ws_eol(
     const char *ptr,
     char **last_comment);
 

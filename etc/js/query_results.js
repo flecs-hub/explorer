@@ -24,15 +24,29 @@ Vue.component('query-results-table', {
       return elems[elems.length - 1];
     },
     term_header(term) {
-      const pair = this.columns.ids[term].split(',');
-      let result;
-      if (pair.length == 1) {
-        result = this.id_elem(pair[0]);
+      const id = this.columns.ids[term];
+      if (Array.isArray(id)) {
+        /* New format, pairs are split up in array */
+        if (id.length == 1) {
+          result = this.id_elem(id[0]);
+        } else {
+          const first = this.id_elem(id[0]);
+          const second = this.id_elem(id[1]);
+          result = "(" + first + "," + second + ")";
+        }
       } else {
-        const first = this.id_elem(pair[0].slice(1));
-        const second = this.id_elem(pair[1].slice(0, -1));
-        result = "(" + first + "," + second + ")";
+        /* Old format, backwards compatibility */
+        const pair = id.split(',');
+        let result;
+        if (pair.length == 1) {
+          result = this.id_elem(pair[0]);
+        } else {
+          const first = this.id_elem(pair[0].slice(1));
+          const second = this.id_elem(pair[1].slice(0, -1));
+          result = "(" + first + "," + second + ")";
+        }
       }
+
       let ti = this.type_info(term);
       if (ti) {
         // If type info has a single member we can use its type info for the
