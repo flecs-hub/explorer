@@ -33804,7 +33804,7 @@ typedef struct json_serializer_ctx_t {
 
 static
 int json_ser_custom_value(
-    const ecs_meta_serializer_t *ser,
+    const ecs_serializer_t *ser,
     ecs_entity_t type,
     const void *value)
 {
@@ -33845,7 +33845,7 @@ int json_ser_custom_type(
         .is_primitive = is_primitive
     };
 
-    ecs_meta_serializer_t ser = {
+    ecs_serializer_t ser = {
         .world = world,
         .value = json_ser_custom_value,
         .ctx = &json_ser

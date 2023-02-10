@@ -25,6 +25,8 @@ Vue.component('query-results-table', {
     },
     term_header(term) {
       const id = this.columns.ids[term];
+      let result;
+
       if (Array.isArray(id)) {
         /* New format, pairs are split up in array */
         if (id.length == 1) {
@@ -37,7 +39,6 @@ Vue.component('query-results-table', {
       } else {
         /* Old format, backwards compatibility */
         const pair = id.split(',');
-        let result;
         if (pair.length == 1) {
           result = this.id_elem(pair[0]);
         } else {
