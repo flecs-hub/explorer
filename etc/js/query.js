@@ -39,6 +39,9 @@ Vue.component('query', {
         this.request = app.request_query('query', query, (reply) => {
           if (reply.error === undefined) {
             this.query_ok();
+            if (this.query_result === undefined) {
+              this.$refs.container.expand();
+            }
             this.query_result = reply;
           } else {
             this.invalid_query_error(reply.error);
