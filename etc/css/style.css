@@ -1137,11 +1137,7 @@ span.ecs-set {
   color: #7D67B5; 
 }
 
-div.query-result-yes {
-  color: var(--green);
-}
-
-div.query-result-no {
+div.query-result-yesno {
   color: var(--secondary-text);
   padding-top: 10px;
   padding-bottom: 10px;

@@ -474,8 +474,8 @@ Vue.component('query-results', {
     template: `
       <div :class="css">
         <template v-if="data && valid && !has_this && ((variable_count == 0) || !results.length)">
-          <div v-if="data && is_true" class="noselect query-result-yes"> Yes </div>
-          <div v-else class="noselect query-result-no"> No results </div>
+          <div v-if="data && is_true" class="noselect query-result-yesno"> Yes </div>
+          <div v-else class="noselect query-result-yesno"> No results </div>
         </template>
         <template v-else>
           <query-results-table :columns="columns"

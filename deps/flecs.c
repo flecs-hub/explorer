@@ -9061,7 +9061,7 @@ int32_t ecs_count_id(
         .src.flags = EcsSelf
     });
 
-    it.flags |= EcsIterIsFilter;
+    it.flags |= EcsIterNoData;
     it.flags |= EcsIterEvalTables;
 
     while (ecs_term_next(&it)) {
@@ -20876,7 +20876,7 @@ typedef enum ecs_rule_op_kind_t {
     EcsRuleSuperSet,    /* Finds all supersets for a transitive relationship */
     EcsRuleStore,       /* Store entity in table or entity variable */
     EcsRuleEach,        /* Forwards each entity in a table */
-    EcsRuleSetJmp,      /* Set label for jump operation to one of two values */
+    EcsRuleSetCond,      /* Set label for jump operation to one of two values */
     EcsRuleJump,        /* Jump to an operation label */
     EcsRuleNot,         /* Invert result of an operation */
     EcsRuleInTable,     /* Test if entity (subject) is in table (r_in) */
@@ -22514,7 +22514,7 @@ void insert_reflexive_set(
     /* The SetJmp operation stores a conditional jump label that either
      * points to the Store or *Set operation */
     if (reflexive) {
-        setjmp->kind = EcsRuleSetJmp;
+        setjmp->kind = EcsRuleSetCond;
         setjmp->on_pass = store_lbl;
         setjmp->on_fail = set_lbl;
     }
@@ -22838,7 +22838,7 @@ void insert_select_or_with(
 
         /* When the next operation returns, it will first hit SetJmp with a redo
          * which will switch the jump label to the previous operation */
-        op->kind = EcsRuleSetJmp;
+        op->kind = EcsRuleSetCond;
         op->on_pass = rule->operation_count;
         op->on_fail = lbl_start - 1;
     }
@@ -23629,7 +23629,7 @@ char* ecs_rule_str(
         case EcsRuleEach:
             ecs_strbuf_append(&buf, "each     ");
             break;
-        case EcsRuleSetJmp:
+        case EcsRuleSetCond:
             ecs_strbuf_append(&buf, "setjmp   ");
             break;
         case EcsRuleJump:
@@ -23808,7 +23808,7 @@ ecs_iter_t ecs_rule_iter(
     result.terms = rule->filter.terms;
     result.next = ecs_rule_next;
     result.fini = ecs_rule_iter_free;
-    ECS_BIT_COND(result.flags, EcsIterIsFilter, 
+    ECS_BIT_COND(result.flags, EcsIterNoData, 
         ECS_BIT_IS_SET(rule->filter.flags, EcsFilterNoData));
 
     flecs_iter_init(world, &result, 
@@ -24875,7 +24875,7 @@ bool eval_op(
         return eval_each(it, op, op_index, redo);
     case EcsRuleStore:
         return eval_store(it, op, op_index, redo);
-    case EcsRuleSetJmp:
+    case EcsRuleSetCond:
         return eval_setjmp(it, op, op_index, redo);
     case EcsRuleJump:
         return eval_jump(it, op, op_index, redo);
@@ -25078,7 +25078,7 @@ bool is_control_flow(
     ecs_rule_op_t *op)
 {
     switch(op->kind) {
-    case EcsRuleSetJmp:
+    case EcsRuleSetCond:
     case EcsRuleJump:
         return true;
     default:
@@ -46079,7 +46079,7 @@ ecs_iter_t flecs_filter_iter_w_flags(
         }
     }
 
-    ECS_BIT_COND(it.flags, EcsIterIsFilter, 
+    ECS_BIT_COND(it.flags, EcsIterNoData, 
         ECS_BIT_IS_SET(filter->flags, EcsFilterNoData));
 
     if (ECS_BIT_IS_SET(filter->flags, EcsFilterMatchThis)) {
@@ -47072,7 +47072,7 @@ void flecs_uni_observer_invoke(
     }
 
     bool is_filter = term->inout == EcsInOutNone;
-    ECS_BIT_COND(it->flags, EcsIterIsFilter, is_filter);
+    ECS_BIT_COND(it->flags, EcsIterNoData, is_filter);
     it->system = observer->filter.entity;
     it->ctx = observer->ctx;
     it->binding_ctx = observer->binding_ctx;
@@ -47134,7 +47134,7 @@ bool flecs_multi_observer_invoke(ecs_iter_t *it) {
     user_it.field_count = o->filter.field_count;
     user_it.terms = o->filter.terms;
     user_it.flags = 0;
-    ECS_BIT_COND(user_it.flags, EcsIterIsFilter,    
+    ECS_BIT_COND(user_it.flags, EcsIterNoData,    
         ECS_BIT_IS_SET(o->filter.flags, EcsFilterNoData));
     user_it.ids = NULL;
     user_it.columns = NULL;
@@ -49367,7 +49367,7 @@ void flecs_query_match_tables(
 
     ecs_iter_t it = ecs_filter_iter(world, &query->filter);
     ECS_BIT_SET(it.flags, EcsIterIsInstanced);
-    ECS_BIT_SET(it.flags, EcsIterIsFilter);
+    ECS_BIT_SET(it.flags, EcsIterNoData);
     ECS_BIT_SET(it.flags, EcsIterEntityOptional);
 
     while (ecs_filter_next(&it)) {
@@ -49401,7 +49401,7 @@ bool flecs_query_match_table(
     }
 
     ecs_iter_t it = flecs_filter_iter_w_flags(world, filter, EcsIterMatchVar|
-        EcsIterIsInstanced|EcsIterIsFilter|EcsIterEntityOptional);
+        EcsIterIsInstanced|EcsIterNoData|EcsIterEntityOptional);
     ecs_iter_set_var_as_table(&it, var_id, table);
 
     while (ecs_filter_next(&it)) {
@@ -50017,7 +50017,7 @@ void flecs_query_rematch_tables(
     }
 
     ECS_BIT_SET(it.flags, EcsIterIsInstanced);
-    ECS_BIT_SET(it.flags, EcsIterIsFilter);
+    ECS_BIT_SET(it.flags, EcsIterNoData);
     ECS_BIT_SET(it.flags, EcsIterEntityOptional);
 
     world->info.rematch_count_total ++;
@@ -50583,7 +50583,7 @@ ecs_iter_t ecs_query_iter(
     }
 
     ecs_flags32_t flags = 0;
-    ECS_BIT_COND(flags, EcsIterIsFilter, ECS_BIT_IS_SET(query->filter.flags, 
+    ECS_BIT_COND(flags, EcsIterNoData, ECS_BIT_IS_SET(query->filter.flags, 
         EcsFilterNoData));
     ECS_BIT_COND(flags, EcsIterIsInstanced, ECS_BIT_IS_SET(query->filter.flags, 
         EcsFilterIsInstanced));
@@ -52296,7 +52296,7 @@ void flecs_iter_init(
     INIT_CACHE(it, stack, fields, variables, ecs_var_t, it->variable_count);
     INIT_CACHE(it, stack, fields, sizes, ecs_size_t, it->field_count);
 
-    if (!ECS_BIT_IS_SET(it->flags, EcsIterIsFilter)) {
+    if (!ECS_BIT_IS_SET(it->flags, EcsIterNoData)) {
         INIT_CACHE(it, stack, fields, ptrs, void*, it->field_count);
     } else {
         it->ptrs = NULL;
@@ -52530,7 +52530,7 @@ void flecs_iter_populate_data(
     }
 
     int t, field_count = it->field_count;
-    if (ECS_BIT_IS_SET(it->flags, EcsIterIsFilter)) {
+    if (ECS_BIT_IS_SET(it->flags, EcsIterNoData)) {
         ECS_BIT_CLEAR(it->flags, EcsIterHasShared);
 
         if (!sizes) {
@@ -52866,7 +52866,7 @@ int32_t ecs_iter_count(
 {
     ecs_check(it != NULL, ECS_INVALID_PARAMETER, NULL);
 
-    ECS_BIT_SET(it->flags, EcsIterIsFilter);
+    ECS_BIT_SET(it->flags, EcsIterNoData);
     ECS_BIT_SET(it->flags, EcsIterIsInstanced);
 
     int32_t count = 0;
@@ -52883,7 +52883,7 @@ ecs_entity_t ecs_iter_first(
 {
     ecs_check(it != NULL, ECS_INVALID_PARAMETER, NULL);
 
-    ECS_BIT_SET(it->flags, EcsIterIsFilter);
+    ECS_BIT_SET(it->flags, EcsIterNoData);
     ECS_BIT_SET(it->flags, EcsIterIsInstanced);
 
     ecs_entity_t result = 0;
@@ -52902,7 +52902,7 @@ bool ecs_iter_is_true(
 {
     ecs_check(it != NULL, ECS_INVALID_PARAMETER, NULL);
 
-    ECS_BIT_SET(it->flags, EcsIterIsFilter);
+    ECS_BIT_SET(it->flags, EcsIterNoData);
     ECS_BIT_SET(it->flags, EcsIterIsInstanced);
 
     bool result = ecs_iter_next(it);
