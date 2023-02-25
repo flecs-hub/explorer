@@ -389,14 +389,12 @@ Vue.component('query-results', {
           let count = this.result_count(result);
           
           // Build index for sorting
-          if (result.entity_ids) {
+          if (result.entities) {
             let index = 0;
-            for (let entity_id of result.entity_ids) {
-              let order_by_value = entity_id;
+            for (let entity of result.entities) {
+              let order_by_value = entity;
               if (result.entity_labels && result.entity_labels[index]) {
                 order_by_value = result.entity_labels[index];
-              } else if (result.entity_path && result.entity_path[index]) {
-                order_by_value = result.entity_path[index];
               }
               r.data.index.push({
                 index: index + r.count,
