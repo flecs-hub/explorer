@@ -283,7 +283,20 @@ var app = new Vue({
           recv(reply);
       } else if (this.is_remote()) {
         if (q.slice(0, 2) == "?-") {
-          const query_name = q.slice(2).trim();
+          let query_name = q.slice(2).trim();
+
+          const args_start = query_name.indexOf("(");
+          if (args_start != -1) {
+            const args_end = query_name.indexOf(")");
+            if (args_end != -1) {
+              vars = query_name.slice(args_start, args_end + 1);
+            } else {
+              vars = query_name.slice(args_start);
+            }
+            query_name = query_name.slice(0, args_start);
+            params.vars = vars;
+          }
+
           this.request(id,
             "GET", "query?name=" + encodeURIComponent(query_name) + paramStr(params),
             recv, err);
