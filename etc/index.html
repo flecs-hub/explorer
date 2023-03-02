@@ -124,7 +124,7 @@
           variable: /(\$[a-zA-Z_0-9]+)/,
           number: /\b[0-9e]+\b/,
           comment: /\/\/[^\r\n]*/,
-          operator: /[(),{}\[\]\-\.:?!=+*/]/,
+          operator: /[(),{}\[\]\-\.:?!=+*/|~]/,
           annotation: /\@[^\r\n]*/,
           rel_prop: /\b(Transitive|Final|Reflexive|Tag|Exclusive|Symmetric|With|Acyclic|DontInherit)\b/,
           builtin: /\b(IsA|ChildOf|Component|Tag|Identifier|Name|Symbol|Prefab)\b/,
