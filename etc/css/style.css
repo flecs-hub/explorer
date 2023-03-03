@@ -1020,6 +1020,14 @@ div.ecs-query-multiline {
   top: 3px;
 }
 
+div.query-results-stats {
+  display: flex;
+  position: absolute;
+  justify-content: flex-start;
+  padding: 10px;
+  color: var(--secondary-text);
+}
+
 div.query-results-nav {
   display: flex;
   justify-content: flex-end;

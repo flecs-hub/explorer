@@ -41,6 +41,13 @@ Vue.component('content-container', {
         if (this.disable) {
           this.maximized = false;
         }
+      },
+      expanded: function() {
+        if (this.$refs.toggle) {
+          return this.$refs.toggle.expanded;
+        } else {
+          return true;
+        }
       }
     },
     computed: {
@@ -97,7 +104,7 @@ Vue.component('content-container', {
                 <slot name="detail"></slot>
               </div>
             </template>
-            <template v-slot:footer>
+            <template v-slot:footer v-if="expanded()">
               <slot name="footer"></slot>
             </template>
           </detail-toggle>

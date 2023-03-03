@@ -11,6 +11,7 @@ Vue.component('query', {
       invalid_query: false,
       request: undefined,
       offset: 0,
+      eval_duration: 0,
       limit: QueryDefaultLimit
     }
   },
@@ -46,6 +47,7 @@ Vue.component('query', {
               this.$refs.container.expand();
             }
             this.query_result = reply;
+            this.eval_duration = reply.eval_duration;
           } else {
             this.invalid_query_error(reply.error);
           }
@@ -64,7 +66,8 @@ Vue.component('query', {
           type_info: true,
           colors: true,
           offset: this.offset,
-          limit: this.limit
+          limit: this.limit,
+          duration: true
         });
 
         app.set_subtitle(this.query_name);
@@ -117,11 +120,16 @@ Vue.component('query', {
       this.$emit("panel-update");
     },
     on_prev() {
-      this.offset -= QueryDefaultLimit;
+      this.offset -= this.limit;
+      if (this.offset < 0) {
+        this.offset = 0;
+      }
+      this.update_page();
       this.refresh();
     },
     on_next() {
-      this.offset += QueryDefaultLimit;
+      this.offset += this.limit;
+      this.update_page();
       this.refresh();
     },
     on_limit(evt) {
@@ -129,9 +137,18 @@ Vue.component('query', {
       if (!this.limit) {
         this.limit = QueryDefaultLimit;
       }
+      this.update_page();
       this.refresh();
       evt.target.blur();
     },
+    on_page(evt) {
+      this.offset = parseInt(evt.target.value) * this.limit;
+      this.refresh();
+      evt.target.blur();
+    },
+    update_page() {
+      this.$refs.page.value = Math.floor(this.offset / this.limit);
+    }
   },
   computed: {
     count: function() {
@@ -150,17 +167,25 @@ Vue.component('query', {
       }
       return result;
     },
+    eval_time: function() {
+      let t = this.eval_duration;
+      let r;
+      if (t < (1 / (1000 * 1000))) {
+        r = Math.round(t * 1000 * 1000 * 1000) + "ns";
+      } else if (t < (1 / (1000))) {
+        r = Math.round(t * 1000 * 1000) + "us";
+      } else if (t < 1) {
+        r = Math.round(t * 1000) + "ms";
+      } else {
+        r = t + "s";
+      }
+      return r;
+    },
     has_next: function() {
       return this.count == this.limit;
     },
     has_prev: function() {
       return this.offset != 0;
-    },
-    show_nav: function() {
-      return this.has_next || 
-        this.has_prev ||
-        this.limit != QueryDefaultLimit ||
-        (this.count >= QueryDefaultLimit);
     },
     is_valid: function() {
       return this.valid && !this.error;
@@ -209,17 +234,25 @@ Vue.component('query', {
         <status :status="status"
           :kind="status_kind">
         </status>
-        <div class="query-results-nav" v-if="show_nav">
-          <span>Results</span> <input type="text" :placeholder="default_limit"
-            v-on:keyup.enter="on_limit"
-            v-on:blur="on_limit"></input>
-          <button :disabled="!has_prev" v-on:click="on_prev" class="noselect">
-            Previous
-          </button>
-          <button :disabled="!has_next" v-on:click="on_next" class="noselect">
-            Next
-          </button>
-        </div>
+        <template v-if="query_result && !invalid_query">
+          <div class="query-results-stats">
+            <span>Returned {{count}} entities in {{eval_time}}</span>
+          </div>
+          <div class="query-results-nav">
+            <span class="noselect">Results</span> <input type="text" :placeholder="default_limit"
+              v-on:keyup.enter="on_limit"
+              v-on:blur="on_limit"></input>
+            <span class="noselect">Page</span> <input type="text" :placeholder="0" ref="page"
+              v-on:keyup.enter="on_page"
+              v-on:blur="on_page"></input>
+            <button :disabled="!has_prev" v-on:click="on_prev" class="noselect">
+              Previous
+            </button>
+            <button :disabled="!has_next" v-on:click="on_next" class="noselect">
+              Next
+            </button>
+          </div>
+        </template>
       </template>
     </content-container>
     `
