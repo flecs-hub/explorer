@@ -27,7 +27,7 @@ void capture_log(int32_t level, const char *file, int32_t line, const char *msg)
 }
 
 static
-char* get_error() {
+char* get_error(void) {
     str_set = false;
     char *str = ecs_strbuf_get(&err_buf);
     char *escaped = ecs_astresc('"', str);
@@ -36,7 +36,7 @@ char* get_error() {
 }
 
 EMSCRIPTEN_KEEPALIVE
-void init() {
+void init(void) {
     // Capture error messages so we can send it to the client
 #ifdef __EMSCRIPTEN__
     ecs_os_set_api_defaults();
@@ -63,7 +63,7 @@ void init() {
 }
 
 EMSCRIPTEN_KEEPALIVE
-char* query(char *q) {
+char* query(char *q, int offset, int limit) {
     ecs_strbuf_t reply = ECS_STRBUF_INIT;
     ecs_rule_t *r = ecs_rule_init(world, &(ecs_filter_desc_t) { .expr = q });
     if (!r) {
@@ -76,7 +76,14 @@ char* query(char *q) {
     ecs_os_free(r_str);
 #endif
 
-    ecs_iter_t it = ecs_rule_iter(world, r);
+    ecs_iter_t rit = ecs_rule_iter(world, r);
+    ecs_iter_t *it = &rit;
+    ecs_iter_t pit;
+    if (offset || limit) {
+        pit = ecs_page_iter(&rit, offset, limit);
+        it = &pit;
+    }
+
     ecs_iter_to_json_desc_t desc = ECS_ITER_TO_JSON_INIT;
     desc.measure_eval_duration = true;
     desc.serialize_entity_labels = true;
@@ -84,15 +91,14 @@ char* query(char *q) {
     desc.serialize_variable_labels = true;
     desc.serialize_colors = true;
     desc.serialize_type_info = true;
-    if (ecs_iter_to_json_buf(world, &it, &reply, &desc) != 0) {
+    if (ecs_iter_to_json_buf(world, it, &reply, &desc) != 0) {
         ecs_strbuf_reset(&reply);
         goto error;
     }
 
 #ifndef __EMSCRIPTEN__
-    it = ecs_rule_iter(world, r);
-    while (ecs_rule_next(&it)) {
-        char *it_str = ecs_iter_str(&it);
+    while (ecs_rule_next(it)) {
+        char *it_str = ecs_iter_str(it);
         printf("%s\n", it_str);
         ecs_os_free(it_str);
     }

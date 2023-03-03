@@ -257,9 +257,10 @@ var app = new Vue({
           this.requests[id] = undefined;
         } else {
           // Request is still in progress
-          return;
+          // return;
         }
       }
+
       this.requests[id] = this.json_request(
         method, this.host, path, recv, err);
     },
@@ -278,7 +279,7 @@ var app = new Vue({
 
     request_query: function(id, q, recv, err, params) {
       if (this.is_local()) {
-          const r = wq_query(q);
+          const r = wq_query(q, params.offset, params.limit);
           const reply = JSON.parse(r);
           recv(reply);
       } else if (this.is_remote()) {

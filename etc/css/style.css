@@ -1020,6 +1020,61 @@ div.ecs-query-multiline {
   top: 3px;
 }
 
+div.query-results-nav {
+  display: flex;
+  justify-content: flex-end;
+  background-color: var(--panel-footer-bg);
+  padding-top: 3px;
+  padding-right: 6px;
+}
+
+div.query-results-nav span {
+  padding: 5px;
+  color: var(--tertiary-text);
+}
+
+div.query-results-nav input {
+  border: none;
+  background-color: var(--panel-bg-secondary);
+  color: var(--secondary-text);
+  width: 40px;
+  border-style: solid;
+  border-width: 1px;
+  border-color: var(--panel-bg-secondary);
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+div.query-results-nav input:focus {
+  border-color: var(--steel-400);
+}
+
+div.query-results-nav button {
+  padding: 5px;
+  padding-left: 7px;
+  padding-right: 7px;
+  border: none;
+  cursor: pointer;
+  background-color: var(--panel-footer-bg);
+  color: var(--secondary-text);
+}
+
+div.query-results-nav button:hover  {
+  background-color: var(--steel-650);
+  color: var(--primary-text);
+}
+
+div.query-results-nav button:active  {
+  background-color: var(--steel-600);
+  color: var(--primary-text);
+}
+
+div.query-results-nav button:disabled  {
+  background-color: var(--panel-footer-bg);
+  color: var(--tertiary-text);
+  cursor: default;
+}
+
 div.error {
   position: relative;
   text-align: center;

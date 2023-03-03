@@ -1,3 +1,4 @@
+const QueryDefaultLimit = 25;
 
 Vue.component('query', {
   props: ['valid'],
@@ -9,6 +10,8 @@ Vue.component('query', {
       error: false,
       invalid_query: false,
       request: undefined,
+      offset: 0,
+      limit: QueryDefaultLimit
     }
   },
   methods: {
@@ -59,7 +62,9 @@ Vue.component('query', {
           entity_ids: true,
           variable_labels: true,
           type_info: true,
-          colors: true
+          colors: true,
+          offset: this.offset,
+          limit: this.limit
         });
 
         app.set_subtitle(this.query_name);
@@ -77,6 +82,10 @@ Vue.component('query', {
         return;
       }
       this.evt_query_changed(this.$refs.editor.get_query());
+    },
+    change_query() {
+      this.offset = 0;
+      this.refresh();
     },
     get_query() {
       return this.$refs.editor.get_query();
@@ -106,7 +115,23 @@ Vue.component('query', {
     },
     evt_panel_update() {
       this.$emit("panel-update");
-    }
+    },
+    on_prev() {
+      this.offset -= QueryDefaultLimit;
+      this.refresh();
+    },
+    on_next() {
+      this.offset += QueryDefaultLimit;
+      this.refresh();
+    },
+    on_limit(evt) {
+      this.limit = parseInt(evt.target.value);
+      if (!this.limit) {
+        this.limit = QueryDefaultLimit;
+      }
+      this.refresh();
+      evt.target.blur();
+    },
   },
   computed: {
     count: function() {
@@ -125,8 +150,23 @@ Vue.component('query', {
       }
       return result;
     },
+    has_next: function() {
+      return this.count == this.limit;
+    },
+    has_prev: function() {
+      return this.offset != 0;
+    },
+    show_nav: function() {
+      return this.has_next || 
+        this.has_prev ||
+        this.limit != QueryDefaultLimit ||
+        (this.count >= QueryDefaultLimit);
+    },
     is_valid: function() {
       return this.valid && !this.error;
+    },
+    default_limit: function() {
+      return QueryDefaultLimit;
     },
     query_name: function() {
       let q = this.get_query();
@@ -152,7 +192,7 @@ Vue.component('query', {
         <query-editor
           ref="editor"
           :error="invalid_query"
-          v-on:changed="evt_query_changed"
+          v-on:changed="change_query"
           v-on:allow-toggle="evt_allow_toggle"/>
       </template>
 
@@ -169,6 +209,17 @@ Vue.component('query', {
         <status :status="status"
           :kind="status_kind">
         </status>
+        <div class="query-results-nav" v-if="show_nav">
+          <span>Results</span> <input type="text" :placeholder="default_limit"
+            v-on:keyup.enter="on_limit"
+            v-on:blur="on_limit"></input>
+          <button :disabled="!has_prev" v-on:click="on_prev" class="noselect">
+            Previous
+          </button>
+          <button :disabled="!has_next" v-on:click="on_next" class="noselect">
+            Next
+          </button>
+        </div>
       </template>
     </content-container>
     `
