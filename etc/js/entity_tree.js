@@ -280,8 +280,16 @@ Vue.component('entity-tree', {
         for (var r = 0; r < data.results.length; r ++) {
           const elem = data.results[r];
           for (var e = 0; e < elem.entities.length; e ++) {
-            let path = elem.entities[e];
-            let name = this.get_name(path);
+            let path = elem.entities[e] + "";
+            let name;
+            if (elem.parent) {
+              name = path;
+              path = elem.parent + "." + path;
+            } else {
+              // Backwards compatibility
+              name = this.get_name(path);
+            }
+
             let label;
             let color;
             if (elem.entity_labels) {

@@ -72,7 +72,10 @@ Vue.component('query-results-table', {
     },
     // Is term a component or a tag
     term_is_tag(term) {
-      return this.columns.data.values[term] === 0;
+      if (!this.columns.data.values) {
+        return true;
+      }
+      return !this.columns.data.values[term];
     },
     create_none(h) {
       return h('td', [h('span', { class: "query-result-cell-none" }, ["None"])]);
@@ -419,28 +422,52 @@ Vue.component('query-results', {
 
           // Append entity names, labels and colors
           if (result.entities) {
-            r.data.entities.push(...result.entities);
-          }
-          if (result.entity_labels) {
-            r.data.labels.push(...result.entity_labels);
-          }
-          if (result.colors) {
-            r.data.colors.push(...result.colors);
+            if (!result.parent) {
+              r.data.entities.push(...result.entities);
+            } else {
+              for (let i = 0; i < result.entities.length; i ++) {
+                const path = result.parent + "." + result.entities[i];
+                r.data.entities.push(path);
+              }
+            }
+            if (result.entity_labels) {
+              r.data.labels.push(...result.entity_labels);
+            } else {
+              r.data.labels.push(...result.entities);
+            }
+            if (result.colors) {
+              r.data.colors.push(...result.colors);
+            } else {
+              for (let i = 0; i < result.entities.length; i ++) {
+                r.data.colors.push(undefined);
+              }
+            }
           }
 
           // Append component values
-          for (let i = 0; i < result.values.length; i ++) {
-            if (r.data.values.length <= i) {
-              if (result.values[i] === 0) {
-                r.data.values.push(0);
-              } else {
-                r.data.values.push([]);
+          if (result.values) {
+            for (let i = 0; i < result.values.length; i ++) {
+              if (r.data.values.length <= i) {
+                if (result.values[i] === 0) {
+                  r.data.values.push(0);
+                } else {
+                  r.data.values.push([]);
+                }
+                r.data.is_set.push([]);
               }
-              r.data.is_set.push([]);
-            }
 
-            this.append_to(r.data.values[i], result.values[i], count);
-            this.append_to(r.data.is_set[i], result.is_set[i], count);
+              let is_set = true;
+              if (result.is_set) {
+                is_set = result.is_set[i];
+              }
+              let value = 0;
+              if (result.values) {
+                value = result.values[i];
+              }
+
+              this.append_to(r.data.values[i], value, count);
+              this.append_to(r.data.is_set[i], is_set, count);
+            }
           }
 
           // Append variables

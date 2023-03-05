@@ -147,7 +147,7 @@ Vue.component('query', {
       evt.target.blur();
     },
     update_page() {
-      this.$refs.page.value = Math.floor(this.offset / this.limit);
+      this.$refs.page.value = this.page;
     }
   },
   computed: {
@@ -166,6 +166,9 @@ Vue.component('query', {
         }
       }
       return result;
+    },
+    page: function() {
+      return Math.floor(this.offset / this.limit);
     },
     eval_time: function() {
       let t = this.eval_duration;
@@ -234,15 +237,17 @@ Vue.component('query', {
         <status :status="status"
           :kind="status_kind">
         </status>
-        <template v-if="query_result && !invalid_query">
+        <template v-if="query_result && !status">
           <div class="query-results-stats">
             <span>Returned {{count}} entities in {{eval_time}}</span>
           </div>
           <div class="query-results-nav">
-            <span class="noselect">Results</span> <input type="text" :placeholder="default_limit"
+            <span class="noselect">Results</span> <input type="text" :placeholder="limit"
+              ref="limit"
               v-on:keyup.enter="on_limit"
               v-on:blur="on_limit"></input>
-            <span class="noselect">Page</span> <input type="text" :placeholder="0" ref="page"
+            <span class="noselect">Page</span> <input type="text" :placeholder="page" 
+              ref="page"
               v-on:keyup.enter="on_page"
               v-on:blur="on_page"></input>
             <button :disabled="!has_prev" v-on:click="on_prev" class="noselect">

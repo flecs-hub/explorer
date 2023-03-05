@@ -14,7 +14,7 @@ const ConnectionState = {
 const INITIAL_REQUEST_TIMEOUT = 300;
 
 // Longer interval when we're sure the app is in remote mode.
-const INITIAL_REMOTE_REQUEST_TIMEOUT = 10000;
+const INITIAL_REMOTE_REQUEST_TIMEOUT = 1000;
 
 // App will only retry connection when in explicit remote mode.
 const INITIAL_REQUEST_RETRY_INTERVAL = 200;
@@ -155,6 +155,8 @@ var app = new Vue({
     
       if (timeout) {
         Request.timeout = timeout;
+      } else {
+        Request.timeout = REFRESH_INTERVAL;
       }
 
       Request.request_aborted = false;
@@ -257,7 +259,7 @@ var app = new Vue({
           this.requests[id] = undefined;
         } else {
           // Request is still in progress
-          // return;
+          return;
         }
       }
 
