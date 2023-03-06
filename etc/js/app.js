@@ -169,7 +169,7 @@ var app = new Vue({
   mounted: function() {
     let wasm_url = getParameterByName("wasm");
     if (!wasm_url) {
-      wasm_url = "../flecs_explorer.js";
+      wasm_url = window.location.href + "/flecs_explorer.js";
     }
 
     this.$nextTick(() => {
