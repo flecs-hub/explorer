@@ -267,98 +267,90 @@ var app = new Vue({
         method, this.host, path, recv, err);
     },
 
-    // Data access
-    request_entity: function(id, path, recv, err, params) {
+    request_get(id, path, recv, err) {
       if (this.is_local()) {
-          const r = wq_get_entity(path);
-          const reply = JSON.parse(r);
-          recv(reply);
+        const r = wq_request_get("/" + path);
+        const reply = JSON.parse(r);
+        recv(reply);
       } else if (this.is_remote()) {
-        this.request(id, "GET",
-          "entity/" + path.replaceAll('.', '/') + paramStr(params), recv, err);
+        this.request(id, "GET", path, recv, err);
+      } else if (err) {
+        err({error: "no connection"});
       }
+    },
+
+    request_put(id, path, recv, err) {
+      if (this.is_local()) {
+        wq_request_put("/" + path);
+        recv();
+      } else if (this.is_remote()) {
+        this.request(id, "PUT", path, recv, err);
+      } else if (err) {
+        err({error: "no connection"});
+      }
+    },
+
+    request_entity: function(id, path, recv, err, params) {
+      const request = "entity/" + path.replaceAll('.', '/') + paramStr(params);
+      this.request_get(id, request, recv, err);
     },
 
     request_query: function(id, q, recv, err, params) {
-      if (this.is_local()) {
-          const r = wq_query(q, params.offset, params.limit);
-          const reply = JSON.parse(r);
-          recv(reply);
-      } else if (this.is_remote()) {
-        if (q.slice(0, 2) == "?-") {
-          let query_name = q.slice(2).trim();
+      let request;
+      if (q.slice(0, 2) == "?-") {
+        let query_name = q.slice(2).trim();
 
-          const args_start = query_name.indexOf("(");
-          if (args_start != -1) {
-            const args_end = query_name.indexOf(")");
-            if (args_end != -1) {
-              vars = query_name.slice(args_start, args_end + 1);
-            } else {
-              vars = query_name.slice(args_start);
-            }
-            query_name = query_name.slice(0, args_start);
-            params.vars = vars;
+        const args_start = query_name.indexOf("(");
+        if (args_start != -1) {
+          const args_end = query_name.indexOf(")");
+          if (args_end != -1) {
+            vars = query_name.slice(args_start, args_end + 1);
+          } else {
+            vars = query_name.slice(args_start);
           }
+          query_name = query_name.slice(0, args_start);
+          params.vars = vars;
+        }
 
-          this.request(id,
-            "GET", "query?name=" + encodeURIComponent(query_name) + paramStr(params),
-            recv, err);
-        } else {
-          this.request(id,
-            "GET", "query?q=" + encodeURIComponent(q) + paramStr(params),
-            recv, err);
-        }
+        request = "query?name=" + encodeURIComponent(query_name) + paramStr(params);
       } else {
-        if (err) {
-          err({error: "no connection"});
-        }
+        request = "query?q=" + encodeURIComponent(q) + paramStr(params);
       }
+
+      this.request_get(id, request, recv, err);
     },
 
     request_stats: function(id, category, recv, err, params) {
-      if (this.is_local()) {
-          return "{}";
-      } else if (this.is_remote()) {
-        this.request(id, "GET",
-          "stats/" + category + paramStr(params), recv, err);
-      }
+      this.request(id, "stats/" + category + paramStr(params), recv, err);
     },
 
     enable_entity(path) {
-      if (!this.is_local()) {
-        this.request("enable", "PUT", "enable/" + path.replaceAll('.', '/'), () => {
-          this.refresh_entity();
-          this.refresh_tree();
-        });
-      }
+      this.request_put("enable", "enable/" + path.replaceAll('.', '/'), () => {
+        this.refresh_entity();
+        this.refresh_tree();
+      });
     },
 
     disable_entity(path) {
-      if (!this.is_local()) {
-        this.request("disable", "PUT", "disable/" + path.replaceAll('.', '/'), () => {
-          this.refresh_entity();
-          this.refresh_tree();
-        });
-      }
+      this.request_put("disable", "disable/" + path.replaceAll('.', '/'), () => {
+        this.refresh_entity();
+        this.refresh_tree();
+      });
     },
 
     delete_entity(path) {
-      if (!this.is_local()) {
-        this.request("delete", "PUT", "delete/" + path.replaceAll('.', '/'), () => {
-          this.$refs.inspector.close();
-          this.refresh_tree();
-        });
-      }
+      this.request_put("delete", "delete/" + path.replaceAll('.', '/'), () => {
+        this.$refs.inspector.close();
+        this.refresh_tree();
+      });
     },
 
     set_components(path, data) {
-      if (!this.is_local()) {
-        this.request("set", "PUT", "set/" + path.replaceAll('.', '/') +
-          "?data=" + encodeURIComponent(JSON.stringify(data)), 
-          () => {
-            this.refresh_entity();
-          });
-      }
+      this.request_put("set", "set/" + path.replaceAll('.', '/') +
+        "?data=" + encodeURIComponent(JSON.stringify(data)), 
+        () => {
+          this.refresh_entity();
+        });
     },
 
     insert_code: function(code, recv, timeout) {
@@ -388,7 +380,7 @@ var app = new Vue({
       const q_name = getParameterByName("query_name");
 
       if (q_encoded) {
-        return wq_decode(q_encoded);
+        return decodeURIComponent(q_encoded);
       } else if (q_string) {
         return decodeURIComponent(q_string);
       } else if (q_name) {
@@ -423,13 +415,7 @@ var app = new Vue({
       }
     },
 
-    ready_remote(reply) {
-      // Get application name from reply
-      if (reply.label && reply.label != "World") {
-        this.app_name = reply.label;
-        this.title = this.app_name;
-      }
-
+    start_periodic_refresh() {
       this.parse_interval = 150;
 
       this.refresh_query();
@@ -448,6 +434,16 @@ var app = new Vue({
       this.evt_panel_update();
     },
 
+    ready_remote(reply) {
+      // Get application name from reply
+      if (reply.label && reply.label != "World") {
+        this.app_name = reply.label;
+        this.title = this.app_name;
+      }
+
+      this.start_periodic_refresh();
+    },
+
     ready_local() {
       this.set_entity();
 
@@ -457,7 +453,7 @@ var app = new Vue({
       var p;
 
       if (p_encoded) {
-        p = wq_decode(p_encoded);
+        p = decodeURIComponent(p_encoded);
       }
       if (selected === undefined && !p_encoded && !q) {
         selected = example_selected;
@@ -484,9 +480,7 @@ var app = new Vue({
 
       this.$refs.tree.update_expanded();
 
-      this.parse_interval = 150;
-
-      this.evt_panel_update();
+      this.start_periodic_refresh();
     },
 
     // Connect to a remote host
@@ -720,7 +714,7 @@ var app = new Vue({
       let plecs_encoded;
       if (!this.remote_mode) {
         plecs = this.$refs.plecs.get_code();
-        plecs_encoded = wq_encode(plecs);
+        plecs_encoded = encodeURIComponent(plecs);
       }
 
       let entity = this.$refs.inspector.get_entity();

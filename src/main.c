@@ -1,17 +1,12 @@
 #include "flecs_explorer.h"
 #include "stdio.h"
-
-#ifdef __EMSCRIPTEN__
 #include <emscripten.h>
-#else
-#define EMSCRIPTEN_KEEPALIVE
-#endif
-
-#include "base64.h"
-#include "fastlz.h"
 
 // Global world
 static ecs_world_t *world;
+
+// REST server
+ecs_http_server_t *rest_server;
 
 // Utilities for capturing (parser) errors
 static ecs_strbuf_t err_buf = ECS_STRBUF_INIT;
@@ -38,7 +33,6 @@ char* get_error(void) {
 EMSCRIPTEN_KEEPALIVE
 void init(void) {
     // Capture error messages so we can send it to the client
-#ifdef __EMSCRIPTEN__
     ecs_os_set_api_defaults();
     ecs_os_api_t api = ecs_os_api;
     api.log_ = capture_log;
@@ -47,7 +41,6 @@ void init(void) {
     // Only enable errors, don't insert color codes
     ecs_log_set_level(-1);
     ecs_log_enable_colors(false);
-#endif
 
     world = ecs_mini();
     if (!world) {
@@ -60,83 +53,35 @@ void init(void) {
     ECS_IMPORT(world, FlecsUnits);
     ECS_IMPORT(world, FlecsDoc);
     ECS_IMPORT(world, FlecsCoreDoc);
+
+    /* Create REST server to serve up requests to the explorer */
+    rest_server = ecs_rest_server_init(world, NULL);
 }
 
-EMSCRIPTEN_KEEPALIVE
-char* query(char *q, int offset, int limit) {
-    ecs_strbuf_t reply = ECS_STRBUF_INIT;
-    ecs_rule_t *r = ecs_rule_init(world, &(ecs_filter_desc_t) { .expr = q });
-    if (!r) {
-        goto error;
-    }
-
-#ifndef __EMSCRIPTEN__
-    char *r_str = ecs_rule_str(r);
-    printf("%s\n", r_str);
-    ecs_os_free(r_str);
-#endif
-
-    ecs_iter_t rit = ecs_rule_iter(world, r);
-    ecs_iter_t *it = &rit;
-    ecs_iter_t pit;
-    if (offset || limit) {
-        pit = ecs_page_iter(&rit, offset, limit);
-        it = &pit;
-    }
-
-    ecs_iter_to_json_desc_t desc = ECS_ITER_TO_JSON_INIT;
-    desc.measure_eval_duration = true;
-    desc.serialize_entity_labels = true;
-    desc.serialize_entity_ids = true;
-    desc.serialize_variable_labels = true;
-    desc.serialize_colors = true;
-    desc.serialize_type_info = true;
-    if (ecs_iter_to_json_buf(world, it, &reply, &desc) != 0) {
-        ecs_strbuf_reset(&reply);
-        goto error;
-    }
-
-#ifndef __EMSCRIPTEN__
-    while (ecs_rule_next(it)) {
-        char *it_str = ecs_iter_str(it);
-        printf("%s\n", it_str);
-        ecs_os_free(it_str);
-    }
-#endif
-
-    return ecs_strbuf_get(&reply);
-error: {
-        char *err = get_error();
-        ecs_strbuf_append(&reply, "{\"error\": \"%s\"}", err);
-        ecs_os_free(err);  
-        return ecs_strbuf_get(&reply);
+char* reply_request(ecs_http_reply_t *reply) {
+    if (reply->code == 200) {
+        return ecs_strbuf_get(&reply->body);
+    } else {
+        char *body = ecs_strbuf_get(&reply->body);
+        if (body) {
+            return body;
+        } else {
+            return ecs_asprintf(
+                "{\"error\": \"bad request (code %d)\"}", reply->code);
+        }
     }
 }
 
 EMSCRIPTEN_KEEPALIVE
-char* get_entity(char *path) {
-    ecs_strbuf_t reply = ECS_STRBUF_INIT;
+char* get_request(char *request) {
+    ecs_http_reply_t reply = ecs_http_server_get(rest_server, request);
+    return reply_request(&reply);
+}
 
-    ecs_entity_t ent = ecs_lookup_path(world, 0, path);
-    if (!ent) {
-        return ecs_os_strdup("{\"error\": \"entity not found\"}");
-    }
-
-    ecs_entity_to_json_desc_t desc = ECS_ENTITY_TO_JSON_INIT;
-    desc.serialize_label = true;
-    desc.serialize_brief = true;
-    desc.serialize_link = true;
-    desc.serialize_color = true;
-    desc.serialize_id_labels = true;
-    desc.serialize_values = true;
-    desc.serialize_type_info = true;
-
-    if (ecs_entity_to_json_buf(world, ent, &reply, &desc) != 0) {
-        ecs_strbuf_reset(&reply);
-        return ecs_os_strdup("{\"error\": \"failed to serialize entity\"}");
-    }
-
-    return ecs_strbuf_get(&reply);
+EMSCRIPTEN_KEEPALIVE
+char* put_request(char *request) {
+    ecs_http_reply_t reply = ecs_http_server_put(rest_server, request);
+    return reply_request(&reply);
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -164,83 +109,3 @@ char* run(char *plecs) {
 
     return ecs_strbuf_get(&reply);
 }
-
-/* Create a base64 encoded version of the input string that's safe to pass
- * around in URL. Compress first to reduce the overhead of base64. */
-EMSCRIPTEN_KEEPALIVE
-char* encode(const char *str) {
-    int32_t length = ecs_os_strlen(str) + 1;
-
-    /* Compression lib states that out buffer should be at least 5% more than
-     * input, use 10% just to be safe. Add four additional bytes to store the
-     * length of the compressed string. */
-    int32_t compress_size = (int32_t)((float)length * 1.1) + 1 + sizeof(size_t);
-    unsigned char *compress = ecs_os_malloc(compress_size);
-    *(size_t*)compress = length;
-
-    /* Compress string, use better compression at some cpu cost */
-    int32_t actual_size = fastlz_compress_level(
-        2, str, length, compress + sizeof(size_t)) + sizeof(size_t);
-
-    /* Base64 encode compressed data */
-    int32_t base64_size = base64_encode_size(actual_size);
-    void *base64_str = ecs_os_malloc(base64_size);
-    base64_encode(compress, actual_size, base64_str);
-
-    /* No longer need the compressed string */
-    ecs_os_free(compress);
-
-    return base64_str;
-}
-
-EMSCRIPTEN_KEEPALIVE
-char* decode(const char *str) {
-    int32_t length = ecs_os_strlen(str);
-
-    /* Base64 decode compressed data (output data is guaranteed smaller) */
-    unsigned char *base64_decoded = ecs_os_malloc(length);
-    int32_t base64_decoded_length = base64_decode(str, length, base64_decoded);
-    assert(base64_decoded_length <= length);
-    assert(base64_decoded_length > 0);
-
-    /* Get length from decompressed data */
-    size_t str_length = *(size_t*)base64_decoded;
-    base64_decoded_length -= sizeof(size_t);
-    assert(base64_decoded_length > 0);
-
-    /* Decompress data (length includes 0 terminator) */
-    char *out_str = ecs_os_malloc(str_length);
-    int32_t decompress_length = fastlz_decompress(
-        base64_decoded + sizeof(size_t), base64_decoded_length, out_str, str_length);
-
-    assert(decompress_length == str_length);
-    
-    ecs_os_free(base64_decoded);
-
-    return out_str;
-}
-
-#ifndef __EMSCRIPTEN__
-int main(int argc, char *argv[]) {
-    init();
-
-    ecs_plecs_from_file(world, "etc/assets/db.plecs");
-
-    while (1) {
-        char str[1024];
-        printf("\n?- ");
-        fgets(str, sizeof(str), stdin);
-
-        char *res = query(str);
-        printf("JSON = %s\n", res);
-        char *encoded = encode(res);
-        char *decoded = decode(encoded);
-        ecs_assert(!ecs_os_strcmp(res, decoded), ECS_INTERNAL_ERROR, NULL);
-        ecs_os_free(res);
-        ecs_os_free(encoded);
-        ecs_os_free(decoded);
-    }
-
-    return 0;
-}
-#endif

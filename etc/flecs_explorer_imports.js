@@ -1,16 +1,12 @@
 let wq_init;
-let wq_query;
-let wq_get_entity;
+let wq_request_get;
+let wq_request_put;
 let wq_run;
-let wq_encode;
-let wq_decode;
 
 flecs_explorer = flecs_explorer().then(function(Module) {
   wq_init = Module.cwrap('init');
-  wq_query = Module.cwrap('query', 'string', ['string', 'number', 'number']);
-  wq_get_entity = Module.cwrap('get_entity', 'string', ['string']);
+  wq_request_get = Module.cwrap('get_request', 'string', ['string']);
+  wq_request_put = Module.cwrap('put_request', 'string', ['string']);
   wq_run = Module.cwrap('run', 'string', ['string']);
-  wq_encode = Module.cwrap('encode', 'string', ['string']);
-  wq_decode = Module.cwrap('decode', 'string', ['string']);
   wq_init();
 });

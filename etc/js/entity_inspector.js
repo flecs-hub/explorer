@@ -986,37 +986,37 @@ const inspector_component = Vue.component('inspector', {
                 &nbsp;<icon icon="codicons:search" :size="16"></icon>&nbsp;
               </span>
             </template>
-            <template v-if="connected">
-              <template v-if="is_disabled">
-                <span class="inspector-button noselect" 
-                    style="display: inline-block; width: 50px; text-align: center;"
-                    v-on:click="enable_entity">
-                  Enable
-                </span>
-              </template>
-              <template v-else>
-                <span class="inspector-button noselect" 
-                    style="display: inline-block; width: 50px; text-align: center;"
-                    v-on:click="disable_entity">
-                  Disable
-                </span>
-              </template>
-              <template v-if="edit_count">
-                <span class="inspector-button inspector-icon-button noselect"
-                  v-on:click="set_components">
-                    &nbsp;<icon icon="codicons:save" :size="16"></icon>&nbsp;
-                </span>
-              </template>
-              <template v-else>
-                <span class="inspector-button inspector-button-disabled inspector-icon-button noselect"
-                  v-on:click="set_components">
-                    &nbsp;<icon icon="codicons:save" :size="16"></icon>&nbsp;
-                </span>
-              </template>
-              <span class="inspector-button inspector-icon-button noselect"
-                v-on:click="delete_entity">
-                  &nbsp;<icon icon="codicons:trash" :size="16"></icon>&nbsp;
+            <template v-if="is_disabled">
+              <span class="inspector-button noselect" 
+                  style="display: inline-block; width: 50px; text-align: center;"
+                  v-on:click="enable_entity">
+                Enable
               </span>
+            </template>
+            <template v-else>
+              <span class="inspector-button noselect" 
+                  style="display: inline-block; width: 50px; text-align: center;"
+                  v-on:click="disable_entity">
+                Disable
+              </span>
+            </template>
+            <template v-if="edit_count">
+              <span class="inspector-button inspector-icon-button noselect"
+                v-on:click="set_components">
+                  &nbsp;<icon icon="codicons:save" :size="16"></icon>&nbsp;
+              </span>
+            </template>
+            <template v-else>
+              <span class="inspector-button inspector-button-disabled inspector-icon-button noselect"
+                v-on:click="set_components">
+                  &nbsp;<icon icon="codicons:save" :size="16"></icon>&nbsp;
+              </span>
+            </template>
+            <span class="inspector-button inspector-icon-button noselect"
+              v-on:click="delete_entity">
+                &nbsp;<icon icon="codicons:trash" :size="16"></icon>&nbsp;
+            </span>
+            <template v-if="connected">
               <span class="inspector-button inspector-icon-button noselect"
                 v-on:click="rest_link">
                 &nbsp;<icon icon="feather:download" :size="16"></icon>&nbsp;
