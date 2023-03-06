@@ -90,9 +90,7 @@ function paramStr(params) {
   return url_params;
 }
 
-/*
-  GLOBAL COMPONENT REGISTRATIONS
-*/
+// Component registration
 Vue.component('collapsible-panel', httpVueLoader('js/collapsible_panel.vue'));
 Vue.component('detail-toggle-alt', httpVueLoader('js/detail_toggle_alt.vue'));
 var tooltip_component = Vue.component('tooltip', httpVueLoader('js/components/tooltip.vue'));
@@ -124,15 +122,58 @@ Vue.directive('tooltip', {
   }
 })
 
-/*
-  VUE MAIN APP
-*/
+// Webasm module loading
+let wq_init;
+let wq_request_get;
+let wq_request_put;
+let wq_run;
+
+function wasmModuleLoaded(wasm_url, onReady) {
+  const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
+
+  wasm_module = Function(`return ` + name + `;`)();
+
+  wasm_module().then(function(Module) {
+    wq_init = Module.cwrap('init');
+    wq_request_get = Module.cwrap('get_request', 'string', ['string']);
+    wq_request_put = Module.cwrap('put_request', 'string', ['string']);
+    wq_run = Module.cwrap('run', 'string', ['string']);
+    wq_init();
+    onReady();
+  });
+}
+
+function loadWasmModule(wasm_url, onReady) {
+  const oldEl = document.getElementById("wasm-module");
+  if (oldEl) {
+    oldEl.remove();
+  }
+
+  const scriptEl = document.createElement("script");
+  scriptEl.id = "wasm-module";
+  scriptEl.onload = () => {
+    wasmModuleLoaded(wasm_url, onReady);
+  };
+  scriptEl.onerror = () => {
+    console.error("failed to load wasm module " + wasm_url);
+  };
+  scriptEl.src = wasm_url;
+
+  document.head.appendChild(scriptEl);
+}
+
+// Vue application 
 var app = new Vue({
   el: '#app',
 
   mounted: function() {
+    let wasm_url = getParameterByName("wasm");
+    if (!wasm_url) {
+      wasm_url = "../flecs_explorer.js";
+    }
+
     this.$nextTick(() => {
-      flecs_explorer.then(() => {
+      loadWasmModule(wasm_url, () => {
         this.ready();
       });
     });
@@ -534,7 +575,7 @@ var app = new Vue({
       // Make sure that if both remote_self and host are specified they match
       if (remote_self) {
         if (host != undefined && host != window.location.hostname) {
-          console.err("remote_self conflicts with value of host param, starting in local mode");
+          console.error("remote_self conflicts with value of host param, starting in local mode");
           this.ready_local();
         }
         remote = true;
@@ -543,7 +584,7 @@ var app = new Vue({
 
       // Can't set both local and remote
       if (remote && local || host && local) {
-        console.err("invalid combination of URL params, starting in local mode");
+        console.error("invalid combination of URL params, starting in local mode");
         this.ready_local();
       }
 
