@@ -91,7 +91,7 @@ Vue.component('editor', {
       }
     },
     evt_changed(msg) {
-      if (msg.error) {
+      if (msg && msg.error) {
         this.status = msg.error;
         this.status_kind = Status.Error;
       } else {

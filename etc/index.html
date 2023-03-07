@@ -46,6 +46,7 @@
           <panel-menu ref="panel_menu" v-on:panel-update="evt_panel_update">
             <panel-button icon="list-tree" panel="tree"></panel-button>
             <panel-button icon="search" panel="query"></panel-button>
+            <panel-button icon="symbol-method" panel="explorer_canvas"></panel-button>
             <panel-button icon="code" panel="plecs"></panel-button>
             <panel-button icon="inspect" panel="inspector"></panel-button>
             <panel-button icon="graph-line" panel="stats_world"></panel-button>
@@ -64,6 +65,9 @@
 
         <!-- Query results & Entity inspector -->
         <split-pane>
+          <explorer-canvas v-if="wasm" ref="explorer_canvas"
+            v-on:panel-update="evt_panel_update">
+          </explorer-canvas>
           <query :valid="valid" ref="query"
             v-on:select-entity="evt_follow_ref"
             v-on:panel-update="evt_panel_update">
@@ -79,10 +83,8 @@
 
         <!-- Editor -->
         <split-pane :fixed="true" :initial_width="400">
-          <template v-if="!remote_mode">
-            <editor ref="plecs" 
-                v-on:panel-update="evt_panel_update"></editor>
-            </template>
+          <editor ref="plecs" 
+              v-on:panel-update="evt_panel_update"></editor>
           <inspector 
             :valid="valid"
             v-on:select-entity="evt_follow_ref"
@@ -158,6 +160,7 @@
     <script src="js/editor.js"></script>
     <script src="js/url_modal.js"></script>
     <script src="js/app_title.js"></script>
+    <script src="js/canvas.js"></script>
     <script src="js/app.js"></script>
   </body>
 </html>

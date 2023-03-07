@@ -1239,6 +1239,18 @@ div.ecs-filter {
   margin: 10px;
 }
 
+canvas.explorer-canvas {
+  cursor: pointer;
+  border: solid;
+  border-color: var(--panel-bg);
+  border-width: 2px;
+  border-radius: 5px;
+}
+
+canvas.explorer-canvas-focus {
+  border-color: var(--green);
+}
+
 div.content-container {
   position: relative;
 

@@ -19130,6 +19130,8 @@ void ecs_set_os_api_impl(void) {
 
 #ifdef FLECS_PLECS
 
+ECS_COMPONENT_DECLARE(EcsScript);
+
 #include <ctype.h>
 
 #define TOK_NEWLINE '\n'
@@ -19159,6 +19161,7 @@ typedef struct {
     int32_t sp;
     int32_t with_frame;
     int32_t using_frame;
+    ecs_entity_t global_with;
 
     char *annot[STACK_MAX_SIZE];
     int32_t annot_count;
@@ -19311,6 +19314,10 @@ ecs_entity_t plecs_ensure_entity(
 
         e = ecs_add_path(world, e, 0, path);
         ecs_assert(e != 0, ECS_INTERNAL_ERROR, NULL);
+
+        if (state->global_with) {
+            ecs_add_id(world, e, state->global_with);
+        }
     } else {
         /* If entity exists, make sure it gets the right scope and with */
         if (is_subject) {
@@ -20258,6 +20265,7 @@ int ecs_plecs_from_str(
     state.scope[0] = 0;
     ecs_entity_t prev_scope = ecs_set_scope(world, 0);
     ecs_entity_t prev_with = ecs_set_with(world, 0);
+    state.global_with = prev_with;
 
 #ifdef FLECS_EXPR
     ecs_vars_init(world, &state.vars);
@@ -20306,9 +20314,9 @@ error:
     return -1;
 }
 
-int ecs_plecs_from_file(
-    ecs_world_t *world,
-    const char *filename) 
+static
+char* flecs_load_from_file(
+    const char *filename)
 {
     FILE* file;
     char* content = NULL;
@@ -20344,12 +20352,120 @@ int ecs_plecs_from_file(
 
     fclose(file);
 
-    int result = ecs_plecs_from_str(world, filename, content);
-    ecs_os_free(content);
-    return result;
+    return content;
 error:
     ecs_os_free(content);
-    return -1;
+    return NULL;
+}
+
+int ecs_plecs_from_file(
+    ecs_world_t *world,
+    const char *filename) 
+{
+    char *script = flecs_load_from_file(filename);
+    if (!script) {
+        return -1;
+    }
+
+    int result = ecs_plecs_from_str(world, filename, script);
+    ecs_os_free(script);
+    return result;
+}
+
+int ecs_script_update(
+    ecs_world_t *world,
+    ecs_entity_t e,
+    const char *script)
+{
+    int result = 0;
+
+    ecs_delete_with(world, ecs_pair_t(EcsScript, e));
+    ecs_entity_t old_with = ecs_set_with(world, ecs_pair_t(EcsScript, e));
+    if (ecs_plecs_from_str(world, ecs_get_name(world, e), script)) {
+        ecs_delete_with(world, ecs_pair_t(EcsScript, e));
+        result = -1;
+    }
+    ecs_set_with(world, old_with);
+
+    EcsScript *s = ecs_get_mut(world, e, EcsScript);
+    s->script = ecs_os_strdup(script);
+    ecs_modified(world, e, EcsScript);
+
+    return result;
+}
+
+ecs_entity_t ecs_script_init(
+    ecs_world_t *world,
+    const ecs_script_desc_t *desc)
+{
+    const char *script = NULL;
+    ecs_entity_t e = desc->entity;
+    
+    ecs_check(world != NULL, ECS_INTERNAL_ERROR, NULL);
+    ecs_check(desc != NULL, ECS_INTERNAL_ERROR, NULL);
+
+    if (!e) {
+        if (desc->filename) {
+            e = ecs_new_from_path_w_sep(world, 0, desc->filename, "/", NULL);
+        } else {
+            e = ecs_new_id(world);
+        }
+    }
+
+    script = desc->str;
+    if (!script && desc->filename) {
+        script = flecs_load_from_file(desc->filename);
+        if (!script) {
+            goto error;
+        }
+    }
+
+    const char *name = ecs_get_name(world, e);
+    if (!name) {
+        name = desc->filename;
+    }
+
+    if (ecs_script_update(world, e, script)) {
+        goto error;
+    }
+
+    if (script != desc->str) {
+        /* Safe cast, only happens when script is loaded from file */
+        ecs_os_free((char*)script);
+    }
+
+    return e;
+error:
+    if (script != desc->str) {
+        /* Safe cast, only happens when script is loaded from file */
+        ecs_os_free((char*)script);
+    }
+    if (!desc->entity) {
+        ecs_delete(world, e);
+    }
+    return 0;
+}
+
+void FlecsScriptImport(
+    ecs_world_t *world)
+{
+    ECS_MODULE(world, FlecsScript);
+
+#ifdef FLECS_META
+    ECS_IMPORT(world, FlecsMeta);
+#endif
+
+    ecs_set_name_prefix(world, "Ecs");
+    ECS_COMPONENT_DEFINE(world, EcsScript);
+
+#ifdef FLECS_META
+    ecs_struct(world, {
+        .entity = ecs_id(EcsScript),
+        .members = {
+            { .name = "script", .type = ecs_id(ecs_string_t) }
+        }
+    });
+#endif
 }
 
 #endif
@@ -28859,6 +28975,7 @@ typedef enum ecs_json_token_t {
     JsonTrue,
     JsonFalse,
     JsonNull,
+    JsonLargeString,
     JsonInvalid
 } ecs_json_token_t;
 
@@ -28866,6 +28983,10 @@ const char* flecs_json_parse(
     const char *json,
     ecs_json_token_t *token_kind,
     char *token);
+
+const char* flecs_json_parse_large_string(
+    const char *json,
+    ecs_strbuf_t *buf);
 
 const char* flecs_json_expect(
     const char *json,
@@ -29024,6 +29145,7 @@ const char* flecs_json_parse(
         token_kind[0] = JsonComma;
         return json + 1;
     } else if (ch == '"') {
+        const char *start = json;
         char *token_ptr = token;
         json ++;
         for (; (ch = json[0]); ) {
@@ -29031,6 +29153,13 @@ const char* flecs_json_parse(
                 json ++;
                 token_ptr[0] = '\0';
                 break;
+            }
+
+            if (token_ptr - token >= ECS_MAX_TOKEN_SIZE) {
+                /* Token doesn't fit in buffer, signal to app to try again with
+                 * dynamic buffer. */
+                token_kind[0] = JsonLargeString;
+                return start;
             }
 
             json = ecs_chrparse(json, token_ptr ++);
@@ -29069,6 +29198,33 @@ const char* flecs_json_parse(
     } else {
         token_kind[0] = JsonInvalid;
         return NULL;
+    }
+}
+
+const char* flecs_json_parse_large_string(
+    const char *json,
+    ecs_strbuf_t *buf)
+{
+    if (json[0] != '"') {
+        return NULL; /* can only parse strings */
+    }
+
+    char ch, ch_out;
+    json ++;
+    for (; (ch = json[0]); ) {
+        if (ch == '"') {
+            json ++;
+            break;
+        }
+
+        json = ecs_chrparse(json, &ch_out);
+        ecs_strbuf_appendch(buf, ch_out);
+    }
+
+    if (!ch) {
+        return NULL;
+    } else {
+        return json;
     }
 }
 
@@ -31614,7 +31770,8 @@ const char* ecs_ptr_from_json(
     const ecs_from_json_desc_t *desc)
 {
     ecs_json_token_t token_kind = 0;
-    char token[ECS_MAX_TOKEN_SIZE], t_lah[ECS_MAX_TOKEN_SIZE];
+    char token_buffer[ECS_MAX_TOKEN_SIZE], t_lah[ECS_MAX_TOKEN_SIZE];
+    char *token = token_buffer;
     int depth = 0;
 
     const char *name = NULL;
@@ -31633,6 +31790,17 @@ const char* ecs_ptr_from_json(
     }
 
     while ((json = flecs_json_parse(json, &token_kind, token))) {
+        if (token_kind == JsonLargeString) {
+            ecs_strbuf_t large_token = ECS_STRBUF_INIT;
+            json = flecs_json_parse_large_string(json, &large_token);
+            if (!json) {
+                break;
+            }
+
+            token = ecs_strbuf_get(&large_token);
+            token_kind = JsonString;
+        }
+
         if (token_kind == JsonObjectOpen) {
             depth ++;
             if (ecs_meta_push(&cur) != 0) {
@@ -31716,6 +31884,11 @@ const char* ecs_ptr_from_json(
             }
         } else {
             goto error;
+        }
+
+        if (token != token_buffer) {
+            ecs_os_free(token);
+            token = token_buffer;
         }
 
         if (!depth) {
@@ -32585,6 +32758,8 @@ error:
 
 #ifdef FLECS_REST
 
+ECS_TAG_DECLARE(EcsRestPlecs);
+
 typedef struct {
     ecs_world_t *world;
     ecs_http_server_t *srv;
@@ -32883,6 +33058,50 @@ bool flecs_rest_enable(
     ecs_enable(world, e, enable);
     
     return true;
+}
+
+static
+bool flecs_rest_script(
+    ecs_world_t *world,
+    const ecs_http_request_t* req,
+    ecs_http_reply_t *reply)
+{
+    (void)world;
+    (void)req;
+    (void)reply;
+#ifdef FLECS_PLECS
+    const char *data = ecs_http_get_param(req, "data");
+    if (!data) {
+        flecs_reply_error(reply, "missing data parameter");
+        return true;
+    }
+
+    bool prev_color = ecs_log_enable_colors(false);
+    ecs_os_api_log_t prev_log_ = ecs_os_api.log_;
+    ecs_os_api.log_ = flecs_rest_capture_log;
+
+    ecs_entity_t script = ecs_script(world, {
+        .entity = ecs_entity(world, { .name = "scripts.main" }),
+        .str = data
+    });
+
+    if (!script) {
+        char *err = flecs_rest_get_captured_log();
+        char *escaped_err = ecs_astresc('"', err);
+        flecs_reply_error(reply, escaped_err);
+        ecs_os_linc(&ecs_rest_query_error_count);
+        reply->code = 400; /* bad request */
+        ecs_os_free(escaped_err);
+        ecs_os_free(err);
+    }
+
+    ecs_os_api.log_ = prev_log_;
+    ecs_log_enable_colors(prev_color);
+
+    return true;
+#else
+    return false;
+#endif
 }
 
 static
@@ -33450,6 +33669,10 @@ bool flecs_rest_reply(
         /* Disable endpoint */
         } else if (!ecs_os_strncmp(req->path, "disable/", 8)) {
             return flecs_rest_enable(world, reply, &req->path[8], false);
+
+        /* Script endpoint */
+        } else if (!ecs_os_strncmp(req->path, "script", 6)) {
+            return flecs_rest_script(world, req, reply);
         }
     }
 
@@ -33575,6 +33798,9 @@ void FlecsRestImport(
     ECS_MODULE(world, FlecsRest);
 
     ECS_IMPORT(world, FlecsPipeline);
+#ifdef FLECS_PLECS
+    ECS_IMPORT(world, FlecsScript);
+#endif
 
     ecs_set_name_prefix(world, "Ecs");
 
@@ -33597,6 +33823,9 @@ void FlecsRestImport(
         .events = {EcsOnAdd, EcsOnRemove},
         .callback = DisableRest
     });
+
+    ecs_set_name_prefix(world, "EcsRest");
+    ECS_TAG_DEFINE(world, EcsRestPlecs);
 }
 
 #endif
@@ -34288,6 +34517,11 @@ void http_insert_request_entry(
     ecs_http_request_impl_t *req,
     ecs_http_reply_t *reply)
 {
+    int32_t content_length = ecs_strbuf_written(&reply->body);
+    if (!content_length) {
+        return;
+    }
+
     ecs_http_request_key_t key;
     key.array = req->res;
     key.count = req->req_len;
@@ -34308,7 +34542,7 @@ void http_insert_request_entry(
     entry->content_length = ecs_strbuf_written(&reply->body);
     entry->content = ecs_strbuf_get(&reply->body);
     ecs_strbuf_appendstrn(&reply->body, 
-        entry->content, entry->content_length);
+            entry->content, entry->content_length);
 }
 
 static
@@ -35329,7 +35563,7 @@ error:
     return;
 }
 
-ecs_http_reply_t ecs_http_server_request(
+ecs_http_reply_t ecs_http_server_http_request(
     ecs_http_server_t* srv,
     const char *req,
     ecs_size_t len)
@@ -35357,35 +35591,21 @@ ecs_http_reply_t ecs_http_server_request(
     return reply;
 }
 
-static
-ecs_http_reply_t http_server_request_wrap(
+ecs_http_reply_t ecs_http_server_request(
     ecs_http_server_t* srv,
     const char *method,
     const char *req)
 {
     ecs_strbuf_t reqbuf = ECS_STRBUF_INIT;
     ecs_strbuf_appendstr_zerocpy_const(&reqbuf, method);
+    ecs_strbuf_appendlit(&reqbuf, " ");
     ecs_strbuf_appendstr_zerocpy_const(&reqbuf, req);
     ecs_strbuf_appendlit(&reqbuf, " HTTP/1.1\r\n\r\n");
     int32_t len = ecs_strbuf_written(&reqbuf);
     char *reqstr = ecs_strbuf_get(&reqbuf);
-    ecs_http_reply_t reply = ecs_http_server_request(srv, reqstr, len);
+    ecs_http_reply_t reply = ecs_http_server_http_request(srv, reqstr, len);
     ecs_os_free(reqstr);
     return reply;
-}
-
-ecs_http_reply_t ecs_http_server_get(
-    ecs_http_server_t* srv,
-    const char *req)
-{
-    return http_server_request_wrap(srv, "GET ", req);
-}
-
-ecs_http_reply_t ecs_http_server_put(
-    ecs_http_server_t* srv,
-    const char *req)
-{
-    return http_server_request_wrap(srv, "PUT ", req);
 }
 
 void* ecs_http_server_ctx(
@@ -41736,6 +41956,28 @@ static ecs_app_run_action_t run_action = flecs_default_run_action;
 static ecs_app_frame_action_t frame_action = flecs_default_frame_action;
 static ecs_app_desc_t ecs_app_desc;
 
+/* Serve REST API from wasm image when running in emscripten */
+#ifdef ECS_TARGET_EM
+ecs_http_server_t *flecs_wasm_rest_server;
+
+EMSCRIPTEN_KEEPALIVE
+char* flecs_explorer_request(const char *method, char *request) {
+    ecs_http_reply_t reply = ecs_http_server_request(
+        flecs_wasm_rest_server, method, request);
+    if (reply.code == 200) {
+        return ecs_strbuf_get(&reply.body);
+    } else {
+        char *body = ecs_strbuf_get(&reply.body);
+        if (body) {
+            return body;
+        } else {
+            return ecs_asprintf(
+                "{\"error\": \"bad request (code %d)\"}", reply.code);
+        }
+    }
+}
+#endif
+
 int ecs_app_run(
     ecs_world_t *world,
     ecs_app_desc_t *desc)
@@ -41756,7 +41998,11 @@ int ecs_app_run(
     /* REST server enables connecting to app with explorer */
     if (desc->enable_rest) {
 #ifdef FLECS_REST
+#ifdef ECS_TARGET_EM
+        flecs_wasm_rest_server = ecs_rest_server_init(world, NULL);
+#else
         ecs_set(world, EcsWorld, EcsRest, {.port = 0});
+#endif
 #else
         ecs_warn("cannot enable remote API, REST addon not available");
 #endif
@@ -42473,6 +42719,9 @@ void flecs_log_addons(void) {
     #ifdef FLECS_OS_API_IMPL
         ecs_trace("FLECS_OS_API_IMPL");
     #endif
+    #ifdef FLECS_SCRIPT
+        ecs_trace("FLECS_SCRIPT");
+    #endif
     #ifdef FLECS_HTTP
         ecs_trace("FLECS_HTTP");
     #endif
@@ -42595,6 +42844,9 @@ ecs_world_t *ecs_init(void) {
 #endif
 #ifdef FLECS_COREDOC
     ECS_IMPORT(world, FlecsCoreDoc);
+#endif
+#ifdef FLECS_SCRIPT
+    ECS_IMPORT(world, FlecsScript);
 #endif
 #ifdef FLECS_REST
     ECS_IMPORT(world, FlecsRest);

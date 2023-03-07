@@ -29,47 +29,6 @@ const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 // Example content for local demo
 const example_selected = "Earth";
 const example_query = "Planet, Mass"
-const example_plecs = `// For C/C++ examples, go to:
-//  https://github.com/SanderMertens/flecs
-using flecs.meta
-using flecs.units.Mass
-
-@brief Mass component
-Struct Mass {
-  value :- {f64, unit: KiloGrams}
-}
-
-with Planet {
-@color #8c8c94
-Mercury :- Mass{0.33e24}
-
-@color #e39e1c
-Venus :- Mass{4.87e24}
-
-@color #6b93d6
-Earth :- Mass{5.9722e24}
-
-@color #c1440e
-Mars :- Mass{0.642e24}
-
-@color #e3dccb
-Jupiter :- Mass{1898e24}
- 
-@color #e3e0c0
-Saturn :- Mass{568e24}
-  
-@color #3d5ef9
-Neptune :- Mass{102e24}
-
-@color #93cdf1
-Uranus :- Mass{86.8e24}
-}
-
-Earth {
-  @color #dcdcdc
-  Moon :- Mass{7.34767309e22}
-}
-`
 
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
@@ -120,13 +79,11 @@ Vue.directive('tooltip', {
       app.$refs.tooltip.hide();
     })
   }
-})
+});
 
 // Webasm module loading
-let wq_init;
-let wq_request_get;
-let wq_request_put;
-let wq_run;
+let native_request;
+let capture_keyboard_events;
 
 function wasmModuleLoaded(wasm_url, onReady) {
   const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
@@ -134,11 +91,11 @@ function wasmModuleLoaded(wasm_url, onReady) {
   wasm_module = Function(`return ` + name + `;`)();
 
   wasm_module().then(function(Module) {
-    wq_init = Module.cwrap('init');
-    wq_request_get = Module.cwrap('get_request', 'string', ['string']);
-    wq_request_put = Module.cwrap('put_request', 'string', ['string']);
-    wq_run = Module.cwrap('run', 'string', ['string']);
-    wq_init();
+    native_request = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string']);
+    capture_keyboard_events = Module.sokol_capture_keyboard_events;
+    if (capture_keyboard_events) {
+      Module.sokol_capture_keyboard_events(false);
+    }
     onReady();
   });
 }
@@ -167,16 +124,31 @@ var app = new Vue({
   el: '#app',
 
   mounted: function() {
-    let wasm_url = getParameterByName("wasm");
-    if (!wasm_url) {
-      wasm_url = window.location.href + "/flecs_explorer.js";
+    this.wasm_url = getParameterByName("wasm");
+
+    if (getParameterByName("remote") || getParameterByName("host")) {
+      if (this.wasm_url) {
+        console.error("invalid wasm url for remote app");
+        this.wasm_url = undefined;
+      }
+
+      // Don't load module when connected to remote app
+      this.ready();
+    } else if (!this.wasm_url) {
+      // Load default explorer module
+      this.wasm_url = window.location.href + "/flecs_explorer.js";
+    } else {
+      // External module was loaded
+      this.wasm = true;
     }
 
-    this.$nextTick(() => {
-      loadWasmModule(wasm_url, () => {
-        this.ready();
+    if (this.wasm_url) {
+      this.$nextTick(() => {
+        loadWasmModule(this.wasm_url, () => {
+          this.ready();
+        });
       });
-    });
+    }
   },
 
   methods: {
@@ -310,7 +282,7 @@ var app = new Vue({
 
     request_get(id, path, recv, err) {
       if (this.is_local()) {
-        const r = wq_request_get("/" + path);
+        const r = native_request("GET", "/" + path);
         const reply = JSON.parse(r);
         recv(reply);
       } else if (this.is_remote()) {
@@ -322,8 +294,12 @@ var app = new Vue({
 
     request_put(id, path, recv, err) {
       if (this.is_local()) {
-        wq_request_put("/" + path);
-        recv();
+        const r = native_request("PUT", "/" + path);
+        let reply;
+        if (r) {
+          reply = JSON.parse(r);
+        }
+        recv(reply);
       } else if (this.is_remote()) {
         this.request(id, "PUT", path, recv, err);
       } else if (err) {
@@ -394,25 +370,13 @@ var app = new Vue({
         });
     },
 
-    insert_code: function(code, recv, timeout) {
-      if (this.is_local()) {
-        if (this.parse_timer) {
-          clearTimeout(this.parse_timer);
-        }
-
-        const func = () => {
-          const r = wq_run(code);
-          const reply = JSON.parse(r);
-          recv(reply);
-          this.parse_timer = undefined;
-        };
-
-        if (timeout) {
-          this.parse_timer = setTimeout(func, timeout);
-        } else {
-          func();
-        }
-      }
+    run_code: function(code, recv) {
+      this.request_put("script", "script/?data=" + encodeURIComponent(code), (msg) => {
+        this.refresh_entity();
+        this.refresh_tree();
+        this.refresh_query();
+        recv(msg);
+      });
     },
 
     get_query_from_params() {
@@ -496,20 +460,31 @@ var app = new Vue({
       if (p_encoded) {
         p = decodeURIComponent(p_encoded);
       }
-      if (selected === undefined && !p_encoded && !q) {
+      if (selected === undefined && !p_encoded && !q && !this.wasm) {
         selected = example_selected;
       }
 
-      if (!q && !p) {
+      if (!q && !p && !this.wasm) {
         q = example_query;
       }
-      if (!p && !p_encoded) {
-        p = example_plecs;
-      }
 
-      if (p && !this.remote_mode) {
-        this.$refs.plecs.set_code(p);
-        this.$refs.plecs.run();
+      if (!this.remote_mode) {
+        if (p) {
+          this.$refs.plecs.set_code(p);
+          this.$refs.plecs.run();
+        } else {
+          this.request_entity("scripts.main", "scripts.main", (msg) => {
+            if (msg.values && msg.values[0]) {
+              const script = msg.values[0].script;
+              if (script) {
+                this.$refs.plecs.set_code(script);
+                this.$refs.plecs.run();
+              }
+            }
+          }, undefined, {
+            values: true
+          })
+        }
       }
 
       if (selected) {
@@ -690,16 +665,6 @@ var app = new Vue({
       }
     },
 
-    // Code changed event
-    run_code(code, recv) {
-      this.insert_code(code, (reply) => {
-        this.refresh_query();
-        this.$refs.tree.update_expanded();
-        this.refresh_entity();
-        recv(reply);
-      }, this.parse_interval);
-    },
-
     // Entity selected
     evt_entity_changed(e) {
       this.set_entity_by_tree_item(e);
@@ -755,7 +720,9 @@ var app = new Vue({
       let plecs_encoded;
       if (!this.remote_mode) {
         plecs = this.$refs.plecs.get_code();
-        plecs_encoded = encodeURIComponent(plecs);
+        if (plecs && plecs.length) {
+          plecs_encoded = encodeURIComponent(plecs);
+        }
       }
 
       let entity = this.$refs.inspector.get_entity();
@@ -787,6 +754,11 @@ var app = new Vue({
 
       if (this.params.local) {
         this.url += sep + "local=true";
+        sep = "&";
+      }
+
+      if (this.wasm_url) {
+        this.url += sep + "wasm=" + this.wasm_url;
         sep = "&";
       }
 
@@ -856,6 +828,8 @@ var app = new Vue({
     query_result: undefined,
     selected_tree_item: undefined,
     url: undefined,
+    wasm_url: undefined,
+    wasm: false,
     params: {},
 
     connection: ConnectionState.Initializing,
