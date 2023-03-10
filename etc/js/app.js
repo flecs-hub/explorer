@@ -461,7 +461,17 @@ var app = new Vue({
 
       if (p_encoded) {
         p = decodeURIComponent(p_encoded);
+      } else {
+        const script_url = getParameterByName("script_url");
+        if (script_url) {
+          this.request("script_url", "GET", script_url, (script) => {
+
+          }, () => {
+            console.err("failed to load script " + script_url);
+          })
+        }
       }
+
       if (selected === undefined && !p_encoded && !q && !this.wasm) {
         selected = example_selected;
       }
