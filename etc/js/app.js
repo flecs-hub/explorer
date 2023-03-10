@@ -338,7 +338,7 @@ var app = new Vue({
     },
 
     request_stats: function(id, category, recv, err, params) {
-      this.request(id, "stats/" + category + paramStr(params), recv, err);
+      this.request(id, "GET", "stats/" + category + paramStr(params), recv, err);
     },
 
     enable_entity(path) {
