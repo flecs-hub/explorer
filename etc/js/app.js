@@ -376,6 +376,8 @@ var app = new Vue({
         this.refresh_tree();
         this.refresh_query();
         recv(msg);
+      }, (msg) => {
+        recv(msg)
       });
     },
 
