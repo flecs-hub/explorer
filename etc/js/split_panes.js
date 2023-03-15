@@ -141,6 +141,10 @@ const frame = Vue.component('split-pane', {
       this.$el.style.width = new_width + "px";
       this.x = this.$el.offsetLeft;
 
+      if (this.min_width) {
+        this.$el.style.minWidth = this.min_width + "px";
+      }
+
       for (var i = 0; i < this.$children.length; i ++) {
         const child = this.$children[i];
         child.$forceUpdate(); // Give child a chance to respond to width change

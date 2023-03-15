@@ -110,6 +110,9 @@ Vue.component('editor', {
     },
     evt_close() {
       this.evt_panel_update();
+    },
+    request_focus() {
+      this.$emit("request-focus");
     }
   },
   watch: {
@@ -131,7 +134,7 @@ Vue.component('editor', {
       </template>
 
       <template v-slot:detail>
-        <div class="editor">
+        <div class="editor" v-on:click="request_focus">
           <editor-textarea ref="textarea" 
             v-on:changed="evt_changed">
           </editor-textarea>

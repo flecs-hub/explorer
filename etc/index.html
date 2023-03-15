@@ -42,7 +42,7 @@
       </div>
 
       <split-pane-container ref="panes">
-        <split-pane :fixed="true" :collapseable="false" :initial_width="45" :resizable="false">
+        <split-pane :fixed="true" :collapseable="false" :min_width="45" :resizable="false">
           <panel-menu ref="panel_menu" v-on:panel-update="evt_panel_update">
             <panel-button icon="list-tree" panel="tree"></panel-button>
             <panel-button icon="search" panel="query"></panel-button>
@@ -84,7 +84,9 @@
         <!-- Editor -->
         <split-pane :fixed="true" :initial_width="400">
           <editor ref="plecs" 
-              v-on:panel-update="evt_panel_update"></editor>
+              v-on:panel-update="evt_panel_update"
+              v-on:request-focus="evt_request_plecs_focus">
+          </editor>
           <inspector 
             :valid="valid"
             v-on:select-entity="evt_follow_ref"

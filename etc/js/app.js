@@ -136,7 +136,10 @@ var app = new Vue({
       this.ready();
     } else if (!this.wasm_url) {
       // Load default explorer module
-      this.wasm_url = window.location.href + "/flecs_explorer.js";
+      this.wasm_url = 
+        window.location.protocol + "//" +
+          window.location.host + "/flecs_explorer.js";
+      console.log("Wasm_url = " + this.wasm_url);
     } else {
       // External module was loaded
       this.wasm = true;
@@ -338,7 +341,7 @@ var app = new Vue({
     },
 
     request_stats: function(id, category, recv, err, params) {
-      this.request(id, "GET", "stats/" + category + paramStr(params), recv, err);
+      this.request_get(id, "stats/" + category + paramStr(params), recv, err);
     },
 
     enable_entity(path) {
@@ -591,6 +594,11 @@ var app = new Vue({
       } else {
         remote = false;
       }
+      
+      if (this.wasm) {
+        host = undefined;
+        remote = false;
+      }
 
       if (host) {
         if (host.indexOf(':') == -1) {
@@ -721,6 +729,12 @@ var app = new Vue({
       });
     },
 
+    evt_request_plecs_focus() {
+      if (this.$refs.explorer_canvas) {
+        this.$refs.explorer_canvas.blur();
+      }
+    },
+
     show_url_modal() {
       const tree_component = this.$refs.tree;
       const show_tree = !tree_component.$el.classList.contains("disable");
@@ -768,7 +782,7 @@ var app = new Vue({
         sep = "&";
       }
 
-      if (this.wasm_url) {
+      if (this.wasm) {
         this.url += sep + "wasm=" + this.wasm_url;
         sep = "&";
       }

@@ -8,56 +8,47 @@
       World statistics
     </template>
     <template v-slot:detail>
-      <template v-if="remote_mode">
-        <stats-period ref="period"></stats-period>
+      <stats-period ref="period"></stats-period>
 
-        <div class="stats-groups">
-          <div :class="group_css(i)" v-for="(group, k, i) in groups">
-            <detail-toggle>
-              <template v-slot:summary>
-                <span class="stats-group-name">{{name_fmt(k)}}</span>
-              </template>
-              <template v-slot:detail>
-                <div class="stats-group-stats">
-                  <template v-for="(v, k) in group">
-                    <div>
-                      <stat :name="k" :values="v" :valid="valid"></stat>
-                    </div>
-                  </template>
-                </div>
-              </template>
-            </detail-toggle>
-          </div>
+      <div class="stats-groups">
+        <div :class="group_css(i)" v-for="(group, k, i) in groups">
+          <detail-toggle>
+            <template v-slot:summary>
+              <span class="stats-group-name">{{name_fmt(k)}}</span>
+            </template>
+            <template v-slot:detail>
+              <div class="stats-group-stats">
+                <template v-for="(v, k) in group">
+                  <div>
+                    <stat :name="k" :values="v" :valid="valid"></stat>
+                  </div>
+                </template>
+              </div>
+            </template>
+          </detail-toggle>
         </div>
+      </div>
 
-        <!-- Explorer is connected to application but monitoring is not on -->
-        <template v-if="connected && error">
-          <p>
-            <span>
-              Could not request statistics from application, make sure to update
-              to the latest Flecs and import the flecs.monitor module!
-            <span>
-          </p>
-          <p>
-            In C:
-          </p>
-          <code>
-            ECS_IMPORT(world, FlecsMonitor);
-          </code>
-          <p>
-            In C++:
-          </p>
-          <code>
-            world.import&lt;flecs::monitor&gt;();
-          </code>
-        </template>
-      </template>
-
-      <!-- Explorer is not connected to application -->
-      <template v-else>
-        <span>
-          Connect to an application to see statistics.
-        </span>
+      <!-- Explorer is connected to application but monitoring is not on -->
+      <template v-if="error">
+        <p>
+          <span>
+            Could not request statistics from application, make sure to update
+            to the latest Flecs and import the flecs.monitor module!
+          <span>
+        </p>
+        <p>
+          In C:
+        </p>
+        <code>
+          ECS_IMPORT(world, FlecsMonitor);
+        </code>
+        <p>
+          In C++:
+        </p>
+        <code>
+          world.import&lt;flecs::monitor&gt;();
+        </code>
       </template>
     </template>
     <template v-slot:footer>

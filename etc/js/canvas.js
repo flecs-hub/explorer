@@ -12,6 +12,10 @@
       close: function() {
         this.$refs.container.close();
       },
+      blur: function() {
+        capture_keyboard_events(false);
+        this.focus = false;
+      },
       on_focus() {
         this.focus = !this.focus;
         if (capture_keyboard_events) {
@@ -32,13 +36,18 @@
           css += " explorer-canvas-focus";
         }
         return css;
+      },
+      focus_text() {
+        if (this.focus) {
+          return "[keyboard captured - click again to release]";
+        }
       }
     },
     template: `
         <content-container ref="container" :closable="true"
           v-on:panel-update="evt_panel_update">
           <template v-slot:summary>
-            Canvas
+            Canvas {{focus_text}}
           </template>
           <template v-slot:detail>
             <canvas id="canvas" :class="css" ref="canvas" v-on:click="on_focus">

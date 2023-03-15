@@ -8,101 +8,92 @@
       Pipeline statistics
     </template>
     <template v-slot:detail>
-      <template v-if="remote_mode">
-        <stats-period ref="period"></stats-period>
+      <stats-period ref="period"></stats-period>
 
-        <div class="stats-charts stats-systems">
-          <div :class="css_system(sys, i)" v-for="(sys, i) in results">
-            <template v-if="sys.name">
-              <entity-hierarchy :entity_path="sys.name"></entity-hierarchy>
-              <entity-reference :entity="sys.name" :show_name="true" v-on="$listeners">
-              </entity-reference>
-              <div class="stats-system-charts">
-                <div>
-                  <div class="stats-system-chart">
-                    <stat-chart 
-                      :zoom="1" 
-                      :width="280"
-                      :values="sys.time_spent"
-                      :disabled="!valid">
-                    </stat-chart>
-                    <span class="noselect stats-chart-label">
-                      Time spent 
-                      (
-                        {{get_system_time_avg(i)}},
-                        {{(system_time_pct.system_pct[i] * 100).toFixed(0)}}%
-                      )
-                    </span>
-                  </div>
-                </div>
-                <div v-if="sys.matched_entity_count">
-                  <div class="stats-system-chart">
-                    <stat-chart
-                      :zoom="1" 
-                      :width="280"
-                      :values="sys.matched_entity_count"
-                      :disabled="!valid">
-                    </stat-chart>
-                    <span class="noselect stats-chart-label">
-                      Matched entities
-                      (
-                        {{get_system_entities_avg(i)}}
-                      )
-                    </span>
-                  </div>
-                </div>
-                <div v-if="sys.matched_table_count">
-                  <div class="stats-system-chart">
-                    <stat-chart 
-                      :zoom="1" 
-                      :width="280"
-                      :values="sys.matched_table_count"
-                      :disabled="!valid">
-                    </stat-chart>
-                    <span class="noselect stats-chart-label">
-                      Matched tables
-                      (
-                        {{get_system_tables_avg(i)}}
-                      )
-                    </span>
-                  </div>
+      <div class="stats-charts stats-systems">
+        <div :class="css_system(sys, i)" v-for="(sys, i) in results">
+          <template v-if="sys.name">
+            <entity-hierarchy :entity_path="sys.name"></entity-hierarchy>
+            <entity-reference :entity="sys.name" :show_name="true" v-on="$listeners">
+            </entity-reference>
+            <div class="stats-system-charts">
+              <div>
+                <div class="stats-system-chart">
+                  <stat-chart 
+                    :zoom="1" 
+                    :width="280"
+                    :values="sys.time_spent"
+                    :disabled="!valid">
+                  </stat-chart>
+                  <span class="noselect stats-chart-label">
+                    Time spent 
+                    (
+                      {{get_system_time_avg(i)}},
+                      {{(system_time_pct.system_pct[i] * 100).toFixed(0)}}%
+                    )
+                  </span>
                 </div>
               </div>
-            </template>
-            <template v-else>
-              <icon icon="codicons:merge" :size="36" :rotate="180"></icon>
-            </template>
-          </div>
+              <div v-if="sys.matched_entity_count">
+                <div class="stats-system-chart">
+                  <stat-chart
+                    :zoom="1" 
+                    :width="280"
+                    :values="sys.matched_entity_count"
+                    :disabled="!valid">
+                  </stat-chart>
+                  <span class="noselect stats-chart-label">
+                    Matched entities
+                    (
+                      {{get_system_entities_avg(i)}}
+                    )
+                  </span>
+                </div>
+              </div>
+              <div v-if="sys.matched_table_count">
+                <div class="stats-system-chart">
+                  <stat-chart 
+                    :zoom="1" 
+                    :width="280"
+                    :values="sys.matched_table_count"
+                    :disabled="!valid">
+                  </stat-chart>
+                  <span class="noselect stats-chart-label">
+                    Matched tables
+                    (
+                      {{get_system_tables_avg(i)}}
+                    )
+                  </span>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <icon icon="codicons:merge" :size="36" :rotate="180"></icon>
+          </template>
         </div>
+      </div>
 
-        <!-- Explorer is connected to application but monitoring is not on -->
-        <template v-if="connected && error">
-          <p>
-            <span>
-              Could not request statistics from application, make sure to update
-              to the latest Flecs and import the flecs.monitor module!
-            <span>
-          </p>
-          <p>
-            In C:
-          </p>
-          <code>
-            ECS_IMPORT(world, FlecsMonitor);
-          </code>
-          <p>
-            In C++:
-          </p>
-          <code>
-            world.import&lt;flecs::monitor&gt;();
-          </code>
-        </template>
-      </template>
-
-      <!-- Explorer is not connected to application -->
-      <template v-else>
-        <span>
-          Connect to an application to see statistics.
-        </span>
+      <!-- Explorer is connected to application but monitoring is not on -->
+      <template v-if="error">
+        <p>
+          <span>
+            Could not request statistics from application, make sure to update
+            to the latest Flecs and import the flecs.monitor module!
+          <span>
+        </p>
+        <p>
+          In C:
+        </p>
+        <code>
+          ECS_IMPORT(world, FlecsMonitor);
+        </code>
+        <p>
+          In C++:
+        </p>
+        <code>
+          world.import&lt;flecs::monitor&gt;();
+        </code>
       </template>
     </template>
     <template v-slot:footer>
