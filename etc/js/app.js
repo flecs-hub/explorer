@@ -136,10 +136,11 @@ var app = new Vue({
       this.ready();
     } else if (!this.wasm_url) {
       // Load default explorer module
-      this.wasm_url = 
-        window.location.protocol + "//" +
-          window.location.host + "/flecs_explorer.js";
-      console.log("Wasm_url = " + this.wasm_url);
+      this.wasm_url = window.location.protocol + "//" + window.location.host + "/";
+      if (window.location.pathname && window.location.pathname.length > 1) {
+        this.wasm_url += window.location.pathname + "/";
+      }
+      this.wasm_url += "flecs_explorer.js";
     } else {
       // External module was loaded
       this.wasm = true;
