@@ -448,6 +448,7 @@ var app = new Vue({
         this.title = this.app_name;
       }
 
+      this.$refs.plecs.close();
       this.start_periodic_refresh();
     },
 
@@ -465,7 +466,7 @@ var app = new Vue({
         const script_url = getParameterByName("script_url");
         if (script_url) {
           this.request("script_url", "GET", script_url, (script) => {
-
+            this.$refs.plecs.set_code(script);
           }, () => {
             console.err("failed to load script " + script_url);
           })
@@ -480,23 +481,21 @@ var app = new Vue({
         q = example_query;
       }
 
-      if (!this.remote_mode) {
-        if (p) {
-          this.$refs.plecs.set_code(p);
-          this.$refs.plecs.run();
-        } else {
-          this.request_entity("scripts.main", "scripts.main", (msg) => {
-            if (msg.values && msg.values[0]) {
-              const script = msg.values[0].script;
-              if (script) {
-                this.$refs.plecs.set_code(script);
-                this.$refs.plecs.run();
-              }
+      if (p) {
+        this.$refs.plecs.set_code(p);
+        this.$refs.plecs.run();
+      } else {
+        this.request_entity("scripts.main", "scripts.main", (msg) => {
+          if (msg.values && msg.values[0]) {
+            const script = msg.values[0].script;
+            if (script) {
+              this.$refs.plecs.set_code(script);
+              this.$refs.plecs.run();
             }
-          }, undefined, {
-            values: true
-          })
-        }
+          }
+        }, undefined, {
+          values: true
+        })
       }
 
       if (selected) {
