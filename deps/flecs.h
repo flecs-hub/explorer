@@ -6973,7 +6973,7 @@ void ecs_iter_poly(
  * @return True if iterator has more results, false if not.
  */
 FLECS_API
-bool ecs_iter_next(
+bool EcsIterNext(
     ecs_iter_t *it);
 
 /** Cleanup iterator resources.
@@ -10406,7 +10406,7 @@ typedef struct ecs_system_desc_t {
      * with ecs_query_next. When a system is multithreaded and/or paged, the
      * iterator can be either a worker or paged iterator. Future use cases may
      * introduce additional inputs for a system, such as rules and filters. The
-     * correct function to use for iteration is ecs_iter_next.
+     * correct function to use for iteration is EcsIterNext.
      * 
      * An implementation can test whether the iterator is a query iterator by
      * testing whether the it->next value is equal to ecs_query_next. */

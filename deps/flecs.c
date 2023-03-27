@@ -28710,7 +28710,7 @@ ecs_entity_t ecs_run_intern(
                 action(&qit);
             }
         } else {
-            while (ecs_iter_next(it)) {
+            while (EcsIterNext(it)) {
                 action(it);
             }
         }
@@ -49017,7 +49017,7 @@ void flecs_default_multi_observer_run_callback(ecs_iter_t *it) {
 }
 
 /* For convenience, so applications can (in theory) use a single run callback 
- * that uses ecs_iter_next to iterate results */
+ * that uses EcsIterNext to iterate results */
 bool flecs_default_observer_next_callback(ecs_iter_t *it) {
     if (it->interrupted_by) {
         return false;
@@ -54678,7 +54678,7 @@ void ecs_iter_poly(
     iterable->init(world, poly, iter_out, filter);
 }
 
-bool ecs_iter_next(
+bool EcsIterNext(
     ecs_iter_t *iter)
 {
     ecs_check(iter != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -54697,7 +54697,7 @@ int32_t ecs_iter_count(
     ECS_BIT_SET(it->flags, EcsIterIsInstanced);
 
     int32_t count = 0;
-    while (ecs_iter_next(it)) {
+    while (EcsIterNext(it)) {
         count += it->count;
     }
     return count;
@@ -54714,7 +54714,7 @@ ecs_entity_t ecs_iter_first(
     ECS_BIT_SET(it->flags, EcsIterIsInstanced);
 
     ecs_entity_t result = 0;
-    if (ecs_iter_next(it)) {
+    if (EcsIterNext(it)) {
         result = it->entities[0];
         ecs_iter_fini(it);
     }
@@ -54732,7 +54732,7 @@ bool ecs_iter_is_true(
     ECS_BIT_SET(it->flags, EcsIterNoData);
     ECS_BIT_SET(it->flags, EcsIterIsInstanced);
 
-    bool result = ecs_iter_next(it);
+    bool result = EcsIterNext(it);
     if (result) {
         ecs_iter_fini(it);
     }
@@ -54993,7 +54993,7 @@ bool ecs_page_next_instanced(
     bool instanced = ECS_BIT_IS_SET(it->flags, EcsIterIsInstanced);
 
     do {
-        if (!ecs_iter_next(chain_it)) {
+        if (!EcsIterNext(chain_it)) {
             goto depleted;
         }
 
@@ -55121,7 +55121,7 @@ bool ecs_worker_next_instanced(
     int32_t per_worker, instances_per_worker, first;
 
     do {
-        if (!ecs_iter_next(chain_it)) {
+        if (!EcsIterNext(chain_it)) {
             return false;
         }
 
