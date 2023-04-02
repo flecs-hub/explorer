@@ -865,6 +865,8 @@ const inspector_component = Vue.component('inspector', {
         edit_comp.value = evt.kv.input;
       }
       edit_comp.count ++;
+
+      this.$emit("request-focus");
     },
     discard_component(evt) {
       this.edit_count --;
