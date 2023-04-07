@@ -67,7 +67,8 @@ Vue.component('query', {
           colors: true,
           offset: this.offset,
           limit: this.limit,
-          duration: true
+          duration: true,
+          type_info: true
         });
 
         app.set_subtitle(this.query_name);

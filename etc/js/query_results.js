@@ -15,7 +15,16 @@ Vue.component('query-results-table', {
     // Get type info for term
     type_info(term) {
       if (this.columns.type_info) {
-        return this.columns.type_info[this.columns.ids[term]];
+        let id = this.columns.ids[term];
+        if (Array.isArray(id)) {
+          let result = this.columns.type_info[id[0]];
+          if (result) {
+            return result;
+          }
+          return this.columns.type_info[id[1]];
+        } else {
+          return this.columns.type_info[id];
+        }
       }
     },
     // Format header of (component) term
