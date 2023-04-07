@@ -6,10 +6,16 @@ Vue.component('entity-hierarchy', {
   },
   render: function (createElement, context) {
     let entities;
+    let path = context.props.entity_path;
+
+    if (!isNaN(path)) {
+      path = "" + path;
+    }
+
     if (!context.props.is_path) {
-      entities = context.props.entity_path.split(".").slice(0, -1);
+      entities = path.split(".").slice(0, -1);
     } else {
-      entities = context.props.entity_path.split(".");
+      entities = path.split(".");
     }
 
     return createElement(
