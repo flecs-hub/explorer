@@ -403,28 +403,30 @@ var app = new Vue({
     },
 
     init_remote() {
-      const show_tree = getParameterByName("show_tree");
-      const q = this.get_query_from_params();
-      var selected = getParameterByName("s");
+      this.$nextTick(() => {
+        const show_tree = getParameterByName("show_tree");
+        const q = this.get_query_from_params();
+        var selected = getParameterByName("s");
 
-      if (selected) {
-        this.set_entity(selected);
-      }
-
-      if (q) {
-        this.$refs.query.set_query(q);
-      }
-
-      if (show_tree === "false") {
-        this.$refs.tree.close();
-      } else if (show_tree === "true") {
-        this.$refs.tree.open();
-      } else {
-        if (getParameterByName("query_name") != undefined) {
-          // By default close tree if query name is provided
-          this.$refs.tree.close();
+        if (selected) {
+          this.set_entity(selected);
         }
-      }
+
+        if (q) {
+          this.$refs.query.set_query(q);
+        }
+
+        if (show_tree === "false") {
+          this.$refs.tree.close();
+        } else if (show_tree === "true") {
+          this.$refs.tree.open();
+        } else {
+          if (getParameterByName("query_name") != undefined) {
+            // By default close tree if query name is provided
+            this.$refs.tree.close();
+          }
+        }
+      });
     },
 
     start_periodic_refresh() {
