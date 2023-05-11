@@ -8,33 +8,49 @@ Struct Mass {
   value :- {f64, unit: KiloGrams}
 }
 
-with Planet {
-@color #8c8c94
-Mercury :- Mass{0.33e24}
+// Tags that inherit from CelestialBody
+Star : CelestialBody
+Planet : CelestialBody
+Satellite : CelestialBody
 
-@color #e39e1c
-Venus :- Mass{4.87e24}
+@color #ffffdd
+Star Sun {
+  - Mass{1.9885e30}
 
-@color #6b93d6
-Earth :- Mass{5.9722e24}
+  @color #8c8c94
+  Planet Mercury :- Mass{0.33e24}
 
-@color #c1440e
-Mars :- Mass{0.642e24}
+  @color #e39e1c
+  Planet Venus :- Mass{4.87e24}
 
-@color #e3dccb
-Jupiter :- Mass{1898e24}
- 
-@color #e3e0c0
-Saturn :- Mass{568e24}
+  @color #6b93d6
+  Planet Earth {
+    - Mass{5.9722e24}
+    
+    @color #dcdcdc
+    Satellite Moon :- Mass{7.34767309e22}
+  }
+
+  @color #c1440e
+  Planet Mars {
+    - Mass{0.642e24}
+    
+    @color #8B4513
+    Satellite Phobos :- Mass{1.0659e16}
+    
+    @color #A38C8C
+    Satellite Deimos :- Mass{1.4762e15}
+  }
+
+  @color #e3dccb
+  Planet Jupiter :- Mass{1898e24}
   
-@color #3d5ef9
-Neptune :- Mass{102e24}
+  @color #e3e0c0
+  Planet Saturn :- Mass{568e24}
+    
+  @color #3d5ef9
+  Planet Neptune :- Mass{102e24}
 
-@color #93cdf1
-Uranus :- Mass{86.8e24}
-}
-
-Earth {
-  @color #dcdcdc
-  Moon :- Mass{7.34767309e22}
+  @color #93cdf1
+  Planet Uranus :- Mass{86.8e24}
 }

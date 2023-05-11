@@ -28,7 +28,7 @@ const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 
 // Example content for local demo
 const example_selected = "Earth";
-const example_query = "Planet, Mass"
+const example_query = "CelestialBody, Mass, ?(ChildOf, $Orbits)"
 
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
@@ -57,6 +57,7 @@ var popover_component = Vue.component('popover', httpVueLoader('js/components/po
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
 Vue.component('panel-menu', httpVueLoader('js/components/panel_menu.vue'));
 Vue.component('panel-button', httpVueLoader('js/components/panel_button.vue'));
+Vue.component('query-graph', httpVueLoader('js/components/query_graph.vue'));
 Vue.component('stat', httpVueLoader('js/components/stat.vue'));
 Vue.component('stats-period', httpVueLoader('js/components/stats_period.vue'));
 Vue.component('stat-chart', httpVueLoader('js/components/stat_chart.vue'));

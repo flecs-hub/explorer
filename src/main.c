@@ -22,6 +22,7 @@ int main(void) {
     ECS_IMPORT(world, FlecsDoc);
     ECS_IMPORT(world, FlecsCoreDoc);
     ECS_IMPORT(world, FlecsRest);
+    ECS_IMPORT(world, FlecsMonitor);
 
     // Load script for editor
     ecs_script(world, {

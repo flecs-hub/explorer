@@ -12,7 +12,8 @@ Vue.component('query', {
       request: undefined,
       offset: 0,
       eval_duration: 0,
-      limit: QueryDefaultLimit
+      limit: QueryDefaultLimit,
+      graph_mode: false
     }
   },
   methods: {
@@ -58,12 +59,13 @@ Vue.component('query', {
             this.query_error("request failed");
           }
         }, {
-          ids: false, 
+          ids: true, 
           sources: false,
           entity_labels: true,
           entity_ids: true,
           variable_labels: true,
           type_info: true,
+          sources: true,
           colors: true,
           offset: this.offset,
           limit: this.limit,
@@ -149,11 +151,14 @@ Vue.component('query', {
     },
     update_page() {
       this.$refs.page.value = this.page;
+    },
+    toggle_graph_mode() {
+      this.graph_mode = !this.graph_mode;
     }
   },
   computed: {
     count: function() {
-      if (!this.query_result) {
+      if (!this.query_result || !this.query_result.results) {
         return 0;
       }
 
@@ -226,12 +231,28 @@ Vue.component('query', {
       </template>
 
       <template v-slot:detail>
-        <query-results 
-          ref="results"
-          v-if="query_result"
-          :data="query_result" 
-          :valid="is_valid"
-          v-on="$listeners"/>
+        <div class="query-graph-select">
+          <icon-button icon="codicons:type-hierarchy" :size="20"
+            v-on:click="toggle_graph_mode"
+            v-if="!graph_mode" v-tooltip="'Toggle graph mode'"></icon-button>
+          <icon-button icon="codicons:table" :size="20"
+            v-on:click="toggle_graph_mode"
+            v-if="graph_mode" v-tooltip="'Toggle graph mode'"></icon-button>
+        </div>
+
+        <template v-if="!graph_mode">
+          <query-results 
+            ref="results"
+            v-if="query_result"
+            :data="query_result" 
+            :valid="is_valid"
+            v-on="$listeners"/>
+        </template>
+        <template v-else>
+          <query-graph
+            :results="query_result"
+            v-on="$listeners"/>
+        </template>
       </template>
 
       <template v-slot:footer>

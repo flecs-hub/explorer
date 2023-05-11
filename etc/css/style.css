@@ -350,6 +350,13 @@ div.query-box {
   height: 100%;
 }
 
+div.query-graph-select {
+  position: absolute;
+  top: 10px;
+  right: 5px;
+  z-index: 100;
+}
+
 div.terminal-box {
   background-color: var(--panel-bg);
   border-color: var(--panel-border);
@@ -1431,7 +1438,6 @@ table.query-results-table tbody tr td {
   transition: background-color 0.1s ease;
 }
 
-table.query-results-table thead tr:hover,
 table.query-results-table tbody tr:hover td {
   background-color: var(--cell-bg-hover);
 }
@@ -1540,4 +1546,11 @@ div.maximized {
 
 div.disable {
   display: none;
+}
+
+svg text{
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
