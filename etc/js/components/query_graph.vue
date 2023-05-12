@@ -27,6 +27,10 @@
         prevdata: undefined
       }
     },
+    mounted: function() {
+      this.prevdata = JSON.stringify(this.graph);
+      this.createSim();
+    },
     watch: {
       results: function() {
         const curdata = JSON.stringify(this.graph);
@@ -81,6 +85,10 @@
                 }
                 if (result.colors) {
                     color = result.colors[e];
+                }
+
+                if (result.entity_labels) {
+                    entity = result.entity_labels[e];
                 }
 
                 const target = id[1];
