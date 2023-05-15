@@ -5061,7 +5061,9 @@ void flecs_table_replace_data(
 int32_t* flecs_table_get_dirty_state(
     ecs_world_t *world,
     ecs_table_t *table)
-{    
+{
+    ecs_poly_assert(world, ecs_world_t);
+    ecs_assert(table != NULL, ECS_INTERNAL_ERROR, NULL);
     if (!table->dirty_state) {
         int32_t column_count = table->storage_count;
         table->dirty_state = flecs_alloc_n(&world->allocator,
@@ -13577,6 +13579,11 @@ int flecs_strbuf_ftoa(
             p1[0] = '.';
             do {
                 char t = (++p1)[0];
+                if (t == '.') {
+                    exp ++;
+                    p1 --;
+                    break;
+                }
                 p1[0] = c;
                 c = t;
                 exp ++;
@@ -29350,36 +29357,38 @@ bool ecs_pipeline_stats_get(
     ecs_map_init_if(&s->system_stats, NULL);
 
     /* Make sure vector is large enough to store all systems & sync points */
-    ecs_entity_t *systems = NULL;
-    if (pip_count) {
-        ecs_vec_init_if_t(&s->systems, ecs_entity_t);
-        ecs_vec_set_count_t(NULL, &s->systems, ecs_entity_t, pip_count);
-        systems = ecs_vec_first_t(&s->systems, ecs_entity_t);
+    if (op) {
+        ecs_entity_t *systems = NULL;
+        if (pip_count) {
+            ecs_vec_init_if_t(&s->systems, ecs_entity_t);
+            ecs_vec_set_count_t(NULL, &s->systems, ecs_entity_t, pip_count);
+            systems = ecs_vec_first_t(&s->systems, ecs_entity_t);
 
-        /* Populate systems vector, keep track of sync points */
-        it = ecs_query_iter(stage, pq->query);
-        
-        int32_t i, i_system = 0, ran_since_merge = 0;
-        while (ecs_query_next(&it)) {
-            if (flecs_id_record_get_table(pq->idr_inactive, it.table) != NULL) {
-                continue;
-            }
+            /* Populate systems vector, keep track of sync points */
+            it = ecs_query_iter(stage, pq->query);
+            
+            int32_t i, i_system = 0, ran_since_merge = 0;
+            while (ecs_query_next(&it)) {
+                if (flecs_id_record_get_table(pq->idr_inactive, it.table) != NULL) {
+                    continue;
+                }
 
-            for (i = 0; i < it.count; i ++) {
-                systems[i_system ++] = it.entities[i];
-                ran_since_merge ++;
-                if (op != op_last && ran_since_merge == op->count) {
-                    ran_since_merge = 0;
-                    op++;
-                    systems[i_system ++] = 0; /* 0 indicates a merge point */
+                for (i = 0; i < it.count; i ++) {
+                    systems[i_system ++] = it.entities[i];
+                    ran_since_merge ++;
+                    if (op != op_last && ran_since_merge == op->count) {
+                        ran_since_merge = 0;
+                        op++;
+                        systems[i_system ++] = 0; /* 0 indicates a merge point */
+                    }
                 }
             }
-        }
 
-        systems[i_system ++] = 0; /* Last merge */
-        ecs_assert(pip_count == i_system, ECS_INTERNAL_ERROR, NULL);
-    } else {
-        ecs_vec_fini_t(NULL, &s->systems, ecs_entity_t);
+            systems[i_system ++] = 0; /* Last merge */
+            ecs_assert(pip_count == i_system, ECS_INTERNAL_ERROR, NULL);
+        } else {
+            ecs_vec_fini_t(NULL, &s->systems, ecs_entity_t);
+        }
     }
 
     /* Separately populate system stats map from build query, which includes
@@ -31387,11 +31396,29 @@ ecs_entity_t ecs_system_init(
         if (desc->callback) {
             system->action = desc->callback;
         }
+
+        if (system->ctx_free) {
+            if (system->ctx && system->ctx != desc->ctx) {
+                system->ctx_free(system->ctx);
+            }
+        }
+        if (system->binding_ctx_free) {
+            if (system->binding_ctx && system->binding_ctx != desc->binding_ctx) {
+                system->binding_ctx_free(system->binding_ctx);
+            }
+        }
+
         if (desc->ctx) {
             system->ctx = desc->ctx;
         }
         if (desc->binding_ctx) {
             system->binding_ctx = desc->binding_ctx;
+        }
+        if (desc->ctx_free) {
+            system->ctx_free = desc->ctx_free;
+        }
+        if (desc->binding_ctx_free) {
+            system->binding_ctx_free = desc->binding_ctx_free;
         }
         if (desc->query.filter.instanced) {
             ECS_BIT_SET(system->query->filter.flags, EcsFilterIsInstanced);
@@ -39563,6 +39590,11 @@ int flecs_rule_compile_term(
     bool is_not = (term->oper == EcsNot) && !builtin_pred;
     ecs_rule_op_t op = {0};
 
+    if (!term->src.id && term->src.flags & EcsIsEntity) {
+        /* If the term has a 0 source, don't insert operation */
+        return 0;
+    }
+
     /* Default instruction for And operators. If the source is fixed (like for
      * singletons or terms with an entity source), use With, which like And but
      * just matches against a source (vs. finding a source). */
@@ -44561,7 +44593,7 @@ int ecs_app_run(
 #ifdef ECS_TARGET_EM
         flecs_wasm_rest_server = ecs_rest_server_init(world, NULL);
 #else
-        ecs_set(world, EcsWorld, EcsRest, {.port = 0});
+        ecs_set(world, EcsWorld, EcsRest, {.port = desc->port });
 #endif
 #else
         ecs_warn("cannot enable remote API, REST addon not available");
@@ -52212,15 +52244,37 @@ ecs_entity_t ecs_observer_init(
                 ecs_get_name(world, entity));
         }
     } else {
-        /* If existing entity handle was provided, override existing params */
-        if (desc->callback) {
-            ecs_poly(poly->poly, ecs_observer_t)->callback = desc->callback;
+        ecs_observer_t *observer = ecs_poly(poly->poly, ecs_observer_t);
+
+        if (desc->run) {
+            observer->run = desc->run;
         }
+        if (desc->callback) {
+            observer->callback = desc->callback;
+        }
+
+        if (observer->ctx_free) {
+            if (observer->ctx && observer->ctx != desc->ctx) {
+                observer->ctx_free(observer->ctx);
+            }
+        }
+        if (observer->binding_ctx_free) {
+            if (observer->binding_ctx && observer->binding_ctx != desc->binding_ctx) {
+                observer->binding_ctx_free(observer->binding_ctx);
+            }
+        }
+
         if (desc->ctx) {
-            ecs_poly(poly->poly, ecs_observer_t)->ctx = desc->ctx;
+            observer->ctx = desc->ctx;
         }
         if (desc->binding_ctx) {
-            ecs_poly(poly->poly, ecs_observer_t)->binding_ctx = desc->binding_ctx;
+            observer->binding_ctx = desc->binding_ctx;
+        }
+        if (desc->ctx_free) {
+            observer->ctx_free = desc->ctx_free;
+        }
+        if (desc->binding_ctx_free) {
+            observer->binding_ctx_free = desc->binding_ctx_free;
         }
     }
 
@@ -53630,12 +53684,14 @@ void flecs_query_sync_match_monitor(
 
     int32_t *monitor = match->monitor;
     ecs_table_t *table = match->node.table;
-    int32_t *dirty_state = flecs_table_get_dirty_state(query->filter.world, table);
-    ecs_assert(dirty_state != NULL, ECS_INTERNAL_ERROR, NULL);
+    if (table) {
+        int32_t *dirty_state = flecs_table_get_dirty_state(
+            query->filter.world, table);
+        ecs_assert(dirty_state != NULL, ECS_INTERNAL_ERROR, NULL);
+        monitor[0] = dirty_state[0]; /* Did table gain/lose entities */
+    }
+
     table_dirty_state_t cur;
-
-    monitor[0] = dirty_state[0]; /* Did table gain/lose entities */
-
     int32_t i, term_count = query->filter.term_count;
     for (i = 0; i < term_count; i ++) {
         int32_t t = query->filter.terms[i].field_index;
@@ -53680,20 +53736,24 @@ bool flecs_query_check_match_monitor_term(
     }
     
     int32_t *monitor = match->monitor;
-    ecs_table_t *table = match->node.table;
-    int32_t *dirty_state = flecs_table_get_dirty_state(query->filter.world, table);
-    ecs_assert(dirty_state != NULL, ECS_INTERNAL_ERROR, NULL);
-    table_dirty_state_t cur;
-
     int32_t state = monitor[term];
     if (state == -1) {
         return false;
     }
 
-    if (!term) {
-        return monitor[0] != dirty_state[0];
+    ecs_table_t *table = match->node.table;
+    if (table) {
+        int32_t *dirty_state = flecs_table_get_dirty_state(
+            query->filter.world, table);
+        ecs_assert(dirty_state != NULL, ECS_INTERNAL_ERROR, NULL);
+        if (!term) {
+            return monitor[0] != dirty_state[0];
+        }
+    } else if (!term) {
+        return false;
     }
 
+    table_dirty_state_t cur;
     flecs_query_get_dirty_state(query, match, term - 1, &cur);
     ecs_assert(cur.column != -1, ECS_INTERNAL_ERROR, NULL);
 
@@ -53715,14 +53775,17 @@ bool flecs_query_check_match_monitor(
 
     int32_t *monitor = match->monitor;
     ecs_table_t *table = match->node.table;
-    int32_t *dirty_state = flecs_table_get_dirty_state(query->filter.world, table);
-    bool has_flat = false;
-    ecs_assert(dirty_state != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    if (monitor[0] != dirty_state[0]) {
-        return true;
+    int32_t *dirty_state = NULL;
+    if (table) {
+        dirty_state = flecs_table_get_dirty_state(
+            query->filter.world, table);
+        ecs_assert(dirty_state != NULL, ECS_INTERNAL_ERROR, NULL);
+        if (monitor[0] != dirty_state[0]) {
+            return true;
+        }
     }
 
+    bool has_flat = false;
     ecs_world_t *world = query->filter.world;
     int32_t i, field_count = query->filter.field_count;
     int32_t *storage_columns = match->storage_columns;
@@ -53740,6 +53803,7 @@ bool flecs_query_check_match_monitor(
         int32_t column = storage_columns[i];
         if (column >= 0) {
             /* owned component */
+            ecs_assert(dirty_state != NULL, ECS_INTERNAL_ERROR, NULL);
             if (mon != dirty_state[column + 1]) {
                 return true;
             }

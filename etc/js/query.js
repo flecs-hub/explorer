@@ -92,6 +92,9 @@ Vue.component('query', {
     change_query() {
       this.offset = 0;
       this.refresh();
+      if (this.$refs.results) {
+        this.$refs.results.reset();
+      }
     },
     get_query() {
       return this.$refs.editor.get_query();

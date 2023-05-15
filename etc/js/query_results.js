@@ -1,7 +1,13 @@
 
 Vue.component('query-results-table', {
   props: {
-    columns: {type: Object, required: true}
+    columns: {type: Object, required: true},
+  },
+  data: function() {
+    return {
+      var_groups: [],
+      order_by: { kind: 'this', mode: 'asc', mode_index: 0 }
+    }
   },
   methods: {
     // Get sorted index for i
@@ -89,34 +95,104 @@ Vue.component('query-results-table', {
     create_none(h) {
       return h('td', [h('span', { class: "query-result-cell-none" }, ["None"])]);
     },
+    // Order by logic
+    on_order_by(evt) {
+      let modes;
+      let mode_index = 0;
+
+      if (evt.kind !== 'var') {
+        modes = ['asc', 'desc'];
+      } else {
+        modes = ['asc', 'desc', 'group', 'group_only'];
+      }
+
+      if (evt.kind == this.order_by.kind && evt.index == this.order_by.index) {
+        mode_index = this.order_by.mode_index;
+        mode_index = (mode_index + 1) % modes.length;
+      }
+
+      this.order_by.kind = evt.kind;
+      this.order_by.index = evt.index;
+      this.order_by.mode_index = mode_index;
+      this.order_by.mode = modes[mode_index];
+
+      this.$emit('order-by', this.order_by);
+    },
     // Create table header
     create_header(h) {
       const columns = this.columns;
       const data = columns.data;
       let ths = [];
 
-      if (data.entities && data.entities.length) {
-        ths.push(h('th', ["Entity"]));
-      }
+      const order_by_icon = {
+        asc: "codicons:triangle-down",
+        desc: "codicons:triangle-up",
+        group: "codicons:diff-added",
+        group_only: "codicons:diff-removed"
+      }[this.order_by.mode];
 
-      if (columns.vars) {
-        for (let var_name of columns.vars) {
-          var_name_elems = var_name.split(".");
-          var_name = var_name_elems[var_name_elems.length - 1];
+      const icon = h('icon', { 
+        props: { icon: order_by_icon } 
+      });
 
-          ths.push(h('th', [var_name]));
+      const icon_elem = h('span', { 
+        class: 'query-results-order-by-icon' }, 
+      [icon]);
+
+      const icon_placeholder = h('span', {
+        class: 'query-results-order-by-icon-placeholder'
+      }, ["\xa0"]);
+
+      if (this.order_by.mode !== 'group_only') {
+        if (data.entities && data.entities.length) {
+          ths.push(h('th', { on: {
+            click: () => { this.on_order_by({kind: 'this'}); }
+          }}, ["Entity", this.order_by.kind === "this" 
+            ? icon_elem 
+            : icon_placeholder
+          ]));
         }
-      }
 
-      if (columns.ids) {
-        for (let i = 0; i < columns.ids.length; i ++) {
-          if (!this.term_is_tag(i)) {
-            ths.push(h('th', [this.term_header(i)]));
+        if (columns.vars) {
+          let i = 0;
+          for (let var_name of columns.vars) {
+            var_name_elems = var_name.split(".");
+            var_name = var_name_elems[var_name_elems.length - 1];
+
+            let index = i; // prevents hoisting of i
+            ths.push(h('th', { on: {
+              click: () => { this.on_order_by({kind: 'var', index: index}); }
+            }}, [var_name, (this.order_by.kind === 'var' && this.order_by.index === i) 
+              ? icon_elem 
+              : icon_placeholder
+            ]));
+
+            i ++;
           }
         }
-      }
 
-      ths.push( h('th', { class: 'query-results-squeeze'}) );
+        if (columns.ids) {
+          for (let i = 0; i < columns.ids.length; i ++) {
+            if (!this.term_is_tag(i)) {
+              let index = i; // prevents hoisting of i
+              ths.push(h('th', { on: {
+                click: () => { this.on_order_by({kind: 'value', index: index}); }
+              }}, [this.term_header(i), (this.order_by.kind === 'value' && this.order_by.index === i) 
+                ? icon_elem 
+                : icon_placeholder
+              ]));
+            }
+          }
+        }
+
+        ths.push( h('th', { class: 'query-results-squeeze'}) );
+      } else {
+        const index = this.order_by.index;
+        const var_name = columns.vars[index];
+        ths.push(h('th', { on: {
+          click: () => { this.on_order_by({kind: 'var', index: index}); }
+        }}, [var_name, icon_elem]));
+      }
 
       return h('thead', 
         { class: 'query-results-table-header' },
@@ -159,6 +235,7 @@ Vue.component('query-results-table', {
       const columns = this.columns;
       const data = this.columns.data;
       let vars = [];
+      let var_groups = [];
 
       if (columns.vars) {
         for (let i = 0; i < columns.vars.length; i ++) {
@@ -166,9 +243,33 @@ Vue.component('query-results-table', {
             this.create_entities(h, data.vars[i], data.var_labels[i])
           );
         }
+
+        // Find var groups
+        if (this.order_by.mode === 'group' || this.order_by.mode === 'group_only') {
+          const var_values = data.vars[this.order_by.index];
+          let var_last = undefined;
+          let i = 0;
+
+          for (let var_cur of var_values) {
+            if ((var_cur !== var_last)) {
+              if (var_groups.length) {
+                var_groups[var_groups.length - 1].count = 
+                  i - var_groups[var_groups.length - 1].row;
+              }
+              var_groups.push({
+                group: var_cur === '*' ? 'None' : var_cur,
+                row: i,
+              });
+              var_last = var_cur;
+            }
+            i ++;
+          }
+          var_groups[var_groups.length - 1].count =
+            i - var_groups[var_groups.length - 1].row;
+        }
       }
 
-      return vars;
+      return [vars, var_groups];
     },
     // Create component value table cells
     create_values(h) {
@@ -224,57 +325,100 @@ Vue.component('query-results-table', {
     create_body(h) {
       const columns = this.columns;
       const data = columns.data;
-
-      // Create cells from columns
-      let tds = {
-        entities: this.create_entities(h, data.entities, data.labels),
-        vars: this.create_vars(h),
-        values: this.create_values(h)
-      };
-
-      // Initialize rows
-      let rows = [];
-      for (let i = 0; i < columns.count; i ++) {
-        rows.push([]);
-      }
-
-      // Populate row children arrays with td elements
-
-      // Add entity tds
-      for (let i = 0; i < tds.entities.length; i ++) {
-        rows[i].push(tds.entities[i]);
-      }
-
-      // Add variable tds
-      for (let var_tds of tds.vars) {
-        for (let i = 0; i < var_tds.length; i ++) {
-          rows[i].push(var_tds[i]);
-        }
-      }
-
-      // Add value tds
-      for (let value_tds of tds.values) {
-        for (let i = 0; i < value_tds.length; i ++) {
-          rows[i].push(value_tds[i]);
-        }
-      }
-
-      // Add td's at the end that push values to the left
-      for (let row of rows) {
-        row.push( h('td', { class: 'query-results-squeeze'}) );
-      }
-
-      // Create row elements
+      let column_count = 0;
       let trs = [];
-      for (let i = 0; i < rows.length; i ++) {
-        let color;
-        if (data.colors) {
-          color = data.colors[this.index(i)];
+      const [vars, var_groups] = this.create_vars(h);
+
+      if (this.order_by.mode !== 'group_only') {
+        // Create cells from columns
+        let tds = {
+          entities: this.create_entities(h, data.entities, data.labels),
+          vars: vars,
+          values: this.create_values(h)
+        };
+
+        // Initialize rows
+        let rows = [];
+        for (let i = 0; i < columns.count; i ++) {
+          rows.push([]);
         }
-        trs.push(this.create_row(h, rows[i], color));
+
+        // Populate row children arrays with td elements
+
+        // Add entity tds
+        for (let i = 0; i < tds.entities.length; i ++) {
+          rows[i].push(tds.entities[i]);
+          column_count ++;
+        }
+
+        // Add variable tds
+        for (let var_tds of tds.vars) {
+          for (let i = 0; i < var_tds.length; i ++) {
+            rows[i].push(var_tds[i]);
+            column_count ++;
+          }
+        }
+
+        // Add value tds
+        for (let value_tds of tds.values) {
+          for (let i = 0; i < value_tds.length; i ++) {
+            rows[i].push(value_tds[i]);
+            column_count ++;
+          }
+        }
+
+        // Add td's at the end that push values to the left
+        for (let row of rows) {
+          row.push( h('td', { class: 'query-results-squeeze'}) );
+        }
+
+        // Create row elements
+        for (let i = 0; i < rows.length; i ++) {
+          let color;
+          if (data.colors) {
+            color = data.colors[this.index(i)];
+          }
+          trs.push(this.create_row(h, rows[i], color));
+        }
+
+        // If variable grouping is enabled, insert group headers
+        if (this.order_by.mode === 'group') {
+          let inserted = 0;
+          for (let group of var_groups) {
+            const group_td = h('td', {
+              class: 'query-results-group',
+              attrs: {
+                colspan: column_count + 1,
+              }
+            }, [group.group + "\xa0(" + group.count + ")"]);
+
+            let group_tr = h('tr', { 
+              class: 'query-results-group-row' 
+            }, [group_td]);
+
+            trs.splice(group.row + inserted, 0, [group_tr]);
+            inserted ++;
+          }
+        }
+      } else {
+        for (let group of var_groups) {
+          const group_td = h('td', {
+            class: 'query-results-group',
+          }, [group.group + "\xa0(" + group.count + ")"]);
+
+          let group_tr = h('tr', { 
+            class: 'query-results-group-row' 
+          }, [group_td]);
+
+          trs.push(group_tr);
+        }
       }
 
       return h('tbody', trs);
+    },
+    reset() {
+      this.order_by = { kind: 'this', mode: 'asc', mode_index: 0 };
+      this.$emit('order-by', this.order_by);
     }
   },
   render: function(h) {
@@ -288,7 +432,8 @@ Vue.component('query-results', {
     props: ['data', 'valid'],
     data: function() {
       return {
-        show_terms: false
+        show_terms: false,
+        order_by: { kind: 'this', mode: 'asc', mode_index: 0 }
       }
     },
     methods: {
@@ -322,6 +467,32 @@ Vue.component('query-results', {
             dst.push(src);
           }
         }
+      },
+      order_by_column(evt) {
+        this.order_by = evt;
+      },
+      select_entity(evt) {
+        this.$emit('select-entity', evt);
+      },
+      unpack_value(value) {
+        // Return the first non-object value
+        while (typeof value === 'object') {
+          if (Array.isArray(value)) {
+            value = value[0];
+          } else {
+            value = value[Object.keys(value)[0]];
+          }
+        }
+        if (typeof value === 'string') {
+          let num = parseFloat(value);
+          if (!isNaN(num)) {
+            return num;
+          }
+        }
+        return value;
+      },
+      reset() {
+        this.$refs.table.reset();
       }
     },
     computed: {
@@ -399,9 +570,10 @@ Vue.component('query-results', {
 
         for (let result of this.results) {
           let count = this.result_count(result);
-          
+
           // Build index for sorting
-          if (result.entities) {
+          // Sort by entity (this) id
+          if (result.entities && this.order_by.kind === 'this') {
             let index = 0;
             for (let entity of result.entities) {
               let order_by_value = entity;
@@ -414,20 +586,66 @@ Vue.component('query-results', {
               });
               index ++;
             }
+          // Sort by component value
+          } else if (this.order_by.kind === 'value') {
+            let index = 0;
+            const values = result.values[this.order_by.index];
+            if (values.length === 1) {
+              let value = this.unpack_value(values[0]);
+              for (let i = 0; i < (result.entities.length || 1); i ++) {
+                r.data.index.push({
+                  index: index + r.count,
+                  order_by: value
+                });
+                index ++;
+              }
+            } else {
+              for (let value of values) {
+                value = this.unpack_value(value);
+                r.data.index.push({
+                  index: index + r.count,
+                  order_by: value
+                });
+
+                index ++;
+              }
+            }
+          // Sort by variable
+          } else if (this.order_by.kind === 'var') {
+            let index = 0;
+            const order_by_value = result.vars[this.order_by.index];
+            for (let i = 0; i < (result.entities.length || 1); i ++) {
+              r.data.index.push({
+                index: index + r.count,
+                order_by: order_by_value
+              });
+              index ++;
+            }
           }
 
           // Sort indices used for iterating the results
           r.data.index.sort((a, b) => {
             let a_str = a.order_by;
             let b_str = b.order_by;
+
+            if (typeof a_str === 'number' && typeof b_str === 'number') {
+              return (a_str - b_str) - (b_str - a_str);
+            }
+
             if (typeof a_str === 'number') {
               a_str = "" + a_str;
             }
             if (typeof b_str === 'number') {
               b_str = "" + b_str;
             }
+
             return a_str.localeCompare(b_str);
           });
+
+          // Apply order mode
+          if (this.order_by.mode === 'desc') {
+            r.data.index.reverse();
+          }
 
           // Append entity names, labels and colors
           if (result.entities) {
@@ -512,8 +730,9 @@ Vue.component('query-results', {
           <div v-else class="noselect query-result-yesno"> No results </div>
         </template>
         <template v-else>
-          <query-results-table :columns="columns"
-            v-on="$listeners">
+          <query-results-table ref="table" :columns="columns"
+            v-on:order-by="order_by_column"
+            v-on:select-entity="select_entity">
           </query-results-table>
         </template>
       </div>`
