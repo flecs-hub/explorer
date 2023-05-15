@@ -132,7 +132,7 @@ Vue.component('query-results-table', {
       }[this.order_by.mode];
 
       const icon = h('icon', { 
-        props: { icon: order_by_icon } 
+        props: { icon: order_by_icon, size: 10 } 
       });
 
       const icon_elem = h('span', { 
@@ -195,8 +195,8 @@ Vue.component('query-results-table', {
       }
 
       return h('thead', 
-        { class: 'query-results-table-header' },
-        [ h('tr', ths) ]
+        { class: ['query-results-table-header'] },
+        [ h('tr', { class: 'query-results-header-row' }, ths) ]
       );
     },
     // Create entity table cells
@@ -346,25 +346,27 @@ Vue.component('query-results-table', {
         // Populate row children arrays with td elements
 
         // Add entity tds
+        if (tds.entities.length) {
+          column_count ++;
+        }
         for (let i = 0; i < tds.entities.length; i ++) {
           rows[i].push(tds.entities[i]);
-          column_count ++;
         }
 
         // Add variable tds
         for (let var_tds of tds.vars) {
           for (let i = 0; i < var_tds.length; i ++) {
             rows[i].push(var_tds[i]);
-            column_count ++;
           }
+          column_count ++;
         }
 
         // Add value tds
         for (let value_tds of tds.values) {
           for (let i = 0; i < value_tds.length; i ++) {
             rows[i].push(value_tds[i]);
-            column_count ++;
           }
+          column_count ++;
         }
 
         // Add td's at the end that push values to the left

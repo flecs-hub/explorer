@@ -1437,7 +1437,7 @@ table.query-results-table th {
 tr.query-results-group-row {
   border-style: solid;
   border-width: 0px;
-  border-left-width: 8px;
+  border-left-width: 3px;
   border-color: var(--steel-700);
 }
 
@@ -1450,13 +1450,12 @@ span.query-results-order-by-icon {
   position: relative;
   opacity: 0.5;
   margin-left: 5px;
-  top: 3px;
 }
 
 span.query-results-order-by-icon-placeholder {
   margin-left: 5px;
-  width: 16px;
-  height: 16px;
+  width: 10px;
+  height: 10px;
 }
 
 table.query-results-table thead tr,
@@ -1485,6 +1484,11 @@ tr.query-results-row {
   border-left-width: 3px;
   border-bottom-width: 1.5px;
   border-bottom-color: var(--row-bg);
+}
+
+tr.query-results-header-row {
+  position: relative;
+  left: -2px;
 }
 
 th.query-results-squeeze {
@@ -1539,7 +1543,7 @@ div.detail-toggle-detail {
   overflow: hidden;
   opacity: 1;
 
-  padding-top: 5px;
+  padding-top: 3px;
   transition: padding-top 0.1s ease-out, opacity 0.06s ease-out;;
 }
 
