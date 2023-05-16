@@ -405,19 +405,22 @@ Vue.component('query-results-table', {
             const group_td = this.group_cell(
               h, group.group, group.count, column_count);
 
+            let group_tr_sep = h('tr', {
+              class: 'query-results-group-separator'
+              }, [h('td', { attrs: { colspan: column_count + 1 } })]);
+
             let group_tr = h('tr', { 
               class: 'query-results-group-row' 
             }, [group_td]);
 
-            trs.splice(group.row + inserted, 0, [group_tr]);
+            trs.splice(group.row + inserted, 0, [group_tr_sep, group_tr]);
             inserted ++;
           }
         }
       } else {
         for (let group of var_groups) {
-          const group_td = h('td', {
-            class: 'query-results-group',
-          }, [group.group + "\xa0(" + group.count + ")"]);
+          const group_td = this.group_cell(
+            h, group.group, group.count, column_count);
 
           let group_tr = h('tr', { 
             class: 'query-results-group-row' 

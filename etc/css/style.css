@@ -1450,6 +1450,10 @@ tr.query-results-group-row {
   position: relative;
 }
 
+tr.query-results-group-separator td {
+  height: 3px !important;
+}
+
 td.query-results-group {
   color: var(--secondary-text);
   background-color: var(--steel-800) !important;
