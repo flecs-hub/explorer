@@ -251,7 +251,7 @@ Vue.component('query-results-table', {
           let i = 0;
 
           for (let el of this.columns.data.index) {
-            const var_cur = el.order_by;
+            const var_cur = el.label;
             if ((var_cur !== var_last)) {
               if (var_groups.length) {
                 var_groups[var_groups.length - 1].count = 
@@ -313,8 +313,8 @@ Vue.component('query-results-table', {
       let row_color = color;
 
       if (!color) {
-        left_border_color = "var(--steel-750)";
-        row_color = "var(--row-bg)";
+        left_border_color = "var(--steel-700)";
+        row_color = "var(--steel-500)";
       }
       
       let style = "border-left-color: " + left_border_color + "; ";
@@ -629,10 +629,15 @@ Vue.component('query-results', {
           } else if (this.order_by.kind === 'var') {
             let index = 0;
             const order_by_value = result.vars[this.order_by.index];
+            let label = result.var_labels[this.order_by.index];
+            if (label === 0) {
+              label = result.vars[this.order_by.index];
+            }
             for (let i = 0; i < (result.entities.length || 1); i ++) {
               r.data.index.push({
                 index: index + r.count,
-                order_by: order_by_value
+                order_by: order_by_value,
+                label: label
               });
               index ++;
             }

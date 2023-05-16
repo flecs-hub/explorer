@@ -126,17 +126,21 @@ Vue.component('query', {
       this.$emit("panel-update");
     },
     on_prev() {
-      this.offset -= this.limit;
-      if (this.offset < 0) {
-        this.offset = 0;
+      if (this.has_prev) {
+        this.offset -= this.limit;
+        if (this.offset < 0) {
+          this.offset = 0;
+        }
+        this.update_page();
+        this.refresh();
       }
-      this.update_page();
-      this.refresh();
     },
     on_next() {
-      this.offset += this.limit;
-      this.update_page();
-      this.refresh();
+      if (this.has_next) {
+        this.offset += this.limit;
+        this.update_page();
+        this.refresh();
+      }
     },
     on_limit(evt) {
       this.limit = parseInt(evt.target.value);
@@ -275,12 +279,18 @@ Vue.component('query', {
               ref="page"
               v-on:keyup.enter="on_page"
               v-on:blur="on_page"></input>
-            <button :disabled="!has_prev" v-on:click="on_prev" class="noselect">
-              Previous
-            </button>
-            <button :disabled="!has_next" v-on:click="on_next" class="noselect">
-              Next
-            </button>
+            <icon-button 
+              icon="codicons:chevron-left" 
+              :size="28"
+              :active="has_prev"
+              :opacity="0.7"
+              v-on:click="on_prev"></icon-button>
+            <icon-button 
+              icon="codicons:chevron-right" 
+              :size="28"
+              :active="has_next"
+              :opacity="0.7"
+              v-on:click="on_next"></icon-button>
           </div>
         </template>
       </template>

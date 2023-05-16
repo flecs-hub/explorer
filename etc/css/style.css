@@ -72,7 +72,9 @@
   --ui-blue-30: rgba(79, 149, 255, 0.30);
 
   --steel-transparent-96: rgb(26, 29, 35, 0.96);
-  --steel-transparent-90: rgb(26, 29, 35, 0.80);
+  --steel-transparent-80: rgb(26, 29, 35, 0.80);
+  
+  --steel-transparent-dark: rgb(46, 50, 60, 0.30);
   --steel-transparent-light: rgb(46, 50, 60, 0.85);
 
   /* Color assignments */
@@ -94,6 +96,7 @@
   --row-bg: var(--steel-800);
   --cell-bg: var(--steel-transparent-96);
   --cell-bg-hover: var(--steel-transparent-light);
+  --cell-header-bg: var(--steel-transparent-dark);
 
   --primary-text: var(--grey-100);
   --secondary-text: var(--grey-400);
@@ -1042,7 +1045,13 @@ div.query-results-nav {
   justify-content: flex-end;
   background-color: var(--panel-footer-bg);
   padding-top: 3px;
+  padding-bottom: 3px;
   padding-right: 6px;
+  border-style: solid;
+  border-width: 1px;
+  border-left-width: 0px;
+  border-right-width: 0px;
+  border-color: var(--grey-900);
 }
 
 div.query-results-nav span {
@@ -1361,7 +1370,7 @@ div.content-status-visible {
 
 div.content-status-body {
   display: flex;
-  background-color: var(--steel-transparent-90);
+  background-color: var(--steel-transparent-80);
   color: var(--footer-text);
   width: calc(100% - 3px);
   margin-left: 3px;
@@ -1452,6 +1461,7 @@ tr.query-results-group-row {
 
 tr.query-results-group-separator td {
   height: 3px !important;
+  background-color: var(--steel-800) !important;
 }
 
 td.query-results-group {
