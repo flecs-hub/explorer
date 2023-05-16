@@ -99,12 +99,52 @@ Vue.component('query', {
     get_query() {
       return this.$refs.editor.get_query();
     },
+    get_query_params() {
+      const query = this.get_query();
+      if (!query) {
+        return undefined;
+      }
+
+      let result;
+      if (this.is_query_name) {
+        const query_encoded = encodeURIComponent(query.slice(2).trim());
+        result = "query_name=" + query_encoded;
+        query_name = true;
+      } else {
+        const query_encoded = encodeURIComponent(query);
+        result = "query=" + query_encoded;
+      }
+
+      if (this.offset != 0) {
+        result += "&offset=" + this.offset;
+      }
+
+      if (this.limit != QueryDefaultLimit) {
+        result += "&limit=" + this.limit;
+      }
+
+      return result;
+    },
     set_query(q) {
       this.$refs.editor.set_query(q);
       if (q !== undefined) {
         this.$refs.container.expand();
       } else if (this.request) {
         this.request.abort();
+      }
+    },
+    set_offset_limit(offset, limit) {
+      if (offset !== undefined) {
+        if (typeof offset !== "number") {
+          offset = parseInt(offset);
+        }
+        this.offset = offset;
+      }
+      if (limit !== undefined) {
+        if (typeof limit !== "number") {
+          limit = parseInt(limit);
+        }
+        this.limit = limit;
       }
     },
     get_error() {
@@ -144,9 +184,6 @@ Vue.component('query', {
     },
     on_limit(evt) {
       this.limit = parseInt(evt.target.value);
-      if (!this.limit) {
-        this.limit = QueryDefaultLimit;
-      }
       this.update_page();
       this.refresh();
       evt.target.blur();
@@ -181,7 +218,11 @@ Vue.component('query', {
       return result;
     },
     page: function() {
-      return Math.floor(this.offset / this.limit);
+      if (this.limit) {
+        return Math.floor(this.offset / this.limit);
+      } else {
+        return 0;
+      }
     },
     eval_time: function() {
       let t = this.eval_duration;
@@ -218,7 +259,11 @@ Vue.component('query', {
       } else {
         return;
       }
-    }
+    },
+    is_query_name: function(){
+      const query = this.get_query();
+      return query.slice(0, 2) == "?-";
+    },
   },
   template: `
     <content-container 

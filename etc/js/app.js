@@ -413,6 +413,9 @@ var app = new Vue({
         }
 
         if (q) {
+          const offset = getParameterByName("offset");
+          const limit = getParameterByName("limit");
+          this.$refs.query.set_offset_limit(offset, limit);
           this.$refs.query.set_query(q);
         }
 
@@ -509,6 +512,9 @@ var app = new Vue({
         this.$refs.tree.select(selected);
       }
       if (q) {
+        const offset = getParameterByName("offset");
+        const limit = getParameterByName("limit");
+        this.$refs.query.set_offset_limit(offset, limit);
         this.$refs.query.set_query(q);
       }
 
@@ -743,7 +749,8 @@ var app = new Vue({
       const tree_component = this.$refs.tree;
       const show_tree = !tree_component.$el.classList.contains("disable");
       const query = this.$refs.query.get_query();
-      let query_name = false;
+      const query_params = this.$refs.query.get_query_params();
+      let query_name = this.$refs.query.is_query_name;
       
       let plecs;
       let plecs_encoded;
@@ -791,15 +798,8 @@ var app = new Vue({
         sep = "&";
       }
 
-      if (query) {
-        if (query.slice(0, 2) == "?-") {
-          const query_encoded = encodeURIComponent(query.slice(2).trim());
-          this.url += sep + "query_name=" + query_encoded;
-          query_name = true;
-        } else {
-          const query_encoded = encodeURIComponent(query);
-          this.url += sep + "query=" + query_encoded;
-        }
+      if (query_params) {
+        this.url += sep + query_params;
         sep = "&";
       }
 
