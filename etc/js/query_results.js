@@ -322,6 +322,20 @@ Vue.component('query-results-table', {
 
       return h('tr', { class: "query-results-row", style: style }, children );
     },
+    group_cell(h, group, count, colspan) {
+      const group_tree = h('entity-hierarchy', {
+        props: { entity_path: group }});
+
+      let g = group.split('.');
+      g = g[g.length - 1];
+
+      return h('td', {
+        class: 'query-results-group',
+        attrs: {
+          colspan: colspan + 1,
+        }
+      }, [group_tree, g + "\xa0(" + count + ")"]);
+    },
     // Create table body
     create_body(h) {
       const columns = this.columns;
@@ -388,12 +402,8 @@ Vue.component('query-results-table', {
         if (this.order_by.mode === 'group') {
           let inserted = 0;
           for (let group of var_groups) {
-            const group_td = h('td', {
-              class: 'query-results-group',
-              attrs: {
-                colspan: column_count + 1,
-              }
-            }, [group.group + "\xa0(" + group.count + ")"]);
+            const group_td = this.group_cell(
+              h, group.group, group.count, column_count);
 
             let group_tr = h('tr', { 
               class: 'query-results-group-row' 
