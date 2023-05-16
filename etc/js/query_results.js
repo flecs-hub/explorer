@@ -250,7 +250,8 @@ Vue.component('query-results-table', {
           let var_last = undefined;
           let i = 0;
 
-          for (let var_cur of var_values) {
+          for (let el of this.columns.data.index) {
+            const var_cur = el.order_by;
             if ((var_cur !== var_last)) {
               if (var_groups.length) {
                 var_groups[var_groups.length - 1].count = 
@@ -608,7 +609,6 @@ Vue.component('query-results', {
                   index: index + r.count,
                   order_by: value
                 });
-
                 index ++;
               }
             }
@@ -699,23 +699,21 @@ Vue.component('query-results', {
             }
           }
 
-          // Append variables
+          // Append variables & variable labels
           if (result.vars) {
             for (let i = 0; i < result.vars.length; i ++) {
               if (r.data.vars.length <= i) {
                 r.data.vars.push([]);
               }
-              this.append_to(r.data.vars[i], result.vars[i], count);
-            }
-          }
-
-          // Append variable labels
-          if (result.var_labels) {
-            for (let i = 0; i < result.var_labels.length; i ++) {
               if (r.data.var_labels.length <= i) {
                 r.data.var_labels.push([]);
               }
-              this.append_to(r.data.var_labels[i], result.var_labels[i], count);
+              this.append_to(r.data.vars[i], result.vars[i], count);
+              if (result.var_labels[i] !== 0) {
+                this.append_to(r.data.var_labels[i], result.var_labels[i], count);
+              } else {
+                this.append_to(r.data.var_labels[i], result.vars[i], count);
+              }
             }
           }
 

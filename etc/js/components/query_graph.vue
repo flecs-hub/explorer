@@ -185,8 +185,8 @@
           this.sim = d3.forceSimulation(nodes)
             .force('charge', d3.forceManyBody().strength(-100))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('link', d3.forceLink(links).distance(30).strength(0.1))
-            .force('collision', d3.forceCollide().radius(10))
+            .force('link', d3.forceLink(links).distance(100).strength(0.1))
+            .force('collision', d3.forceCollide().radius(50))
             .on('tick', this.ticked);
 
           this.link = svg.selectAll('line')
