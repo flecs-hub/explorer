@@ -1405,8 +1405,8 @@ table.query-results-table th {
   /* padding: 0px; */
   padding-left: var(--p-4);
   padding-right: var(--p-4);
-  padding-bottom: var(--p-3);
-  padding-top: var(--p-3);
+  padding-bottom: var(--p-4);
+  padding-top: var(--p-4);
   font-weight: 400;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -1416,10 +1416,17 @@ table.query-results-table th {
   color: var(--label);
   cursor: pointer;
   position: relative;
+  background-color: transparent;
+  transition: background-color 0.1s ease-in-out;
 }
 
 table.query-results-table th:hover {
-  background-color: var(--cell-bg-hover);
+  background-color: var(--steel-700);
+}
+
+th.query-results-squeeze:hover {
+  background-color: transparent !important;
+  cursor: default !important;
 }
 
 table.query-results-table thead.query-results-table-header {
@@ -1427,7 +1434,7 @@ table.query-results-table thead.query-results-table-header {
   position: sticky;
   top: 0px;
   z-index: 2;
-  box-shadow: 0px 4px 7px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.4);
 }
 
 table.query-results-table th {
@@ -1444,6 +1451,7 @@ tr.query-results-group-row {
 td.query-results-group {
   color: var(--secondary-text);
   padding-top: 5px !important;
+  background-color: var(--steel-850) !important;
 }
 
 span.query-results-order-by-icon {
@@ -1515,9 +1523,9 @@ table.query-results-table td {
   padding-right: var(--p-4);
   padding-bottom: 0px;
   padding-top: 0px;
-  border-top-color: var(--grey-800);
+  border-top-color: var(--grey-900);
   border-top-style: solid;
-  border-top-width: 1px;
+  border-top-width: 1.5px;
   font-size: inherit;
   font-feature-settings: "tnum";
   height: 46px;
