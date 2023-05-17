@@ -1453,10 +1453,13 @@ table.query-results-table th {
 tr.query-results-group-row {
   border-style: solid;
   border-width: 0px;
-  border-left-width: 0px;
+  border-left-width: 3px;
   border-color: var(--steel-700);
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.35);
   position: relative;
+}
+
+tr.query-results-group-row-enabled {
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.35);
 }
 
 tr.query-results-group-separator td {
@@ -1467,6 +1470,7 @@ tr.query-results-group-separator td {
 td.query-results-group {
   color: var(--secondary-text);
   background-color: var(--steel-800) !important;
+  cursor: pointer;
 }
 
 span.query-results-order-by-icon {

@@ -5,8 +5,8 @@ Vue.component('query-results-table', {
   },
   data: function() {
     return {
-      var_groups: [],
-      order_by: { kind: 'this', mode: 'asc', mode_index: 0 }
+      order_by: { kind: 'this', mode: 'asc', mode_index: 0 },
+      group_enabled: {}
     }
   },
   methods: {
@@ -91,6 +91,17 @@ Vue.component('query-results-table', {
         return true;
       }
       return !this.columns.data.values[term];
+    },
+    group_is_enabled(group) {
+      let result = this.group_enabled[group];
+      if (result === undefined) {
+        result = true;
+      }
+      return result;
+    },
+    toggle_group(group) {
+      let enabled = this.group_is_enabled(group);
+      this.group_enabled[group] = !enabled;
     },
     create_none(h) {
       return h('td', [h('span', { class: "query-result-cell-none" }, ["None"])]);
@@ -324,15 +335,37 @@ Vue.component('query-results-table', {
       return h('tr', { class: "query-results-row", style: style }, children );
     },
     group_cell(h, group, label, count, colspan) {
-      const group_tree = h('entity-hierarchy', {
+      const tree = h('entity-hierarchy', {
         props: { entity_path: group }});
 
+      let chevron = h('icon', {
+        props: { 
+          icon: this.group_is_enabled(group) 
+            ? 'codicons:chevron-down' 
+            : 'codicons:chevron-right',
+          opacity: 0.7,
+          top: 1,
+        }});
+
+      chevron = h('div', {
+        attrs: {
+          style: 'float: left; margin-right: 5px;'
+        }
+      }, [chevron]);
+
+      if (this.order_by.mode === 'group_only') {
+        chevron = undefined;
+      }
+
+      const el = h('div', {
+      }, [tree, label + "\xa0(" + count + ")"]);
+
       return h('td', {
-        class: 'query-results-group',
+        class: 'query-results-group noselect',
         attrs: {
           colspan: colspan + 1,
         }
-      }, [group_tree, label + "\xa0(" + count + ")"]);
+      }, [chevron, el]);
     },
     // Create table body
     create_body(h) {
@@ -407,12 +440,29 @@ Vue.component('query-results-table', {
               class: 'query-results-group-separator'
               }, [h('td', { attrs: { colspan: column_count + 1 } })]);
 
+            let group_class = 'query-results-group-row';
+            if (this.group_is_enabled(group.group)) {
+              group_class += ' query-results-group-row-enabled';
+            }
+
             let group_tr = h('tr', { 
-              class: 'query-results-group-row' 
+              class: group_class,
+              on: {
+                click: (evt) => {
+                  this.toggle_group(group.group);
+                  this.$forceUpdate();
+                }
+              }
             }, [group_td]);
 
             trs.splice(group.row + inserted, 0, [group_tr_sep, group_tr]);
             inserted ++;
+
+            // Remove group rows if group is disabled
+            if (!this.group_is_enabled(group.group)) {
+              trs.splice(group.row + inserted, group.count);
+              inserted -= group.count;
+            }
           }
         }
       } else {
@@ -432,6 +482,7 @@ Vue.component('query-results-table', {
     },
     reset() {
       this.order_by = { kind: 'this', mode: 'asc', mode_index: 0 };
+      this.group_enabled = {};
       this.$emit('order-by', this.order_by);
     }
   },
@@ -631,10 +682,10 @@ Vue.component('query-results', {
             if (label === 0) {
               label = result.vars[this.order_by.index];
               label = label.split('.');
-              label = label[g.length - 1];
-              if (label === '*') {
-                label = 'None';
-              }
+              label = label[label.length - 1];
+            }
+            if (label === '*') {
+              label = 'None';
             }
             for (let i = 0; i < (result.entities.length || 1); i ++) {
               r.data.index.push({

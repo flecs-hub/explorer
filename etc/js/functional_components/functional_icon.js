@@ -4,7 +4,8 @@ Vue.component('icon', {
     icon: { type: String, required: true },
     size: { type: Number, required: false, default: 16 },
     opacity: { type: Number, required: false, default: 1.0 },
-    rotate: { type: Number, required: false, default: 0 }
+    rotate: { type: Number, required: false, default: 0 },
+    top: {type: Number, required: false, default: 0 }
   },
   render: function (createElement, context) {
     let [iconset, icon] = context.props.icon.split(":");
@@ -21,9 +22,11 @@ Vue.component('icon', {
           css
         ],
         style: {
+          position: "relative",
           width: `${context.props.size}px`,
           height: `${context.props.size}px`,
           transform: `rotate(${context.props.rotate}deg)`,
+          top: `${context.props.top}px`,
           opacity: context.props.opacity
         },
         attrs: {

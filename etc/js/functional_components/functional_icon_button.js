@@ -5,6 +5,7 @@ Vue.component('icon-button', {
     size: { type: Number, required: false, default: 16 },
     opacity: { type: Number, required: false, default: 1.0 },
     active: { type: Boolean, required: false, default: false },
+    top: {type: Number, required: false, default: 0 }
   },
   render: function (createElement, context) {
     let [iconset, icon] = context.props.icon.split(":");
