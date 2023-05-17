@@ -251,14 +251,15 @@ Vue.component('query-results-table', {
           let i = 0;
 
           for (let el of this.columns.data.index) {
-            const var_cur = el.label;
+            const var_cur = el.order_by;
             if ((var_cur !== var_last)) {
               if (var_groups.length) {
                 var_groups[var_groups.length - 1].count = 
                   i - var_groups[var_groups.length - 1].row;
               }
               var_groups.push({
-                group: var_cur === '*' ? 'None' : var_cur,
+                group: var_cur,
+                label: el.label,
                 row: i,
               });
               var_last = var_cur;
@@ -322,19 +323,16 @@ Vue.component('query-results-table', {
 
       return h('tr', { class: "query-results-row", style: style }, children );
     },
-    group_cell(h, group, count, colspan) {
+    group_cell(h, group, label, count, colspan) {
       const group_tree = h('entity-hierarchy', {
         props: { entity_path: group }});
-
-      let g = group.split('.');
-      g = g[g.length - 1];
 
       return h('td', {
         class: 'query-results-group',
         attrs: {
           colspan: colspan + 1,
         }
-      }, [group_tree, g + "\xa0(" + count + ")"]);
+      }, [group_tree, label + "\xa0(" + count + ")"]);
     },
     // Create table body
     create_body(h) {
@@ -403,7 +401,7 @@ Vue.component('query-results-table', {
           let inserted = 0;
           for (let group of var_groups) {
             const group_td = this.group_cell(
-              h, group.group, group.count, column_count);
+              h, group.group, group.label, group.count, column_count);
 
             let group_tr_sep = h('tr', {
               class: 'query-results-group-separator'
@@ -420,7 +418,7 @@ Vue.component('query-results-table', {
       } else {
         for (let group of var_groups) {
           const group_td = this.group_cell(
-            h, group.group, group.count, column_count);
+            h, group.group, group.label, group.count, column_count);
 
           let group_tr = h('tr', { 
             class: 'query-results-group-row' 
@@ -632,6 +630,11 @@ Vue.component('query-results', {
             let label = result.var_labels[this.order_by.index];
             if (label === 0) {
               label = result.vars[this.order_by.index];
+              label = label.split('.');
+              label = label[g.length - 1];
+              if (label === '*') {
+                label = 'None';
+              }
             }
             for (let i = 0; i < (result.entities.length || 1); i ++) {
               r.data.index.push({
