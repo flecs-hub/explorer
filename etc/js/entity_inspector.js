@@ -747,7 +747,8 @@ const inspector_component = Vue.component('inspector', {
         link: true, 
         color: true,
         id_labels: true, 
-        values: true
+        values: true,
+        alerts: true
       });
     },
     set_entity(path) {
@@ -924,6 +925,13 @@ const inspector_component = Vue.component('inspector', {
     },
     connected() {
       return app.connection == ConnectionState.Remote;
+    },
+    alerts: function() {
+      if (!this.entity) {
+        return undefined;
+      }
+
+      return this.entity.alerts;
     }
   },
   template: `
@@ -1038,6 +1046,24 @@ const inspector_component = Vue.component('inspector', {
               v-on:discard-component="discard_component"
               v-on:submit-value="set_components"
               v-on="$listeners"/>
+          </div>
+
+          <div class="inspector-alerts inspector-category" v-if="alerts">
+            <detail-toggle>
+              <template v-slot:summary>
+                <div class="inspector-category-header">
+                  alerts
+                </div>
+              </template>
+              <template v-slot:detail>
+                <div class="inspector-alert" v-for="alert in alerts">
+                  <icon icon="feather:alert-triangle" 
+                    :size="14" :opacity="0.7">
+                  </icon>
+                  {{alert.message}}
+                </div>
+              </template>
+            </detail-toggle>
           </div>
         </div>
       </template>

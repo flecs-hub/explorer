@@ -241,6 +241,24 @@ Vue.component('query-results-table', {
 
       return td_entities;
     },
+    // Create alert table cells
+    create_alerts(h, alerts) {
+      let td_alerts = [];
+      for (let i = 0; i < alerts.length; i ++) {
+        const index = this.index(i);
+        const alert = alerts[index];
+        let icon = undefined;
+
+        if (alert === true) {
+          icon = h('icon', {
+            props: { icon: "feather:alert-triangle", size: 20, opacity: 0.7 }
+          });
+        }
+
+        td_alerts.push(h('td', {class: 'query-results-alert-icon'}, [icon]));
+      }
+      return td_alerts;
+    },
     // Create variable table cells
     create_vars(h) {
       const columns = this.columns;
@@ -380,7 +398,8 @@ Vue.component('query-results-table', {
         let tds = {
           entities: this.create_entities(h, data.entities, data.labels),
           vars: vars,
-          values: this.create_values(h)
+          values: this.create_values(h),
+          alerts: this.create_alerts(h, data.alerts)
         };
 
         // Initialize rows
@@ -418,6 +437,11 @@ Vue.component('query-results-table', {
         // Add td's at the end that push values to the left
         for (let row of rows) {
           row.push( h('td', { class: 'query-results-squeeze'}) );
+        }
+
+        // Add alert tds
+        for (let i = 0; i < tds.alerts.length; i ++) {
+          rows[i].push(tds.alerts[i]);
         }
 
         // Create row elements
@@ -628,7 +652,8 @@ Vue.component('query-results', {
             is_set: [],
             values: [],
             vars: [],
-            var_labels: []
+            var_labels: [],
+            alerts: []
           },
           count: 0
         };
@@ -736,11 +761,15 @@ Vue.component('query-results', {
             } else {
               r.data.labels.push(...result.entities);
             }
-            if (result.colors) {
-              r.data.colors.push(...result.colors);
+            if (result.alerts === true) {
+              this.append_to(r.data.colors, "var(--red)", count);
             } else {
-              for (let i = 0; i < result.entities.length; i ++) {
-                r.data.colors.push(undefined);
+              if (result.colors) {
+                r.data.colors.push(...result.colors);
+              } else {
+                for (let i = 0; i < result.entities.length; i ++) {
+                  r.data.colors.push(undefined);
+                }
               }
             }
           }
@@ -787,6 +816,13 @@ Vue.component('query-results', {
                 this.append_to(r.data.var_labels[i], result.vars[i], count);
               }
             }
+          }
+
+          // Append alerts
+          if (result.alerts === true) {
+            this.append_to(r.data.alerts, true, count);
+          } else {
+            this.append_to(r.data.alerts, false, count);
           }
 
           r.count += count;
