@@ -10,14 +10,11 @@ Vue.component('query', {
       error: false,
       invalid_query: false,
       request: undefined,
-      offset: 0,
-      eval_duration: 0,
-      limit: QueryDefaultLimit,
       graph_mode: false
     }
   },
   methods: {
-    query_ok(msg) {
+    query_ok() {
       this.$emit('changed');
       this.status = undefined;
       this.status_kind = Status.Info;
@@ -90,7 +87,7 @@ Vue.component('query', {
       this.evt_query_changed(this.$refs.editor.get_query());
     },
     change_query() {
-      this.offset = 0;
+      this.set_offset_limit(0, QueryDefaultLimit);
       this.refresh();
       if (this.$refs.results) {
         this.$refs.results.reset();
@@ -134,18 +131,7 @@ Vue.component('query', {
       }
     },
     set_offset_limit(offset, limit) {
-      if (offset !== undefined) {
-        if (typeof offset !== "number") {
-          offset = parseInt(offset);
-        }
-        this.offset = offset;
-      }
-      if (limit !== undefined) {
-        if (typeof limit !== "number") {
-          limit = parseInt(limit);
-        }
-        this.limit = limit;
-      }
+      this.$refs.footer.set_offset_limit(offset, limit);
     },
     get_error() {
       return this.query_error;
@@ -164,37 +150,6 @@ Vue.component('query', {
     },
     evt_panel_update() {
       this.$emit("panel-update");
-    },
-    on_prev() {
-      if (this.has_prev) {
-        this.offset -= this.limit;
-        if (this.offset < 0) {
-          this.offset = 0;
-        }
-        this.update_page();
-        this.refresh();
-      }
-    },
-    on_next() {
-      if (this.has_next) {
-        this.offset += this.limit;
-        this.update_page();
-        this.refresh();
-      }
-    },
-    on_limit(evt) {
-      this.limit = parseInt(evt.target.value);
-      this.update_page();
-      this.refresh();
-      evt.target.blur();
-    },
-    on_page(evt) {
-      this.offset = parseInt(evt.target.value) * this.limit;
-      this.refresh();
-      evt.target.blur();
-    },
-    update_page() {
-      this.$refs.page.value = this.page;
     },
     toggle_graph_mode() {
       this.graph_mode = !this.graph_mode;
@@ -264,6 +219,12 @@ Vue.component('query', {
       const query = this.get_query();
       return query.slice(0, 2) == "?-";
     },
+    offset: function() {
+      return this.$refs.footer.offset;
+    },
+    limit: function() {
+      return this.$refs.footer.limit;
+    }
   },
   template: `
     <content-container 
@@ -311,33 +272,10 @@ Vue.component('query', {
         <status :status="status"
           :kind="status_kind">
         </status>
-        <template v-if="query_result && !status">
-          <div class="query-results-stats">
-            <span>Returned {{count}} entities in {{eval_time}}</span>
-          </div>
-          <div class="query-results-nav">
-            <span class="noselect">Results</span> <input type="text" :placeholder="limit"
-              ref="limit"
-              v-on:keyup.enter="on_limit"
-              v-on:blur="on_limit"></input>
-            <span class="noselect">Page</span> <input type="text" :placeholder="page" 
-              ref="page"
-              v-on:keyup.enter="on_page"
-              v-on:blur="on_page"></input>
-            <icon-button 
-              icon="codicons:chevron-left" 
-              :size="28"
-              :active="has_prev"
-              :opacity="0.7"
-              v-on:click="on_prev"></icon-button>
-            <icon-button 
-              icon="codicons:chevron-right" 
-              :size="28"
-              :active="has_next"
-              :opacity="0.7"
-              v-on:click="on_next"></icon-button>
-          </div>
-        </template>
+        <query-footer ref="footer"
+          :result="query_result"
+          v-on:refresh="refresh">
+        </query-footer>
       </template>
     </content-container>
     `

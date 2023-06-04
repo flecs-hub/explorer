@@ -91,6 +91,7 @@ Vue.component('inspector-value', {
     value: { type: [Boolean, Number, String, Object, Array], required: true },
     symbol: { type: String, required: false },
     separator: { type: Boolean, required: false },
+    list: { type: Boolean, required: true }
   },
   functional: true,
   render: function (h, context) {
@@ -155,21 +156,36 @@ Vue.component('inspector-value', {
 
     if (type == "entity") {
       if (content != "0") {
+        let hierarchy;
+        if (props.list) {
+          hierarchy = h('entity-hierarchy', {
+            props: { entity_path: content } });
+        }
+
         content = 
           h(
             'entity-reference', { 
               props: {
                 entity: content,
                 show_name: true,
-                click_name: true
+                click_name: false
               },
               on: {
-                click: function() { context.$emit('select-entity', content) }
+                "select-entity": (evt) => {
+                  const emit_event = context.listeners["select-entity"];
+                  if (emit_event) {
+                    emit_event(evt);
+                  }
+                }
               }
             }
           );
+        
+        if (hierarchy) {
+          content = h('div', [hierarchy, content]);
+        }
 
-          css_classes.push("inspector-component-object");
+        css_classes.push("inspector-component-object");
       } else {
         content = "null";
       }
@@ -239,6 +255,7 @@ Vue.component('inspector-editable-value', {
     value: { type: [Boolean, Number, String, Object, Array], required: true },
     symbol: { type: String, required: false },
     value_css: { type: String, required: true },
+    list: { type: Boolean, required: true }
   },
   data: function() {
     return {
@@ -283,6 +300,7 @@ Vue.component('inspector-editable-value', {
           :type="type" 
           :value="value" 
           :symbol="symbol" 
+          :list="list"
           v-on="$listeners"/>
         <icon-button icon="codicons:edit" :size="16" v-on:click="on_edit"/>
       </template>
@@ -320,7 +338,14 @@ Vue.component('inspector-extended-value', {
 
 // Key-value pair (as shown in entity inspector)
 Vue.component('inspector-kv', {
-  props: ['parent_prop', 'prop_key', 'type', 'value', 'list', 'first'],
+  props: {
+    parent_prop: { required: false },
+    prop_key: { required: false },
+    type: { type: Array, required: true },
+    value: { type: [Boolean, Number, String, Object, Array], required: true },
+    list: { type: Boolean, required: true },
+    first: { type: Boolean, required: false }
+  },
   methods: {
     edit_value(input) {
       this.$emit("edit-key-value", {
@@ -371,7 +396,7 @@ Vue.component('inspector-kv', {
                 <span>{{prop_key}}</span>
               </template>
               <template v-slot:detail>
-                <inspector-props :parent_prop="full_prop" :type="type" :value="value"
+                <inspector-props :parent_prop="full_prop" :type="type" :value="value" :list="list"
                   v-on="$listeners">
                 </inspector-props>
               </template>
@@ -387,6 +412,7 @@ Vue.component('inspector-kv', {
                 :type="type" 
                 :value="value" 
                 :symbol="symbol"
+                :list="list"
                 v-on:edit-value="edit_value"
                 v-on:discard-value="discard_value"
                 v-on="$listeners">
@@ -402,7 +428,7 @@ Vue.component('inspector-kv', {
         </template>
       </template>
       <template v-else>
-        <inspector-value :type="type" :value="value" :separator="!first" 
+        <inspector-value :type="type" :value="value" :separator="!first" :list="list"
           v-on="$listeners"/>
       </template>
     </div>
@@ -411,7 +437,12 @@ Vue.component('inspector-kv', {
 
 // Component properties
 Vue.component('inspector-props', {
-  props: ['parent_prop', 'value', 'type', 'list'],
+  props: {
+    parent_prop: { required: false },
+    type: { type: Object, required: true },
+    value: { type: [Boolean, Number, String, Object, Array], required: true },
+    list: { type: Boolean, required: true }
+  },
   methods: {
     prop_type: function(prop_name) {
       if (this.type) {
@@ -582,6 +613,7 @@ Vue.component('inspector-component', {
             <inspector-props v-if="value !== undefined" 
               :type="type_info" 
               :value="value"
+              :list="false"
               v-on:edit-key-value="edit_key_value"
               v-on:discard-key-value="discard_key_value"
               v-on="$listeners"/>
@@ -1057,10 +1089,9 @@ const inspector_component = Vue.component('inspector', {
               </template>
               <template v-slot:detail>
                 <div class="inspector-alert" v-for="alert in alerts">
-                  <icon icon="feather:alert-triangle" 
+                  <span><icon icon="feather:alert-triangle" 
                     :size="14" :opacity="0.7">
-                  </icon>
-                  {{alert.message}}
+                  </icon></span>&nbsp;<span>{{alert.message}}</span>
                 </div>
               </template>
             </detail-toggle>

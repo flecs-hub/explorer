@@ -1,0 +1,127 @@
+<template>
+    <content-container 
+      ref="container"
+      :show_detail="result != undefined"
+      :no_padding="true"
+      :closable="true"
+      v-on:close="evt_close"
+      v-on:panel-update="evt_panel_update">
+
+      <template v-slot:summary>
+        Alerts
+      </template>
+      <template v-slot:detail>
+        <query-results 
+          ref="alerts_results"
+          v-if="result"
+          :data="result" 
+          :valid="true"
+          :show_this="false"
+          :headers="['Alert', 'Source', 'Message', 'Duration']"
+          :row_icon="'feather:alert-triangle'"
+          v-on="$listeners"/>
+      </template>
+      <template v-slot:footer>
+        <status :status="status"
+          :kind="status_kind">
+        </status>
+        <query-footer ref="footer"
+          :result="result"
+          v-on:refresh="refresh">
+        </query-footer>
+      </template>
+  </content-container>
+</template>
+
+<script>
+  module.exports = {
+    name: "alerts",
+    data: function() {
+      return {
+        query: "flecs.metrics.Source, flecs.alerts.Instance, flecs.metrics.Value, (ChildOf, $Alert)",
+        result: null,
+        request: undefined,
+        status: undefined,
+        status_kind: undefined,
+        is_valid: false
+      };
+    },
+    mounted() {
+      this.close();
+    },
+    methods: {
+      query_ok() {
+        this.status = undefined;
+        this.status_kind = Status.Info;
+        this.error = false;
+        this.invalid_query = false;
+      },
+      query_error(msg) {
+        this.status = msg;
+        this.status_kind = Status.Error;
+        this.error = true;
+      },
+      request_alerts() {
+        this.request = app.request_query('alert-query', this.query, (reply) => {
+          if (reply.error === undefined) {
+            this.result = reply;
+            this.query_ok();
+          } else {
+            this.query_error(reply.error);
+          }
+        }, (err_reply) => {
+          this.query_error(err_reply.error);
+        }, {
+          ids: true, 
+          sources: false,
+          entity_labels: true,
+          entity_ids: true,
+          variable_labels: true,
+          type_info: true,
+          sources: true,
+          colors: true,
+          offset: this.offset,
+          limit: this.limit,
+          duration: true,
+          type_info: true
+        });
+      },
+      open() {
+        this.$refs.container.open();
+      },
+      close() {
+        this.$refs.container.close();
+      },
+      refresh() {
+        if (this.$refs.container.is_closed()) {
+          return;
+        }
+        this.request_alerts();
+      },
+      evt_close() {
+        this.set_query();
+      },
+      evt_panel_update() {
+        this.$emit("panel-update");
+      },
+      set_query(q) {
+        if (q !== undefined) {
+          this.$refs.container.expand();
+        } else if (this.request) {
+          this.request.abort();
+        }
+      },
+    },
+    computed: {
+      offset: function() {
+        return this.$refs.footer.offset;
+      },
+      limit: function() {
+        return this.$refs.footer.limit;
+      }
+    }
+  }
+</script>
+
+<style>
+</style>

@@ -6594,8 +6594,10 @@ const ecs_entity_t* flecs_bulk_new(
             ecs_entity_t id = component_ids->array[c_i];
             const ecs_table_record_t *tr = flecs_table_record_get(
                 world, storage_table, id);
-            ecs_assert(tr != NULL, ECS_INTERNAL_ERROR, NULL);
-            ecs_assert(tr->count == 1, ECS_INTERNAL_ERROR, NULL);
+            ecs_assert(tr != NULL, ECS_INVALID_PARAMETER, 
+                "id is not a component");
+            ecs_assert(tr->count == 1, ECS_INVALID_PARAMETER,
+                "ids cannot be wildcards");
 
             int32_t index = tr->column;
             ecs_type_info_t *ti = table->type_info[index];
@@ -39394,6 +39396,7 @@ typedef enum {
 
 typedef struct ecs_rule_var_t {
     int8_t kind;           /* variable kind (EcsVarEntity or EcsVarTable)*/
+    bool anonymous;        /* variable is anonymous */
     ecs_var_id_t id;       /* variable id */
     ecs_var_id_t table_id; /* id to table variable, if any */
     const char *name;      /* variable name */
@@ -39545,12 +39548,7 @@ typedef struct ecs_rule_op_ctx_t {
     } is;
 } ecs_rule_op_ctx_t;
 
-/* Rule compiler state */
 typedef struct {
-    ecs_vec_t *ops;
-    ecs_write_flags_t written; /* Bitmask to check which variables have been written */
-    ecs_write_flags_t cond_written; /* Track conditional writes (optional operators) */
-
     /* Labels used for control flow */
     ecs_rule_lbl_t lbl_union;
     ecs_rule_lbl_t lbl_not;
@@ -39559,6 +39557,20 @@ typedef struct {
     ecs_rule_lbl_t lbl_or;
     ecs_rule_lbl_t lbl_none;
     ecs_rule_lbl_t lbl_prev; /* If set, use this as default value for prev */
+} ecs_rule_compile_ctrlflow_t;
+
+/* Rule compiler state */
+typedef struct {
+    ecs_vec_t *ops;
+    ecs_write_flags_t written; /* Bitmask to check which variables have been written */
+    ecs_write_flags_t cond_written; /* Track conditional writes (optional operators) */
+
+    /* Maintain control flow per scope */
+    ecs_rule_compile_ctrlflow_t ctrlflow[FLECS_QUERY_SCOPE_NESTING_MAX];
+    ecs_rule_compile_ctrlflow_t *cur; /* Current scope */
+
+    int32_t scope; /* Nesting level of query scopes */
+    ecs_flags32_t scope_is_not; /* Whether scope is prefixed with not */
 } ecs_rule_compile_ctx_t;    
 
 /* Rule run state */
@@ -39737,8 +39749,13 @@ void flecs_rule_write_ctx(
 {
     bool is_written = flecs_rule_is_written(var_id, ctx->written);
     flecs_rule_write(var_id, &ctx->written);
-    if (!is_written && cond_write) {
-        flecs_rule_write(var_id, &ctx->cond_written);
+    if (!is_written) {
+        if (cond_write) {
+            flecs_rule_write(var_id, &ctx->cond_written);
+        }
+        if (ctx->scope != 0) {
+            
+        }
     }
 }
 
@@ -39773,7 +39790,7 @@ bool flecs_rule_var_is_anonymous(
     ecs_var_id_t var_id)
 {
     ecs_rule_var_t *var = &rule->vars[var_id];
-    return var->name && var->name[0] == '_';
+    return var->anonymous;
 }
 
 static
@@ -39966,6 +39983,7 @@ ecs_var_id_t flecs_rule_add_var(
     if (name) {
         flecs_name_index_init_if(var_index, NULL);
         flecs_name_index_ensure(var_index, var->id, name, 0, 0);
+        var->anonymous = name ? name[0] == '_' : false;
     }
 
     return var->id;
@@ -39996,7 +40014,7 @@ void flecs_rule_discover_vars(
 
     ecs_term_t *terms = rule->filter.terms;
     int32_t i, anonymous_count = 0, count = rule->filter.term_count;
-    int32_t anonymous_table_count = 0;
+    int32_t anonymous_table_count = 0, scope = 0, scoped_var_index = 0;
     bool table_this = false, entity_before_table_this = false;
 
     /* For This table lookups during discovery. This will be overwritten after
@@ -40008,6 +40026,28 @@ void flecs_rule_discover_vars(
         ecs_term_id_t *first = &term->first;
         ecs_term_id_t *second = &term->second;
         ecs_term_id_t *src = &term->src;
+
+        if (first->id == EcsScopeOpen) {
+            /* Keep track of which variables are first used in scope, so that we
+             * can mark them as anonymous. Terms inside a scope are collapsed 
+             * into a single result, which means that outside of the scope the
+             * value of those variables is undefined. */
+            if (!scope) {
+                scoped_var_index = ecs_vec_count(vars);
+            }
+            scope ++;
+            continue;
+        } else if (first->id == EcsScopeClose) {
+            if (!--scope) {
+                /* Any new variables declared after entering a scope should be
+                 * marked as anonymous. */
+                int32_t v;
+                for (v = scoped_var_index; v < ecs_vec_count(vars); v ++) {
+                    ecs_vec_get_t(vars, ecs_rule_var_t, v)->anonymous = true;
+                }
+            }
+            continue;
+        }
 
         ecs_var_id_t first_var_id = flecs_rule_add_var_for_term_id(
             rule, first, vars, EcsVarEntity);
@@ -40198,18 +40238,18 @@ ecs_rule_lbl_t flecs_rule_op_insert(
     int32_t count = ecs_vec_count(ctx->ops);
     *elem = *op;
     if (count > 1) {
-        if (ctx->lbl_union == -1) {
+        if (ctx->cur->lbl_union == -1) {
             /* Variables written by previous instruction can't be written by
              * this instruction, except when this is a union. */
             elem->written &= ~elem[-1].written;
         }
     }
 
-    if (ctx->lbl_union != -1) {
-        elem->prev = ctx->lbl_union;
-    } else if (ctx->lbl_prev != -1) {
-        elem->prev = ctx->lbl_prev;
-        ctx->lbl_prev = -1;
+    if (ctx->cur->lbl_union != -1) {
+        elem->prev = ctx->cur->lbl_union;
+    } else if (ctx->cur->lbl_prev != -1) {
+        elem->prev = ctx->cur->lbl_prev;
+        ctx->cur->lbl_prev = -1;
     } else {
         elem->prev = flecs_itolbl(count - 2);
     }
@@ -40250,7 +40290,7 @@ static
 void flecs_rule_begin_none(
     ecs_rule_compile_ctx_t *ctx)
 {
-    ctx->lbl_none = flecs_itolbl(ecs_vec_count(ctx->ops));
+    ctx->cur->lbl_none = flecs_itolbl(ecs_vec_count(ctx->ops));
 
     ecs_rule_op_t jmp = {0};
     jmp.kind = EcsRuleJmpCondFalse;
@@ -40261,18 +40301,19 @@ static
 void flecs_rule_begin_not(
     ecs_rule_compile_ctx_t *ctx)
 {
-    ctx->lbl_not = flecs_itolbl(ecs_vec_count(ctx->ops));
+    ctx->cur->lbl_not = flecs_itolbl(ecs_vec_count(ctx->ops));
 }
 
 static
 void flecs_rule_end_not(
     ecs_rule_op_t *op,
-    ecs_rule_compile_ctx_t *ctx)
+    ecs_rule_compile_ctx_t *ctx,
+    bool update_labels)
 {
-    if (ctx->lbl_none != -1) {
+    if (ctx->cur->lbl_none != -1) {
         ecs_rule_op_t setcond = {0};
         setcond.kind = EcsRuleSetCond;
-        setcond.other = ctx->lbl_none;
+        setcond.other = ctx->cur->lbl_none;
         flecs_rule_op_insert(&setcond, ctx);
     }
 
@@ -40280,41 +40321,45 @@ void flecs_rule_end_not(
 
     ecs_rule_op_t *ops = ecs_vec_first_t(ctx->ops, ecs_rule_op_t);
     int32_t i, count = ecs_vec_count(ctx->ops);
-    for (i = ctx->lbl_not; i < count; i ++) {
-        ecs_rule_op_t *cur = &ops[i];
-        if (flecs_rule_op_is_test[cur->kind]) {
-            cur->prev = flecs_itolbl(count - 1);
-            if (i == (count - 2)) {
-                cur->next = flecs_itolbl(ctx->lbl_not - 1);
+    if (update_labels) {
+        for (i = ctx->cur->lbl_not; i < count; i ++) {
+            ecs_rule_op_t *cur = &ops[i];
+            if (flecs_rule_op_is_test[cur->kind]) {
+                cur->prev = flecs_itolbl(count - 1);
+                if (i == (count - 2)) {
+                    cur->next = flecs_itolbl(ctx->cur->lbl_not - 1);
+                }
             }
         }
     }
 
     /* After a match was found, return to op before Not operation */
     ecs_rule_op_t *not_ptr = ecs_vec_last_t(ctx->ops, ecs_rule_op_t);
-    not_ptr->prev = flecs_itolbl(ctx->lbl_not - 1);
+    not_ptr->prev = flecs_itolbl(ctx->cur->lbl_not - 1);
 
-    if (ctx->lbl_none != -1) {
+    if (ctx->cur->lbl_none != -1) {
         /* setcond */
-        ops[count - 2].next = flecs_itolbl(ctx->lbl_none - 1);
+        ops[count - 2].next = flecs_itolbl(ctx->cur->lbl_none - 1);
         /* last actual instruction */
-        ops[count - 3].prev = flecs_itolbl(count - 4);
+        if (update_labels) {
+            ops[count - 3].prev = flecs_itolbl(count - 4);
+        }
         /* jfalse */
-        ops[ctx->lbl_none].other =
+        ops[ctx->cur->lbl_none].other =
             flecs_itolbl(count - 1); /* jump to not */
         /* not */
-        ops[count - 1].prev = flecs_itolbl(ctx->lbl_none - 1);
+        ops[count - 1].prev = flecs_itolbl(ctx->cur->lbl_none - 1);
     }
 
-    ctx->lbl_not = -1;
-    ctx->lbl_none = -1;
+    ctx->cur->lbl_not = -1;
+    ctx->cur->lbl_none = -1;
 }
 
 static
 void flecs_rule_begin_option(
     ecs_rule_compile_ctx_t *ctx)
 {
-    ctx->lbl_option = flecs_itolbl(ecs_vec_count(ctx->ops));
+    ctx->cur->lbl_option = flecs_itolbl(ecs_vec_count(ctx->ops));
 
     {
         ecs_rule_op_t new_op = {0};
@@ -40332,15 +40377,15 @@ void flecs_rule_end_option(
     ecs_rule_op_t *ops = ecs_vec_first_t(ctx->ops, ecs_rule_op_t);
     int32_t count = ecs_vec_count(ctx->ops);
 
-    ops[ctx->lbl_option].other = flecs_itolbl(count - 1);
+    ops[ctx->cur->lbl_option].other = flecs_itolbl(count - 1);
     ops[count - 2].next = flecs_itolbl(count);
 
     ecs_rule_op_t new_op = {0};
     new_op.kind = EcsRuleSetCond;
-    new_op.other = ctx->lbl_option;
+    new_op.other = ctx->cur->lbl_option;
     flecs_rule_op_insert(&new_op, ctx);
 
-    ctx->lbl_option = -1;
+    ctx->cur->lbl_option = -1;
 }
 
 static
@@ -40368,7 +40413,7 @@ void flecs_rule_begin_cond_eval(
     /* If this term uses conditionally set variables, insert instruction that
      * jumps over the term if the variables weren't set yet. */
     if (cond_mask & cond_write_state) {
-        ctx->lbl_cond_eval = flecs_itolbl(ecs_vec_count(ctx->ops));
+        ctx->cur->lbl_cond_eval = flecs_itolbl(ecs_vec_count(ctx->ops));
 
         ecs_rule_op_t jmp_op = {0};
         jmp_op.kind = EcsRuleJmpNotSet;
@@ -40388,7 +40433,7 @@ void flecs_rule_begin_cond_eval(
 
         flecs_rule_op_insert(&jmp_op, ctx);
     } else {
-        ctx->lbl_cond_eval = -1;
+        ctx->cur->lbl_cond_eval = -1;
     }
 }
 
@@ -40397,7 +40442,7 @@ void flecs_rule_end_cond_eval(
     ecs_rule_op_t *op,
     ecs_rule_compile_ctx_t *ctx)
 {
-    if (ctx->lbl_cond_eval == -1) {
+    if (ctx->cur->lbl_cond_eval == -1) {
         return;
     }
 
@@ -40405,7 +40450,7 @@ void flecs_rule_end_cond_eval(
 
     ecs_rule_op_t *ops = ecs_vec_first_t(ctx->ops, ecs_rule_op_t);
     int32_t count = ecs_vec_count(ctx->ops);
-    ops[ctx->lbl_cond_eval].other = flecs_itolbl(count - 1);
+    ops[ctx->cur->lbl_cond_eval].other = flecs_itolbl(count - 1);
     ops[count - 2].next = flecs_itolbl(count);
 }
 
@@ -40422,7 +40467,7 @@ static
 void flecs_rule_begin_or(
     ecs_rule_compile_ctx_t *ctx)
 {
-    ctx->lbl_or = flecs_itolbl(ecs_vec_count(ctx->ops) - 1);
+    ctx->cur->lbl_or = flecs_itolbl(ecs_vec_count(ctx->ops) - 1);
     flecs_rule_next_or(ctx);
 }
 
@@ -40435,7 +40480,7 @@ void flecs_rule_end_or(
     ecs_rule_op_t *ops = ecs_vec_first_t(ctx->ops, ecs_rule_op_t);
     int32_t i, count = ecs_vec_count(ctx->ops);
     int32_t prev_or = -2;
-    for (i = ctx->lbl_or; i < count; i ++) {
+    for (i = ctx->cur->lbl_or; i < count; i ++) {
         if (ops[i].next == FlecsRuleOrMarker) {
             if (prev_or != -2) {
                 ops[prev_or].prev = flecs_itolbl(i);
@@ -40445,11 +40490,11 @@ void flecs_rule_end_or(
         }
     }
 
-    ops[count - 1].prev = flecs_itolbl(ctx->lbl_or - 1);
+    ops[count - 1].prev = flecs_itolbl(ctx->cur->lbl_or - 1);
 
     /* Set prev of next instruction to before the start of the OR chain */
-    ctx->lbl_prev = flecs_itolbl(ctx->lbl_or - 1);
-    ctx->lbl_or = -1;
+    ctx->cur->lbl_prev = flecs_itolbl(ctx->cur->lbl_or - 1);
+    ctx->cur->lbl_or = -1;
 }
 
 static
@@ -40458,7 +40503,7 @@ void flecs_rule_begin_union(
 {
     ecs_rule_op_t op = {0};
     op.kind = EcsRuleUnion;
-    ctx->lbl_union = flecs_rule_op_insert(&op, ctx);
+    ctx->cur->lbl_union = flecs_rule_op_insert(&op, ctx);
 }
 
 static
@@ -40469,7 +40514,7 @@ void flecs_rule_end_union(
 
     ecs_rule_op_t op = {0};
     op.kind = EcsRuleEnd;
-    ctx->lbl_union = -1;
+    ctx->cur->lbl_union = -1;
     ecs_rule_lbl_t next = flecs_rule_op_insert(&op, ctx);
     
     ecs_rule_op_t *ops = ecs_vec_first_t(ctx->ops, ecs_rule_op_t);
@@ -40772,6 +40817,24 @@ int flecs_rule_compile_builtin_pred(
 }
 
 static
+void flecs_rule_compile_push(
+    ecs_rule_compile_ctx_t *ctx)
+{
+    ctx->cur = &ctx->ctrlflow[++ ctx->scope];
+    ctx->cur->lbl_union = -1;
+    ctx->cur->lbl_prev = -1;
+    ctx->cur->lbl_not = -1;
+    ctx->cur->lbl_none = -1;
+}
+
+static
+void flecs_rule_compile_pop(
+    ecs_rule_compile_ctx_t *ctx)
+{
+    ctx->cur = &ctx->ctrlflow[-- ctx->scope];
+}
+
+static
 int flecs_rule_compile_term(
     ecs_world_t *world,
     ecs_rule_t *rule,
@@ -40788,7 +40851,22 @@ int flecs_rule_compile_term(
     ecs_rule_op_t op = {0};
 
     if (!term->src.id && term->src.flags & EcsIsEntity) {
-        /* If the term has a 0 source, don't insert operation */
+        /* If the term has a 0 source, check if it's a scope open/close */
+        if (term->first.id == EcsScopeOpen) {
+            if (term->oper == EcsNot) {
+                ctx->scope_is_not |= (ecs_flags32_t)(1ull << ctx->scope);
+            } else {
+                ctx->scope_is_not &= (ecs_flags32_t)~(1ull << ctx->scope);
+            }
+        } else if (term->first.id == EcsScopeClose) {
+            flecs_rule_compile_pop(ctx);
+            if (ctx->scope_is_not & (ecs_flags32_t)(1ull << ctx->scope)) {
+                op.field_index = -1;
+                flecs_rule_end_not(&op, ctx, false);
+            }
+        } else {
+            /* Nothing to be done */
+        }
         return 0;
     }
 
@@ -40939,6 +41017,16 @@ int flecs_rule_compile_term(
         flecs_rule_insert_inheritance(rule, term, &op, ctx, cond_write);
     }
 
+    /* If previous term was ScopeOpen with a Not operator, insert operation to
+     * ensure that none of the results inside the scope should match. */
+    if (!first_term && term[-1].first.id == EcsScopeOpen) {
+        if (term[-1].oper == EcsNot) {
+            flecs_rule_begin_none(ctx);
+            flecs_rule_begin_not(ctx);
+        }
+        flecs_rule_compile_push(ctx);
+    }
+
     /* Handle Not, Optional, Or operators */
     if (is_not) {
         flecs_rule_begin_not(ctx);
@@ -41003,15 +41091,15 @@ int flecs_rule_compile_term(
         /* Restore original first id in case it got replaced with a variable */
         op.first = prev_first;
         op.flags = prev_op_flags;
-        flecs_rule_end_not(&op, ctx);
+        flecs_rule_end_not(&op, ctx, true);
     } else if (term->oper == EcsOptional) {
         flecs_rule_end_option(&op, ctx);
     } else if (term->oper == EcsOr) {
-        if (ctx->lbl_union != -1) {
+        if (ctx->cur->lbl_union != -1) {
             flecs_rule_next_or(ctx);
         } else {
             if (first_term || term[-1].oper != EcsOr) {
-                if (ctx->lbl_union == -1) {
+                if (ctx->cur->lbl_union == -1) {
                     flecs_rule_begin_or(ctx);
                 }
             } else if (term->oper == EcsOr) {
@@ -41020,7 +41108,7 @@ int flecs_rule_compile_term(
         }
     } else if (term->oper == EcsAnd) {
         if (!first_term && term[-1].oper == EcsOr) {
-            if (ctx->lbl_union != -1) {
+            if (ctx->cur->lbl_union != -1) {
                 flecs_rule_end_union(ctx);
             } else {
                 flecs_rule_end_or(ctx);
@@ -41041,10 +41129,11 @@ int flecs_rule_compile(
     ecs_rule_compile_ctx_t ctx = {0};
     ecs_vec_reset_t(NULL, &stage->operations, ecs_rule_op_t);
     ctx.ops = &stage->operations;
-    ctx.lbl_union = -1;
-    ctx.lbl_prev = -1;
-    ctx.lbl_not = -1;
-    ctx.lbl_none = -1;
+    ctx.cur = ctx.ctrlflow;
+    ctx.cur->lbl_union = -1;
+    ctx.cur->lbl_prev = -1;
+    ctx.cur->lbl_not = -1;
+    ctx.cur->lbl_none = -1;
     ecs_vec_clear(ctx.ops);
 
     /* Find all variables defined in query */
@@ -43596,7 +43685,8 @@ ecs_iter_t ecs_rule_iter(
 {
     ecs_iter_t it = {0};
     ecs_rule_iter_t *rit = &it.priv.iter.rule;
-    
+    ecs_check(rule != NULL, ECS_INVALID_PARAMETER, NULL);
+
     ecs_run_aperiodic(rule->filter.world, EcsAperiodicEmptyTables);
 
     int32_t i, var_count = rule->var_count, op_count = rule->op_count;
@@ -43638,6 +43728,7 @@ ecs_iter_t ecs_rule_iter(
     it.variable_count = rule->var_pub_count;
     it.variable_names = rule->var_names;
 
+error:
     return it;
 }
 
@@ -43827,6 +43918,8 @@ void FlecsDocImport(
 #define TOK_BITWISE_OR '|'
 #define TOK_BRACKET_OPEN '['
 #define TOK_BRACKET_CLOSE ']'
+#define TOK_SCOPE_OPEN '{'
+#define TOK_SCOPE_CLOSE '}'
 #define TOK_WILDCARD '*'
 #define TOK_VARIABLE '$'
 #define TOK_PAREN_OPEN '('
@@ -44429,7 +44522,7 @@ const char* flecs_parse_term(
 
     /* If next token is the start of an identifier, it could be either a type
      * role, source or component identifier */
-    if (flecs_valid_token_start_char(ptr[0])) {
+    if (flecs_valid_identifier_start_char(ptr[0])) {
         ptr = ecs_parse_identifier(name, expr, ptr, token);
         if (!ptr) {
             goto error;
@@ -44452,6 +44545,23 @@ const char* flecs_parse_term(
     /* Pair with implicit subject */
     } else if (ptr[0] == TOK_PAREN_OPEN) {
         goto parse_pair;
+
+    /* Open query scope */
+    } else if (ptr[0] == TOK_SCOPE_OPEN) {
+        term.first.id = EcsScopeOpen;
+        term.src.id = 0;
+        term.src.flags = EcsIsEntity;
+        term.inout = EcsInOutNone;
+        goto parse_done;
+
+    /* Close query scope */
+    } else if (ptr[0] == TOK_SCOPE_CLOSE) {
+        term.first.id = EcsScopeClose;
+        term.src.id = 0;
+        term.src.flags = EcsIsEntity;
+        term.inout = EcsInOutNone;
+        ptr = ecs_parse_ws(ptr + 1);
+        goto parse_done;
 
     /* Nothing else expected here */
     } else {
@@ -44740,6 +44850,10 @@ char* ecs_parse_term(
                 ptr ++;
             } else if (ptr[0] == '|') {
                 ptr += 2;
+            } else if (ptr[0] == '{') {
+                ptr ++;
+            } else if (ptr[0] == '}') {
+                /* nothing to be done */
             } else {
                 ecs_parser_error(name, expr, (ptr - expr), 
                     "invalid preceding token");
@@ -44829,9 +44943,11 @@ char* ecs_parse_term(
 
     /* Cannot combine EcsIsEntity/0 with operators other than AND */
     if (term->oper != EcsAnd && ecs_term_match_0(term)) {
-        ecs_parser_error(name, expr, (ptr - expr), 
-            "invalid operator for empty source"); 
-        goto error;
+        if (term->first.id != EcsScopeOpen && term->first.id != EcsScopeClose) {
+            ecs_parser_error(name, expr, (ptr - expr), 
+                "invalid operator for empty source"); 
+            goto error;
+        }
     }
 
     /* Automatically assign This if entity is not assigned and the set is
@@ -45950,6 +46066,8 @@ const ecs_entity_t EcsDefaultChildComponent =       FLECS_HI_COMPONENT_ID + 55;
 const ecs_entity_t EcsPredEq =                      FLECS_HI_COMPONENT_ID + 56;
 const ecs_entity_t EcsPredMatch =                   FLECS_HI_COMPONENT_ID + 57;
 const ecs_entity_t EcsPredLookup =                  FLECS_HI_COMPONENT_ID + 58;
+const ecs_entity_t EcsScopeOpen =                    FLECS_HI_COMPONENT_ID + 59;
+const ecs_entity_t EcsScopeClose =                   FLECS_HI_COMPONENT_ID + 60;
 
 /* Systems */
 const ecs_entity_t EcsMonitor =                     FLECS_HI_COMPONENT_ID + 61;
@@ -50346,7 +50464,7 @@ int ecs_filter_finalize(
 {
     int32_t i, term_count = f->term_count, field_count = 0;
     ecs_term_t *terms = f->terms;
-    int32_t filter_terms = 0;
+    int32_t filter_terms = 0, scope_nesting = 0;
     bool cond_set = false;
 
     ecs_filter_finalize_ctx_t ctx = {0};
@@ -50447,6 +50565,34 @@ int ecs_filter_finalize(
         if (term->oper == EcsOptional || term->oper == EcsNot) {
             cond_set = true;
         }
+
+        if (term->first.id == EcsPredEq || term->first.id == EcsPredMatch ||
+            term->first.id == EcsPredLookup)
+        {
+            f->flags |= EcsFilterHasPred;
+        }
+
+        if (term->first.id == EcsScopeOpen) {
+            f->flags |= EcsFilterHasScopes;
+            scope_nesting ++;
+        }
+        if (term->first.id == EcsScopeClose) {
+            if (i && terms[i - 1].first.id == EcsScopeOpen) {
+                flecs_filter_error(&ctx, "invalid empty scope");
+                return -1;
+            }
+
+            f->flags |= EcsFilterHasScopes;
+            scope_nesting --;
+        }
+        if (scope_nesting < 0) {
+            flecs_filter_error(&ctx, "'}' without matching '{'");
+        }
+    }
+
+    if (scope_nesting != 0) {
+        flecs_filter_error(&ctx, "missing '}'");
+        return -1;
     }
 
     if (term_count && (terms[term_count - 1].oper == EcsOr)) {
@@ -50845,7 +50991,8 @@ static
 void flecs_term_str_w_strbuf(
     const ecs_world_t *world,
     const ecs_term_t *term,
-    ecs_strbuf_t *buf)
+    ecs_strbuf_t *buf,
+    int32_t t)
 {
     const ecs_term_id_t *src = &term->src;
     const ecs_term_id_t *second = &term->second;
@@ -50857,6 +51004,26 @@ void flecs_term_str_w_strbuf(
     bool pred_set = ecs_term_id_is_set(&term->first);
     bool subj_set = !ecs_term_match_0(term);
     bool obj_set = ecs_term_id_is_set(second);
+
+    if (term->first.id == EcsScopeOpen) {
+        ecs_strbuf_appendlit(buf, "{");
+        return;
+    } else if (term->first.id == EcsScopeClose) {
+        ecs_strbuf_appendlit(buf, "}");
+        return;
+    }
+
+    if (!t || !(term[-1].oper == EcsOr)) {
+        if (term->inout == EcsIn) {
+            ecs_strbuf_appendlit(buf, "[in] ");
+        } else if (term->inout == EcsInOut) {
+            ecs_strbuf_appendlit(buf, "[inout] ");
+        } else if (term->inout == EcsOut) {
+            ecs_strbuf_appendlit(buf, "[out] ");
+        } else if (term->inout == EcsInOutNone && term->oper != EcsNot) {
+            ecs_strbuf_appendlit(buf, "[none] ");
+        }
+    }
 
     if (term->first.flags & EcsIsEntity && term->first.id != 0) {
         if (ecs_has_id(world, term->first.id, EcsDontInherit)) {
@@ -50926,7 +51093,7 @@ char* ecs_term_str(
     const ecs_term_t *term)
 {
     ecs_strbuf_t buf = ECS_STRBUF_INIT;
-    flecs_term_str_w_strbuf(world, term, &buf);
+    flecs_term_str_w_strbuf(world, term, &buf, 0);
     return ecs_strbuf_get(&buf);
 }
 
@@ -50956,25 +51123,17 @@ char* flecs_filter_str(
             }
         }
 
-        if (!i || !(term[-1].oper == EcsOr)) {
-            if (term->inout == EcsIn) {
-                ecs_strbuf_appendlit(&buf, "[in] ");
-            } else if (term->inout == EcsInOut) {
-                ecs_strbuf_appendlit(&buf, "[inout] ");
-            } else if (term->inout == EcsOut) {
-                ecs_strbuf_appendlit(&buf, "[out] ");
-            } else if (term->inout == EcsInOutNone && term->oper != EcsNot) {
-                ecs_strbuf_appendlit(&buf, "[none] ");
-            }
-        }
-
-        flecs_term_str_w_strbuf(world, term, &buf);
+        flecs_term_str_w_strbuf(world, term, &buf, i);
 
         if (i != (count - 1)) {
             if (term->oper == EcsOr) {
                 ecs_strbuf_appendlit(&buf, " || ");
             } else {
-                ecs_strbuf_appendlit(&buf, ", ");
+                if (term->first.id != EcsScopeOpen) {
+                    if (term[1].first.id != EcsScopeClose) {
+                        ecs_strbuf_appendlit(&buf, ", ");
+                    }
+                }
             }
         }
     }
@@ -51811,6 +51970,8 @@ ecs_iter_t flecs_filter_iter_w_flags(
 {
     ecs_check(stage != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_check(filter != NULL, ECS_INVALID_PARAMETER, NULL);
+    ecs_check(!(filter->flags & (EcsFilterHasPred|EcsFilterHasScopes)),
+        ECS_UNSUPPORTED, NULL);
     const ecs_world_t *world = ecs_get_world(stage);
     
     if (!(flags & EcsIterMatchVar)) {
@@ -60610,6 +60771,8 @@ void flecs_bootstrap(
     flecs_bootstrap_tag(world, EcsPredEq);
     flecs_bootstrap_tag(world, EcsPredMatch);
     flecs_bootstrap_tag(world, EcsPredLookup);
+    flecs_bootstrap_tag(world, EcsScopeOpen);
+    flecs_bootstrap_tag(world, EcsScopeClose);
 
     /* Builtin relationships */
     flecs_bootstrap_tag(world, EcsIsA);
@@ -60699,7 +60862,7 @@ void flecs_bootstrap(
 
     ecs_observer(world, {
         .filter.terms = {{ .id = EcsExclusive, .src.flags = EcsSelf  }, match_prefab },
-        .events = {EcsOnAdd},
+        .events = {EcsOnAdd, EcsOnRemove},
         .callback = flecs_register_exclusive
     });
 

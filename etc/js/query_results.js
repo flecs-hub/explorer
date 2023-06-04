@@ -2,6 +2,9 @@
 Vue.component('query-results-table', {
   props: {
     columns: {type: Object, required: true},
+    show_this: {type: Boolean, required: true},
+    headers: {type: Array, required: false },
+    row_icon: {type: String, required: false }
   },
   data: function() {
     return {
@@ -129,6 +132,12 @@ Vue.component('query-results-table', {
 
       this.$emit('order-by', this.order_by);
     },
+    header_title(index, value) {
+      if (this.headers && this.headers[index]) {
+        return this.headers[index];
+      }
+      return value;
+    },
     // Create table header
     create_header(h) {
       const columns = this.columns;
@@ -155,13 +164,21 @@ Vue.component('query-results-table', {
       }, ["\xa0"]);
 
       if (this.order_by.mode !== 'group_only') {
-        if (data.entities && data.entities.length) {
+        let column = 0;
+
+        if (this.row_icon) {
+          // Insert placeholder in header for row icon
+          ths.push(h('th', {}));
+        }
+
+        if (data.entities && data.entities.length && this.show_this) {
           ths.push(h('th', { on: {
             click: () => { this.on_order_by({kind: 'this'}); }
-          }}, ["Entity", this.order_by.kind === "this" 
+          }}, [this.header_title(column, "Entity"), this.order_by.kind === "this" 
             ? icon_elem 
             : icon_placeholder
           ]));
+          column ++;
         }
 
         if (columns.vars) {
@@ -169,6 +186,8 @@ Vue.component('query-results-table', {
           for (let var_name of columns.vars) {
             var_name_elems = var_name.split(".");
             var_name = var_name_elems[var_name_elems.length - 1];
+            var_name = this.header_title(column, var_name);
+            column ++;
 
             let index = i; // prevents hoisting of i
             ths.push(h('th', { on: {
@@ -185,10 +204,14 @@ Vue.component('query-results-table', {
         if (columns.ids) {
           for (let i = 0; i < columns.ids.length; i ++) {
             if (!this.term_is_tag(i)) {
+              let name = this.term_header(i);
+              name = this.header_title(column, name);
+              column ++;
+
               let index = i; // prevents hoisting of i
               ths.push(h('th', { on: {
                 click: () => { this.on_order_by({kind: 'value', index: index}); }
-              }}, [this.term_header(i), (this.order_by.kind === 'value' && this.order_by.index === i) 
+              }}, [name, (this.order_by.kind === 'value' && this.order_by.index === i) 
                 ? icon_elem 
                 : icon_placeholder
               ]));
@@ -241,6 +264,16 @@ Vue.component('query-results-table', {
 
       return td_entities;
     },
+    create_row_icons(h, count) {
+      let td_icons = [];
+      for (let i = 0; i < count; i ++) {
+        let icon = h('icon', {
+          props: { icon: this.row_icon, size: 18, opacity: 0.7 }
+        });
+        td_icons.push(h('td', {class: 'query-results-row-icon'}, [icon]));
+      }
+      return td_icons;
+    },
     // Create alert table cells
     create_alerts(h, alerts) {
       let td_alerts = [];
@@ -251,11 +284,11 @@ Vue.component('query-results-table', {
 
         if (alert === true) {
           icon = h('icon', {
-            props: { icon: "feather:alert-triangle", size: 20, opacity: 0.7 }
+            props: { icon: "feather:alert-triangle", size: 18, opacity: 0.7 }
           });
         }
 
-        td_alerts.push(h('td', {class: 'query-results-alert-icon'}, [icon]));
+        td_alerts.push(h('td', {class: 'query-results-row-icon'}, [icon]));
       }
       return td_alerts;
     },
@@ -325,7 +358,8 @@ Vue.component('query-results-table', {
                   value: data.values[i][index],
                   type: this.type_info(i),
                   list: true
-                }
+                },
+                on: this.$listeners 
               });
 
               value_array.push(h('td', [inspector]));
@@ -396,11 +430,19 @@ Vue.component('query-results-table', {
       if (this.order_by.mode !== 'group_only') {
         // Create cells from columns
         let tds = {
-          entities: this.create_entities(h, data.entities, data.labels),
+          entities: [],
           vars: vars,
           values: this.create_values(h),
-          alerts: this.create_alerts(h, data.alerts)
+          alerts: this.create_alerts(h, data.alerts),
+          row_icons: []
         };
+
+        if (this.show_this) {
+          tds.entities = this.create_entities(h, data.entities, data.labels);
+        }
+        if (this.row_icon) {
+          tds.row_icons = this.create_row_icons(h, data.entities.length);
+        }
 
         // Initialize rows
         let rows = [];
@@ -409,6 +451,13 @@ Vue.component('query-results-table', {
         }
 
         // Populate row children arrays with td elements
+
+        // Add row icons
+        if (this.row_icon) {
+          for (let i = 0; i < tds.row_icons.length; i ++) {
+            rows[i].push(tds.row_icons[i]);
+          }
+        }
 
         // Add entity tds
         if (tds.entities.length) {
@@ -518,7 +567,13 @@ Vue.component('query-results-table', {
 });
 
 Vue.component('query-results', {
-    props: ['data', 'valid'],
+    props: {
+      data: {type: Object, required: true},
+      valid: {type: Boolean, required: true},
+      show_this: {type: Boolean, required: false, default: true},
+      headers: {type: Array, required: false },
+      row_icon: {type: String, required: false }
+    },
     data: function() {
       return {
         show_terms: false,
@@ -838,7 +893,11 @@ Vue.component('query-results', {
           <div v-else class="noselect query-result-yesno"> No results </div>
         </template>
         <template v-else>
-          <query-results-table ref="table" :columns="columns"
+          <query-results-table ref="table" 
+            :columns="columns"
+            :show_this="show_this"
+            :headers="headers"
+            :row_icon="row_icon"
             v-on:order-by="order_by_column"
             v-on:select-entity="select_entity">
           </query-results-table>

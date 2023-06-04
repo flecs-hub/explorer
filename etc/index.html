@@ -51,6 +51,7 @@
             <panel-button icon="inspect" panel="inspector"></panel-button>
             <panel-button icon="graph-line" panel="stats_world"></panel-button>
             <panel-button icon="server" panel="stats_pipeline"></panel-button>
+            <panel-button icon="warning" panel="alerts"></panel-button>
           </panel-menu>
         </split-pane>
 
@@ -79,6 +80,10 @@
             v-on:select-entity="evt_follow_ref"
             v-on:panel-update="evt_panel_update">
           </stats-pipeline>
+          <alerts ref="alerts"
+            v-on:panel-update="evt_panel_update"
+            v-on:select-entity="evt_follow_ref">
+          </alerts>
         </split-pane>
 
         <!-- Editor -->

@@ -57,12 +57,14 @@ var popover_component = Vue.component('popover', httpVueLoader('js/components/po
 Vue.component('url-popover', httpVueLoader('js/overlays/popovers/url-popover.vue'));
 Vue.component('panel-menu', httpVueLoader('js/components/panel_menu.vue'));
 Vue.component('panel-button', httpVueLoader('js/components/panel_button.vue'));
+Vue.component('query-footer', httpVueLoader('js/components/query_footer.vue'));
 Vue.component('query-graph', httpVueLoader('js/components/query_graph.vue'));
 Vue.component('stat', httpVueLoader('js/components/stat.vue'));
 Vue.component('stats-period', httpVueLoader('js/components/stats_period.vue'));
 Vue.component('stat-chart', httpVueLoader('js/components/stat_chart.vue'));
 Vue.component('stats-world', httpVueLoader('js/components/stats_world.vue'));
 Vue.component('stats-pipeline', httpVueLoader('js/components/stats_pipeline.vue'));
+Vue.component('alerts', httpVueLoader('js/components/alerts.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {
@@ -139,7 +141,8 @@ var app = new Vue({
       // Load default explorer module
       this.wasm_url = window.location.protocol + "//" + window.location.host;
       if (window.location.pathname && window.location.pathname.length > 1) {
-        this.wasm_url += window.location.pathname.slice(0, window.location.pathname.lastIndexOf("/"));
+        this.wasm_url += window.location.pathname.slice(
+          0, window.location.pathname.lastIndexOf("/"));
       }
       this.wasm_url += "/flecs_explorer.js";
     } else {
@@ -439,6 +442,7 @@ var app = new Vue({
       this.refresh_entity();
       this.refresh_tree();
       this.refresh_stats();
+      this.refresh_alerts();
 
       // Refresh UI periodically
       this.refresh_timer = window.setInterval(() => {
@@ -446,6 +450,7 @@ var app = new Vue({
         this.refresh_entity();
         this.refresh_tree();
         this.refresh_stats();
+        this.refresh_alerts();
       }, REFRESH_INTERVAL);
 
       this.evt_panel_update();
@@ -692,6 +697,10 @@ var app = new Vue({
         this.$refs.stats_world.refresh();
         this.$refs.stats_pipeline.refresh();
       }
+    },
+
+    refresh_alerts() {
+      this.$refs.alerts.refresh();
     },
 
     // Entity selected

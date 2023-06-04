@@ -568,7 +568,6 @@ div.inspector-component-name div.detail-toggle-summary:hover {
 }
 
 span.inspector-component-object {
-  color: var(--green);
 }
 
 div.inspector-component-overridden {
@@ -732,12 +731,20 @@ div.inspector-alert {
   margin-top: 4px;
   font-size: var(--text-fs-md);
   color: var(--secondary-text);
+  white-space: nowrap;
 }
 
 div.inspector-alert img {
+  top: 2px !important;
+  margin-left: 2px;
+  margin-right: 2px;
+}
+
+div.inspector-alert span {
   top: 3px !important;
   margin-left: 2px;
   margin-right: 4px;
+  white-space: normal;
 }
 
 span.inspector-value-bool {
@@ -1133,8 +1140,8 @@ div.query-results-nav button:disabled  {
   cursor: default;
 }
 
-td.query-results-alert-icon img {
-  margin-top: 4px; /* center icon in row */
+td.query-results-row-icon img {
+  margin-top: 5px; /* center icon in row */
 }
 
 div.error {
