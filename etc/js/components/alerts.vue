@@ -88,6 +88,7 @@
       },
       open() {
         this.$refs.container.open();
+        this.refresh();
       },
       close() {
         this.$refs.container.close();
