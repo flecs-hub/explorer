@@ -115,10 +115,18 @@
     },
     computed: {
       offset: function() {
-        return this.$refs.footer.offset;
+        if (this.$refs.footer) {
+          return this.$refs.footer.offset;
+        } else {
+          return 0;
+        }
       },
       limit: function() {
-        return this.$refs.footer.limit;
+        if (this.$refs.footer) {
+          return this.$refs.footer.limit;
+        } else {
+          return QueryDefaultLimit
+        }
       }
     }
   }

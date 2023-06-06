@@ -724,13 +724,17 @@ var app = new Vue({
     },
 
     evt_tree_navigate(entity) {
-      this.$refs.tree.select(entity);
-      this.$refs.tree.open();
+      if (this.$refs.tree) {
+        this.$refs.tree.select(entity);
+        this.$refs.tree.open();
+      }
     },
 
     evt_select_query(query) {
-      this.$refs.query.set_query(query);
-      this.$refs.query.open();
+      if (this.$refs.query) {
+        this.$refs.query.set_query(query);
+        this.$refs.query.open();
+      }
     },
 
     evt_append_query(query) {
