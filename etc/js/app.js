@@ -681,26 +681,36 @@ var app = new Vue({
     },
 
     refresh_query() {
-      this.$refs.query.refresh();
+      if (this.$refs.query) {
+        this.$refs.query.refresh();
+      }
     },
 
     refresh_entity() {
-      this.$refs.inspector.refresh();
+      if (this.$refs.inspector) {
+        this.$refs.inspector.refresh();
+      }
     },
 
     refresh_tree() {
-      this.$refs.tree.update_expanded();
+      if (this.$refs.tree) {
+        this.$refs.tree.update_expanded();
+      }
     },
 
     refresh_stats() {
       if (this.$refs.stats_world) {
         this.$refs.stats_world.refresh();
+      }
+      if (this.$refs.stats_pipeline) {
         this.$refs.stats_pipeline.refresh();
       }
     },
 
     refresh_alerts() {
-      this.$refs.alerts.refresh();
+      if (this.$refs.alerts) {
+        this.$refs.alerts.refresh();
+      }
     },
 
     // Entity selected
