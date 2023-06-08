@@ -636,7 +636,9 @@ Vue.component('query-results', {
         return value;
       },
       reset() {
-        this.$refs.table.reset();
+        if (this.$refs.table) {
+          this.$refs.table.reset();
+        }
       }
     },
     computed: {

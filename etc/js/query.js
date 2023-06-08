@@ -87,11 +87,11 @@ Vue.component('query', {
       this.evt_query_changed(this.$refs.editor.get_query());
     },
     change_query() {
-      this.set_offset_limit(0, QueryDefaultLimit);
       this.refresh();
       if (this.$refs.results) {
         this.$refs.results.reset();
       }
+      this.$refs.footer.set_offset_limit();
     },
     get_query() {
       return this.$refs.editor.get_query();
@@ -131,9 +131,7 @@ Vue.component('query', {
       }
     },
     set_offset_limit(offset, limit) {
-      if (this.$refs.footer) {
-        this.$refs.footer.set_offset_limit(offset, limit);
-      }
+      this.$refs.footer.set_offset_limit(offset, limit);
     },
     get_error() {
       return this.query_error;

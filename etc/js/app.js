@@ -418,8 +418,8 @@ var app = new Vue({
         if (q) {
           const offset = getParameterByName("offset");
           const limit = getParameterByName("limit");
-          this.$refs.query.set_offset_limit(offset, limit);
           this.$refs.query.set_query(q);
+          this.$refs.query.set_offset_limit(offset, limit);
         }
 
         if (show_tree === "false") {
@@ -519,8 +519,8 @@ var app = new Vue({
       if (q) {
         const offset = getParameterByName("offset");
         const limit = getParameterByName("limit");
-        this.$refs.query.set_offset_limit(offset, limit);
         this.$refs.query.set_query(q);
+        this.$refs.query.set_offset_limit(offset, limit);
       }
 
       this.$refs.tree.update_expanded();

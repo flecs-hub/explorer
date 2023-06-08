@@ -1,5 +1,5 @@
 <template>
-  <div v-if="result">
+  <div :class="css">
     <div class="query-results-stats">
       <span>Returned {{count}} entities in {{eval_time}}</span>
     </div>
@@ -47,12 +47,20 @@
             offset = parseInt(offset);
           }
           this.offset = offset;
+          this.$refs.page.value = this.page;
+        } else {
+          this.offset = 0;
+          this.$refs.page.value = "";
         }
         if (limit !== undefined) {
           if (typeof limit !== "number") {
             limit = parseInt(limit);
           }
           this.limit = limit;
+          this.$refs.limit.value = this.limit;
+        } else {
+          this.limit = QueryDefaultLimit;
+          this.$refs.limit.value = "";
         }
       },
       on_prev() {
@@ -74,6 +82,10 @@
       },
       on_limit(evt) {
         this.limit = parseInt(evt.target.value);
+        if (isNaN(this.limit)) {
+          this.limit = QueryDefaultLimit;
+        }
+
         this.update_page();
         this.$emit("refresh");
         evt.target.blur();
@@ -112,6 +124,9 @@
         }
       },
       eval_time: function() {
+        if (!this.result) {
+          return 0;
+        }
         let t = this.result.eval_duration;
         let r;
         if (t < (1 / (1000 * 1000))) {
@@ -130,6 +145,13 @@
       },
       has_prev: function() {
         return this.offset != 0;
+      },
+      css: function() {
+        if (this.result) {
+          return "";
+        } else {
+          return "hidden";
+        }
       },
     }
   }

@@ -919,6 +919,10 @@ div.url-modal-hidden {
   display: none;
 }
 
+div.hidden {
+  display: none;
+}
+
 div.url-modal-content {
   position: relative;
   top: calc(20% - 64px);
