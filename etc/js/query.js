@@ -10,7 +10,11 @@ Vue.component('query', {
       error: false,
       invalid_query: false,
       request: undefined,
-      graph_mode: false
+      graph_mode: false,
+      offset_limit: {
+        offset: undefined,
+        limit: undefined
+      }
     }
   },
   methods: {
@@ -91,7 +95,6 @@ Vue.component('query', {
       if (this.$refs.results) {
         this.$refs.results.reset();
       }
-      this.$refs.footer.set_offset_limit();
     },
     get_query() {
       return this.$refs.editor.get_query();
@@ -131,7 +134,8 @@ Vue.component('query', {
       }
     },
     set_offset_limit(offset, limit) {
-      this.$refs.footer.set_offset_limit(offset, limit);
+      this.offset_limit.offset = offset;
+      this.offset_limit.limit = limit;
     },
     get_error() {
       return this.query_error;
@@ -220,18 +224,10 @@ Vue.component('query', {
       return query.slice(0, 2) == "?-";
     },
     offset: function() {
-      if (this.$refs.footer) {
-        return this.$refs.footer.offset;
-      } else {
-        return 0;
-      }
+      return this.offset_limit.offset;
     },
     limit: function() {
-      if (this.$refs.footer) {
-        return this.$refs.footer.limit;
-      } else {
-        return QueryDefaultLimit
-      }
+      return this.offset_limit.limit;
     }
   },
   template: `
@@ -282,6 +278,7 @@ Vue.component('query', {
         </status>
         <query-footer ref="footer"
           :result="query_result"
+          v-model="offset_limit"
           v-on:refresh="refresh">
         </query-footer>
       </template>

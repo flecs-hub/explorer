@@ -3,25 +3,35 @@ Vue.component('detail-toggle', {
   props: {
     show_summary: { type: Boolean, required: false, default: true },
     show_detail: { type: Boolean, required: false, default: true },
-    show_divider: { type: Boolean, required: false, default: false }
+    show_divider: { type: Boolean, required: false, default: false },
+    expanded: { type: Boolean }
+  },
+  model: {
+    prop: 'expanded',
+    event: 'toggle'
   },
   data: function() {
     return {
-      expanded: true,
+      expand_state: true,
       toggle_allowed: true
+    }
+  },
+  watch: {
+    expand_state: function() {
+      this.$emit("toggle", this.expand_state)
     }
   },
   methods: {
     toggle: function() {
       if (this.toggle_allowed) {
-        this.expanded = !this.expanded;
+        this.expand_state = !this.expand_state;
       }
     },
     expand: function(expand) {
-      if (expand === undefined) {
-        this.expanded = true;
-      } else {
-        this.expanded = expand;
+      if (!this.expand_state && expand === undefined) {
+        this.expand_state = true;
+      } else if (this.expand_state != expand) {
+        this.expand_state = expand;
       }
     },
     allow_toggle: function(allow) {
@@ -35,7 +45,7 @@ Vue.component('detail-toggle', {
     },
     detail_css: function() {
       let result = "detail-toggle-detail"
-      if (!this.expanded || !this.show_detail) {
+      if (!this.expand_state || !this.show_detail) {
         result += " detail-toggle-detail-hide";
       }
       return result;
@@ -45,7 +55,7 @@ Vue.component('detail-toggle', {
     <div class="detail-toggle">
       <div :class="summary_css" v-on:click.stop="toggle" v-if="show_summary">
         <template v-if="show_detail">
-          <old-icon-button src="nav" v-on:click.stop="toggle" :rotate="expanded"/>
+          <old-icon-button src="nav" v-on:click.stop="toggle" :rotate="expand_state"/>
         </template>
         <template v-else>
           <span class="icon noselect">

@@ -33,12 +33,45 @@
     name: "query-footer",
     props: {
       result: { type: Object, required: false },
+      offset_limit: { type: Object, required: true }
+    },
+    model: {
+      prop: 'offset_limit',
+      event: 'change'
     },
     data: function() {
       return {
         offset: 0,
         limit: QueryDefaultLimit,
       };
+    },
+    mounted: function() {
+      if (!Object.hasOwn(this.offset_limit, "offset")) {
+        console.error("missing page offset_limit.offset member");
+      }
+      if (!Object.hasOwn(this.offset_limit, "limit")) {
+        console.error("missing limit offset_limit.limit member");
+      }
+      this.offset = this.offset_limit.offset;
+      this.limit = this.offset_limit.limit;
+    },
+    watch: {
+      offset: function() {
+        this.$emit("change", {
+          offset: this.offset,
+          limit: this.limit
+        });
+      },
+      limit: function() {
+        this.$emit("change", {
+          offset: this.offset,
+          limit: this.limit
+        });
+      },
+      offset_limit: function() {
+        this.set_offset_limit(
+          this.offset_limit.offset, this.offset_limit.limit);
+      }
     },
     methods: {
       set_offset_limit(offset, limit) {

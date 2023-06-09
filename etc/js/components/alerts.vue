@@ -27,6 +27,7 @@
         </status>
         <query-footer ref="footer"
           :result="result"
+          v-model="offset_limit"
           v-on:refresh="refresh">
         </query-footer>
       </template>
@@ -43,7 +44,11 @@
         request: undefined,
         status: undefined,
         status_kind: undefined,
-        is_valid: false
+        is_valid: false,
+        offset_limit: {
+          offset: undefined,
+          limit: undefined
+        }
       };
     },
     mounted() {

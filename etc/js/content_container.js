@@ -9,7 +9,8 @@ Vue.component('content-container', {
     data: function() {
       return {
         closed: false,
-        maximized: false
+        maximized: false,
+        expanded: true
       }
     },
     methods: {
@@ -41,13 +42,6 @@ Vue.component('content-container', {
         if (this.disable) {
           this.maximized = false;
         }
-      },
-      expanded: function() {
-        if (this.$refs.toggle) {
-          return this.$refs.toggle.expanded;
-        } else {
-          return true;
-        }
       }
     },
     computed: {
@@ -68,6 +62,13 @@ Vue.component('content-container', {
         }
         return result;
       },
+      footer_css: function() {
+        if (!this.expanded) {
+          return "hidden";
+        } else {
+          return "";
+        }
+      },
       maximize_icon: function() {
         if (this.maximized) {
           return "minimize";
@@ -79,7 +80,11 @@ Vue.component('content-container', {
     template: `
       <div :class="wrapper_css">
         <div class="content-container">
-          <detail-toggle summary_toggle="true" :collapse="collapse" :show_detail="show_detail" ref="toggle">
+          <detail-toggle ref="toggle"
+              summary_toggle="true" 
+              :collapse="collapse" 
+              :show_detail="show_detail"
+              v-model="expanded">
             <template v-slot:summary>
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>
@@ -104,8 +109,10 @@ Vue.component('content-container', {
                 <slot name="detail"></slot>
               </div>
             </template>
-            <template v-slot:footer v-if="expanded()">
-              <slot name="footer"></slot>
+            <template v-slot:footer>
+              <div :class="footer_css">
+                <slot name="footer"></slot>
+              </div>
             </template>
           </detail-toggle>
         </div>
