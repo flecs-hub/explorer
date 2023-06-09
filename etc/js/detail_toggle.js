@@ -4,7 +4,7 @@ Vue.component('detail-toggle', {
     show_summary: { type: Boolean, required: false, default: true },
     show_detail: { type: Boolean, required: false, default: true },
     show_divider: { type: Boolean, required: false, default: false },
-    expanded: { type: Boolean }
+    expanded: { type: Boolean, default: true }
   },
   model: {
     prop: 'expanded',
@@ -15,6 +15,9 @@ Vue.component('detail-toggle', {
       expand_state: true,
       toggle_allowed: true
     }
+  },
+  mounted: function() {
+    this.expand_state = this.expanded;
   },
   watch: {
     expand_state: function() {
@@ -28,9 +31,11 @@ Vue.component('detail-toggle', {
       }
     },
     expand: function(expand) {
-      if (!this.expand_state && expand === undefined) {
+      if (expand === undefined) {
+        expand = true;
         this.expand_state = true;
-      } else if (this.expand_state != expand) {
+      }
+      if (this.expand_state != expand) {
         this.expand_state = expand;
       }
     },
