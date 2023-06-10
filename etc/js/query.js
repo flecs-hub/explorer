@@ -136,6 +136,9 @@ Vue.component('query', {
     set_offset_limit(offset, limit) {
       this.offset_limit.offset = offset;
       this.offset_limit.limit = limit;
+      if (this.$refs.footer) {
+        this.$refs.footer.set_offset_limit(offset, limit);
+      }
     },
     get_error() {
       return this.query_error;
