@@ -220,6 +220,9 @@ Vue.component('query-results-table', {
         }
 
         ths.push( h('th', { class: 'query-results-squeeze'}) );
+
+        /* Insert placeholder for row icon at end of column */
+        ths.push(h('th', {}));
       } else {
         const index = this.order_by.index;
         const var_name = columns.vars[index];
