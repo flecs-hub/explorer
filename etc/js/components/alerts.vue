@@ -17,7 +17,7 @@
           :data="result" 
           :valid="true"
           :show_this="false"
-          :headers="['Alert', 'Source', 'Message', 'Duration']"
+          :headers="['Alert', 'Severity', 'Source', 'Message', 'Duration']"
           :row_icon="'feather:alert-triangle'"
           v-on="$listeners"/>
       </template>
@@ -39,7 +39,12 @@
     name: "alerts",
     data: function() {
       return {
-        query: "flecs.metrics.Source, flecs.alerts.Instance, flecs.metrics.Value, (ChildOf, $Alert)",
+        query: `
+          flecs.metrics.Source, 
+          flecs.alerts.Instance, 
+          flecs.metrics.Value, 
+          (ChildOf, $Alert), 
+          flecs.alerts.Alert($Alert, $Severity)`,
         result: null,
         request: undefined,
         status: undefined,

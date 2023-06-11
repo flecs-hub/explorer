@@ -30,6 +30,9 @@ const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 const example_selected = "Earth";
 const example_query = "CelestialBody, Mass, ?(ChildOf, $Orbits)"
 
+// Default max number of rows to show in query results
+const QueryDefaultLimit = 25;
+
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
   var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
@@ -59,6 +62,10 @@ Vue.component('panel-menu', httpVueLoader('js/components/panel_menu.vue'));
 Vue.component('panel-button', httpVueLoader('js/components/panel_button.vue'));
 Vue.component('query-footer', httpVueLoader('js/components/query_footer.vue'));
 Vue.component('query-graph', httpVueLoader('js/components/query_graph.vue'));
+Vue.component('query-results-table', httpVueLoader('js/components/query_results_table.vue'));
+Vue.component('query-results', httpVueLoader('js/components/query_results.vue'));
+Vue.component('query-editor', httpVueLoader('js/components/query_editor.vue'));
+Vue.component('query', httpVueLoader('js/components/query.vue'));
 Vue.component('stat', httpVueLoader('js/components/stat.vue'));
 Vue.component('stats-period', httpVueLoader('js/components/stats_period.vue'));
 Vue.component('stat-chart', httpVueLoader('js/components/stat_chart.vue'));

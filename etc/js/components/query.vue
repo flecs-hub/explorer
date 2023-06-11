@@ -1,6 +1,61 @@
-const QueryDefaultLimit = 25;
+<template>
+  <content-container 
+    ref="container"
+    :show_detail="query_result != undefined"
+    :no_padding="true"
+    :closable="true"
+    v-on:close="evt_close"
+    v-on:panel-update="evt_panel_update">
 
-Vue.component('query', {
+    <template v-slot:summary>
+      <query-editor
+        ref="editor"
+        :error="invalid_query"
+        v-on:changed="change_query"
+        v-on:allow-toggle="evt_allow_toggle"/>
+    </template>
+
+    <template v-slot:detail>
+      <div class="query-graph-select">
+        <icon-button icon="codicons:type-hierarchy" :size="20"
+          v-on:click="toggle_graph_mode"
+          v-if="!graph_mode" v-tooltip="'Toggle graph mode'"></icon-button>
+        <icon-button icon="codicons:table" :size="20"
+          v-on:click="toggle_graph_mode"
+          v-if="graph_mode" v-tooltip="'Toggle graph mode'"></icon-button>
+      </div>
+
+      <template v-if="!graph_mode">
+        <query-results 
+          ref="results"
+          v-if="query_result"
+          :data="query_result" 
+          :valid="is_valid"
+          v-on="$listeners"/>
+      </template>
+      <template v-else>
+        <query-graph
+          :results="query_result"
+          v-on="$listeners"/>
+      </template>
+    </template>
+
+    <template v-slot:footer>
+      <status :status="status"
+        :kind="status_kind">
+      </status>
+      <query-footer ref="footer"
+        :result="query_result"
+        v-model="offset_limit"
+        v-on:refresh="refresh">
+      </query-footer>
+    </template>
+  </content-container>
+</template>
+
+<script>
+module.exports = {
+  name: "query",
   props: ['valid'],
   data: function() {
     return {
@@ -232,59 +287,16 @@ Vue.component('query', {
     limit: function() {
       return this.offset_limit.limit;
     }
-  },
-  template: `
-    <content-container 
-      ref="container"
-      :show_detail="query_result != undefined"
-      :no_padding="true"
-      :closable="true"
-      v-on:close="evt_close"
-      v-on:panel-update="evt_panel_update">
+  }
+};
+</script>
 
-      <template v-slot:summary>
-        <query-editor
-          ref="editor"
-          :error="invalid_query"
-          v-on:changed="change_query"
-          v-on:allow-toggle="evt_allow_toggle"/>
-      </template>
-
-      <template v-slot:detail>
-        <div class="query-graph-select">
-          <icon-button icon="codicons:type-hierarchy" :size="20"
-            v-on:click="toggle_graph_mode"
-            v-if="!graph_mode" v-tooltip="'Toggle graph mode'"></icon-button>
-          <icon-button icon="codicons:table" :size="20"
-            v-on:click="toggle_graph_mode"
-            v-if="graph_mode" v-tooltip="'Toggle graph mode'"></icon-button>
-        </div>
-
-        <template v-if="!graph_mode">
-          <query-results 
-            ref="results"
-            v-if="query_result"
-            :data="query_result" 
-            :valid="is_valid"
-            v-on="$listeners"/>
-        </template>
-        <template v-else>
-          <query-graph
-            :results="query_result"
-            v-on="$listeners"/>
-        </template>
-      </template>
-
-      <template v-slot:footer>
-        <status :status="status"
-          :kind="status_kind">
-        </status>
-        <query-footer ref="footer"
-          :result="query_result"
-          v-model="offset_limit"
-          v-on:refresh="refresh">
-        </query-footer>
-      </template>
-    </content-container>
-    `
-});
+<style scoped>
+  div.query-graph-select {
+    position: absolute;
+    top: 12px;
+    right: 5px;
+    z-index: 100;
+    background-color: var(--panel-bg-secondary);
+  }
+</style>
