@@ -72,6 +72,7 @@ Vue.component('stat-chart', httpVueLoader('js/components/stat_chart.vue'));
 Vue.component('stats-world', httpVueLoader('js/components/stats_world.vue'));
 Vue.component('stats-pipeline', httpVueLoader('js/components/stats_pipeline.vue'));
 Vue.component('alerts', httpVueLoader('js/components/alerts.vue'));
+Vue.component('inspector-alerts', httpVueLoader('js/components/inspector_alerts.vue'));
 
 Vue.directive('tooltip', {
   bind: function (el, binding, vnode) {

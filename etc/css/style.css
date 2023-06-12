@@ -68,6 +68,10 @@
   --red: #B5494B;
   --bright-red: #EF8784;
 
+  --alert-error: #b5494b;
+  --alert-warning: #b5894b;
+  --alert-info: #7595b3;
+
   --ui-blue: rgba(79, 149, 255, 1.0);
   --ui-blue-30: rgba(79, 149, 255, 0.30);
 
@@ -708,35 +712,6 @@ div.inspector-alerts {
   padding-left: 8px;
   padding-right: 4px;
   padding-bottom: 4px;
-}
-
-div.inspector-alert {
-  background-color: rgb(33, 31, 36);
-  border-radius: 3px;
-  border-style: solid;
-  border-width: 0px;
-  border-left-width: 3px;
-  border-left-color: var(--red);
-  padding-top: 8px;
-  padding-bottom: 8px;
-  padding-left: 8px;
-  margin-top: 4px;
-  font-size: var(--text-fs-md);
-  color: var(--secondary-text);
-  white-space: nowrap;
-}
-
-div.inspector-alert img {
-  top: 2px !important;
-  margin-left: 2px;
-  margin-right: 2px;
-}
-
-div.inspector-alert span {
-  top: 3px !important;
-  margin-left: 2px;
-  margin-right: 4px;
-  white-space: normal;
 }
 
 span.inspector-value-bool {

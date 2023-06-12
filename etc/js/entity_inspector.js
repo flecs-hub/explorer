@@ -1088,11 +1088,7 @@ const inspector_component = Vue.component('inspector', {
                 </div>
               </template>
               <template v-slot:detail>
-                <div class="inspector-alert" v-for="alert in alerts">
-                  <icon icon="feather:alert-triangle" 
-                    :size="14" :opacity="0.7">
-                  </icon></span>&nbsp;{{alert.message}}</span>
-                </div>
+                <inspector-alerts :alerts="alerts"></inspector-alerts>
               </template>
             </detail-toggle>
           </div>

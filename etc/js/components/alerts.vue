@@ -19,6 +19,7 @@
           :show_this="false"
           :headers="['Alert', 'Severity', 'Source', 'Message', 'Duration']"
           :row_icon="'feather:alert-triangle'"
+          :row_style="row_style"
           v-on="$listeners"/>
       </template>
       <template v-slot:footer>
@@ -122,6 +123,24 @@
           this.request.abort();
         }
       },
+      row_style(columns, i) {
+        const severity = columns.data.vars[1][i];
+        let icon, background_color;
+        if (severity === "flecs.alerts.Info") {
+          icon = 'feather:info';
+          background_color = 'var(--alert-info)';
+        } else if (severity === "flecs.alerts.Warning") {
+          icon = 'feather:alert-triangle';
+          background_color = 'var(--alert-warning)';
+        } else if (severity === "flecs.alerts.Error") {
+          icon = 'feather:alert-octagon';
+          background_color = 'var(--alert-error)';
+        }
+        return {
+          icon: icon,
+          background_color: background_color
+        };
+      }
     },
     computed: {
       offset: function() {

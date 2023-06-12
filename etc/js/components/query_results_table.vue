@@ -5,7 +5,8 @@
       columns: {type: Object, required: true},
       show_this: {type: Boolean, required: true},
       headers: {type: Array, required: false },
-      row_icon: {type: String, required: false }
+      row_icon: {type: String, required: false },
+      row_style: {type: Function, required: false }
     },
     data: function() {
       return {
@@ -271,8 +272,10 @@
       create_row_icons(h, count) {
         let td_icons = [];
         for (let i = 0; i < count; i ++) {
+          const index = this.index(i);
+          const style = this.row_style(this.columns, index);
           let icon = h('icon', {
-            props: { icon: this.row_icon, size: 18, opacity: 0.7 }
+            props: { icon: style.icon, size: 18, opacity: 0.7 }
           });
           td_icons.push(h('td', {class: 'query-results-row-icon'}, [icon]));
         }
@@ -444,7 +447,7 @@
           if (this.show_this) {
             tds.entities = this.create_entities(h, data.entities, data.labels);
           }
-          if (this.row_icon) {
+          if (this.row_style) {
             tds.row_icons = this.create_row_icons(h, data.entities.length);
           }
 
@@ -502,6 +505,10 @@
             let color;
             if (data.colors) {
               color = data.colors[this.index(i)];
+            }
+            if (!color && this.row_style) {
+              const index = this.index(i);
+              color = this.row_style(this.columns, index).background_color;
             }
             trs.push(this.create_row(h, rows[i], color));
           }

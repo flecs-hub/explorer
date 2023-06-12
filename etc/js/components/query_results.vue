@@ -10,6 +10,7 @@
         :show_this="show_this"
         :headers="headers"
         :row_icon="row_icon"
+        :row_style="row_style"
         v-on:order-by="order_by_column"
         v-on:select-entity="select_entity">
       </query-results-table>
@@ -25,7 +26,8 @@
       valid: {type: Boolean, required: true},
       show_this: {type: Boolean, required: false, default: true},
       headers: {type: Array, required: false },
-      row_icon: {type: String, required: false }
+      row_icon: {type: String, required: false },
+      row_style: {type: Function, required: false }
     },
     data: function() {
       return {
