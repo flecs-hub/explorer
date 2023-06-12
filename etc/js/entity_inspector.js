@@ -758,7 +758,7 @@ const inspector_component = Vue.component('inspector', {
         return;
       }
 
-      app.request_entity('inspector', this.entity_name, (reply, url) => {
+      const r = app.request_entity('inspector', this.entity_name, (reply, url) => {
         if (reply) {
           this.error = reply.error;
         }
@@ -782,6 +782,10 @@ const inspector_component = Vue.component('inspector', {
         values: true,
         alerts: true
       });
+
+      if (this.$refs.container) {
+        this.$refs.container.set_url(r);
+      }
     },
     set_entity(path) {
       if (path == this.entity_name) {
@@ -907,9 +911,6 @@ const inspector_component = Vue.component('inspector', {
       if (!this.edit_inputs[evt.id].count) {
         delete this.edit_inputs[evt.id];
       }
-    },
-    rest_link() {
-      window.open(this.url, '_blank');
     }
   },
   computed: {
@@ -1058,12 +1059,6 @@ const inspector_component = Vue.component('inspector', {
               v-on:click="delete_entity">
                 &nbsp;<icon icon="codicons:trash" :size="16"></icon>&nbsp;
             </span>
-            <template v-if="connected">
-              <span class="inspector-button inspector-icon-button noselect"
-                v-on:click="rest_link">
-                &nbsp;<icon icon="feather:download" :size="16"></icon>&nbsp;
-              </span>
-            </template>
           </div>
 
           <div class="inspector-content">

@@ -10,7 +10,8 @@ Vue.component('content-container', {
       return {
         closed: false,
         maximized: false,
-        expanded: true
+        expanded: true,
+        url: undefined
       }
     },
     methods: {
@@ -20,7 +21,6 @@ Vue.component('content-container', {
       },
       close() {
         this.closed = true;
-        this.maximized = false;
         this.$emit("panel-update");
       },
       is_closed() {
@@ -34,14 +34,13 @@ Vue.component('content-container', {
       },
       evt_close: function() {
         this.close();
-        this.maximized = false;
         this.$emit('close');
       },
-      evt_maximize: function() {
-        this.maximized = !this.maximized;
-        if (this.disable) {
-          this.maximized = false;
-        }
+      evt_follow_link: function() {
+        window.open(this.url, '_blank');
+      },
+      set_url: function(url) {
+        this.url = url;
       }
     },
     computed: {
@@ -49,9 +48,6 @@ Vue.component('content-container', {
         let result = "content-container-wrapper content-container-wrapper-overflow";
         if (this.closed) {
           result += " disable";
-        }
-        if (this.maximized) {
-          result += " maximized";
         }
         return result;
       },
@@ -68,13 +64,6 @@ Vue.component('content-container', {
         } else {
           return "";
         }
-      },
-      maximize_icon: function() {
-        if (this.maximized) {
-          return "minimize";
-        } else {
-          return "maximize";
-        }
       }
     },
     template: `
@@ -89,12 +78,11 @@ Vue.component('content-container', {
               <span class="content-summary" ref="summary">
                 <slot name="summary"></slot>
                 <span class="content-container-icon-close">
-                  <icon-button 
-                    :icon="'feather:' + maximize_icon"
+                  <icon-button v-if="url"
+                    :icon="'feather:download'"
                     :size="20"
-                    v-on:click.stop="evt_maximize"
-                    v-tooltip="maximize_icon"/>
-                    
+                    v-on:click.stop="evt_follow_link"/>
+
                   <icon-button 
                     v-if="closable"
                     icon="feather:x"

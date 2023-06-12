@@ -73,7 +73,7 @@
         this.error = true;
       },
       request_alerts() {
-        this.request = app.request_query('alert-query', this.query, (reply) => {
+        let r = app.request_query('alert-query', this.query, (reply) => {
           if (reply.error === undefined) {
             this.result = reply;
             this.query_ok();
@@ -96,6 +96,10 @@
           duration: true,
           type_info: true
         });
+
+        if (this.$refs.container) {
+          this.$refs.container.set_url(r);
+        }
       },
       open() {
         this.$refs.container.open();

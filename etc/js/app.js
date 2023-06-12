@@ -243,6 +243,7 @@ var app = new Vue({
       }
 
       Request.send();
+      Request.url = url;
 
       return Request;
     },
@@ -294,6 +295,8 @@ var app = new Vue({
 
       this.requests[id] = this.json_request(
         method, this.host, path, recv, err);
+
+      return this.requests[id].url;
     },
 
     request_get(id, path, recv, err) {
@@ -302,7 +305,7 @@ var app = new Vue({
         const reply = JSON.parse(r);
         recv(reply);
       } else if (this.is_remote()) {
-        this.request(id, "GET", path, recv, err);
+        return this.request(id, "GET", path, recv, err);
       } else if (err) {
         err({error: "no connection"});
       }
@@ -325,7 +328,7 @@ var app = new Vue({
 
     request_entity: function(id, path, recv, err, params) {
       const request = "entity/" + path.replaceAll('.', '/') + paramStr(params);
-      this.request_get(id, request, recv, err);
+      return this.request_get(id, request, recv, err);
     },
 
     request_query: function(id, q, recv, err, params) {
@@ -350,7 +353,7 @@ var app = new Vue({
         request = "query?q=" + encodeURIComponent(q) + paramStr(params);
       }
 
-      this.request_get(id, request, recv, err);
+      return this.request_get(id, request, recv, err);
     },
 
     request_stats: function(id, category, recv, err, params) {
