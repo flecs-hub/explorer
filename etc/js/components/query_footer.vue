@@ -42,7 +42,7 @@
     data: function() {
       return {
         offset: 0,
-        limit: QueryDefaultLimit,
+        limit: QUERY_DEFAULT_LIMIT,
       };
     },
     mounted: function() {
@@ -92,7 +92,7 @@
           this.limit = limit;
           this.$refs.limit.value = this.limit;
         } else {
-          this.limit = QueryDefaultLimit;
+          this.limit = QUERY_DEFAULT_LIMIT;
           this.$refs.limit.value = "";
         }
       },
@@ -116,7 +116,7 @@
       on_limit(evt) {
         this.limit = parseInt(evt.target.value);
         if (isNaN(this.limit)) {
-          this.limit = QueryDefaultLimit;
+          this.limit = QUERY_DEFAULT_LIMIT;
         }
 
         this.update_page();

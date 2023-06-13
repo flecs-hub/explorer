@@ -158,7 +158,7 @@
         if (this.$refs.footer) {
           return this.$refs.footer.limit;
         } else {
-          return QueryDefaultLimit
+          return QUERY_DEFAULT_LIMIT
         }
       }
     }

@@ -382,7 +382,6 @@
 				return component.compile();
 			})
 			.then(function(component) {
-
 				var exports = component.script !== null ? component.script.module.exports : {};
 
 				if ( component.template !== null )
@@ -469,7 +468,6 @@
 	httpVueLoader.scriptExportsHandler = identity;
 
 	function httpVueLoader(url, name) {
-
 		var comp = parseComponentURL(url);
 		return httpVueLoader.load(comp.url, name);
 	}
