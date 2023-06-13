@@ -17,9 +17,8 @@
           :data="result" 
           :valid="true"
           :show_this="false"
-          :headers="['Alert', 'Severity', 'Source', 'Message', 'Duration']"
-          :row_icon="'feather:alert-triangle'"
           :row_style="row_style"
+          :column_style="column_style"
           v-on="$listeners"/>
       </template>
       <template v-slot:footer>
@@ -43,7 +42,8 @@
         query: `
           flecs.metrics.Source, 
           flecs.alerts.Instance, 
-          flecs.metrics.Value, 
+          flecs.metrics.Value,
+          $Severity(),
           (ChildOf, $Alert), 
           flecs.alerts.Alert($Alert, $Severity)`,
         result: null,
@@ -128,7 +128,7 @@
         }
       },
       row_style(columns, i) {
-        const severity = columns.data.vars[1][i];
+        const severity = columns.data.vars[0][i];
         let icon, background_color;
         if (severity === "flecs.alerts.Info") {
           icon = 'feather:info';
@@ -160,9 +160,28 @@
         } else {
           return QUERY_DEFAULT_LIMIT
         }
+      },
+      column_style: function(){
+        return [{
+          name: 'Severity'
+        }, {
+          name: 'Alert'
+        }, {
+          name: 'Source'
+        }, {
+          name: 'Message'
+        }, {
+          name: 'Duration',
+          type: {"value": ["float", {
+            unit: "flecs.units.Duration.Seconds",
+            symbol: "s",
+            quantity: "time"
+          }]}
+        }];
       }
     }
   }
+
 </script>
 
 <style>

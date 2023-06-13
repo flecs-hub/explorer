@@ -4,14 +4,21 @@
     props: {
       columns: {type: Object, required: true},
       show_this: {type: Boolean, required: true},
-      headers: {type: Array, required: false },
-      row_icon: {type: String, required: false },
+      column_style: {type: Array, required: false },
       row_style: {type: Function, required: false }
     },
     data: function() {
       return {
         order_by: { kind: 'this', mode: 'asc', mode_index: 0 },
         group_enabled: {}
+      }
+    },
+    computed: {
+      var_count: function() {
+        if (this.columns.vars) {
+          return this.columns.vars.length;
+        }
+        return 0;
       }
     },
     methods: {
@@ -25,7 +32,10 @@
       },
       // Get type info for term
       type_info(term) {
-        if (this.columns.type_info) {
+        let column = this.var_count + term;
+        if (this.column_style && this.column_style[column].type) {
+          return this.column_style[column].type;
+        } else if (this.columns.type_info) {
           let id = this.columns.ids[term];
           if (Array.isArray(id)) {
             let result = this.columns.type_info[id[0]];
@@ -135,8 +145,8 @@
         this.$emit('order-by', this.order_by);
       },
       header_title(index, value) {
-        if (this.headers && this.headers[index]) {
-          return this.headers[index];
+        if (this.column_style && this.column_style[index]) {
+          return this.column_style[index].name;
         }
         return value;
       },
@@ -168,7 +178,7 @@
         if (this.order_by.mode !== 'group_only') {
           let column = 0;
 
-          if (this.row_icon) {
+          if (this.row_style) {
             // Insert placeholder in header for row icon
             ths.push(h('th', {}));
           }
@@ -460,7 +470,7 @@
           // Populate row children arrays with td elements
 
           // Add row icons
-          if (this.row_icon) {
+          if (this.row_style) {
             for (let i = 0; i < tds.row_icons.length; i ++) {
               rows[i].push(tds.row_icons[i]);
             }
