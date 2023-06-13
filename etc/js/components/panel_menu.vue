@@ -12,6 +12,14 @@
         for (let child of this.$children) {
           child.refresh();
         }
+      },
+      close_all() {
+        for (let child of this.$children) {
+          let panel = child.get_panel();
+          if (panel) {
+            panel.close();
+          }
+        }
       }
     }
   }

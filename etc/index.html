@@ -32,11 +32,11 @@
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
-          <div class="save-button-box" v-on:click="rest_world_link" ref="save_url_button" v-if="remote_mode">
+          <div class="save-button-box" v-on:click="rest_world_link" ref="save_url_button" v-tooltip="'REST endpoint for world'" v-if="remote_mode">
             <icon-button :size="20" icon="feather:download" />
           </div>
-          <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Get link'">
-            <icon-button :size="20" icon="feather:link" />
+          <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Save layout to URL'">
+            <icon-button :size="20" icon="feather:save" />
           </div>
         </div>
       </div>
@@ -44,14 +44,14 @@
       <split-pane-container ref="panes">
         <split-pane :fixed="true" :collapseable="false" :min_width="45" :resizable="false">
           <panel-menu ref="panel_menu" v-on:panel-update="evt_panel_update">
-            <panel-button icon="list-tree" panel="tree"></panel-button>
-            <panel-button icon="search" panel="query"></panel-button>
-            <panel-button icon="symbol-method" panel="explorer_canvas"></panel-button>
-            <panel-button icon="code" panel="plecs"></panel-button>
-            <panel-button icon="inspect" panel="inspector"></panel-button>
-            <panel-button icon="graph-line" panel="stats_world"></panel-button>
-            <panel-button icon="server" panel="stats_pipeline"></panel-button>
-            <panel-button icon="warning" panel="alerts"></panel-button>
+            <panel-button icon="list-tree" panel="tree" v-tooltip="'Treeview'"></panel-button>
+            <panel-button icon="search" panel="query" v-tooltip="'Query editor'"></panel-button>
+            <panel-button icon="symbol-method" panel="explorer_canvas" v-tooltip="'Canvas'"></panel-button>
+            <panel-button icon="code" panel="plecs" v-tooltip="'Script editor'"></panel-button>
+            <panel-button icon="inspect" panel="inspector" v-tooltip="'Entity inspector'"></panel-button>
+            <panel-button icon="graph-line" panel="stats_world"  v-tooltip="'World statistics'"></panel-button>
+            <panel-button icon="server" panel="stats_pipeline"  v-tooltip="'Pipeline statistics'"></panel-button>
+            <panel-button icon="warning" panel="alerts"  v-tooltip="'Alerts'"></panel-button>
           </panel-menu>
         </split-pane>
 
@@ -131,9 +131,6 @@
           comment: /\/\/[^\r\n]*/,
           operator: /[(),{}\[\]\-\.:?!=+*/|~]/,
           annotation: /\@[^\r\n]*/,
-          rel_prop: /\b(Transitive|Final|Reflexive|Tag|Exclusive|Symmetric|With|Acyclic|DontInherit)\b/,
-          builtin: /\b(IsA|ChildOf|Component|Tag|Identifier|Name|Symbol|Prefab)\b/,
-          module: /\b(Module)\b/,
           type: /\b(Struct|Enum|Bitmask|Primitive|Array|Vector)\b/,
           builtin_type: /\b(bool|byte|char|i8|i16|i32|i64|iptr|u8|u16|u32|u64|uptr|f32|f64|string|entity)\b/,
           builtin_literal: /\b(true|false|null)\b/,
@@ -149,7 +146,6 @@
     <!-- Generic UI elements -->
     <script src="js/icon.js"></script>
     <script src="js/detail_toggle.js"></script>
-    <script src="js/content_container.js"></script>
     <script src="js/split_panes.js"></script>
 
     <!-- Functional components -->
@@ -163,7 +159,6 @@
     <script src="js/entity_parent.js"></script>
     <script src="js/entity_tree.js"></script>
     <script src="js/entity_inspector.js"></script>
-    <script src="js/editor.js"></script>
     <script src="js/url_modal.js"></script>
     <script src="js/app_title.js"></script>
     <script src="js/canvas.js"></script>

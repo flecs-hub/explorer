@@ -77,7 +77,7 @@
   }
   
   div.inspector-alert img {
-    top: 2px !important;
+    top: 5px !important;
     margin-left: 2px;
     margin-right: 2px;
   }

@@ -48,7 +48,7 @@ module.exports = {
     }
   },
   mounted() {
-    this.element = this.$root.share_url_button;
+    this.element = this.$root.$refs.share_url_button;
   }
 }
 </script>

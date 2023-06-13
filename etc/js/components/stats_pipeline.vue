@@ -106,9 +106,6 @@
 <script>
   module.exports = {
     name: "stats-pipeline",
-    mounted: function() {
-      this.close(); // Closed by default
-    },
     data: function() {
       return {
         results: {},

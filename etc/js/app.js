@@ -27,8 +27,7 @@ const DEFAULT_PORT = "27750";
 const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
 
 // Example content for local demo
-const example_selected = "Earth";
-const example_query = "CelestialBody, Mass, ?(ChildOf, $Orbits)"
+const DEFAULT_PARAM_QUERY = "CelestialBody, Mass, ?(ChildOf, $Orbits)"
 
 // Default max number of rows to show in query results
 const QUERY_DEFAULT_LIMIT = 25;
@@ -365,13 +364,10 @@ function create_app() {
       },
 
       get_query_from_params() {
-        const q_encoded = getParameterByName("q");
         const q_string = getParameterByName("query");
         const q_name = getParameterByName("query_name");
 
-        if (q_encoded) {
-          return decodeURIComponent(q_encoded);
-        } else if (q_string) {
+        if (q_string) {
           return decodeURIComponent(q_string);
         } else if (q_name) {
           return "?- " + decodeURIComponent(q_name);
@@ -380,32 +376,68 @@ function create_app() {
         return undefined;
       },
 
-      init_remote() {
+      init_from_url(remote) {
         this.$nextTick(() => {
-          const show_tree = getParameterByName("show_tree");
-          const q = this.get_query_from_params();
-          var selected = getParameterByName("s");
+          // Load parameters from URL
+          let param_show = getParameterByName("show");
+          let param_entity = getParameterByName("entity");
+          let param_query = this.get_query_from_params();
+          let param_script = getParameterByName("script");
 
-          if (selected) {
-            this.set_entity(selected);
+          // If no parameters are provided and we're in local mode, show the
+          // demo app
+          if (!remote) {
+            if (!param_show && !param_query && !this.wasm) {
+              param_show = "tree,query,plecs"
+              param_query = DEFAULT_PARAM_QUERY;
+            }
           }
 
-          if (q) {
+          if (!param_show && this.wasm) {
+            param_show = "tree,explorer_canvas,query,plecs";
+          }
+
+          // Determine which panels to show
+          let show;
+          if (param_show) {
+            show = param_show.split(",");
+          } else {
+            show = ["tree", "query"];
+          }
+
+          // Open the configured panels
+          this.$refs.panel_menu.close_all();
+          for (let i = 0; i < show.length; i++) {
+            this.$refs[show[i]].open();
+          }
+
+          // Set the inspector to the selected entity
+          if (param_entity) {
+            this.set_entity(param_entity);
+          }
+
+          // Set the query editor to the selected query
+          if (param_query) {
             const offset = getParameterByName("offset");
             const limit = getParameterByName("limit");
-            this.$refs.query.set_query(q);
-            this.$refs.query.set_offset_limit(offset, limit);
+            this.$refs.query.set_query(param_query, offset, limit);
           }
 
-          if (show_tree === "false") {
-            this.$refs.tree.close();
-          } else if (show_tree === "true") {
-            this.$refs.tree.open();
+          if (param_script) {
+            this.$refs.plecs.set_code(param_script);
+            this.$refs.plecs.run();
           } else {
-            if (getParameterByName("query_name") != undefined) {
-              // By default close tree if query name is provided
-              this.$refs.tree.close();
-            }
+            this.request_entity("scripts.main", "scripts.main", (msg) => {
+              if (msg.values && msg.values[0]) {
+                const script = msg.values[0].script;
+                if (script) {
+                  this.$refs.plecs.set_code(script);
+                  this.$refs.plecs.run();
+                }
+              }
+            }, undefined, {
+              values: true
+            });
           }
         });
       },
@@ -438,68 +470,11 @@ function create_app() {
           this.title = this.app_name;
         }
 
-        this.$refs.plecs.close();
         this.start_periodic_refresh();
       },
 
       ready_local() {
-        this.set_entity();
-
-        const p_encoded = getParameterByName("p");
-        var q = this.get_query_from_params();
-        var selected = getParameterByName("s");
-        var p;
-
-        if (p_encoded) {
-          p = decodeURIComponent(p_encoded);
-        } else {
-          const script_url = getParameterByName("script_url");
-          if (script_url) {
-            this.request("script_url", "GET", script_url, (script) => {
-              this.$refs.plecs.set_code(script);
-            }, () => {
-              console.err("failed to load script " + script_url);
-            })
-          }
-        }
-
-        if (selected === undefined && !p_encoded && !q && !this.wasm) {
-          selected = example_selected;
-        }
-
-        if (!q && !p && !this.wasm) {
-          q = example_query;
-        }
-
-        if (p) {
-          this.$refs.plecs.set_code(p);
-          this.$refs.plecs.run();
-        } else {
-          this.request_entity("scripts.main", "scripts.main", (msg) => {
-            if (msg.values && msg.values[0]) {
-              const script = msg.values[0].script;
-              if (script) {
-                this.$refs.plecs.set_code(script);
-                this.$refs.plecs.run();
-              }
-            }
-          }, undefined, {
-            values: true
-          })
-        }
-
-        if (selected) {
-          this.$refs.tree.select(selected);
-        }
-        if (q) {
-          const offset = getParameterByName("offset");
-          const limit = getParameterByName("limit");
-          this.$refs.query.set_query(q);
-          this.$refs.query.set_offset_limit(offset, limit);
-        }
-
-        this.$refs.tree.update_expanded();
-
+        this.init_from_url(false);
         this.start_periodic_refresh();
       },
 
@@ -604,7 +579,7 @@ function create_app() {
 
           if (this.connection != ConnectionState.RetryConnecting) {
             /* When not reconnecting initialize app from URL arguments */
-            this.init_remote();
+            this.init_from_url(true);
           }
 
           let timeout = INITIAL_REQUEST_TIMEOUT;
@@ -744,12 +719,8 @@ function create_app() {
       },
 
       show_url_modal() {
-        const tree_component = this.$refs.tree;
-        const show_tree = !tree_component.$el.classList.contains("disable");
-        const query = this.$refs.query.get_query();
         const query_params = this.$refs.query.get_query_params();
-        let query_name = this.$refs.query.is_query_name;
-        
+
         let plecs;
         let plecs_encoded;
         if (!this.remote_mode) {
@@ -766,66 +737,57 @@ function create_app() {
                   window.location.host + 
                   window.location.pathname;
 
+        this.url += "?show=";
+        const refs = ['query', 'tree', 'plecs', 'stats', 'alerts', 'inspector', 
+          'explorer_canvas', 'stats_world', 'stats_pipeline'];
+        let active_refs = [];
+
+        for (let k in refs) {
+          const el = this.$refs[refs[k]];
+          if (el && el.$el && !el.$el.classList.contains("disable")) {
+            active_refs.push(refs[k]);
+          }
+        }
+        this.url += active_refs.join(",");
+        sep = "&";
+
         if (this.params.host) {
           this.url += sep + "host=" + this.params.host;
-          sep = "&";
         }
 
         if (this.params.port) {
           this.url += sep + "port=" + this.params.port;
-          sep = "&";
         }
 
         if (this.params.remote) {
           this.url += sep + "remote=true";
-          sep = "&";
         }
 
         if (this.params.remote_self) {
           this.url += sep + "remote_self=true";
-          sep = "&";
         }
 
         if (this.params.local) {
           this.url += sep + "local=true";
-          sep = "&";
         }
 
         if (this.wasm) {
           this.url += sep + "wasm=" + this.wasm_url;
-          sep = "&";
         }
 
         if (query_params) {
           this.url += sep + query_params;
-          sep = "&";
-        }
-
-        if (!show_tree) {
-          if (!query_name) {
-            this.url += sep + "show_tree=false";
-            sep = "&";
-          } else {
-            // if query name is provided, hiding tree is the default
-          }
-        } else {
-          if (query_name) {
-            this.url += sep + "show_tree=true";
-            sep = "&";
-          }
         }
 
         if (plecs_encoded) {
           this.url += sep + "p=" + plecs_encoded;
-          sep = "&";
         }
 
         if (entity) {
-          this.url += sep + "s=" + entity;
-          sep = "&";
+          this.url += sep + "entity=" + entity;
         }
 
-        this.$refs.share_url_popover.show();
+        window.history.pushState({}, "", this.url);
       },
 
       rest_world_link() {
@@ -872,11 +834,31 @@ function create_app() {
   });
 }
 
+// Create tooltip directive
+Vue.directive('tooltip', {
+  bind: function (el, binding, vnode) {
+    el.addEventListener("mouseenter", () => {
+      app.$refs.tooltip.element = el;
+      app.$refs.tooltip.label = binding.value;
+      app.$refs.tooltip.show();
+    })
+
+    // Dismiss tooltip after mouse leave or interaction
+    el.addEventListener("mouseleave", () => {
+      app.$refs.tooltip.hide();
+    })
+    el.addEventListener("click", () => {
+      app.$refs.tooltip.hide();
+    })
+  }
+});
+
 // Load vue components
 let components = [
   httpVueLoader('js/overlays/popovers/url-popover.vue')(),
   httpVueLoader('js/components/panel_menu.vue')(),
   httpVueLoader('js/components/panel_button.vue')(),
+  httpVueLoader('js/components/content_container.vue')(),
   httpVueLoader('js/components/editor_textarea.vue')(),
   httpVueLoader('js/components/editor.vue')(),
   httpVueLoader('js/components/query_footer.vue')(),
@@ -902,22 +884,4 @@ Promise.all(components).then((values) => {
   }
 
   app = create_app();
-
-  Vue.directive('tooltip', {
-    bind: function (el, binding, vnode) {
-      el.addEventListener("mouseenter", () => {
-        app.$refs.tooltip.element = el;
-        app.$refs.tooltip.label = binding.value;
-        app.$refs.tooltip.show();
-      })
-  
-      // Dismiss tooltip after mouse leave or interaction
-      el.addEventListener("mouseleave", () => {
-        app.$refs.tooltip.hide();
-      })
-      el.addEventListener("click", () => {
-        app.$refs.tooltip.hide();
-      })
-    }
-  });
 });

@@ -13,7 +13,7 @@
   }
 
   module.exports = {
-    name: "stat-chart",
+    name: "query-graph",
     props: {
       results: { type: Object, required: false }
     },

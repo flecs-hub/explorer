@@ -734,11 +734,6 @@ const inspector_component = Vue.component('inspector', {
       url: undefined
     }
   },
-  mounted: function() {
-    if (this.entity_name == undefined) {
-      this.close();
-    }
-  },
   methods: {
     expand() {
       this.$refs.container.expand();
@@ -846,6 +841,11 @@ const inspector_component = Vue.component('inspector', {
     navigate() {
       if (this.entity) {
         this.$emit('tree-navigate', this.entity.path);
+      }
+    },
+    navigate_parent() {
+      if (this.entity) {
+        this.$emit('select-entity', this.parent);
       }
     },
     enable_entity() {
@@ -1007,46 +1007,40 @@ const inspector_component = Vue.component('inspector', {
               <a :href="link" target="_blank">[link]</a>
             </span>
           </div>
-          <div class="inspector-entity-name" v-if="entity.label != name_from_path(entity.path)">
-            <span class="inspector-entity-name-label">Name</span>:&nbsp;<span class="inspector-entity-name">{{name_from_path(entity.path)}}</span>
-          </div>
-          <div class="inspector-entity-name" v-if="has_parent">
-            <span class="inspector-entity-name-label">Parent</span>:&nbsp;<span class="inspector-component-object"><entity-reference 
-              :entity="parent"
-              show_name="true" 
-              click_name="true"
-              v-on="$listeners"/></span>
-          </div>
 
           <div class="inspector-buttons">
             <span class="inspector-button inspector-icon-button noselect"
-              v-on:click="navigate">
+              v-on:click="navigate" v-tooltip="'Show in treeview'">
                 &nbsp;<icon icon="codicons:list-tree" :size="16"></icon>&nbsp;
+            </span>
+            <span class="inspector-button inspector-icon-button noselect" v-if="parent"
+              v-on:click="navigate_parent" v-tooltip="'Go to parent ' + parent">
+                &nbsp;<icon icon="codicons:arrow-up" :size="16"></icon>&nbsp;
             </span>
             <template v-if="is_query">
               <span class="inspector-button noselect"
-                v-on:click="set_as_query">
+                v-on:click="set_as_query" v-tooltip="'Use as query'">
                 &nbsp;<icon icon="codicons:search" :size="16"></icon>&nbsp;
               </span>
             </template>
             <template v-if="is_disabled">
               <span class="inspector-button noselect" 
                   style="display: inline-block; width: 50px; text-align: center;"
-                  v-on:click="enable_entity">
+                  v-on:click="enable_entity" v-tooltip="'Enable/Disable'">
                 Enable
               </span>
             </template>
             <template v-else>
               <span class="inspector-button noselect" 
                   style="display: inline-block; width: 50px; text-align: center;"
-                  v-on:click="disable_entity">
+                  v-on:click="disable_entity" v-tooltip="'Enable/Disable'">
                 Disable
               </span>
             </template>
             <template v-if="edit_count">
               <span class="inspector-button inspector-icon-button noselect"
                 v-on:click="set_components">
-                  &nbsp;<icon icon="codicons:save" :size="16"></icon>&nbsp;
+                  &nbsp;<icon icon="codicons:save" :size="16" v-tooltip="'Save modifications'"></icon>&nbsp;
               </span>
             </template>
             <template v-else>
@@ -1056,7 +1050,7 @@ const inspector_component = Vue.component('inspector', {
               </span>
             </template>
             <span class="inspector-button inspector-icon-button noselect"
-              v-on:click="delete_entity">
+              v-on:click="delete_entity" v-tooltip="'Delete entity'">
                 &nbsp;<icon icon="codicons:trash" :size="16"></icon>&nbsp;
             </span>
           </div>

@@ -61,9 +61,6 @@
 <script>
   module.exports = {
     name: "stats-world",
-    mounted: function() {
-      this.close(); // Closed by default
-    },
     data: function() {
       return {
         results: {},

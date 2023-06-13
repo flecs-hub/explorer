@@ -59,18 +59,21 @@
         last_key_event: undefined,
         key_events_since_emit: 0,
       }
-    },
-    computed: {
-      button_css: function() {
-        if (this.code != this.last_ran) {
-          return "editor-button-run";
-        } else {
-          return "editor-button-run button-disabled";
-        }
-      }
-    },
+    }
   };
 </script>
 
 <style>
+
+div.editor-textarea {
+  position: relative;
+  height: 100%;
+  border: none;
+  resize: none;
+  color: var(--primary-text);
+  font-family: Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: var(--text-fs-md);
+  letter-spacing: 0.0px;
+}
+
 </style>

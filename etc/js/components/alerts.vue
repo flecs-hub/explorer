@@ -53,12 +53,9 @@
         is_valid: false,
         offset_limit: {
           offset: undefined,
-          limit: undefined
+          limit: 0
         }
       };
-    },
-    mounted() {
-      this.close();
     },
     methods: {
       query_ok() {

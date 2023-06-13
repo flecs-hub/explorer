@@ -36,7 +36,8 @@
       <template v-else>
         <query-graph
           :results="query_result"
-          v-on="$listeners"/>
+          v-on="$listeners">
+        </query-graph>
       </template>
     </template>
 
@@ -125,7 +126,7 @@
             type_info: true
           });
 
-          if (this.$refs.container && r) {
+          if (this.$refs.container) {
             this.$refs.container.set_url(r);
           }
 
@@ -134,6 +135,7 @@
           this.query_ok();
           this.query_result = undefined;
           app.set_subtitle();
+          this.$refs.container.set_url(undefined);
         }
       },
       evt_allow_toggle(e) {
@@ -170,23 +172,24 @@
           result = "query=" + query_encoded;
         }
 
-        if (this.offset != 0) {
+        if (this.offset !== undefined && this.offset != 0) {
           result += "&offset=" + this.offset;
         }
 
-        if (this.limit != QUERY_DEFAULT_LIMIT) {
+        if (this.limit !== undefined && this.limit != QUERY_DEFAULT_LIMIT) {
           result += "&limit=" + this.limit;
         }
 
         return result;
       },
-      set_query(q) {
+      set_query(q, offset, limit) {
         this.$refs.editor.set_query(q);
         if (q !== undefined) {
           this.$refs.container.expand();
         } else if (this.request) {
           this.request.abort();
         }
+        this.set_offset_limit(offset, limit);
       },
       set_offset_limit(offset, limit) {
         this.offset_limit.offset = offset;
