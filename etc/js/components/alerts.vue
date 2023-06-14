@@ -160,9 +160,11 @@
       },
       column_style: function(){
         return [{
-          name: 'Severity'
+          name: 'Severity',
+          style: 'min-width: 100px;'
         }, {
-          name: 'Alert'
+          name: 'Alert',
+          style: 'min-width: 225px;'
         }, {
           name: 'Source',
           style: 'min-width: 175px;'
