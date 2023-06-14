@@ -150,6 +150,11 @@
         }
         return value;
       },
+      header_style(index) {
+        if (this.column_style && this.column_style[index]) {
+          return this.column_style[index].style;
+        }
+      },
       // Create table header
       create_header(h) {
         const columns = this.columns;
@@ -184,7 +189,7 @@
           }
 
           if (data.entities && data.entities.length && this.show_this) {
-            ths.push(h('th', { on: {
+            ths.push(h('th', { style: this.header_style(column), on: {
               click: () => { this.on_order_by({kind: 'this'}); }
             }}, [this.header_title(column, "Entity"), this.order_by.kind === "this" 
               ? icon_elem 
@@ -199,17 +204,16 @@
               var_name_elems = var_name.split(".");
               var_name = var_name_elems[var_name_elems.length - 1];
               var_name = this.header_title(column, var_name);
-              column ++;
 
               let index = i; // prevents hoisting of i
-              ths.push(h('th', { on: {
+              ths.push(h('th', { style: this.header_style(column), on: {
                 click: () => { this.on_order_by({kind: 'var', index: index}); }
               }}, [var_name, (this.order_by.kind === 'var' && this.order_by.index === i) 
                 ? icon_elem 
                 : icon_placeholder
               ]));
 
-              i ++;
+              column ++; i ++;
             }
           }
 
@@ -218,15 +222,16 @@
               if (!this.term_is_tag(i)) {
                 let name = this.term_header(i);
                 name = this.header_title(column, name);
-                column ++;
 
                 let index = i; // prevents hoisting of i
-                ths.push(h('th', { on: {
+                ths.push(h('th', { style: this.header_style(column), on: {
                   click: () => { this.on_order_by({kind: 'value', index: index}); }
                 }}, [name, (this.order_by.kind === 'value' && this.order_by.index === i) 
                   ? icon_elem 
                   : icon_placeholder
                 ]));
+
+                column ++;
               }
             }
           }

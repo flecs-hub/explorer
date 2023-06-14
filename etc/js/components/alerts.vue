@@ -164,9 +164,11 @@
         }, {
           name: 'Alert'
         }, {
-          name: 'Source'
+          name: 'Source',
+          style: 'min-width: 175px;'
         }, {
-          name: 'Message'
+          name: 'Message',
+          style: 'min-width: 525px;'
         }, {
           name: 'Duration',
           type: {"value": ["float", {
