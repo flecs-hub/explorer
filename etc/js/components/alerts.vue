@@ -45,7 +45,8 @@
           flecs.metrics.Value,
           $Severity(),
           (ChildOf, $Alert), 
-          flecs.alerts.Alert($Alert, $Severity)`,
+          flecs.alerts.Alert($Alert, $Severity),
+          ?Disabled`,
         result: null,
         request: undefined,
         status: undefined,
@@ -78,7 +79,11 @@
             this.query_error(reply.error);
           }
         }, (err_reply) => {
-          this.query_error(err_reply.error);
+          if (err_reply) {
+            this.query_error(err_reply.error);
+          } else {
+            this.query_error("Request failed");
+          }
         }, {
           ids: true, 
           sources: false,
@@ -126,6 +131,7 @@
       },
       row_style(columns, i) {
         const severity = columns.data.vars[0][i];
+
         let icon, background_color;
         if (severity === "flecs.alerts.Info") {
           icon = 'feather:info';
@@ -136,6 +142,10 @@
         } else if (severity === "flecs.alerts.Error") {
           icon = 'feather:alert-octagon';
           background_color = 'var(--alert-error)';
+        }
+
+        if (columns.data.is_set[6][i]) {
+          background_color = 'var(--alert-disabled)';
         }
         return {
           icon: icon,

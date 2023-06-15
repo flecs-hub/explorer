@@ -71,6 +71,7 @@
   --alert-error: #b5494b;
   --alert-warning: #b5894b;
   --alert-info: #7595b3;
+  --alert-disabled: var(--steel-700);
 
   --ui-blue: rgba(79, 149, 255, 1.0);
   --ui-blue-30: rgba(79, 149, 255, 0.30);
