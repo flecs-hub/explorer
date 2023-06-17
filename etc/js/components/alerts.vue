@@ -45,7 +45,7 @@
           flecs.metrics.Value,
           $Severity(),
           (ChildOf, $Alert), 
-          flecs.alerts.Alert($Alert, $Severity),
+          (flecs.alerts.Alert, $Severity),
           ?Disabled`,
         result: null,
         request: undefined,
