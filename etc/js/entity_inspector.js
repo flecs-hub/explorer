@@ -65,7 +65,14 @@ function fmt_duration(seconds) {
     result += minutes + "min\xa0";
   }
   if (seconds) {
-    result += fmt_float(seconds) + "s";
+    if (seconds < 1 && (!days && !hours && !minutes)) {
+      result += fmt_float(seconds);
+    } else {
+      // don't bother with decimals of seconds when the duration is longer than
+      // a minute.
+      result += Math.round(seconds);
+    }
+    result += "s";
   }
 
   return result;
