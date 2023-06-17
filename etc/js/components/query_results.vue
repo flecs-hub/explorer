@@ -271,15 +271,11 @@
             } else {
               r.data.labels.push(...result.entities);
             }
-            if (result.alerts === true) {
-              this.append_to(r.data.colors, "var(--red)", count);
+            if (result.colors) {
+              r.data.colors.push(...result.colors);
             } else {
-              if (result.colors) {
-                r.data.colors.push(...result.colors);
-              } else {
-                for (let i = 0; i < result.entities.length; i ++) {
-                  r.data.colors.push(undefined);
-                }
+              for (let i = 0; i < result.entities.length; i ++) {
+                r.data.colors.push(undefined);
               }
             }
           }

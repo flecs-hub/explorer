@@ -418,7 +418,7 @@ div.play-button-box img {
 
 div.save-button-box {
   position: absolute;
-  right: 26px;
+  right: 30px;
   top: 10px;
 
   cursor: pointer;
@@ -430,7 +430,7 @@ div.save-button-box img {
 
 div.share-button-box {
   position: absolute;
-  right: 4px;
+  right: 8px;
   top: 10px;
 
   cursor: pointer;

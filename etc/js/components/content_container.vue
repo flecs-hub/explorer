@@ -9,13 +9,15 @@
         <template v-slot:summary>
           <span class="content-summary" ref="summary">
             <slot name="summary"></slot>
-            <span class="content-container-icon-close">
-              <icon-button v-if="url"
-                :icon="'feather:download'"
-                :size="20"
-                v-on:click.stop="evt_follow_link"
-                v-tooltip="'REST endpoint'">
-              </icon-button>
+            <span class="content-container-icon-box">
+              <span class="content-container-icon-download">
+                <icon-button v-if="url"
+                  :icon="'feather:download'"
+                  :size="20"
+                  v-on:click.stop="evt_follow_link"
+                  v-tooltip="'REST endpoint'">
+                </icon-button>
+              </span>
 
               <icon-button 
                 v-if="closable"
@@ -140,12 +142,16 @@ div.content-container > div.detail-toggle > div.detail-toggle-detail {
   background-color: var(--panel-bg-secondary);
 }
 
-span.content-container-icon-close {
+span.content-container-icon-box {
   position: absolute;
   right: 0px;
   padding-right: 5px;
   padding-left: 2px;
   background-color: var(--panel-header-bg);
+}
+
+span.content-container-icon-download {
+  margin-right: 2px;
 }
 
 span.content-summary {
