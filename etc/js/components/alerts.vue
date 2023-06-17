@@ -132,7 +132,7 @@
       row_style(columns, i) {
         const severity = columns.data.vars[0][i];
 
-        let icon, background_color;
+        let icon, background_color, row_class = "";
         if (severity === "flecs.alerts.Info") {
           icon = 'feather:info';
           background_color = 'var(--alert-info)';
@@ -146,10 +146,12 @@
 
         if (columns.data.is_set[6][i]) {
           background_color = 'var(--alert-disabled)';
+          row_class = "alert-row-disabled";
         }
         return {
           icon: icon,
-          background_color: background_color
+          background_color: background_color,
+          class: row_class
         };
       }
     },
@@ -196,4 +198,10 @@
 </script>
 
 <style>
+  .alert-row-disabled td, .alert-row-disabled span {
+    color: var(--tertiary-text);
+  }
+  .alert-row-disabled img {
+    opacity: 0.3 !important;
+  }
 </style>

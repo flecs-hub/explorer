@@ -394,9 +394,13 @@
         return values;
       },
       // Create table row
-      create_row(h, children, color) {
+      create_row(h, children, color, row_class, key) {
         let left_border_color = color;
         let row_color = color;
+        let class_name = "query-results-row";
+        if (row_class) {
+          class_name += " " + row_class;
+        }
 
         if (!color) {
           left_border_color = "var(--steel-700)";
@@ -406,7 +410,7 @@
         let style = "border-left-color: " + left_border_color + "; ";
         style += "background-color: " + row_color;
 
-        return h('tr', { class: "query-results-row", style: style }, children );
+        return h('tr', { class: class_name, style: style, attrs: {key: key} }, children );
       },
       group_cell(h, group, label, count, colspan) {
         const tree = h('entity-hierarchy', {
@@ -517,15 +521,21 @@
 
           // Create row elements
           for (let i = 0; i < rows.length; i ++) {
-            let color;
+            let color, row_class, key, index = this.index(i);
             if (data.colors) {
-              color = data.colors[this.index(i)];
+              color = data.colors[index];
             }
-            if (!color && this.row_style) {
-              const index = this.index(i);
-              color = this.row_style(this.columns, index).background_color;
+            if (this.row_style) {
+              let style = this.row_style(this.columns, index);
+              if (!color) {
+                color = style.background_color;
+              }
+              row_class = style.class;
             }
-            trs.push(this.create_row(h, rows[i], color));
+            if (data.entities) {
+              key = data.entities[index];
+            }
+            trs.push(this.create_row(h, rows[i], color, row_class, key));
           }
 
           // If variable grouping is enabled, insert group headers
@@ -773,17 +783,22 @@
   table.query-results-table thead tr,
   table.query-results-table tbody tr {
     background-color: var(--row-bg);
-    transition: background-color 0.1s ease;
-  }
-
-  table.query-results-table tbody tr {
-    background-color: var(--row-bg);
-    transition: background-color 0.1s ease;
+    transition: background-color 0.2s ease;
+    transition: border-color 0.2s ease;
   }
 
   table.query-results-table tbody tr td {
     background-color: var(--cell-bg);
-    transition: background-color 0.1s ease;
+    transition: background-color 0.2s ease;
+    transition: border-color 0.2s ease;
+  }
+
+  table.query-results-table tbody img {
+    transition: opacity 0.2s ease;
+  }
+
+  table.query-results-table span {
+    transition: color 0.1s ease;
   }
 
   table.query-results-table tbody tr:hover td {
