@@ -54,7 +54,7 @@
     border-style: solid;
     border-width: 0px;
     border-left-width: 3px;
-    padding-top: 8px;
+    padding-top: 4px;
     padding-bottom: 8px;
     padding-left: 8px;
     margin-top: 4px;

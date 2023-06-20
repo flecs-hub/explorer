@@ -106,6 +106,11 @@ Vue.component('inspector-value', {
     const type = props.type ? props.type[0] : undefined;
     const value = props.value;
     let unit = unit_from_type(props.type);
+    let error_range, warning_range;
+    if (props.type[1]) {
+      error_range = props.type[1].error_range;
+      warning_range = props.type[1].warning_range;
+    }
 
     let formatted_value = value;
     let actual_symbol = props.symbol;
@@ -159,6 +164,21 @@ Vue.component('inspector-value', {
     content += formatted_value.toString().trim();
     if (actual_symbol) {
       content += "\xa0" + actual_symbol;
+    }
+
+    let is_error = false;
+    if (error_range) {
+      if (value < error_range[0] || value > error_range[1]) {
+        css_classes.push("inspector-value-error");
+        is_error = true;
+      }
+    }
+    if (warning_range) {
+      if (value < warning_range[0] || value > warning_range[1]) {
+        if (!is_error) {
+          css_classes.push("inspector-value-warning");
+        }
+      }
     }
 
     if (type == "entity") {

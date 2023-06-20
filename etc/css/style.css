@@ -738,6 +738,13 @@ span.inspector-value-enum, span.inspector-value-bitmask {
   color: #7D67B5;
 }
 
+span.inspector-value-error {
+  color: var(--alert-error);
+}
+span.inspector-value-warning {
+  color: var(--alert-warning);
+}
+
 div.inspector-component-expand-nodata {
   width: 10px;
   text-align: center;
