@@ -32,6 +32,17 @@ const DEFAULT_PARAM_QUERY = "CelestialBody, Mass, ?(ChildOf, $Orbits)"
 // Default max number of rows to show in query results
 const QUERY_DEFAULT_LIMIT = 25;
 
+const COLORS = [
+  "#40805B",
+  "#296065",
+  "#26537F",
+  "#273C7F",
+  "#3C3366",
+  "#482967",
+  "#653365",
+  "#AA4462"
+];
+
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
   var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
@@ -867,6 +878,7 @@ let components = [
   httpVueLoader('js/components/query_results.vue')(),
   httpVueLoader('js/components/query_editor.vue')(),
   httpVueLoader('js/components/query.vue')(),
+  httpVueLoader('js/components/module_filter.vue')(),
   httpVueLoader('js/components/stat.vue')(),
   httpVueLoader('js/components/stats_period.vue')(),
   httpVueLoader('js/components/stat_chart.vue')(),

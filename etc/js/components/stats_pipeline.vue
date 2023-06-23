@@ -11,65 +11,72 @@
       <stats-period ref="period"></stats-period>
 
       <div class="stats-charts stats-systems">
-        <div :class="css_system(sys, i)" v-for="(sys, i) in results">
-          <template v-if="sys.name">
-            <entity-hierarchy :entity_path="sys.name"></entity-hierarchy>
-            <entity-reference :entity="sys.name" :show_name="true" v-on="$listeners">
-            </entity-reference>
-            <div class="stats-system-charts">
-              <div>
-                <div class="stats-system-chart">
-                  <stat-chart 
-                    :zoom="1" 
-                    :width="280"
-                    :values="sys.time_spent"
-                    :disabled="!valid">
-                  </stat-chart>
-                  <span class="noselect stats-chart-label">
-                    Time spent 
-                    (
-                      {{get_system_time_avg(i)}},
-                      {{(system_time_pct.system_pct[i] * 100).toFixed(0)}}%
-                    )
-                  </span>
+        <span class="top-level-stat">Systems&nbsp;</span><span class="top-level-stat-value">{{ system_count }}</span>
+        <span class="top-level-stat">Sync points&nbsp;</span><span class="top-level-stat-value">{{ sync_count }}</span>
+        <module-filter :modules="modules" :labels="module_labels" 
+          v-on:toggle="evt_module_toggle"></module-filter>
+
+        <template v-for="(sys, i) in results">
+          <div :class="css_system(sys, i)" v-if="show_system(sys.name)">
+            <template v-if="sys.name">
+              <entity-hierarchy :entity_path="sys.name"></entity-hierarchy>
+              <entity-reference :entity="sys.name" :show_name="true" v-on="$listeners">
+              </entity-reference>
+              <div class="stats-system-charts">
+                <div>
+                  <div class="stats-system-chart">
+                    <stat-chart 
+                      :zoom="1" 
+                      :width="280"
+                      :values="sys.time_spent"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Time spent 
+                      (
+                        {{get_system_time_avg(i)}},
+                        {{(system_time_pct.system_pct[i] * 100).toFixed(0)}}%
+                      )
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div v-if="sys.matched_entity_count">
-                <div class="stats-system-chart">
-                  <stat-chart
-                    :zoom="1" 
-                    :width="280"
-                    :values="sys.matched_entity_count"
-                    :disabled="!valid">
-                  </stat-chart>
-                  <span class="noselect stats-chart-label">
-                    Matched entities
-                    (
-                      {{get_system_entities_avg(i)}}
-                    )
-                  </span>
+                <div v-if="sys.matched_entity_count">
+                  <div class="stats-system-chart">
+                    <stat-chart
+                      :zoom="1" 
+                      :width="280"
+                      :values="sys.matched_entity_count"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Matched entities
+                      (
+                        {{get_system_entities_avg(i)}}
+                      )
+                    </span>
+                  </div>
                 </div>
-              </div>
-              <div v-if="sys.matched_table_count">
-                <div class="stats-system-chart">
-                  <stat-chart 
-                    :zoom="1" 
-                    :width="280"
-                    :values="sys.matched_table_count"
-                    :disabled="!valid">
-                  </stat-chart>
-                  <span class="noselect stats-chart-label">
-                    Matched tables
-                    (
-                      {{get_system_tables_avg(i)}}
-                    )
-                  </span>
+                <div v-if="sys.matched_table_count">
+                  <div class="stats-system-chart">
+                    <stat-chart 
+                      :zoom="1" 
+                      :width="280"
+                      :values="sys.matched_table_count"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Matched tables
+                      (
+                        {{get_system_tables_avg(i)}}
+                      )
+                    </span>
+                  </div>
                 </div>
-              </div>
+              </template>
+              <template v-else>
+                <icon icon="codicons:merge" :size="36" :rotate="180"></icon>
+              </template>
             </div>
-          </template>
-          <template v-else>
-            <icon icon="codicons:merge" :size="36" :rotate="180"></icon>
           </template>
         </div>
       </div>
@@ -108,7 +115,8 @@
     name: "stats-pipeline",
     data: function() {
       return {
-        results: {},
+        results: [],
+        module_visibility: {},
         error: undefined
       }
     },
@@ -189,6 +197,62 @@
         }
 
         return result;
+      },
+      module_counts() {
+        if (!this.results) {
+          return [];
+        }
+
+        let modules = {sync: 0};
+        for (let r of this.results) {
+          let name = r.name;
+          if (!name) {
+            name = "sync";
+          }
+
+          const module_name = this.module_name(r.name);
+          if (modules[module_name] === undefined) {
+            modules[module_name] = 0;
+          }
+          modules[module_name] ++;
+        }
+        return modules;
+      },
+      modules() {
+        let modules = [];
+
+        for (let k in this.module_counts) {
+          modules.push(k);
+        }
+
+        return modules.sort();
+      },
+      module_labels() {
+        let labels = [];
+        for (let m of this.modules) {
+          labels.push(this.module_label(m));
+        }
+        return labels;
+      },
+      system_count() {
+        let count = 0;
+        for (let r of this.results) {
+          if (r.name == undefined) {
+            continue;
+          }
+          count ++;
+        }
+        return count;
+      },
+      sync_count() {
+        let count = 0;
+        for (let r of this.results) {
+          if (r.name != undefined) {
+            continue;
+          }
+          count ++;
+        }
+        return count;
       }
     },
     methods: {
@@ -269,6 +333,29 @@
         lbl = Math.min(lbl, 50);
 
         return "stats-system-impact-" + lbl;
+      },
+      evt_module_toggle(evt) {
+        this.module_visibility[evt.module] = evt.enabled;
+        this.$forceUpdate();
+      },
+      module_name(system_name) {
+        if (!system_name) {
+          return "sync";
+        }
+        return system_name.split(".").slice(0, -1).join(".");
+      },
+      module_count(module_name) {
+        return this.module_counts[module_name];
+      },
+      module_label(module_name) {
+        return module_name.replaceAll(".", " > ") + " (" + this.module_count(module_name) + ")";
+      },
+      show_system(system_name) {
+        let module_name = this.module_name(system_name);
+        if (this.module_visibility[module_name] === undefined) {
+          this.module_visibility[module_name] = true;
+        }
+        return this.module_visibility[module_name];
       }
     }
   }
@@ -282,7 +369,6 @@ div.stats-charts {
   border-top-width: 1px;
   border-color: #3f3f46;
   padding-top: 10px;
-  margin-left: 10px;
   height: 100%;
   overflow-y: auto;
 }
@@ -387,6 +473,29 @@ span.stats-chart-label {
   color: var(--steel-400);
   justify-content: center;
   margin-top: 2px;
+}
+
+span.top-level-stat {
+  background-color: var(--steel-700);
+  border-radius: 6px;
+  border-top-right-radius: 0px;
+  border-bottom-right-radius: 0px;
+  color: var(--secondary-text);
+  padding: 4px;
+  padding-left: 8px;
+  margin-bottom: 12px;
+}
+
+span.top-level-stat-value {
+  background-color: var(--panel-bg);
+  border-radius: 6px;
+  border-top-left-radius: 0px;
+  border-bottom-left-radius: 0px;
+  color: var(--primary-text);
+  padding: 4px;
+  padding-left: 8px;
+  padding-right: 8px;
+  margin-bottom: 12px;
 }
 
 </style>
