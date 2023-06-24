@@ -342,7 +342,11 @@
         if (!system_name) {
           return "sync";
         }
-        return system_name.split(".").slice(0, -1).join(".");
+        let result = system_name.split(".").slice(0, -1).join(".");
+        if (result.length === 0) {
+          result = "root";
+        }
+        return result;
       },
       module_count(module_name) {
         return this.module_counts[module_name];
