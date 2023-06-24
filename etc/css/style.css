@@ -419,21 +419,25 @@ div.play-button-box img {
 div.save-button-box {
   position: absolute;
   right: 30px;
-  top: 10px;
-
+  top: 8px;
   cursor: pointer;
-}
-
-div.save-button-box img {
-  height: 25px;
 }
 
 div.share-button-box {
   position: absolute;
   right: 8px;
-  top: 10px;
-
+  top: 8px;
   cursor: pointer;
+}
+
+div.load-box {
+  position: absolute;
+  right: 60px;
+  top: 8px;
+}
+
+div.save-button-box img {
+  height: 25px;
 }
 
 div.share-button-box img {

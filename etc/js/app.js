@@ -305,6 +305,18 @@ function create_app() {
         return this.request_get(id, request, recv, err);
       },
 
+      request_world: function(host, recv, err, timeout, retry_interval) {
+        if (host) {
+          this.json_request("GET", host, "entity/flecs/core/World?label=true&values=true", 
+            recv, err, timeout, 0);
+        } else {
+          return this.request_entity("world", "flecs.core.World", recv, err, {
+            label: true,
+            values: true
+          });
+        }
+      },
+
       request_query: function(id, q, recv, err, params) {
         let request;
         if (q.slice(0, 2) == "?-") {
@@ -464,6 +476,7 @@ function create_app() {
 
         // Refresh UI periodically
         this.refresh_timer = window.setInterval(() => {
+          this.refresh_world();
           this.refresh_query();
           this.refresh_entity();
           this.refresh_tree();
@@ -599,7 +612,7 @@ function create_app() {
             timeout = INITIAL_REMOTE_REQUEST_TIMEOUT;
           }
 
-          this.json_request("GET", host, "entity/flecs/core/World?label=true", (reply) => {
+          this.request_world(host, (reply) => {
             this.host = host;
             this.connection = ConnectionState.Remote;
             this.ready_remote(reply);
@@ -611,7 +624,7 @@ function create_app() {
               console.warn("remote connection failed, running explorer in local mode");
               this.connection = ConnectionState.ConnectionFailed;
             }
-          }, timeout, retry_interval);
+          }, retry_interval, timeout);
         } else {
           this.connection = ConnectionState.Local;
           this.ready_local();
@@ -639,6 +652,27 @@ function create_app() {
         } else {
           this.set_entity();
         }
+      },
+
+      refresh_world() {
+        this.request_world(undefined, (reply) => {
+          let i;
+          for (i = 0; i < reply.ids.length; i ++) {
+            const id = reply.ids[i];
+            if (id[0] === 'flecs.monitor.WorldSummary') {
+              break;
+            }
+          }
+
+          const summary = reply.values[i];
+          if (summary) {
+            this.target_fps = summary.target_fps;
+            this.frame_time = summary.frame_time_last;
+            if (!this.target_fps) {
+              this.target_fps = 60;
+            }
+          }
+        }, () => {}, 0, REFRESH_INTERVAL);
       },
 
       refresh_query() {
@@ -803,6 +837,10 @@ function create_app() {
 
       rest_world_link() {
         window.open("http://" + this.host + "/world", '_blank');
+      },
+
+      get_load() {
+        return this.frame_time / (1.0 / this.target_fps);
       }
     },
 
@@ -831,6 +869,9 @@ function create_app() {
       wasm_url: undefined,
       wasm: false,
       params: {},
+
+      frame_time: 0,
+      target_fps: 0,
 
       connection: ConnectionState.Initializing,
       host: undefined,
@@ -887,7 +928,8 @@ let components = [
   httpVueLoader('js/components/alerts.vue')(),
   httpVueLoader('js/components/inspector_alerts.vue')(),
   httpVueLoader('js/components/tooltip.vue')(),
-  httpVueLoader('js/components/popover.vue')()
+  httpVueLoader('js/components/popover.vue')(),
+  httpVueLoader('js/components/load.vue')()
 ];
 
 Promise.all(components).then((values) => {

@@ -32,6 +32,9 @@
               <img src="img/flecs_logo.png" alt="Flecs GitHub">
             </a>
           </div>
+          <div class="load-box">
+            <load :value="get_load()"></load>
+          </div>
           <div class="save-button-box" v-on:click="rest_world_link" ref="save_url_button" v-tooltip="'REST endpoint for world'" v-if="remote_mode">
             <icon-button :size="20" icon="feather:download" />
           </div>
