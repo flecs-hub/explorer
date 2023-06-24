@@ -308,7 +308,7 @@ function create_app() {
       request_world: function(host, recv, err, timeout, retry_interval) {
         if (host) {
           this.json_request("GET", host, "entity/flecs/core/World?label=true&values=true", 
-            recv, err, timeout, 0);
+            recv, err, timeout, retry_interval);
         } else {
           return this.request_entity("world", "flecs.core.World", recv, err, {
             label: true,
@@ -468,6 +468,7 @@ function create_app() {
       start_periodic_refresh() {
         this.parse_interval = 150;
 
+        this.refresh_world();
         this.refresh_query();
         this.refresh_entity();
         this.refresh_tree();
@@ -624,7 +625,7 @@ function create_app() {
               console.warn("remote connection failed, running explorer in local mode");
               this.connection = ConnectionState.ConnectionFailed;
             }
-          }, retry_interval, timeout);
+          }, timeout, retry_interval);
         } else {
           this.connection = ConnectionState.Local;
           this.ready_local();
