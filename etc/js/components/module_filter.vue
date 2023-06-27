@@ -4,6 +4,8 @@
         :style="'border-color: ' + color(i)" v-on:click="toggle(i)">
       {{ label(i) }}
     </span>
+    <span class="noselect module-button select-all-button" v-on:click="select_all">Select all</span>
+    <span class="noselect module-button select-all-button" v-on:click="deselect_all">Deselect all</span>
   </div>
 </template>
 
@@ -37,6 +39,21 @@
         this.$emit("toggle", {module: this.modules[index], enabled: this.enabled[index]});
         this.$forceUpdate();
       },
+      select_all: function() {
+        this.toggle_all(true);
+      },
+      deselect_all: function() {
+        this.toggle_all(false);
+      },
+      toggle_all: function(value) {
+        for (let i = 0; i < this.modules.length; i++) {
+          if (this.enabled[i] === undefined || this.enabled[i] != value) {
+            this.enabled[i] = value;
+            this.$emit("toggle", {module: this.modules[i], enabled: value});
+          }
+        }
+        this.$forceUpdate();
+      },
       is_enabled: function(index) {
         return this.enabled[index] === undefined || this.enabled[index];
       },
@@ -67,8 +84,9 @@
     background-color: var(--panel-bg);
     border-radius: 6px;
     border-style: solid;
-    border-width: 0px;
+    border-width: 1px;
     border-bottom-width: 3px;
+    border-color: var(--steel-600);
 
     padding: 10px;
     padding-top: 7px;
@@ -83,5 +101,9 @@
   span.module-button-disabled {
     color: var(--tertiary-text);
     opacity: 0.5;
+  }
+
+  span.select-all-button:hover {
+    color: var(--primary-text);
   }
 </style>
