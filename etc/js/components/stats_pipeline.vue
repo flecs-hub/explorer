@@ -13,7 +13,7 @@
       <div class="stats-charts stats-systems">
         <span class="top-level-stat">Systems&nbsp;</span><span class="top-level-stat-value">{{ system_count }}</span>
         <span class="top-level-stat">Sync points&nbsp;</span><span class="top-level-stat-value">{{ sync_count }}</span>
-        <module-filter :modules="modules" :labels="module_labels" 
+        <module-filter :modules="modules"
           v-on:toggle="evt_module_toggle"></module-filter>
 
         <template v-for="(sys, i) in results">
@@ -222,10 +222,10 @@
         let modules = [];
 
         for (let k in this.module_counts) {
-          modules.push(k);
+          modules.push({name: k, count: this.module_counts[k]});
         }
 
-        return modules.sort();
+        return modules;
       },
       module_labels() {
         let labels = [];
