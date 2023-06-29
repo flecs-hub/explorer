@@ -96,9 +96,9 @@
               item.enabled = value;
               this.$emit("toggle", {module: item.module, enabled: value});
             }
-          }
-          if (item.is_parent) {
-            this.toggle_children(i, value);
+            if (item.is_parent) {
+              this.toggle_children(i, value);
+            }
           }
         }
       },
