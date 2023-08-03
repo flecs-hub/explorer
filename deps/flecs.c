@@ -1182,11 +1182,11 @@ bool flecs_table_cache_all_iter(
     ecs_table_cache_t *cache,
     ecs_table_cache_iter_t *out);
 
-ecs_table_cache_hdr_t* _flecs_table_cache_next(
+ecs_table_cache_hdr_t* flecs_table_cache_next_(
     ecs_table_cache_iter_t *it);
 
 #define flecs_table_cache_next(it, T)\
-    (ECS_CAST(T*, _flecs_table_cache_next(it)))
+    (ECS_CAST(T*, flecs_table_cache_next_(it)))
 
 #endif
 
@@ -1709,22 +1709,22 @@ void flecs_table_diff_build_noalloc(
 #include <stddef.h>
 
 /* Initialize poly */
-void* _ecs_poly_init(
+void* ecs_poly_init_(
     ecs_poly_t *object,
     int32_t kind,
     ecs_size_t size,
     ecs_mixins_t *mixins);
 
 #define ecs_poly_init(object, type)\
-    _ecs_poly_init(object, type##_magic, sizeof(type), &type##_mixins)
+    ecs_poly_init_(object, type##_magic, sizeof(type), &type##_mixins)
 
 /* Deinitialize object for specified type */
-void _ecs_poly_fini(
+void ecs_poly_fini_(
     ecs_poly_t *object,
     int32_t kind);
 
 #define ecs_poly_fini(object, type)\
-    _ecs_poly_fini(object, type##_magic)
+    ecs_poly_fini_(object, type##_magic)
 
 /* Utility functions for creating an object on the heap */
 #define ecs_poly_new(type)\
@@ -1735,49 +1735,49 @@ void _ecs_poly_fini(
     ecs_os_free(obj)
 
 /* Get or create poly component for an entity */
-EcsPoly* _ecs_poly_bind(
+EcsPoly* ecs_poly_bind_(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag);
 
 #define ecs_poly_bind(world, entity, T) \
-    _ecs_poly_bind(world, entity, T##_tag)
+    ecs_poly_bind_(world, entity, T##_tag)
 
-void _ecs_poly_modified(
+void ecs_poly_modified_(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag);
 
 #define ecs_poly_modified(world, entity, T) \
-    _ecs_poly_modified(world, entity, T##_tag)
+    ecs_poly_modified_(world, entity, T##_tag)
 
 /* Get poly component for an entity */
-const EcsPoly* _ecs_poly_bind_get(
+const EcsPoly* ecs_poly_bind_get_(
     const ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag);
 
 #define ecs_poly_bind_get(world, entity, T) \
-    _ecs_poly_bind_get(world, entity, T##_tag)
+    ecs_poly_bind_get_(world, entity, T##_tag)
 
-ecs_poly_t* _ecs_poly_get(
+ecs_poly_t* ecs_poly_get_(
     const ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag);
 
 #define ecs_poly_get(world, entity, T) \
-    ((T*)_ecs_poly_get(world, entity, T##_tag))
+    ((T*)ecs_poly_get_(world, entity, T##_tag))
 
 /* Utilities for testing/asserting an object type */
 #ifndef FLECS_NDEBUG
-void* _ecs_poly_assert(
+void* ecs_poly_assert_(
     const ecs_poly_t *object,
     int32_t type,
     const char *file,
     int32_t line);
 
 #define ecs_poly_assert(object, type)\
-    _ecs_poly_assert(object, type##_magic, __FILE__, __LINE__)
+    ecs_poly_assert_(object, type##_magic, __FILE__, __LINE__)
 
 #define ecs_poly(object, T) ((T*)ecs_poly_assert(object, T))
 #else
@@ -2280,7 +2280,7 @@ void flecs_filter_apply_iter_flags(
 #define flecs_signed_ecs_size_t__ true
 #define flecs_signed_ecs_entity_t__ false
 
-uint64_t _flecs_ito(
+uint64_t flecs_ito_(
     size_t dst_size,
     bool dst_signed,
     bool lt_zero,
@@ -2289,7 +2289,7 @@ uint64_t _flecs_ito(
 
 #ifndef FLECS_NDEBUG
 #define flecs_ito(T, value)\
-    (T)_flecs_ito(\
+    (T)flecs_ito_(\
         sizeof(T),\
         flecs_signed_##T##__,\
         (value) < 0,\
@@ -2297,7 +2297,7 @@ uint64_t _flecs_ito(
         FLECS_CONVERSION_ERR(T, (value)))
 
 #define flecs_uto(T, value)\
-    (T)_flecs_ito(\
+    (T)flecs_ito_(\
         sizeof(T),\
         flecs_signed_##T##__,\
         false,\
@@ -5341,7 +5341,7 @@ void* assert_mixin(
     return ECS_OFFSET(hdr, offset);
 }
 
-void* _ecs_poly_init(
+void* ecs_poly_init_(
     ecs_poly_t *poly,
     int32_t type,
     ecs_size_t size,
@@ -5359,7 +5359,7 @@ void* _ecs_poly_init(
     return poly;
 }
 
-void _ecs_poly_fini(
+void ecs_poly_fini_(
     ecs_poly_t *poly,
     int32_t type)
 {
@@ -5374,7 +5374,7 @@ void _ecs_poly_fini(
     hdr->magic = 0;
 }
 
-EcsPoly* _ecs_poly_bind(
+EcsPoly* ecs_poly_bind_(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag)
@@ -5403,7 +5403,7 @@ EcsPoly* _ecs_poly_bind(
     return result;
 }
 
-void _ecs_poly_modified(
+void ecs_poly_modified_(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag)
@@ -5411,7 +5411,7 @@ void _ecs_poly_modified(
     ecs_modified_pair(world, entity, ecs_id(EcsPoly), tag);
 }
 
-const EcsPoly* _ecs_poly_bind_get(
+const EcsPoly* ecs_poly_bind_get_(
     const ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag)
@@ -5419,12 +5419,12 @@ const EcsPoly* _ecs_poly_bind_get(
     return ecs_get_pair(world, entity, EcsPoly, tag);
 }
 
-ecs_poly_t* _ecs_poly_get(
+ecs_poly_t* ecs_poly_get_(
     const ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag)
 {
-    const EcsPoly *p = _ecs_poly_bind_get(world, entity, tag);
+    const EcsPoly *p = ecs_poly_bind_get_(world, entity, tag);
     if (p) {
         return p->poly;
     }
@@ -5432,11 +5432,11 @@ ecs_poly_t* _ecs_poly_get(
 }
 
 #define assert_object(cond, file, line, type_name)\
-    _ecs_assert((cond), ECS_INVALID_PARAMETER, #cond, file, line, type_name);\
+    ecs_assert_((cond), ECS_INVALID_PARAMETER, #cond, file, line, type_name);\
     assert(cond)
 
 #ifndef FLECS_NDEBUG
-void* _ecs_poly_assert(
+void* ecs_poly_assert_(
     const ecs_poly_t *poly,
     int32_t type,
     const char *file,
@@ -5452,7 +5452,7 @@ void* _ecs_poly_assert(
 }
 #endif
 
-bool _ecs_poly_is(
+bool ecs_poly_is_(
     const ecs_poly_t *poly,
     int32_t type)
 {
@@ -12819,7 +12819,7 @@ void flecs_name_index_init(
     ecs_hashmap_t *hm,
     ecs_allocator_t *allocator) 
 {
-    _flecs_hashmap_init(hm, 
+    flecs_hashmap_init_(hm, 
         ECS_SIZEOF(ecs_hashed_string_t), ECS_SIZEOF(uint64_t), 
         flecs_name_index_hash, 
         flecs_name_index_compare,
@@ -13032,7 +13032,7 @@ error:
 
 /* quick example:
    string s="fjsakfdsjkf";
-   uint64_t hash=wyhash(s.c_str(), s.size(), 0, _wyp);
+   uint64_t hash=wyhash(s.c_str(), s.size(), 0, wyp_);
 */
 
 
@@ -13059,15 +13059,15 @@ error:
 
 //likely and unlikely macros
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
-  #define _likely_(x)  __builtin_expect(x,1)
-  #define _unlikely_(x)  __builtin_expect(x,0)
+  #define likely_(x)  __builtin_expect(x,1)
+  #define unlikely_(x)  __builtin_expect(x,0)
 #else
-  #define _likely_(x) (x)
-  #define _unlikely_(x) (x)
+  #define likely_(x) (x)
+  #define unlikely_(x) (x)
 #endif
 
 //128bit multiply function
-static inline void _wymum(uint64_t *A, uint64_t *B){
+static inline void wymum_(uint64_t *A, uint64_t *B){
 #if(WYHASH_32BIT_MUM)
   uint64_t hh=(*A>>32)*(*B>>32), hl=(*A>>32)*(uint32_t)*B, lh=(uint32_t)*A*(*B>>32), ll=(uint64_t)(uint32_t)*A*(uint32_t)*B;
   #if(WYHASH_CONDOM>1)
@@ -13103,7 +13103,7 @@ static inline void _wymum(uint64_t *A, uint64_t *B){
 }
 
 //multiply and xor mix function, aka MUM
-static inline uint64_t _wymix(uint64_t A, uint64_t B){ _wymum(&A,&B); return A^B; }
+static inline uint64_t wymix_(uint64_t A, uint64_t B){ wymum_(&A,&B); return A^B; }
 
 //endian macros
 #ifndef WYHASH_LITTLE_ENDIAN
@@ -13119,61 +13119,61 @@ static inline uint64_t _wymix(uint64_t A, uint64_t B){ _wymum(&A,&B); return A^B
 
 //read functions
 #if (WYHASH_LITTLE_ENDIAN)
-static inline uint64_t _wyr8(const uint8_t *p) { uint64_t v; memcpy(&v, p, 8); return v;}
-static inline uint64_t _wyr4(const uint8_t *p) { uint32_t v; memcpy(&v, p, 4); return v;}
+static inline uint64_t wyr8_(const uint8_t *p) { uint64_t v; memcpy(&v, p, 8); return v;}
+static inline uint64_t wyr4_(const uint8_t *p) { uint32_t v; memcpy(&v, p, 4); return v;}
 #elif defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
-static inline uint64_t _wyr8(const uint8_t *p) { uint64_t v; memcpy(&v, p, 8); return __builtin_bswap64(v);}
-static inline uint64_t _wyr4(const uint8_t *p) { uint32_t v; memcpy(&v, p, 4); return __builtin_bswap32(v);}
+static inline uint64_t wyr8_(const uint8_t *p) { uint64_t v; memcpy(&v, p, 8); return __builtin_bswap64(v);}
+static inline uint64_t wyr4_(const uint8_t *p) { uint32_t v; memcpy(&v, p, 4); return __builtin_bswap32(v);}
 #elif defined(_MSC_VER)
-static inline uint64_t _wyr8(const uint8_t *p) { uint64_t v; memcpy(&v, p, 8); return _byteswap_uint64(v);}
-static inline uint64_t _wyr4(const uint8_t *p) { uint32_t v; memcpy(&v, p, 4); return _byteswap_ulong(v);}
+static inline uint64_t wyr8_(const uint8_t *p) { uint64_t v; memcpy(&v, p, 8); return _byteswap_uint64(v);}
+static inline uint64_t wyr4_(const uint8_t *p) { uint32_t v; memcpy(&v, p, 4); return _byteswap_ulong(v);}
 #else
-static inline uint64_t _wyr8(const uint8_t *p) {
+static inline uint64_t wyr8_(const uint8_t *p) {
   uint64_t v; memcpy(&v, p, 8);
   return (((v >> 56) & 0xff)| ((v >> 40) & 0xff00)| ((v >> 24) & 0xff0000)| ((v >>  8) & 0xff000000)| ((v <<  8) & 0xff00000000)| ((v << 24) & 0xff0000000000)| ((v << 40) & 0xff000000000000)| ((v << 56) & 0xff00000000000000));
 }
-static inline uint64_t _wyr4(const uint8_t *p) {
+static inline uint64_t wyr4_(const uint8_t *p) {
   uint32_t v; memcpy(&v, p, 4);
   return (((v >> 24) & 0xff)| ((v >>  8) & 0xff00)| ((v <<  8) & 0xff0000)| ((v << 24) & 0xff000000));
 }
 #endif
-static inline uint64_t _wyr3(const uint8_t *p, size_t k) { return (((uint64_t)p[0])<<16)|(((uint64_t)p[k>>1])<<8)|p[k-1];}
+static inline uint64_t wyr3_(const uint8_t *p, size_t k) { return (((uint64_t)p[0])<<16)|(((uint64_t)p[k>>1])<<8)|p[k-1];}
 
 //wyhash main function
 static inline uint64_t wyhash(const void *key, size_t len, uint64_t seed, const uint64_t *secret){
-  const uint8_t *p=(const uint8_t *)key; seed^=_wymix(seed^secret[0],secret[1]);	uint64_t	a,	b;
-  if(_likely_(len<=16)){
-    if(_likely_(len>=4)){ a=(_wyr4(p)<<32)|_wyr4(p+((len>>3)<<2)); b=(_wyr4(p+len-4)<<32)|_wyr4(p+len-4-((len>>3)<<2)); }
-    else if(_likely_(len>0)){ a=_wyr3(p,len); b=0;}
+  const uint8_t *p=(const uint8_t *)key; seed^=wymix_(seed^secret[0],secret[1]);	uint64_t	a,	b;
+  if(likely_(len<=16)){
+    if(likely_(len>=4)){ a=(wyr4_(p)<<32)|wyr4_(p+((len>>3)<<2)); b=(wyr4_(p+len-4)<<32)|wyr4_(p+len-4-((len>>3)<<2)); }
+    else if(likely_(len>0)){ a=wyr3_(p,len); b=0;}
     else a=b=0;
   }
   else{
     size_t i=len; 
-    if(_unlikely_(i>48)){
+    if(unlikely_(i>48)){
       uint64_t see1=seed, see2=seed;
       do{
-        seed=_wymix(_wyr8(p)^secret[1],_wyr8(p+8)^seed);
-        see1=_wymix(_wyr8(p+16)^secret[2],_wyr8(p+24)^see1);
-        see2=_wymix(_wyr8(p+32)^secret[3],_wyr8(p+40)^see2);
+        seed=wymix_(wyr8_(p)^secret[1],wyr8_(p+8)^seed);
+        see1=wymix_(wyr8_(p+16)^secret[2],wyr8_(p+24)^see1);
+        see2=wymix_(wyr8_(p+32)^secret[3],wyr8_(p+40)^see2);
         p+=48; i-=48;
-      }while(_likely_(i>48));
+      }while(likely_(i>48));
       seed^=see1^see2;
     }
-    while(_unlikely_(i>16)){  seed=_wymix(_wyr8(p)^secret[1],_wyr8(p+8)^seed);  i-=16; p+=16;  }
-    a=_wyr8(p+i-16);  b=_wyr8(p+i-8);
+    while(unlikely_(i>16)){  seed=wymix_(wyr8_(p)^secret[1],wyr8_(p+8)^seed);  i-=16; p+=16;  }
+    a=wyr8_(p+i-16);  b=wyr8_(p+i-8);
   }
-  a^=secret[1]; b^=seed;  _wymum(&a,&b);
-  return  _wymix(a^secret[0]^len,b^secret[1]);
+  a^=secret[1]; b^=seed;  wymum_(&a,&b);
+  return  wymix_(a^secret[0]^len,b^secret[1]);
 }
 
 //the default secret parameters
-static const uint64_t _wyp[4] = {0xa0761d6478bd642full, 0xe7037ed1a0b428dbull, 0x8ebc6af09c88c6e3ull, 0x589965cc75374cc3ull};
+static const uint64_t wyp_[4] = {0xa0761d6478bd642full, 0xe7037ed1a0b428dbull, 0x8ebc6af09c88c6e3ull, 0x589965cc75374cc3ull};
 
 uint64_t flecs_hash(
     const void *data,
     ecs_size_t length)
 {
-    return wyhash(data, flecs_ito(size_t, length), 0, _wyp);
+    return wyhash(data, flecs_ito(size_t, length), 0, wyp_);
 }
 
 /**
@@ -14697,7 +14697,7 @@ ecs_map_val_t* ecs_map_get(
     return flecs_map_bucket_get(flecs_map_get_bucket(map, key), key);
 }
 
-void* _ecs_map_get_deref(
+void* ecs_map_get_deref_(
     const ecs_map_t *map,
     ecs_map_key_t key)
 {
@@ -15154,7 +15154,7 @@ int32_t flecs_hashmap_find_key(
     return -1;
 }
 
-void _flecs_hashmap_init(
+void flecs_hashmap_init_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     ecs_size_t value_size,
@@ -15195,7 +15195,7 @@ void flecs_hashmap_copy(
 {
     ecs_assert(dst != src, ECS_INVALID_PARAMETER, NULL);
 
-    _flecs_hashmap_init(dst, src->key_size, src->value_size, src->hash, 
+    flecs_hashmap_init_(dst, src->key_size, src->value_size, src->hash, 
         src->compare, src->impl.allocator);
     ecs_map_copy(&dst->impl, &src->impl);
 
@@ -15211,7 +15211,7 @@ void flecs_hashmap_copy(
     }
 }
 
-void* _flecs_hashmap_get(
+void* flecs_hashmap_get_(
     const ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
@@ -15235,7 +15235,7 @@ void* _flecs_hashmap_get(
     return ecs_vec_get(&bucket->values, value_size, index);
 }
 
-flecs_hashmap_result_t _flecs_hashmap_ensure(
+flecs_hashmap_result_t flecs_hashmap_ensure_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
@@ -15280,14 +15280,14 @@ flecs_hashmap_result_t _flecs_hashmap_ensure(
     };
 }
 
-void _flecs_hashmap_set(
+void flecs_hashmap_set_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     void *key,
     ecs_size_t value_size,
     const void *value)
 {
-    void *value_ptr = _flecs_hashmap_ensure(map, key_size, key, value_size).value;
+    void *value_ptr = flecs_hashmap_ensure_(map, key_size, key, value_size).value;
     ecs_assert(value_ptr != NULL, ECS_INTERNAL_ERROR, NULL);
     ecs_os_memcpy(value_ptr, value, value_size);
 }
@@ -15319,7 +15319,7 @@ void flecs_hm_bucket_remove(
     }
 }
 
-void _flecs_hashmap_remove_w_hash(
+void flecs_hashmap_remove_w_hash_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
@@ -15344,7 +15344,7 @@ void _flecs_hashmap_remove_w_hash(
     flecs_hm_bucket_remove(map, bucket, hash, index);
 }
 
-void _flecs_hashmap_remove(
+void flecs_hashmap_remove_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
@@ -15354,7 +15354,7 @@ void _flecs_hashmap_remove(
     ecs_assert(map->value_size == value_size, ECS_INVALID_PARAMETER, NULL);
 
     uint64_t hash = map->hash(key);
-    _flecs_hashmap_remove_w_hash(map, key_size, key, value_size, hash);
+    flecs_hashmap_remove_w_hash_(map, key_size, key, value_size, hash);
 }
 
 flecs_hashmap_iter_t flecs_hashmap_iter(
@@ -15365,7 +15365,7 @@ flecs_hashmap_iter_t flecs_hashmap_iter(
     };
 }
 
-void* _flecs_hashmap_next(
+void* flecs_hashmap_next_(
     flecs_hashmap_iter_t *it,
     ecs_size_t key_size,
     void *key_out,
@@ -16326,7 +16326,7 @@ void flecs_colorize_buf(
     }
 }
 
-void _ecs_printv(
+void ecs_printv_(
     int level,
     const char *file,
     int32_t line,
@@ -16355,7 +16355,7 @@ void _ecs_printv(
     }
 }
 
-void _ecs_print(
+void ecs_print_(
     int level,
     const char *file,
     int32_t line,
@@ -16364,11 +16364,11 @@ void _ecs_print(
 {
     va_list args;
     va_start(args, fmt);
-    _ecs_printv(level, file, line, fmt, args);
+    ecs_printv_(level, file, line, fmt, args);
     va_end(args);    
 }
 
-void _ecs_logv(
+void ecs_logv_(
     int level,
     const char *file,
     int32_t line,
@@ -16379,10 +16379,10 @@ void _ecs_logv(
         return;
     }
 
-    _ecs_printv(level, file, line, fmt, args);
+    ecs_printv_(level, file, line, fmt, args);
 }
 
-void _ecs_log(
+void ecs_log_(
     int level,
     const char *file,
     int32_t line,
@@ -16395,12 +16395,12 @@ void _ecs_log(
 
     va_list args;
     va_start(args, fmt);
-    _ecs_printv(level, file, line, fmt, args);
+    ecs_printv_(level, file, line, fmt, args);
     va_end(args);    
 }
 
 
-void _ecs_log_push(
+void ecs_log_push_(
     int32_t level) 
 {
     if (level <= ecs_os_api.log_level_) {
@@ -16408,7 +16408,7 @@ void _ecs_log_push(
     }
 }
 
-void _ecs_log_pop(
+void ecs_log_pop_(
     int32_t level)
 {
     if (level <= ecs_os_api.log_level_) {
@@ -16417,7 +16417,7 @@ void _ecs_log_pop(
     }
 }
 
-void _ecs_parser_errorv(
+void ecs_parser_errorv_(
     const char *name,
     const char *expr, 
     int64_t column_arg,
@@ -16482,7 +16482,7 @@ void _ecs_parser_errorv(
     }
 }
 
-void _ecs_parser_error(
+void ecs_parser_error_(
     const char *name,
     const char *expr, 
     int64_t column,
@@ -16492,12 +16492,12 @@ void _ecs_parser_error(
     if (ecs_os_api.log_level_  >= -2) {
         va_list args;
         va_start(args, fmt);
-        _ecs_parser_errorv(name, expr, column, fmt, args);
+        ecs_parser_errorv_(name, expr, column, fmt, args);
         va_end(args);
     }
 }
 
-void _ecs_abort(
+void ecs_abort_(
     int32_t err,
     const char *file,
     int32_t line,
@@ -16509,15 +16509,15 @@ void _ecs_abort(
         va_start(args, fmt);
         char *msg = ecs_vasprintf(fmt, args);
         va_end(args);
-        _ecs_fatal(file, line, "%s (%s)", msg, ecs_strerror(err));
+        ecs_fatal_(file, line, "%s (%s)", msg, ecs_strerror(err));
         ecs_os_free(msg);
     } else {
-        _ecs_fatal(file, line, "%s", ecs_strerror(err));
+        ecs_fatal_(file, line, "%s", ecs_strerror(err));
     }
     ecs_os_api.log_last_error_ = err;
 }
 
-bool _ecs_assert(
+bool ecs_assert_(
     bool condition,
     int32_t err,
     const char *cond_str,
@@ -16532,11 +16532,11 @@ bool _ecs_assert(
             va_start(args, fmt);
             char *msg = ecs_vasprintf(fmt, args);
             va_end(args);            
-            _ecs_fatal(file, line, "assert: %s %s (%s)", 
+            ecs_fatal_(file, line, "assert: %s %s (%s)", 
                 cond_str, msg, ecs_strerror(err));
             ecs_os_free(msg);
         } else {
-            _ecs_fatal(file, line, "assert: %s %s", 
+            ecs_fatal_(file, line, "assert: %s %s", 
                 cond_str, ecs_strerror(err));
         }
         ecs_os_api.log_last_error_ = err;
@@ -16545,12 +16545,12 @@ bool _ecs_assert(
     return condition;
 }
 
-void _ecs_deprecated(
+void ecs_deprecated_(
     const char *file,
     int32_t line,
     const char *msg)
 {
-    _ecs_err(file, line, "%s", msg);
+    ecs_err_(file, line, "%s", msg);
 }
 
 bool ecs_should_log(int32_t level) {
@@ -16621,7 +16621,7 @@ const char* ecs_strerror(
 
 /* Empty bodies for when logging is disabled */
 
-void _ecs_log(
+void ecs_log_(
     int32_t level,
     const char *file,
     int32_t line,
@@ -16634,7 +16634,7 @@ void _ecs_log(
     (void)fmt;
 }
 
-void _ecs_parser_error(
+void ecs_parser_error_(
     const char *name,
     const char *expr, 
     int64_t column,
@@ -16647,7 +16647,7 @@ void _ecs_parser_error(
     (void)fmt;
 }
 
-void _ecs_parser_errorv(
+void ecs_parser_errorv_(
     const char *name,
     const char *expr, 
     int64_t column,
@@ -16661,7 +16661,7 @@ void _ecs_parser_errorv(
     (void)args;
 }
 
-void _ecs_abort(
+void ecs_abort_(
     int32_t error_code,
     const char *file,
     int32_t line,
@@ -16674,7 +16674,7 @@ void _ecs_abort(
     (void)fmt;
 }
 
-bool _ecs_assert(
+bool ecs_assert_(
     bool condition,
     int32_t error_code,
     const char *condition_str,
@@ -18145,9 +18145,9 @@ void FlecsPipelineFini(
 
 #define flecs_bootstrap_phase(world, phase, depends_on)\
     flecs_bootstrap_tag(world, phase);\
-    _flecs_bootstrap_phase(world, phase, depends_on)
+    flecs_bootstrap_phase_(world, phase, depends_on)
 static
-void _flecs_bootstrap_phase(
+void flecs_bootstrap_phase_(
     ecs_world_t *world,
     ecs_entity_t phase,
     ecs_entity_t depends_on)
@@ -36777,7 +36777,7 @@ bool flecs_rest_reply_query(
 #ifdef FLECS_MONITOR
 
 static
-void _flecs_rest_array_append(
+void flecs_rest_array_append_(
     ecs_strbuf_t *reply,
     const char *field,
     int32_t field_len,
@@ -36800,7 +36800,7 @@ void _flecs_rest_array_append(
 }
 
 #define flecs_rest_array_append(reply, field, values, t)\
-    _flecs_rest_array_append(reply, field, sizeof(field) - 1, values, t)
+    flecs_rest_array_append_(reply, field, sizeof(field) - 1, values, t)
 
 static
 void flecs_rest_gauge_append(
@@ -41640,13 +41640,13 @@ ecs_allocator_t* flecs_rule_get_allocator(
 }
 
 static
-ecs_rule_op_ctx_t* _flecs_op_ctx(
+ecs_rule_op_ctx_t* flecs_op_ctx_(
     const ecs_rule_run_ctx_t *ctx)
 {
     return &ctx->op_ctx[ctx->op_index];
 }
 
-#define flecs_op_ctx(ctx, op_kind) (&_flecs_op_ctx(ctx)->is.op_kind)
+#define flecs_op_ctx(ctx, op_kind) (&flecs_op_ctx_(ctx)->is.op_kind)
 
 static
 ecs_table_range_t flecs_range_from_entity(
@@ -53798,7 +53798,7 @@ bool flecs_table_cache_all_iter(
     return out->next != NULL || out->next_list != NULL;
 }
 
-ecs_table_cache_hdr_t* _flecs_table_cache_next(
+ecs_table_cache_hdr_t* flecs_table_cache_next_(
     ecs_table_cache_iter_t *it)
 {
     ecs_table_cache_hdr_t *next = it->next;
@@ -55753,7 +55753,7 @@ int flecs_query_process_signature(
             "invalid usage of Filter for query");
 
         if (inout != EcsIn && inout != EcsInOutNone) {
-            query->flags |= EcsQueryHasOutColumns;
+            query->flags |= EcsQueryHasOutTerms;
         }
 
         if (src->flags & EcsCascade) {
@@ -56686,7 +56686,7 @@ bool ecs_query_next_table(
         if (query->flags & EcsQueryHasMonitor) {
             flecs_query_sync_match_monitor(query, prev);
         }
-        if (query->flags & EcsQueryHasOutColumns) {
+        if (query->flags & EcsQueryHasOutTerms) {
             if (it->count) {
                 flecs_query_mark_columns_dirty(query, prev);
             }
@@ -56877,7 +56877,7 @@ bool ecs_query_next_instanced(
         if (flags & EcsQueryHasMonitor) {
             flecs_query_sync_match_monitor(query, prev);
         }
-        if (flags & EcsQueryHasOutColumns) {
+        if (flags & EcsQueryHasOutTerms) {
             flecs_query_mark_columns_dirty(query, prev);
         }
     }
@@ -59386,7 +59386,7 @@ static int64_t flecs_s_max[] = {
 static uint64_t flecs_u_max[] = { 
     [1] = UINT8_MAX, [2] = UINT16_MAX, [4] = UINT32_MAX, [8] = UINT64_MAX };
 
-uint64_t _flecs_ito(
+uint64_t flecs_ito_(
     size_t size,
     bool is_signed,
     bool lt_zero,

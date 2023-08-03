@@ -56,7 +56,9 @@ function paramStr(params) {
   let url_params = "";
   if (params) {
     for (var k in params) {
-      url_params += "&" + k + "=" + params[k];
+      if (params[k] !== undefined) {
+        url_params += "&" + k + "=" + params[k];
+      }
     }
   }
   return url_params;
@@ -911,6 +913,7 @@ let components = [
   httpVueLoader('js/overlays/popovers/url-popover.vue')(),
   httpVueLoader('js/components/panel_menu.vue')(),
   httpVueLoader('js/components/panel_button.vue')(),
+  httpVueLoader('js/components/tabs.vue')(),
   httpVueLoader('js/components/content_container.vue')(),
   httpVueLoader('js/components/editor_textarea.vue')(),
   httpVueLoader('js/components/editor.vue')(),
@@ -927,6 +930,7 @@ let components = [
   httpVueLoader('js/components/stats_world.vue')(),
   httpVueLoader('js/components/stats_pipeline.vue')(),
   httpVueLoader('js/components/alerts.vue')(),
+  httpVueLoader('js/components/inspector_refs.vue')(),
   httpVueLoader('js/components/inspector_alerts.vue')(),
   httpVueLoader('js/components/tooltip.vue')(),
   httpVueLoader('js/components/popover.vue')(),

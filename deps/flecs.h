@@ -447,7 +447,7 @@ extern "C" {
 #define EcsQueryHasRefs                (1u << 1u)  /* Does query have references */
 #define EcsQueryIsSubquery             (1u << 2u)  /* Is query a subquery */
 #define EcsQueryIsOrphaned             (1u << 3u)  /* Is subquery orphaned */
-#define EcsQueryHasOutColumns          (1u << 4u)  /* Does query have out columns */
+#define EcsQueryHasOutTerms          (1u << 4u)  /* Does query have out columns */
 #define EcsQueryHasMonitor             (1u << 5u)  /* Does query track changes */
 #define EcsQueryTrivialIter            (1u << 6u)  /* Does the query require special features to iterate */
 
@@ -1438,7 +1438,7 @@ ecs_map_val_t* ecs_map_get(
 
 /* Get element as pointer (auto-dereferences _ptr) */
 FLECS_API
-void* _ecs_map_get_deref(
+void* ecs_map_get_deref_(
     const ecs_map_t *map,
     ecs_map_key_t key);
 
@@ -1509,7 +1509,7 @@ void ecs_map_copy(
     const ecs_map_t *src);
 
 #define ecs_map_get_ref(m, T, k) ECS_CAST(T**, ecs_map_get(m, k))
-#define ecs_map_get_deref(m, T, k) ECS_CAST(T*, _ecs_map_get_deref(m, k))
+#define ecs_map_get_deref(m, T, k) ECS_CAST(T*, ecs_map_get_deref_(m, k))
 #define ecs_map_ensure_ref(m, T, k) ECS_CAST(T**, ecs_map_ensure(m, k))
 
 #define ecs_map_insert_ptr(m, k, v) ecs_map_insert(m, k, ECS_CAST(ecs_map_val_t, v))
@@ -3331,7 +3331,7 @@ typedef struct {
 } flecs_hashmap_result_t;
 
 FLECS_DBG_API
-void _flecs_hashmap_init(
+void flecs_hashmap_init_(
     ecs_hashmap_t *hm,
     ecs_size_t key_size,
     ecs_size_t value_size,
@@ -3340,34 +3340,34 @@ void _flecs_hashmap_init(
     ecs_allocator_t *allocator);
 
 #define flecs_hashmap_init(hm, K, V, hash, compare, allocator)\
-    _flecs_hashmap_init(hm, ECS_SIZEOF(K), ECS_SIZEOF(V), hash, compare, allocator)
+    flecs_hashmap_init_(hm, ECS_SIZEOF(K), ECS_SIZEOF(V), hash, compare, allocator)
 
 FLECS_DBG_API
 void flecs_hashmap_fini(
     ecs_hashmap_t *map);
 
 FLECS_DBG_API
-void* _flecs_hashmap_get(
+void* flecs_hashmap_get_(
     const ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
     ecs_size_t value_size);
 
 #define flecs_hashmap_get(map, key, V)\
-    (V*)_flecs_hashmap_get(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
+    (V*)flecs_hashmap_get_(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
 
 FLECS_DBG_API
-flecs_hashmap_result_t _flecs_hashmap_ensure(
+flecs_hashmap_result_t flecs_hashmap_ensure_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
     ecs_size_t value_size);
 
 #define flecs_hashmap_ensure(map, key, V)\
-    _flecs_hashmap_ensure(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
+    flecs_hashmap_ensure_(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
 
 FLECS_DBG_API
-void _flecs_hashmap_set(
+void flecs_hashmap_set_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     void *key,
@@ -3375,20 +3375,20 @@ void _flecs_hashmap_set(
     const void *value);
 
 #define flecs_hashmap_set(map, key, value)\
-    _flecs_hashmap_set(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(*value), value)
+    flecs_hashmap_set_(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(*value), value)
 
 FLECS_DBG_API
-void _flecs_hashmap_remove(
+void flecs_hashmap_remove_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
     ecs_size_t value_size);
 
 #define flecs_hashmap_remove(map, key, V)\
-    _flecs_hashmap_remove(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
+    flecs_hashmap_remove_(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V))
 
 FLECS_DBG_API
-void _flecs_hashmap_remove_w_hash(
+void flecs_hashmap_remove_w_hash_(
     ecs_hashmap_t *map,
     ecs_size_t key_size,
     const void *key,
@@ -3396,7 +3396,7 @@ void _flecs_hashmap_remove_w_hash(
     uint64_t hash);
 
 #define flecs_hashmap_remove_w_hash(map, key, V, hash)\
-    _flecs_hashmap_remove_w_hash(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V), hash)
+    flecs_hashmap_remove_w_hash_(map, ECS_SIZEOF(*key), key, ECS_SIZEOF(V), hash)
 
 FLECS_DBG_API
 ecs_hm_bucket_t* flecs_hashmap_get_bucket(
@@ -3420,17 +3420,17 @@ flecs_hashmap_iter_t flecs_hashmap_iter(
     ecs_hashmap_t *map);
 
 FLECS_DBG_API
-void* _flecs_hashmap_next(
+void* flecs_hashmap_next_(
     flecs_hashmap_iter_t *it,
     ecs_size_t key_size,
     void *key_out,
     ecs_size_t value_size);
 
 #define flecs_hashmap_next(map, V)\
-    (V*)_flecs_hashmap_next(map, 0, NULL, ECS_SIZEOF(V))
+    (V*)flecs_hashmap_next_(map, 0, NULL, ECS_SIZEOF(V))
 
 #define flecs_hashmap_next_w_key(map, K, key, V)\
-    (V*)_flecs_hashmap_next(map, ECS_SIZEOF(K), key, ECS_SIZEOF(V))
+    (V*)flecs_hashmap_next_(map, ECS_SIZEOF(K), key, ECS_SIZEOF(V))
 
 #ifdef __cplusplus
 }
@@ -4749,12 +4749,12 @@ ecs_entity_t ecs_get_entity(
  * @return True if the pointer is of the specified type.
  */
 FLECS_API
-bool _ecs_poly_is(
+bool ecs_poly_is_(
     const ecs_poly_t *object,
     int32_t type);
 
 #define ecs_poly_is(object, type)\
-    _ecs_poly_is(object, type##_magic)
+    ecs_poly_is_(object, type##_magic)
 
 /** Make a pair id.
  * This function is equivalent to using the ecs_pair macro, and is added for
@@ -9104,7 +9104,7 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
 
 FLECS_API
-void _ecs_deprecated(
+void ecs_deprecated_(
     const char *file, 
     int32_t line, 
     const char *msg);
@@ -9116,7 +9116,7 @@ void _ecs_deprecated(
  * @param level The log level.
  */
 FLECS_API
-void _ecs_log_push(int32_t level);
+void ecs_log_push_(int32_t level);
 
 /** Decrease log stack.
  * This operation decreases the indent_ value of the OS API and can be useful to
@@ -9125,7 +9125,7 @@ void _ecs_log_push(int32_t level);
  * @param level The log level.
  */
 FLECS_API
-void _ecs_log_pop(int32_t level);
+void ecs_log_pop_(int32_t level);
 
 /** Should current level be logged.
  * This operation returns true when the specified log level should be logged 
@@ -9152,13 +9152,13 @@ const char* ecs_strerror(
 //// Dummy macros for when logging is disabled
 ////////////////////////////////////////////////////////////////////////////////
 
-#define _ecs_deprecated(file, line, msg)\
+#define ecs_deprecated_(file, line, msg)\
     (void)file;\
     (void)line;\
     (void)msg
 
-#define _ecs_log_push(level)
-#define _ecs_log_pop(level)
+#define ecs_log_push_(level)
+#define ecs_log_pop_(level)
 #define ecs_should_log(level) false
 
 #define ecs_strerror(error_code)\
@@ -9172,7 +9172,7 @@ const char* ecs_strerror(
 ////////////////////////////////////////////////////////////////////////////////
 
 FLECS_API
-void _ecs_print(
+void ecs_print_(
     int32_t level,
     const char *file,
     int32_t line,
@@ -9180,7 +9180,7 @@ void _ecs_print(
     ...);
 
 FLECS_API
-void _ecs_printv(
+void ecs_printv_(
     int level,
     const char *file,
     int32_t line,
@@ -9188,7 +9188,7 @@ void _ecs_printv(
     va_list args);
 
 FLECS_API
-void _ecs_log(
+void ecs_log_(
     int32_t level,
     const char *file,
     int32_t line,
@@ -9196,7 +9196,7 @@ void _ecs_log(
     ...);
 
 FLECS_API
-void _ecs_logv(
+void ecs_logv_(
     int level,
     const char *file,
     int32_t line,
@@ -9204,7 +9204,7 @@ void _ecs_logv(
     va_list args);
 
 FLECS_API
-void _ecs_abort(
+void ecs_abort_(
     int32_t error_code,
     const char *file,
     int32_t line,
@@ -9212,7 +9212,7 @@ void _ecs_abort(
     ...);
 
 FLECS_API
-bool _ecs_assert(
+bool ecs_assert_(
     bool condition,
     int32_t error_code,
     const char *condition_str,
@@ -9222,7 +9222,7 @@ bool _ecs_assert(
     ...);
 
 FLECS_API
-void _ecs_parser_error(
+void ecs_parser_error_(
     const char *name,
     const char *expr, 
     int64_t column,
@@ -9230,7 +9230,7 @@ void _ecs_parser_error(
     ...);
 
 FLECS_API
-void _ecs_parser_errorv(
+void ecs_parser_errorv_(
     const char *name,
     const char *expr, 
     int64_t column,
@@ -9246,37 +9246,37 @@ void _ecs_parser_errorv(
 
 /* Base logging function. Accepts a custom level */
 #define ecs_print(level, ...)\
-    _ecs_print(level, __FILE__, __LINE__, __VA_ARGS__)
+    ecs_print_(level, __FILE__, __LINE__, __VA_ARGS__)
 
 #define ecs_printv(level, fmt, args)\
-    _ecs_printv(level, __FILE__, __LINE__, fmt, args)
+    ecs_printv_(level, __FILE__, __LINE__, fmt, args)
 
 #define ecs_log(level, ...)\
-    _ecs_log(level, __FILE__, __LINE__, __VA_ARGS__)
+    ecs_log_(level, __FILE__, __LINE__, __VA_ARGS__)
 
 #define ecs_logv(level, fmt, args)\
-    _ecs_logv(level, __FILE__, __LINE__, fmt, args)
+    ecs_logv_(level, __FILE__, __LINE__, fmt, args)
 
 /* Tracing. Used for logging of infrequent events  */
-#define _ecs_trace(file, line, ...) _ecs_log(0, file, line, __VA_ARGS__)
-#define ecs_trace(...) _ecs_trace(__FILE__, __LINE__, __VA_ARGS__)
+#define ecs_trace_(file, line, ...) ecs_log_(0, file, line, __VA_ARGS__)
+#define ecs_trace(...) ecs_trace_(__FILE__, __LINE__, __VA_ARGS__)
 
 /* Warning. Used when an issue occurs, but operation is successful */
-#define _ecs_warn(file, line, ...) _ecs_log(-2, file, line, __VA_ARGS__)
-#define ecs_warn(...) _ecs_warn(__FILE__, __LINE__, __VA_ARGS__)
+#define ecs_warn_(file, line, ...) ecs_log_(-2, file, line, __VA_ARGS__)
+#define ecs_warn(...) ecs_warn_(__FILE__, __LINE__, __VA_ARGS__)
 
 /* Error. Used when an issue occurs, and operation failed. */
-#define _ecs_err(file, line, ...) _ecs_log(-3, file, line, __VA_ARGS__)
-#define ecs_err(...) _ecs_err(__FILE__, __LINE__, __VA_ARGS__)
+#define ecs_err_(file, line, ...) ecs_log_(-3, file, line, __VA_ARGS__)
+#define ecs_err(...) ecs_err_(__FILE__, __LINE__, __VA_ARGS__)
 
 /* Fatal. Used when an issue occurs, and the application cannot continue. */
-#define _ecs_fatal(file, line, ...) _ecs_log(-4, file, line, __VA_ARGS__)
-#define ecs_fatal(...) _ecs_fatal(__FILE__, __LINE__, __VA_ARGS__)
+#define ecs_fatal_(file, line, ...) ecs_log_(-4, file, line, __VA_ARGS__)
+#define ecs_fatal(...) ecs_fatal_(__FILE__, __LINE__, __VA_ARGS__)
 
 /* Optionally include warnings about using deprecated features */
 #ifndef FLECS_NO_DEPRECATED_WARNINGS
 #define ecs_deprecated(...)\
-    _ecs_deprecated(__FILE__, __LINE__, __VA_ARGS__)
+    ecs_deprecated_(__FILE__, __LINE__, __VA_ARGS__)
 #else
 #define ecs_deprecated(...)
 #endif // FLECS_NO_DEPRECATED_WARNINGS
@@ -9299,13 +9299,13 @@ void _ecs_parser_errorv(
 #define ecs_dbg_2(...) ecs_log(2, __VA_ARGS__);
 #define ecs_dbg_3(...) ecs_log(3, __VA_ARGS__);
 
-#define ecs_log_push_1() _ecs_log_push(1);
-#define ecs_log_push_2() _ecs_log_push(2);
-#define ecs_log_push_3() _ecs_log_push(3);
+#define ecs_log_push_1() ecs_log_push_(1);
+#define ecs_log_push_2() ecs_log_push_(2);
+#define ecs_log_push_3() ecs_log_push_(3);
 
-#define ecs_log_pop_1() _ecs_log_pop(1);
-#define ecs_log_pop_2() _ecs_log_pop(2);
-#define ecs_log_pop_3() _ecs_log_pop(3);
+#define ecs_log_pop_1() ecs_log_pop_(1);
+#define ecs_log_pop_2() ecs_log_pop_(2);
+#define ecs_log_pop_3() ecs_log_pop_(3);
 
 #define ecs_should_log_1() ecs_should_log(1)
 #define ecs_should_log_2() ecs_should_log(2)
@@ -9320,12 +9320,12 @@ void _ecs_parser_errorv(
 #define ecs_dbg_2(...) ecs_log(2, __VA_ARGS__);
 #define ecs_dbg_3(...)
 
-#define ecs_log_push_1() _ecs_log_push(1);
-#define ecs_log_push_2() _ecs_log_push(2);
+#define ecs_log_push_1() ecs_log_push_(1);
+#define ecs_log_push_2() ecs_log_push_(2);
 #define ecs_log_push_3()
 
-#define ecs_log_pop_1() _ecs_log_pop(1);
-#define ecs_log_pop_2() _ecs_log_pop(2);
+#define ecs_log_pop_1() ecs_log_pop_(1);
+#define ecs_log_pop_2() ecs_log_pop_(2);
 #define ecs_log_pop_3()
 
 #define ecs_should_log_1() ecs_should_log(1)
@@ -9340,11 +9340,11 @@ void _ecs_parser_errorv(
 #define ecs_dbg_2(...)
 #define ecs_dbg_3(...)
 
-#define ecs_log_push_1() _ecs_log_push(1);
+#define ecs_log_push_1() ecs_log_push_(1);
 #define ecs_log_push_2()
 #define ecs_log_push_3()
 
-#define ecs_log_pop_1() _ecs_log_pop(1);
+#define ecs_log_pop_1() ecs_log_pop_(1);
 #define ecs_log_pop_2()
 #define ecs_log_pop_3()
 
@@ -9392,13 +9392,13 @@ void _ecs_parser_errorv(
 #define ecs_dbg ecs_dbg_1
 
 /* Default level for push/pop is 0 */
-#define ecs_log_push() _ecs_log_push(0)
-#define ecs_log_pop() _ecs_log_pop(0)
+#define ecs_log_push() ecs_log_push_(0)
+#define ecs_log_pop() ecs_log_pop_(0)
 
 /** Abort.
  * Unconditionally aborts process. */
 #define ecs_abort(error_code, ...)\
-    _ecs_abort(error_code, __FILE__, __LINE__, __VA_ARGS__);\
+    ecs_abort_(error_code, __FILE__, __LINE__, __VA_ARGS__);\
     ecs_os_abort(); abort(); /* satisfy compiler/static analyzers */
 
 /** Assert. 
@@ -9407,7 +9407,7 @@ void _ecs_parser_errorv(
 #define ecs_assert(condition, error_code, ...)
 #else
 #define ecs_assert(condition, error_code, ...)\
-    if (!_ecs_assert(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__)) {\
+    if (!ecs_assert_(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__)) {\
         ecs_os_abort();\
     }\
     assert(condition) /* satisfy compiler/static analyzers */
@@ -9438,7 +9438,7 @@ void _ecs_parser_errorv(
 #else
 #ifdef FLECS_SOFT_ASSERT
 #define ecs_check(condition, error_code, ...)\
-    if (!_ecs_assert(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__)) {\
+    if (!ecs_assert_(condition, error_code, #condition, __FILE__, __LINE__, __VA_ARGS__)) {\
         goto error;\
     }
 #else // FLECS_SOFT_ASSERT
@@ -9455,7 +9455,7 @@ void _ecs_parser_errorv(
 #else
 #ifdef FLECS_SOFT_ASSERT
 #define ecs_throw(error_code, ...)\
-    _ecs_abort(error_code, __FILE__, __LINE__, __VA_ARGS__);\
+    ecs_abort_(error_code, __FILE__, __LINE__, __VA_ARGS__);\
     goto error;
 #else
 #define ecs_throw(error_code, ...)\
@@ -9466,10 +9466,10 @@ void _ecs_parser_errorv(
 
 /** Parser error */
 #define ecs_parser_error(name, expr, column, ...)\
-    _ecs_parser_error(name, expr, column, __VA_ARGS__)
+    ecs_parser_error_(name, expr, column, __VA_ARGS__)
 
 #define ecs_parser_errorv(name, expr, column, fmt, args)\
-    _ecs_parser_errorv(name, expr, column, fmt, args)
+    ecs_parser_errorv_(name, expr, column, fmt, args)
 
 #endif // FLECS_LEGACY
 

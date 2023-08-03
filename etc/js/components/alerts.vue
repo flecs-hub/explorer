@@ -182,7 +182,7 @@
           style: 'min-width: 175px;'
         }, {
           name: 'Message',
-          style: 'min-width: 525px;'
+          style: 'min-width: 425px;'
         }, {
           name: 'Duration',
           type: {"value": ["float", {

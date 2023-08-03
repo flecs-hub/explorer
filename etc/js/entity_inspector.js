@@ -758,7 +758,8 @@ const inspector_component = Vue.component('inspector', {
       error: undefined,
       edit_count: 0,
       edit_inputs: {},
-      url: undefined
+      url: undefined,
+      view: "components"
     }
   },
   methods: {
@@ -780,6 +781,10 @@ const inspector_component = Vue.component('inspector', {
         return;
       }
 
+      const request_alerts = this.view == "alerts";
+      const request_components = this.view == "components";
+      const request_refs = this.view == "refs";
+
       const r = app.request_entity('inspector', this.entity_name, (reply, url) => {
         if (reply) {
           this.error = reply.error;
@@ -795,14 +800,15 @@ const inspector_component = Vue.component('inspector', {
         this.invalid_entity_error(
           "request for entity '" + this.entity_name + "' failed");
       }, {
-        type_info: true, 
+        type_info: request_components, 
         label: true,
         brief: true, 
         link: true, 
         color: true,
-        id_labels: true, 
-        values: true,
-        alerts: true
+        id_labels: request_components, 
+        values: request_components,
+        alerts: request_alerts,
+        refs: request_refs ? "*" : undefined
       });
 
       if (this.$refs.container) {
@@ -819,6 +825,7 @@ const inspector_component = Vue.component('inspector', {
       this.entity = undefined;
       this.error = undefined;
       this.entity_name = path;
+      this.view = "components";
 
       if (path == undefined) {
         this.close();
@@ -938,6 +945,10 @@ const inspector_component = Vue.component('inspector', {
       if (!this.edit_inputs[evt.id].count) {
         delete this.edit_inputs[evt.id];
       }
+    },
+    select_view(view) {
+      this.view = view;
+      this.refresh();
     }
   },
   computed: {
@@ -987,11 +998,39 @@ const inspector_component = Vue.component('inspector', {
       return app.connection == ConnectionState.Remote;
     },
     alerts: function() {
-      if (!this.entity) {
-        return undefined;
+      if (!this.entity || !this.entity.alerts) {
+        return [];
       }
 
-      return this.entity.alerts;
+      let map = {};
+      let result = [];
+      for (let a of this.entity.alerts) {
+        let path = a.path;
+        const root = this.entity.path;
+        if (!a.path) {
+          path = "self";
+        } else {
+          path = path.slice(root.length + 1);
+        }
+
+        let obj = map[path];
+        if (!obj) {
+          obj = {path: path, alerts: []};
+          result.push(obj);
+          map[path] = obj;
+        }
+
+        obj.alerts.push(a);
+      }
+
+      return result;
+    },
+    refs: function() {
+      if (!this.entity || !this.entity.refs) {
+        return [];
+      }
+
+      return this.entity.refs;
     }
   },
   template: `
@@ -1082,32 +1121,62 @@ const inspector_component = Vue.component('inspector', {
             </span>
           </div>
 
-          <div class="inspector-content">
-            <template v-for="(v, k) in entity.is_a">
-              <inspector-components :entity="v" :show_header="true" is_base="true" v-on="$listeners"/>
-            </template>
-
-            <inspector-components 
-              :entity="entity" 
-              :show_header="entity.is_a != undefined" 
-              v-on:edit-component="edit_component"
-              v-on:discard-component="discard_component"
-              v-on:submit-value="set_components"
-              v-on="$listeners"/>
+          <div class="inspector-view">
+            <tabs :options="[{
+              label: 'Components',
+              value: 'components'
+            }, {
+              label: 'Referenced by',
+              value: 'refs'
+            }, {
+              label: 'Alerts',
+              value: 'alerts'
+            }]" v-on:select="select_view"></tabs>
           </div>
 
-          <div class="inspector-alerts inspector-category" v-if="alerts">
-            <detail-toggle>
-              <template v-slot:summary>
-                <div class="inspector-category-header">
-                  alerts
-                </div>
+          <template v-if="view == 'components'">
+            <div class="inspector-content">
+              <template v-for="(v, k) in entity.is_a">
+                <inspector-components :entity="v" :show_header="true" is_base="true" v-on="$listeners"/>
               </template>
-              <template v-slot:detail>
-                <inspector-alerts :alerts="alerts"></inspector-alerts>
-              </template>
-            </detail-toggle>
-          </div>
+
+              <inspector-components 
+                :entity="entity" 
+                :show_header="entity.is_a != undefined" 
+                v-on:edit-component="edit_component"
+                v-on:discard-component="discard_component"
+                v-on:submit-value="set_components"
+                v-on="$listeners"/>
+            </div>
+          </template>
+          <template v-else-if="view == 'refs'">
+            <div class="inspector-refs inspector-category" v-for="(v, k) in refs">
+              <detail-toggle>
+                <template v-slot:summary>
+                  <div class="inspector-category-header">
+                    {{k}}
+                  </div>
+                </template>
+                <template v-slot:detail>
+                  <inspector-refs :refs="v" v-on="$listeners"></inspector-refs>
+                </template>
+              </detail-toggle>
+            </div>
+          </template>
+          <template v-else-if="view == 'alerts'">
+            <div class="inspector-alerts inspector-category" v-for="a in alerts">
+              <detail-toggle>
+                <template v-slot:summary>
+                  <div class="inspector-category-header">
+                    {{a.path}}
+                  </div>
+                </template>
+                <template v-slot:detail>
+                  <inspector-alerts :alerts="a.alerts"></inspector-alerts>
+                </template>
+              </detail-toggle>
+            </div>
+          </template>
         </div>
       </template>
 

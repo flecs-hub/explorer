@@ -712,14 +712,26 @@ div.inspector-category > div.detail-toggle > div.detail-toggle-summary {
   padding-bottom: 5px;
 }
 
+div.inspector-refs {
+  border-radius: 3px;
+  color: var(--tertiary-text);
+  font-size: var(--text-fs-sm);
+  padding-left: 8px;
+  padding-right: 4px;
+  padding-bottom: 8px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+
 div.inspector-alerts {
   background-color: var(--panel-bg);
   border-radius: 3px;
   color: var(--tertiary-text);
   font-size: var(--text-fs-sm);
   padding-left: 8px;
-  padding-right: 4px;
+  padding-right: 2px;
   padding-bottom: 4px;
+  margin-top: 10px;
 }
 
 span.inspector-value-bool {
@@ -819,17 +831,22 @@ span.inspector-entity-name-label {
   font-weight: 500;
 }
 
-div.inspector-buttons  {
+div.inspector-view {
   border-style: solid;
   border-width: 1px;
   border-left-width: 0px;
   border-right-width: 0px;
   border-top-width: 0px;
-  border-color: var(--steel-700);
+  border-color: var(--steel-650);
+  margin-left: 2px;
+  margin-right: 2px;
+}
+
+div.inspector-buttons  {
   padding-top: 0px;
   padding-bottom: 10px;
-  margin-left: 15px;
-  margin-right: 15px;
+  margin-left: 2px;
+  margin-right: 2px;
 }
 
 span.inspector-button  {
