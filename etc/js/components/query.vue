@@ -124,7 +124,8 @@
             offset: this.offset,
             limit: this.limit,
             duration: true,
-            type_info: true
+            type_info: true,
+            values: true
           });
 
           if (this.$refs.container) {
