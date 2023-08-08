@@ -734,6 +734,16 @@ div.inspector-alerts {
   margin-top: 10px;
 }
 
+div.inspector-no-content {
+  color: var(--tertiary-text);
+  font-size: var(--text-fs-md);
+  padding-left: 8px;
+  padding-right: 2px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  margin-top: 10px;
+}
+
 span.inspector-value-bool {
   color: #4981B5;
 }

@@ -112,6 +112,7 @@
               this.query_error("request failed");
             }
           }, {
+            term_ids: true,
             ids: true, 
             sources: false,
             entity_labels: true,

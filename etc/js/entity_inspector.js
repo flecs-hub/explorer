@@ -1150,32 +1150,46 @@ const inspector_component = Vue.component('inspector', {
             </div>
           </template>
           <template v-else-if="view == 'refs'">
-            <div class="inspector-refs inspector-category" v-for="(v, k) in refs">
-              <detail-toggle>
-                <template v-slot:summary>
-                  <div class="inspector-category-header">
-                    {{k}}
-                  </div>
-                </template>
-                <template v-slot:detail>
-                  <inspector-refs :refs="v" v-on="$listeners"></inspector-refs>
-                </template>
-              </detail-toggle>
-            </div>
+            <template v-if="Object.keys(refs).length != 0">
+              <div class="inspector-refs inspector-category" v-for="(v, k) in refs">
+                <detail-toggle>
+                  <template v-slot:summary>
+                    <div class="inspector-category-header">
+                      {{k}}
+                    </div>
+                  </template>
+                  <template v-slot:detail>
+                    <inspector-refs :refs="v" v-on="$listeners"></inspector-refs>
+                  </template>
+                </detail-toggle>
+              </div>
+            </template>
+            <template v-else>
+              <div class="inspector-no-content">
+                No references
+              </div>
+            </template>
           </template>
           <template v-else-if="view == 'alerts'">
-            <div class="inspector-alerts inspector-category" v-for="a in alerts">
-              <detail-toggle>
-                <template v-slot:summary>
-                  <div class="inspector-category-header">
-                    {{a.path}}
-                  </div>
-                </template>
-                <template v-slot:detail>
-                  <inspector-alerts :alerts="a.alerts"></inspector-alerts>
-                </template>
-              </detail-toggle>
-            </div>
+            <template v-if="alerts.length != 0">
+              <div class="inspector-alerts inspector-category" v-for="a in alerts">
+                <detail-toggle>
+                  <template v-slot:summary>
+                    <div class="inspector-category-header">
+                      {{a.path}}
+                    </div>
+                  </template>
+                  <template v-slot:detail>
+                    <inspector-alerts :alerts="a.alerts"></inspector-alerts>
+                  </template>
+                </detail-toggle>
+              </div>
+            </template>
+            <template v-else>
+              <div class="inspector-no-content">
+                No alerts
+              </div>
+            </template>
           </template>
         </div>
       </template>

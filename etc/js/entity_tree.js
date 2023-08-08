@@ -360,7 +360,8 @@ Vue.component('entity-tree', {
         sources: false,
         entity_labels: true,
         variable_labels: true,
-        colors: true
+        colors: true,
+        is_set: true
       });
     },
     update_expanded: function(container) {
