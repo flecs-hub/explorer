@@ -85,6 +85,7 @@
             this.query_error("Request failed");
           }
         }, {
+          term_ids: true,
           ids: true, 
           sources: false,
           entity_labels: true,
@@ -96,7 +97,9 @@
           offset: this.offset,
           limit: this.limit,
           duration: true,
-          type_info: true
+          type_info: true,
+          values: true,
+          is_set: true
         });
 
         if (this.$refs.container) {
