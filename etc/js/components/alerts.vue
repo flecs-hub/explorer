@@ -19,6 +19,7 @@
           :show_this="false"
           :row_style="row_style"
           :column_style="column_style"
+          :row_order="{ kind: 'value', mode: 'desc', index: 2 }"
           v-on="$listeners"/>
       </template>
       <template v-slot:footer>

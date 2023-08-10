@@ -10,6 +10,7 @@
         :show_this="show_this"
         :row_style="row_style"
         :column_style="column_style"
+        :row_order="row_order"
         v-on:order-by="order_by_column"
         v-on:select-entity="select_entity">
       </query-results-table>
@@ -25,12 +26,17 @@
       valid: {type: Boolean, required: true},
       show_this: {type: Boolean, required: false, default: true},
       row_style: {type: Function, required: false },
-      column_style: {type: Array, required: false }
+      column_style: {type: Array, required: false },
+      row_order: {type: Object, required: false, default: { kind: 'this', mode: 'asc', index: 0 } }
     },
     data: function() {
       return {
         show_terms: false,
-        order_by: { kind: 'this', mode: 'asc', mode_index: 0 }
+        order_by: { 
+          kind: this.row_order.kind, 
+          mode: this.row_order.mode,
+          index: this.row_order.index
+        }
       }
     },
     methods: {

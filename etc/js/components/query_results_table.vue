@@ -5,11 +5,17 @@
       columns: {type: Object, required: true},
       show_this: {type: Boolean, required: true},
       column_style: {type: Array, required: false },
-      row_style: {type: Function, required: false }
+      row_style: {type: Function, required: false },
+      row_order: {type: Object, required: false, default: { kind: 'this', mode: 'asc', index: 0 } }
     },
     data: function() {
       return {
-        order_by: { kind: 'this', mode: 'asc', mode_index: 0 },
+        order_by: { 
+          kind: this.row_order.kind, 
+          mode: this.row_order.mode,
+          index: this.row_order.index,
+          mode_index: this.mode == 'asc' ? 1 : (this.mode == 'desc' ? 2 : 3)
+        },
         group_enabled: {}
       }
     },

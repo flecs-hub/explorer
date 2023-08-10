@@ -369,7 +369,7 @@ Vue.component('inspector-kv', {
     parent_prop: { required: false },
     prop_key: { required: false },
     type: { type: Array, required: true },
-    value: { type: [Boolean, Number, String, Object, Array], required: true },
+    value: { type: [Boolean, Number, String, Object, Array, null], required: true },
     list: { type: Boolean, required: true },
     first: { type: Boolean, required: false }
   },
