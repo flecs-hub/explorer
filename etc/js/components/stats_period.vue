@@ -15,7 +15,7 @@
       }, {
         label: '1 week',
         value: '1w'
-    }]" v-on:select="select"></tabs>
+    }]" :default="1" v-on:select="select"></tabs>
   </div>
 </template>
 

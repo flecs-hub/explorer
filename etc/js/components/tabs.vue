@@ -9,11 +9,12 @@
   module.exports = {
     name: "tabs",
     props: {
-      options: { type: Array, required: true }
+      options: { type: Array, required: true },
+      default: { type: Number, default: 0 }
     },
     data: function() {
       return {
-        value: this.options[0].value
+        value: this.options[this.default].value
       }
     },
     methods: {
