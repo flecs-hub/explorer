@@ -564,7 +564,7 @@ function create_app() {
         }
 
         // Can't set both local and remote
-        if (remote && local || host && local) {
+        if ((remote && local) || (host && local)) {
           console.error("invalid combination of URL params, starting in local mode");
           this.ready_local();
         }
@@ -604,11 +604,6 @@ function create_app() {
             retry_interval = INITIAL_REQUEST_RETRY_INTERVAL;
           }
 
-          if (this.connection != ConnectionState.RetryConnecting) {
-            /* When not reconnecting initialize app from URL arguments */
-            this.init_from_url(true);
-          }
-
           let timeout = INITIAL_REQUEST_TIMEOUT;
           if (remote) {
             /* Tolerate a larger timeout when we're guaranteed in remote mode */
@@ -616,6 +611,11 @@ function create_app() {
           }
 
           this.request_world(host, (reply) => {
+            if (this.connection != ConnectionState.RetryConnecting) {
+              /* When not reconnecting initialize app from URL arguments */
+              this.init_from_url(true);
+            }
+
             this.host = host;
             this.connection = ConnectionState.Remote;
             this.ready_remote(reply);
@@ -828,7 +828,7 @@ function create_app() {
         }
 
         if (plecs_encoded) {
-          this.url += sep + "p=" + plecs_encoded;
+          this.url += sep + "script=" + plecs_encoded;
         }
 
         if (entity) {
