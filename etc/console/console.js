@@ -109,6 +109,8 @@ new Vue({
 
       let params = optionDifference(this.option_defaults, this.options);
 
+      flecs.connect("http://" + this.host);
+
       if (this.kind == "entity") {
         this.url = flecs.entity(this.entity, params, (data) => {
           this.result = JSON.stringify(JSON.parse(data), null, 2);
