@@ -101,7 +101,7 @@ new Vue({
     },
 
     browse: function() {
-      window.open("https://flecs.dev/explorer?host=" + this.host, "_blank");
+      window.open("http://" + window.location.host + "?host=" + this.host, "_blank");
     },
 
     request: function() {
