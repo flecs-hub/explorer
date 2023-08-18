@@ -48,7 +48,7 @@ flecs = {
               if (state.retry_count > flecs.params.max_retry_count) {
                 if (err) {
                   console.error("request to " + flecs.params.host + " failed");
-                  err({error: "Request failed: max retry count exceeded"});
+                  err('{"error": "request failed: max retry count exceeded"}');
                   return;
                 }
               }

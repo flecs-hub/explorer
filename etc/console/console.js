@@ -3,7 +3,6 @@ const entity_options = {
   label: false, 
   brief: false, 
   link: false, 
-  ids: true, 
   id_labels: false,
   base: false, 
   values: false, 
@@ -31,6 +30,9 @@ function deepCopy(arg) {
   return JSON.parse(JSON.stringify(arg));
 }
 
+let entity_options_actual = deepCopy(entity_options);
+let query_options_actual = deepCopy(query_options);
+
 function optionDifference(defaults, input) {
   let result = {};
   for (let k in input) {
@@ -46,15 +48,26 @@ function optionsToCode(options) {
   if (Object.keys(options).length) {
     let count = 0;
     for (let k in options) {
-      if (count) {
-        result += ", ";
+      if (typeof options[k] == "boolean") {
+        if (count) {
+          result += ", ";
+        }
+        result += k + ": " + options[k];
+        count ++;
       }
-      result += k + ": " + options[k];
-      count ++;
     }
   }
   result += "}";
   return result;
+}
+
+function getParameterByName(name, url = window.location.href) {
+  name = name.replace(/[\[\]]/g, '\\$&');
+  var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+      results = regex.exec(url);
+  if (!results) return undefined;
+  if (!results[2]) return "";
+  return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
 new Vue({
@@ -63,15 +76,22 @@ new Vue({
   watch: {
     kind: function() {
       if (this.kind == "entity") {
-        this.options = deepCopy(entity_options);
+        this.options = entity_options_actual
         this.option_defaults = entity_options;
       } else if (this.kind == "query") {
-        this.options = deepCopy(query_options);
+        this.options = query_options_actual;
         this.option_defaults = query_options;
       } else if (this.kind == "query_name") {
-        this.options = deepCopy(query_options);
+        this.options = query_options_actual;
         this.option_defaults = query_options;
       }
+    }
+  },
+
+  mounted: function() {
+    const host = getParameterByName("host");
+    if (host) {
+      this.host = host;
     }
   },
 
@@ -130,7 +150,7 @@ new Vue({
       entity: "flecs.core.World",
       query: "(ChildOf, flecs.core)",
       query_name: "flecs.pipeline.BuiltinPipeline",
-      options: deepCopy(entity_options),
+      options: entity_options_actual,
       option_defaults: entity_options,
       result: "",
       url: "",
