@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Flecs API console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" href="../img/flecs_logo.png"/>
+    <script src="../flecs.js"></script>
+    <script src="../deps/vue.min.js"></script>
+    <link rel="stylesheet" href="console.css">
+  </head>
+  <body>
+    <h1>Flecs API console</h1>
+    <div id="app">
+      <input ref="host" type="text" style="width: calc(100% - 85px);" v-model="host"></input>
+      <button id="button" v-on:click="browse">Browse</button>
+
+      <select v-model="kind">
+        <option value="entity">Entity</option>
+        <option value="query">Query</option>
+        <option value="query_name">Query name</option>
+      </select>
+      <template v-if="kind == 'entity'">
+        <input type="text" class="request" v-model="entity"></input>
+      </template>
+      <template v-else-if="kind == 'query'">
+        <input type="text" class="request" v-model="query"></input>
+      </template>
+      <template v-else-if="kind == 'query_name'">
+        <input type="text" class="request" v-model="query_name"></input>
+      </template>
+
+      <button id="button" v-on:click="request">Request</button>
+
+      <template v-for="(v, k) in options">
+        <template v-if="v">
+          <input type="checkbox" v-on:change="toggle_option(k)" checked></input>
+        </template>
+        <template v-else>
+          <input type="checkbox" v-on:change="toggle_option(k)"></input>
+        </template>
+        <label>{{k}}</label>
+      </template>
+
+      <hr>
+      <a class="url" :href="url" target="_blank">{{url}}</a><br>
+      <pre class="code">{{code}}</pre>
+      <pre class="result">{{result}}</pre>
+    </div>
+    <script src="console.js"></script>
+  </body>
+</html>

@@ -1,0 +1,43 @@
+body {
+  background-color: #dde0e6;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+pre {
+  background-color: #ffffff;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #000000;
+  padding: 5px;
+}
+
+pre.result {
+  height: calc(100vh - 270px);
+  overflow: auto;
+}
+
+pre.code {
+  margin-top: 10px;
+}
+
+input.request {
+  width: calc(100% - 205px);
+}
+
+select {
+  font-size: 16px;
+}
+
+button {
+  font-size: 16px;
+}
+
+input {
+  font-size: 16px;
+  margin-bottom: 5px;
+  margin-right: 0px;
+}
+
+label {
+  margin-right: 10px;
+}
