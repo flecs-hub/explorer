@@ -400,7 +400,7 @@ extern "C" {
 #define EcsFilterHasScopes             (1u << 13u) /* Filter has query scopes */
 
 ////////////////////////////////////////////////////////////////////////////////
-//// Table flags (used by ecs_table_t::flags)
+//// Table flags (used by ecs_archetype_t::flags)
 ////////////////////////////////////////////////////////////////////////////////
 
 #define EcsTableHasBuiltins            (1u << 1u)  /* Does table have builtin components */
@@ -674,7 +674,7 @@ typedef struct ecs_allocator_t ecs_allocator_t;
 #define ecs_stage_t_magic     (0x65637373)
 #define ecs_query_t_magic     (0x65637371)
 #define ecs_rule_t_magic      (0x65637375)
-#define ecs_table_t_magic     (0x65637374)
+#define ecs_archetype_t_magic     (0x65637374)
 #define ecs_filter_t_magic    (0x65637366)
 #define ecs_trigger_t_magic   (0x65637372)
 #define ecs_observer_t_magic  (0x65637362)
@@ -2428,7 +2428,7 @@ typedef struct {
 typedef struct ecs_world_t ecs_world_t;
 
 /** A table is where entities and components are stored */
-typedef struct ecs_table_t ecs_table_t;
+typedef struct ecs_archetype_t ecs_archetype_t;
 
 /** A term is a single element in a query */
 typedef struct ecs_term_t ecs_term_t;
@@ -2574,7 +2574,7 @@ typedef int (*ecs_order_by_action_t)(
 /** Callback used for sorting the entire table of components */
 typedef void (*ecs_sort_table_action_t)(
     ecs_world_t* world,
-    ecs_table_t* table,
+    ecs_archetype_t* table,
     ecs_entity_t* entities,
     void* ptr,
     int32_t size,
@@ -2585,7 +2585,7 @@ typedef void (*ecs_sort_table_action_t)(
 /** Callback used for grouping tables in a query */
 typedef uint64_t (*ecs_group_by_action_t)(
     ecs_world_t *world,
-    ecs_table_t *table,
+    ecs_archetype_t *table,
     ecs_id_t group_id,
     void *ctx);
 
@@ -2913,7 +2913,7 @@ typedef struct ecs_stage_t ecs_stage_t;
 typedef struct ecs_record_t ecs_record_t;
 
 /** Table data */
-typedef struct ecs_data_t ecs_data_t;
+typedef struct ecs_table_t ecs_table_t;
 
 /* Switch list */
 typedef struct ecs_switch_t ecs_switch_t;
@@ -2947,14 +2947,14 @@ struct ecs_observable_t {
 /** Record for entity index */
 struct ecs_record_t {
     ecs_id_record_t *idr; /* Id record to (*, entity) for target entities */
-    ecs_table_t *table;   /* Identifies a type (and table) in world */
+    ecs_archetype_t *table;   /* Identifies a type (and table) in world */
     uint32_t row;         /* Table row of the entity */
     int32_t dense;        /* Index in dense array */    
 };
 
 /** Range in table */
 typedef struct ecs_table_range_t {
-    ecs_table_t *table;
+    ecs_archetype_t *table;
     int32_t offset;       /* Leave both members to 0 to cover entire table */
     int32_t count;       
 } ecs_table_range_t;
@@ -3016,7 +3016,7 @@ typedef struct ecs_term_iter_t {
     int32_t index;
     int32_t observed_table_count;
     
-    ecs_table_t *table;
+    ecs_archetype_t *table;
     int32_t cur_match;
     int32_t match_count;
     int32_t last_column;
@@ -3131,8 +3131,8 @@ struct ecs_iter_t {
     ecs_entity_t *entities;       /* Entity identifiers */
     void **ptrs;                  /* Pointers to components. Array if from this, pointer if not. */
     ecs_size_t *sizes;            /* Component sizes */
-    ecs_table_t *table;           /* Current table */
-    ecs_table_t *other_table;     /* Prev or next table when adding/removing */
+    ecs_archetype_t *table;           /* Current table */
+    ecs_archetype_t *other_table;     /* Prev or next table when adding/removing */
     ecs_id_t *ids;                /* (Component) ids */
     ecs_var_t *variables;         /* Values of variables (if any) */
     int32_t *columns;             /* Query term to table column mapping */
@@ -3263,7 +3263,7 @@ char* flecs_to_snake_case(
 
 FLECS_DBG_API
 int32_t flecs_table_observed_count(
-    const ecs_table_t *table);
+    const ecs_archetype_t *table);
 
 /** Calculate offset from address */
 #ifdef __cplusplus
@@ -3503,7 +3503,7 @@ typedef struct ecs_bulk_desc_t {
                         * set to NULL for a component, in which case the
                         * component will not be set by the operation. */
 
-    ecs_table_t *table; /**< Table to insert the entities into. Should not be set
+    ecs_archetype_t *table; /**< Table to insert the entities into. Should not be set
                          * at the same time as ids. When 'table' is set at the
                          * same time as 'data', the elements in the data array
                          * must correspond with the ids in the table's type. */
@@ -4840,7 +4840,7 @@ ecs_entity_t ecs_new_w_id(
 FLECS_API
 ecs_entity_t ecs_new_w_table(
     ecs_world_t *world,
-    ecs_table_t *table);
+    ecs_archetype_t *table);
 
 /** Find or create an entity. 
  * This operation creates a new entity, or modifies an existing one. When a name
@@ -5563,7 +5563,7 @@ const ecs_type_t* ecs_get_type(
  * @return The table of the entity, NULL if the entity has no components/tags.
  */
 FLECS_API
-ecs_table_t* ecs_get_table(
+ecs_archetype_t* ecs_get_table(
     const ecs_world_t *world,
     ecs_entity_t entity);
 
@@ -5590,7 +5590,7 @@ char* ecs_type_str(
 FLECS_API
 char* ecs_table_str(
     const ecs_world_t *world,
-    const ecs_table_t *table);
+    const ecs_archetype_t *table);
 
 /** Convert entity to string.
  * Same as combining:
@@ -6997,11 +6997,11 @@ typedef struct ecs_event_desc_t {
     const ecs_type_t *ids;
 
     /** The table for which to notify. */
-    ecs_table_t *table;
+    ecs_archetype_t *table;
 
     /** Optional 2nd table to notify. This can be used to communicate the
      * previous or next table, in case an entity is moved between tables. */
-    ecs_table_t *other_table;
+    ecs_archetype_t *other_table;
 
     /** Limit notified entities to ones starting from offset (row) in table */
     int32_t offset;
@@ -7253,7 +7253,7 @@ FLECS_API
 void ecs_iter_set_var_as_table(
     ecs_iter_t *it,
     int32_t var_id,
-    const ecs_table_t *table);
+    const ecs_archetype_t *table);
 
 /** Same as ecs_iter_set_var, but for a range of entities
  * This constrains the variable to a range of entities in a table.
@@ -7297,7 +7297,7 @@ ecs_entity_t ecs_iter_get_var(
  * @param var_id The variable index.
  */
 FLECS_API
-ecs_table_t* ecs_iter_get_var_as_table(
+ecs_archetype_t* ecs_iter_get_var_as_table(
     ecs_iter_t *it,
     int32_t var_id);
 
@@ -7557,7 +7557,7 @@ char* ecs_iter_str(
 
 /**
  * @defgroup tables Tables
- * @brief Functions for working with `ecs_table_t`.
+ * @brief Functions for working with `ecs_archetype_t`.
  * @{
  */
 
@@ -7568,7 +7568,7 @@ char* ecs_iter_str(
  */
 FLECS_API
 const ecs_type_t* ecs_table_get_type(
-    const ecs_table_t *table);
+    const ecs_archetype_t *table);
 
 /** Get column from table.
  * This operation returns the component array for the provided index.
@@ -7580,7 +7580,7 @@ const ecs_type_t* ecs_table_get_type(
  */
 FLECS_API
 void* ecs_table_get_column(
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     int32_t index,
     int32_t offset);
 
@@ -7593,7 +7593,7 @@ void* ecs_table_get_column(
  */
 FLECS_API
 size_t ecs_table_get_column_size(
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     int32_t index);
 
 /** Get column index for id.
@@ -7607,7 +7607,7 @@ size_t ecs_table_get_column_size(
 FLECS_API
 int32_t ecs_table_get_index(
     const ecs_world_t *world,
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     ecs_id_t id);
 
 /** Test if table has id.
@@ -7621,7 +7621,7 @@ int32_t ecs_table_get_index(
 FLECS_API
 bool ecs_table_has_id(
     const ecs_world_t *world,
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     ecs_id_t id);
 
 /** Get column from table by component id.
@@ -7635,7 +7635,7 @@ bool ecs_table_has_id(
 FLECS_API
 void* ecs_table_get_id(
     const ecs_world_t *world,
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     ecs_id_t id,
     int32_t offset);
 
@@ -7652,7 +7652,7 @@ void* ecs_table_get_id(
 FLECS_API
 int32_t ecs_table_get_depth(
     const ecs_world_t *world,
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     ecs_entity_t rel);
 
 /** Get storage type for table.
@@ -7661,19 +7661,19 @@ int32_t ecs_table_get_depth(
  * @return The storage type of the table (components only).
  */
 FLECS_API
-ecs_table_t* ecs_table_get_storage_table(
-    const ecs_table_t *table);
+ecs_archetype_t* ecs_table_get_storage_table(
+    const ecs_archetype_t *table);
 
 /** Convert index in table type to index in table storage type. */
 FLECS_API
-int32_t ecs_table_type_to_storage_index(
-    const ecs_table_t *table,
+int32_t ecs_archetype_type_to_storage_index(
+    const ecs_archetype_t *table,
     int32_t index);
 
 /** Convert index in table storage type to index in table type. */
 FLECS_API
 int32_t ecs_table_storage_to_type_index(
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     int32_t index);
 
 /** Returns the number of records in the table. 
@@ -7686,7 +7686,7 @@ int32_t ecs_table_storage_to_type_index(
  */
 FLECS_API
 int32_t ecs_table_count(
-    const ecs_table_t *table);
+    const ecs_archetype_t *table);
 
 /** Get table that has all components of current table plus the specified id.
  * If the provided table already has the provided id, the operation will return
@@ -7698,9 +7698,9 @@ int32_t ecs_table_count(
  * @result The resulting table.
  */
 FLECS_API
-ecs_table_t* ecs_table_add_id(
+ecs_archetype_t* ecs_table_add_id(
     ecs_world_t *world,
-    ecs_table_t *table,
+    ecs_archetype_t *table,
     ecs_id_t id);
 
 /** Find table from id array. 
@@ -7714,7 +7714,7 @@ ecs_table_t* ecs_table_add_id(
  * @return The table with the specified (component) ids.
  */
 FLECS_API
-ecs_table_t* ecs_table_find(
+ecs_archetype_t* ecs_table_find(
     ecs_world_t *world,
     const ecs_id_t *ids,
     int32_t id_count);
@@ -7729,9 +7729,9 @@ ecs_table_t* ecs_table_find(
  * @result The resulting table.
  */
 FLECS_API
-ecs_table_t* ecs_table_remove_id(
+ecs_archetype_t* ecs_table_remove_id(
     ecs_world_t *world,
-    ecs_table_t *table,
+    ecs_archetype_t *table,
     ecs_id_t id);
 
 /** Lock or unlock table.
@@ -7752,7 +7752,7 @@ ecs_table_t* ecs_table_remove_id(
 FLECS_API
 void ecs_table_lock(
     ecs_world_t *world,
-    ecs_table_t *table);
+    ecs_archetype_t *table);
 
 /** Unlock a table.
  * Must be called after calling ecs_table_lock.
@@ -7763,7 +7763,7 @@ void ecs_table_lock(
 FLECS_API
 void ecs_table_unlock(
     ecs_world_t *world,
-    ecs_table_t *table);    
+    ecs_archetype_t *table);    
 
 /** Returns whether table is a module or contains module contents
  * Returns true for tables that have module contents. Can be used to filter out
@@ -7774,7 +7774,7 @@ void ecs_table_unlock(
  */
 FLECS_API
 bool ecs_table_has_module(
-    ecs_table_t *table);
+    ecs_archetype_t *table);
 
 /** Swaps two elements inside the table. This is useful for implementing custom
  * table sorting algorithms.
@@ -7786,7 +7786,7 @@ bool ecs_table_has_module(
 FLECS_API
 void ecs_table_swap_rows(
     ecs_world_t* world,
-    ecs_table_t* table,
+    ecs_archetype_t* table,
     int32_t row_1,
     int32_t row_2);
 
@@ -7817,7 +7817,7 @@ bool ecs_commit(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_record_t *record,
-    ecs_table_t *table,
+    ecs_archetype_t *table,
     const ecs_type_t *added,
     const ecs_type_t *removed);
 
@@ -7852,7 +7852,7 @@ void* ecs_record_get_column(
 FLECS_API
 int32_t ecs_search(
     const ecs_world_t *world,
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     ecs_id_t id,
     ecs_id_t *id_out);
 
@@ -7889,7 +7889,7 @@ int32_t ecs_search(
 FLECS_API
 int32_t ecs_search_offset(
     const ecs_world_t *world,
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     int32_t offset,
     ecs_id_t id,
     ecs_id_t *id_out);
@@ -7933,7 +7933,7 @@ int32_t ecs_search_offset(
 FLECS_API
 int32_t ecs_search_relation(
     const ecs_world_t *world,
-    const ecs_table_t *table,
+    const ecs_archetype_t *table,
     int32_t offset,
     ecs_id_t id,
     ecs_entity_t rel,
@@ -8767,7 +8767,7 @@ int ecs_value_move_ctor(
  *   ecs_entity_t e2, const void* ptr2
  * Parameters of the sort functions:
  *   ecs_world_t *world
- *   ecs_table_t *table
+ *   ecs_archetype_t *table
  *   ecs_entity_t *entities
  *   void *ptr
  *   int32_t elem_size
@@ -8781,7 +8781,7 @@ int ecs_value_move_ctor(
 #define ECS_SORT_TABLE_WITH_COMPARE(id, op_name, compare_fn, ...) \
     static int32_t ECS_CONCAT(op_name, _partition)( \
         ecs_world_t *world, \
-        ecs_table_t *table, \
+        ecs_archetype_t *table, \
         ecs_entity_t *entities, \
         void *ptr, \
         int32_t elem_size, \
@@ -8821,7 +8821,7 @@ int ecs_value_move_ctor(
     } \
     __VA_ARGS__ void op_name( \
         ecs_world_t *world, \
-        ecs_table_t *table, \
+        ecs_archetype_t *table, \
         ecs_entity_t *entities, \
         void *ptr, \
         int32_t size, \
@@ -15194,7 +15194,7 @@ using query_group_info_t = ecs_query_group_info_t;
 using id_t = ecs_id_t;
 using entity_t = ecs_entity_t;
 using type_t = ecs_type_t;
-using table_t = ecs_table_t;
+using table_t = ecs_archetype_t;
 using filter_t = ecs_filter_t;
 using observer_t = ecs_observer_t;
 using query_t = ecs_query_t;
@@ -23595,12 +23595,12 @@ struct entity_with_invoker_impl<arg_list<Args ...>> {
         return true;
     }
 
-    static bool get_ptrs(world_t *world, const ecs_record_t *r, ecs_table_t *table,
+    static bool get_ptrs(world_t *world, const ecs_record_t *r, ecs_archetype_t *table,
         ArrayType& ptrs) 
     {
         ecs_assert(table != NULL, ECS_INTERNAL_ERROR, NULL);
 
-        ecs_table_t *storage_table = ecs_table_get_storage_table(table);
+        ecs_archetype_t *storage_table = ecs_table_get_storage_table(table);
         if (!storage_table) {
             return false;
         }
@@ -23645,7 +23645,7 @@ struct entity_with_invoker_impl<arg_list<Args ...>> {
             return false;
         }
 
-        ecs_table_t *table = r->table;
+        ecs_archetype_t *table = r->table;
         if (!table) {
             return false;
         }
@@ -23668,7 +23668,7 @@ struct entity_with_invoker_impl<arg_list<Args ...>> {
             return false;
         }
 
-        ecs_table_t *table = r->table;
+        ecs_archetype_t *table = r->table;
         if (!table) {
             return false;
         }
@@ -23694,8 +23694,8 @@ struct entity_with_invoker_impl<arg_list<Args ...>> {
     }
 
     // Utility for storing id in array in pack expansion
-    static size_t store_added(IdArray& added, size_t elem, ecs_table_t *prev, 
-        ecs_table_t *next, id_t id) 
+    static size_t store_added(IdArray& added, size_t elem, ecs_archetype_t *prev, 
+        ecs_archetype_t *next, id_t id) 
     {
         // Array should only contain ids for components that are actually added,
         // so check if the prev and next tables are different.
@@ -23711,7 +23711,7 @@ struct entity_with_invoker_impl<arg_list<Args ...>> {
         flecs::world w(world);
 
         ArrayType ptrs;
-        ecs_table_t *table = NULL;
+        ecs_archetype_t *table = NULL;
 
         // When not deferred take the fast path.
         if (!w.is_deferred()) {
@@ -23730,7 +23730,7 @@ struct entity_with_invoker_impl<arg_list<Args ...>> {
             }
 
             // Find destination table that has all components
-            ecs_table_t *prev = table, *next;
+            ecs_archetype_t *prev = table, *next;
             size_t elem = 0;
             IdArray added;
 
@@ -25505,7 +25505,7 @@ inline void entity_view::each(flecs::id_t pred, flecs::id_t obj, const Func& fun
     flecs::world_t *real_world = const_cast<flecs::world_t*>(
         ecs_get_world(m_world));
 
-    const ecs_table_t *table = ecs_get_table(m_world, m_id);
+    const ecs_archetype_t *table = ecs_get_table(m_world, m_id);
     if (!table) {
         return;
     }

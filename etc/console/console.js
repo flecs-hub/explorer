@@ -1,5 +1,8 @@
 
 const entity_options = {
+  type_info: false,
+  alerts: false,
+  raw: false,
   label: false, 
   brief: false, 
   link: false, 
@@ -7,11 +10,11 @@ const entity_options = {
   base: false, 
   values: false, 
   private: false, 
-  type_info: false,
-  alerts: false
 };
 
 const query_options = {
+  type_info: false,
+  raw: false,
   term_ids: false, 
   ids: false, 
   sources: false, 
@@ -23,7 +26,6 @@ const query_options = {
   entity_ids: false,  
   variable_labels: false, 
   variable_ids: false,
-  type_info: false,
 };
 
 function deepCopy(arg) {
@@ -113,9 +115,9 @@ new Vue({
 
       if (this.kind == "entity") {
         this.url = flecs.entity(this.entity, params, (data) => {
-          this.result = JSON.stringify(JSON.parse(data), null, 2);
+          this.result = JSON.stringify(data, null, 2);
         }, (err) => {
-          this.result = JSON.stringify(JSON.parse(err), null, 2);
+          this.result = JSON.stringify(err, null, 2);
         }).url;
 
         this.code = "flecs.entity(\"" + this.entity + "\", ";
@@ -123,9 +125,9 @@ new Vue({
         this.code += ", (result) => {});";
       } else if (this.kind == "query") {
         this.url = flecs.query(this.query, params, (data) => {
-          this.result = JSON.stringify(JSON.parse(data), null, 2);
+          this.result = JSON.stringify(data, null, 2);
         }, (err) => {
-          this.result = JSON.stringify(JSON.parse(err), null, 2);
+          this.result = JSON.stringify(err, null, 2);
         }).url;
 
         this.code = "flecs.query(\"" + this.query + "\", ";
@@ -133,14 +135,30 @@ new Vue({
         this.code += ", (result) => {});";
       } else if (this.kind == "query_name") {
         this.url = flecs.query_name(this.query_name, params, (data) => {
-          this.result = JSON.stringify(JSON.parse(data), null, 2);
+          this.result = JSON.stringify(data, null, 2);
         }, (err) => {
-          this.result = JSON.stringify(JSON.parse(err), null, 2);
+          this.result = JSON.stringify(err, null, 2);
         }).url;
 
         this.code = "flecs.query_name(\"" + this.query_name + "\", ";
         this.code += optionsToCode(params);
         this.code += ", (result) => {});";
+      }
+    },
+
+    show_option: function(option) {
+      if (option == "raw") {
+        return true;
+      } else {
+        if (!this.options.raw) {
+          if (option == "type_info" || option == "alerts") {
+            return true;
+          } else {
+            return false;
+          }
+        } else {
+          return true;
+        }
       }
     }
   },
@@ -150,7 +168,7 @@ new Vue({
       host: "localhost:27750",
       kind: "entity",
       entity: "flecs.core.World",
-      query: "(ChildOf, flecs.core)",
+      query: "(ChildOf, flecs.core), Component",
       query_name: "flecs.pipeline.BuiltinPipeline",
       options: entity_options_actual,
       option_defaults: entity_options,

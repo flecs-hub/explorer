@@ -38,13 +38,15 @@
         <button id="button" class="request" v-on:click="request">Request</button>
 
         <template v-for="(v, k) in options">
-          <template v-if="v">
-            <input type="checkbox" v-on:change="toggle_option(k)" checked></input>
+          <template v-if="show_option(k)">
+            <template v-if="v">
+              <input type="checkbox" v-on:change="toggle_option(k)" checked></input>
+            </template>
+            <template v-else>
+              <input type="checkbox" v-on:change="toggle_option(k)"></input>
+            </template>
+            <label>{{k}}</label>
           </template>
-          <template v-else>
-            <input type="checkbox" v-on:change="toggle_option(k)"></input>
-          </template>
-          <label>{{k}}</label>
         </template>
 
         <hr>
