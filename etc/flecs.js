@@ -206,7 +206,7 @@ flecs = {
               if (ids[j].length === 2) {
                 id = "(" + id + ")";
               }
-              if (result.values[j] === 0) {
+              if (!result.values || result.values[j] === 0) {
                 obj.tags.push(id);
               } else {
                 obj.components[id] = result.values[j][i];
