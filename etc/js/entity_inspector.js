@@ -759,7 +759,13 @@ const inspector_component = Vue.component('inspector', {
       edit_count: 0,
       edit_inputs: {},
       url: undefined,
-      view: "components"
+      view: "components",
+      show_private: false
+    }
+  },
+  watch: {
+    show_private: function() {
+      this.refresh();
     }
   },
   methods: {
@@ -808,7 +814,8 @@ const inspector_component = Vue.component('inspector', {
         id_labels: request_components, 
         values: request_components,
         alerts: request_alerts,
-        refs: request_refs ? "*" : undefined
+        refs: request_refs ? "*" : undefined,
+        private: this.show_private
       });
 
       if (this.$refs.container) {
@@ -1135,6 +1142,10 @@ const inspector_component = Vue.component('inspector', {
           </div>
 
           <template v-if="view == 'components'">
+            <div class="inspector-toggle noselect">
+              <toggle-button v-model="show_private"></toggle-button>
+              Show private
+            </div>
             <div class="inspector-content">
               <template v-for="(v, k) in entity.is_a">
                 <inspector-components :entity="v" :show_header="true" is_base="true" v-on="$listeners"/>

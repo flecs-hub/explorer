@@ -509,6 +509,14 @@ div.inspector  {
   padding: 5px;
 }
 
+div.inspector-toggle {
+  padding-top: 10px;
+  padding-bottom: 5px;
+  display: flex;
+  align-items: center;
+  color: var(--secondary-text);
+};
+
 div.inspector-name {
   display: flex;
   flex-direction: row;

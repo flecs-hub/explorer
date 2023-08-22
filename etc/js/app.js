@@ -913,6 +913,7 @@ let components = [
   httpVueLoader('js/overlays/popovers/url-popover.vue')(),
   httpVueLoader('js/components/panel_menu.vue')(),
   httpVueLoader('js/components/panel_button.vue')(),
+  httpVueLoader('js/components/toggle_button.vue')(),
   httpVueLoader('js/components/tabs.vue')(),
   httpVueLoader('js/components/content_container.vue')(),
   httpVueLoader('js/components/editor_textarea.vue')(),
