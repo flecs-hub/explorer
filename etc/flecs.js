@@ -18,6 +18,7 @@
 //        - parent : string
 //        - name : string
 //        - tags : array
+//        - pairs : object
 //        - components : object
 //        - type_info : object (optional)
 //        - alerts : array (optional)
@@ -42,6 +43,7 @@
 //          - parent : string
 //          - name : string
 //          - tags : array
+//          - pairs : object
 //          - components : object
 //          - vars : object (optional)
 //
@@ -225,18 +227,64 @@ flecs = {
         return params;
       },
 
+      format_entity_contents: function(parent, name, ids, values) {
+        let result = {parent: parent, name: name};
+        let tags = [];
+        let components = {};
+        let pairs = {};
+
+        for (let i = 0; i < ids.length; i ++) {
+          let id = ids[i];
+          if (id.length === 2) {
+            const rel = id[0];
+            let targets = pairs[rel];
+            if (targets === undefined) {
+              pairs[rel] = id[1];
+            } else if (typeof targets === "string") {
+              pairs[rel] = [targets];
+              pairs[rel].push(id[1]);
+            } else {
+              pairs[rel].push(id[1]);
+            }
+
+            id = "(" + id.join(",") + ")";
+          } else {
+            id = id[0];
+            if (!values || values[i] === 0) {
+              tags.push(id);
+            }
+          }
+
+          if (values && values[i] !== 0) {
+            components[id] = values[i];
+          }
+        }
+
+        if (tags.length != 0) {
+          result.tags = tags;
+        }
+        if (Object.keys(pairs).length != 0) {
+          result.pairs = pairs;
+        }
+        if (Object.keys(components).length != 0) {
+          result.components = components;
+        }
+
+        return result;
+      },
+
       // Format result of entity endpoint
       format_entity_result: function(msg) {
-        let result = {};
-        result.parent = msg.path.split(".").slice(0, -1).join(".");
-        result.name = msg.path.split(".").slice(-1)[0];
-        result.tags = [];
-        result.components = {};
+        let parent = msg.path.split(".").slice(0, -1).join(".");
+        let name = msg.path.split(".").slice(-1)[0];
 
         let ids = msg.ids;
         if (!ids) {
           ids = msg.id_labels;
         }
+
+        let result = flecs._.format_entity_contents(
+          parent, name, ids, msg.values);
 
         if (msg.type_info) {
           result.type_info = {};
@@ -248,18 +296,6 @@ flecs = {
         }
         if (msg.alerts) {
           result.alerts = msg.alerts;
-        }
-
-        for (let i = 0; i < ids.length; i ++) {
-          let id = ids[i].join(",");
-          if (ids[i].length === 2) {
-            id = "(" + id + ")";
-          }
-          if (msg.values[i] === 0) {
-            result.tags.push(id);
-          } else {
-            result.components[id] = msg.values[i];
-          }
         }
 
         return result;
@@ -281,28 +317,13 @@ flecs = {
 
         for (let result of msg.results) {
           for (let i = 0; i < result.entities.length; i ++) {
-            let obj = {};
-            obj.parent = result.parent;
-            obj.name = result.entities[i];
-            obj.tags = [];
-            obj.components = {};
-
             let ids = term_ids;
             if (ids === undefined) {
               ids = result.ids;
             }
 
-            for (let j = 0; j < ids.length; j ++) {
-              let id = ids[j].join(",");
-              if (ids[j].length === 2) {
-                id = "(" + id + ")";
-              }
-              if (!result.values || result.values[j] === 0) {
-                obj.tags.push(id);
-              } else {
-                obj.components[id] = result.values[j][i];
-              }
-            }
+            let obj = flecs._.format_entity_contents(
+              result.parent, result.entities[i], ids, result.values);
 
             if (vars) {
               let var_values = result.vars;
