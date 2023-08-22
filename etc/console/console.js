@@ -3,9 +3,11 @@ const entity_options = {
   type_info: false,
   alerts: false,
   raw: false,
+  full_paths: false,
   label: false, 
   brief: false, 
   link: false, 
+  ids: true,
   id_labels: false,
   base: false, 
   values: false, 
@@ -15,7 +17,9 @@ const entity_options = {
 const query_options = {
   type_info: false,
   raw: false,
-  term_ids: false, 
+  full_paths: false,
+  term_ids: false,
+  term_labels: false,
   ids: false, 
   sources: false, 
   variables: true,
@@ -151,13 +155,17 @@ new Vue({
         return true;
       } else {
         if (!this.options.raw) {
-          if (option == "type_info" || option == "alerts") {
+          if (option == "type_info" || option == "alerts" || option == "full_paths") {
             return true;
           } else {
             return false;
           }
         } else {
-          return true;
+          if (option == "full_paths") {
+            return false;
+          } else {
+            return true;
+          }
         }
       }
     }

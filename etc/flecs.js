@@ -1,18 +1,86 @@
+// Flecs JavaScript client library (c) 2023, Sander Mertens, MIT license
+//   Thin wrapper around the Flecs REST API.
+//
+// Resources:
+//   Flecs repository: https://github.com/SanderMertens/flecs
+//   API manual: https://www.flecs.dev/flecs/md_docs_RestApi.html
+//   API console: https://www.flecs.dev/explorer/console
+//
+// Functions:
+//  - flecs.connect(host : string)
+//      Initializes the client library with the host address of the server.
+//      Example:
+//        flecs.connect("http://localhost:27750");
+//
+//  - flecs.entity(path : string, params : object, recv : function, err : function)
+//      Retrieves an entity from the server. By default the response is formatted
+//      as a JavaScript object with the following properties:
+//        - parent : string
+//        - name : string
+//        - tags : array
+//        - components : object
+//        - type_info : object (optional)
+//        - alerts : array (optional)
+//
+//       When the "raw" parameter is set to true, the response format is as 
+//       described in the REST API manual. When the "raw" parameter is set to
+//       false or omitted the response will return labels instead of full paths
+//       for tags and components. To retrieve full paths, set the "full_paths"
+//       parameter to true.
+//    
+//    Example:
+//      flecs.entity("flecs.core.World", {}, (response) => {
+//        console.log(response);
+//      });
+//        
+//  - flecs.query(query, params, recv, err)
+//      Retrieves entities from the server that match the provided query. By
+//      default the response is formatted as a JavaScript object with the
+//      following properties:
+//        - type_info : object (optional)
+//        - entities : array
+//          - parent : string
+//          - name : string
+//          - tags : array
+//          - components : object
+//          - vars : object (optional)
+//
+//      When the "raw" parameter is set to true, the response format is as
+//      described in the REST API manual. When the "raw" parameter is set to
+//      false or omitted the response will return labels instead of full paths
+//      for tags and components. To retrieve full paths, set the "full_paths"
+//      parameter to true.
+//
+//      Example:
+//        flecs.query("Position, Velocity", {}, (response) => {
+//          console.log(response);
+//        });
+//
+//  - flecs.query_name(query_name, params, recv, err)
+//      Same as flecs.query but for a named query.
+//
+//      Example:
+//        flecs.query_name("queries.my_query", {}, (response) => {
+//          console.log(response);
+//        });
+//
+
 flecs = {
     params: {
         host: "http://localhost:27750",
-        timeout: 1000,
-        retry_interval: 200,
+        timeout_ms: 1000,
+        retry_interval_ms: 200,
         max_retry_count: 5
     },
 
     _: {
+      // Convert JavaScript object to query string
       paramStr: function(params) {
         let count = 0;
         let url_params = "";
         if (params) {
           for (var k in params) {
-            if (k === "raw") {
+            if (k === "raw" || k == "full_paths") {
               continue;
             }
             if (params[k] !== undefined) {
@@ -29,20 +97,21 @@ flecs = {
         return url_params;
       },
 
+      // Do HTTP request, automatically retries on failure
       request: function(method, path, params, recv, err, state) {
         const Request = new XMLHttpRequest();
         let url = flecs.params.host + "/" + path + flecs._.paramStr(params);
 
         if (state === undefined) {
           state = {
-            timeout: flecs.params.timeout,
-            retry_interval: flecs.params.retry_interval,
+            timeout_ms: flecs.params.timeout_ms,
+            retry_interval_ms: flecs.params.retry_interval_ms,
             retry_count: 0
           }
         }
 
         Request.open(method, url);
-        Request.timeout = state.timeout;
+        Request.timeout_ms = state.timeout_ms;
 
         Request.onreadystatechange = (reply) => {
           if (Request.readyState == 4) {
@@ -57,15 +126,15 @@ flecs = {
               }
 
               // Retry if the server did not respond to request
-              if (state.retry_interval) {
-                state.retry_interval *= 1.3;
-                if (state.retry_interval > 1000) {
-                  state.retry_interval = 1000;
+              if (state.retry_interval_ms) {
+                state.retry_interval_ms *= 1.3;
+                if (state.retry_interval_ms > 1000) {
+                  state.retry_interval_ms = 1000;
                 }
 
                 // No point in timing out sooner than retry interval
-                if (state.timeout < state.retry_interval) {
-                  state.timeout = state.retry_interval;
+                if (state.timeout_ms < state.retry_interval_ms) {
+                  state.timeout_ms = state.retry_interval_ms;
                 }
 
                 console.error("retrying request to " + flecs.params.host +
@@ -74,7 +143,7 @@ flecs = {
 
                 window.setTimeout(() => {
                   flecs._.request(method, flecs.params.host, path, recv, err, state);
-                }, state.retry_interval);
+                }, state.retry_interval_ms);
               } else {
                 if (err) err(Request.responseText);
 
@@ -106,6 +175,7 @@ flecs = {
         return Request;
       },
 
+      // Parse entity parameters
       entity_params: function(params) {
         if (!params) {
           params = {};
@@ -113,18 +183,20 @@ flecs = {
 
         const raw = params.raw === true;
         if (!raw) {
-          let type_info = params.type_info;
-          let alerts = params.alerts;
-          params = {
+          let new_params = {
             values: true,
-            type_info: type_info,
-            alerts: alerts
+            type_info: params.type_info,
+            alerts: params.alerts,
+            ids: params.full_paths == true,
+            id_labels: params.full_paths != true
           };
+          params = new_params;
         }
 
         return params;
       },
 
+      // Parse query parameters
       query_params: function(params) {
         if (!params) {
           params = {};
@@ -132,19 +204,28 @@ flecs = {
   
         const raw = params.raw === true;
         if (!raw) {
-          let type_info = params.type_info;
-          params = {
-            term_ids: true,
+          let new_params = {
             values: true,
-            variables: true,
             entities: true,
-            type_info: type_info
+            type_info: params.type_info
           };
+
+          if (params.full_paths != true) {
+            new_params.term_labels = true;
+            new_params.variable_labels = true;
+            new_params.variables = false;
+          } else {
+            new_params.term_ids = true;
+            new_params.variables = true;
+          }
+
+          params = new_params;
         }
 
         return params;
       },
 
+      // Format result of entity endpoint
       format_entity_result: function(msg) {
         let result = {};
         result.parent = msg.path.split(".").slice(0, -1).join(".");
@@ -163,9 +244,14 @@ flecs = {
           result.alerts = msg.alerts;
         }
 
-        for (let i = 0; i < msg.ids.length; i ++) {
-          let id = msg.ids[i].join(",");
-          if (msg.ids[i].length === 2) {
+        let ids = msg.ids;
+        if (!ids) {
+          ids = msg.id_labels;
+        }
+
+        for (let i = 0; i < ids.length; i ++) {
+          let id = ids[i].join(",");
+          if (ids[i].length === 2) {
             id = "(" + id + ")";
           }
           if (msg.values[i] === 0) {
@@ -178,9 +264,13 @@ flecs = {
         return result;
       },
 
+      // Format result of query endpoint
       format_query_result: function(msg) {
-        const term_ids = msg.ids;
-        const vars = msg.vars;
+        let term_ids = msg.ids;
+        if (!term_ids) {
+          term_ids = msg.id_labels;
+        }
+        let vars = msg.vars;
         let entities = [];
         let out = {};
         if (msg.type_info) {
@@ -214,9 +304,13 @@ flecs = {
             }
 
             if (vars) {
+              let var_values = result.vars;
+              if (!var_values) {
+                var_values = result.var_labels;
+              }
               obj.vars = {};
               for (let j = 0; j < vars.length; j ++) {
-                obj.vars[vars[j]] = result.vars[j];
+                obj.vars[vars[j]] = var_values[j];
               }
             }
 
@@ -227,6 +321,7 @@ flecs = {
         return out;
       },
 
+      // Do query request
       request_query: function(params, recv, err) {
         return flecs._.request("GET", "query", params, (msg) => {
           msg = JSON.parse(msg);
@@ -239,10 +334,12 @@ flecs = {
       }
     },
 
+    // Set host for client library
     connect: function(host) {
       flecs.params.host = host;
     },
 
+    // Request entity
     entity: function(path, params, recv, err) {
       params = flecs._.entity_params(params);
       path = path.replace(/\./g, "/");
@@ -256,6 +353,7 @@ flecs = {
       }, err);
     },
 
+    // Request query
     query: function(query, params, recv, err) {
       params = flecs._.query_params(params);
 
@@ -274,6 +372,7 @@ flecs = {
       return flecs._.request_query(params, recv, err);
     },
 
+    // Request named query
     query_name: function(query, params, recv, err) {
       params = flecs._.query_params(params);
       params.name = encodeURIComponent(query);

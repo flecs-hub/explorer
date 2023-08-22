@@ -39,12 +39,8 @@
 
         <template v-for="(v, k) in options">
           <template v-if="show_option(k)">
-            <template v-if="v">
-              <input type="checkbox" v-on:change="toggle_option(k)" checked></input>
-            </template>
-            <template v-else>
-              <input type="checkbox" v-on:change="toggle_option(k)"></input>
-            </template>
+            <template v-if="v"><input type="checkbox" v-on:change="toggle_option(k)" checked :key="k"></input></template>
+            <template v-else><input type="checkbox" v-on:change="toggle_option(k)" :key="k"></input></template>
             <label>{{k}}</label>
           </template>
         </template>
