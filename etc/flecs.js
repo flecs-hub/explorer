@@ -232,21 +232,22 @@ flecs = {
         result.name = msg.path.split(".").slice(-1)[0];
         result.tags = [];
         result.components = {};
+
+        let ids = msg.ids;
+        if (!ids) {
+          ids = msg.id_labels;
+        }
+
         if (msg.type_info) {
           result.type_info = {};
           for (let i = 0; i < msg.type_info.length; i ++) {
             if (msg.type_info[i] !== 0) {
-              result.type_info[msg.ids[i]] = msg.type_info[i];
+              result.type_info[ids[i]] = msg.type_info[i];
             }
           }
         }
         if (msg.alerts) {
           result.alerts = msg.alerts;
-        }
-
-        let ids = msg.ids;
-        if (!ids) {
-          ids = msg.id_labels;
         }
 
         for (let i = 0; i < ids.length; i ++) {
