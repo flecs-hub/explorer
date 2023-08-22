@@ -4578,7 +4578,7 @@ bool ecs_stage_is_async(
  * @param ctx A pointer to a user defined structure.
  */
 FLECS_API
-void ecs_set_context(
+void ecs_set_ctx(
     ecs_world_t *world,
     void *ctx);
 
@@ -4586,11 +4586,11 @@ void ecs_set_context(
  * This operation retrieves a previously set world context.
  *
  * @param world The world.
- * @return The context set with ecs_set_context. If no context was set, the
+ * @return The context set with ecs_set_ctx. If no context was set, the
  *         function returns NULL.
  */
 FLECS_API
-void* ecs_get_context(
+void* ecs_get_ctx(
     const ecs_world_t *world);
 
 /** Get world info.
@@ -7086,12 +7086,12 @@ bool ecs_observer_default_run_action(
     ecs_iter_t *it);
 
 FLECS_API
-void* ecs_get_observer_ctx(
+void* ecs_observer_get_ctx(
     const ecs_world_t *world,
     ecs_entity_t observer);
 
 FLECS_API
-void* ecs_get_observer_binding_ctx(
+void* ecs_observer_get_binding_ctx(
     const ecs_world_t *world,
     ecs_entity_t observer);
 
@@ -10883,7 +10883,7 @@ ecs_query_t* ecs_system_get_query(
  * @return The context.
  */
 FLECS_API
-void* ecs_get_system_ctx(
+void* ecs_system_get_ctx(
     const ecs_world_t *world,
     ecs_entity_t system);
 
@@ -10897,7 +10897,7 @@ void* ecs_get_system_ctx(
  * @return The context.
  */
 FLECS_API
-void* ecs_get_system_binding_ctx(
+void* ecs_system_get_binding_ctx(
     const ecs_world_t *world,
     ecs_entity_t system);
 
@@ -19135,7 +19135,7 @@ struct world {
      * @param ctx The world context.
      */
     void set_context(void* ctx) const {
-        ecs_set_context(m_world, ctx);
+        ecs_set_ctx(m_world, ctx);
     }
 
     /** Get world context.
@@ -19143,7 +19143,7 @@ struct world {
      * @return The configured world context.
      */
     void* get_context() const {
-        return ecs_get_context(m_world);
+        return ecs_get_ctx(m_world);
     }
 
     /** Preallocate memory for number of entities.
@@ -27577,7 +27577,7 @@ struct observer final : entity
     }
 
     void* ctx() const {
-        return ecs_get_observer_ctx(m_world, m_id);
+        return ecs_observer_get_ctx(m_world, m_id);
     }
 
     flecs::filter<> query() const {
@@ -27994,7 +27994,7 @@ struct system final : entity
     }
 
     void* ctx() const {
-        return ecs_get_system_ctx(m_world, m_id);
+        return ecs_system_get_ctx(m_world, m_id);
     }
 
     flecs::query<> query() const {

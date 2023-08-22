@@ -213,11 +213,11 @@ flecs = {
           };
 
           if (params.full_paths != true) {
-            new_params.term_labels = true;
+            new_params.id_labels = true;
             new_params.variable_labels = true;
             new_params.variables = false;
           } else {
-            new_params.term_ids = true;
+            new_params.ids = true;
             new_params.variables = true;
           }
 
@@ -320,6 +320,9 @@ flecs = {
             let ids = term_ids;
             if (ids === undefined) {
               ids = result.ids;
+            }
+            if (ids === undefined) {
+              ids = result.id_labels;
             }
 
             let obj = flecs._.format_entity_contents(
