@@ -37,7 +37,7 @@
     border-radius: 12px;
     cursor: pointer;
     margin-left: 5px;
-    margin-right: 7px;
+    margin-right: 5px;
   }
 
   span.toggle-button circle {

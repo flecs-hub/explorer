@@ -13,11 +13,19 @@
       <div class="stats-charts stats-systems">
         <span class="top-level-stat">Systems&nbsp;</span><span class="top-level-stat-value">{{ system_count }}</span>
         <span class="top-level-stat">Sync points&nbsp;</span><span class="top-level-stat-value">{{ sync_count }}</span>
+        <span class="top-level-stat top-level-toggle">Hide &lt; 1%&nbsp;<toggle-button v-model="hide_below_pct"></toggle-button></span>
         <module-filter :modules="modules"
           v-on:toggle="evt_module_toggle"></module-filter>
 
         <template v-for="(sys, i) in results">
-          <div :class="css_system(sys, i)" v-if="show_system(sys.name)">
+          <template v-if="after_sync(i)">
+            <div class="stats-merge-header">
+              <template v-if="has_sync_info(i)">
+                {{  sync_multi_threaded(i) }}, {{ sync_no_readonly(i) }}, {{ block_system_count(i) }}
+              </template>
+            </div>
+          </template>
+          <div :class="css_system(sys, i)" v-if="show_system(sys.name, i)">
             <template v-if="sys.name">
               <entity-hierarchy :entity_path="sys.name"></entity-hierarchy>
               <entity-reference :entity="sys.name" :show_name="true" v-on="$listeners">
@@ -72,13 +80,51 @@
                     </span>
                   </div>
                 </div>
-              </template>
-              <template v-else>
-                <icon icon="codicons:merge" :size="36" :rotate="180"></icon>
-              </template>
-            </div>
-          </template>
-        </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="stats-system-charts">
+                <div v-if="sys.time_spent">
+                  <div class="stats-system-chart">
+                    <stat-chart 
+                      :zoom="1" 
+                      :width="280"
+                      :values="sys.time_spent"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Time spent (
+                        {{get_system_time_avg(i)}}
+                        {{(system_time_pct.system_pct[i] * 100).toFixed(0)}}%
+                      )
+                    </span>
+                  </div>
+                </div>
+                <div v-if="sys.commands_enqueued">
+                  <div class="stats-system-chart">
+                    <stat-chart 
+                      :zoom="1" 
+                      :width="280"
+                      :values="sys.commands_enqueued"
+                      :disabled="!valid">
+                    </stat-chart>
+                    <span class="noselect stats-chart-label">
+                      Commands enqueued
+                    </span>
+                  </div>
+                </div>
+                <div class="stats-sync-icon">
+                  <icon icon="codicons:merge" :size="48" :rotate="180"></icon>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div v-else>
+            <template v-if="!sys.name">
+              <div class="stats-system stats-merge"></div>
+            </template>
+          </div>
+        </template>
       </div>
 
       <!-- Explorer is connected to application but monitoring is not on -->
@@ -87,7 +133,7 @@
           <span>
             Could not request statistics from application, make sure to update
             to the latest Flecs and import the flecs.monitor module!
-          <span>
+          </span>
         </p>
         <p>
           In C:
@@ -117,7 +163,8 @@
       return {
         results: [],
         module_visibility: {},
-        error: undefined
+        error: undefined,
+        hide_below_pct: false
       }
     },
     computed: {
@@ -140,7 +187,7 @@
 
         for (const sys of this.results) {
           let sum = 0;
-          if (sys.name == undefined) {
+          if (sys.time_spent == undefined) {
             result.push(0);
             continue;
           }
@@ -287,7 +334,8 @@
         let result = "stats-system";
         if (sys.name == undefined) {
             result += " stats-merge";
-        } else {
+        }
+        if (sys.time_spent) {
           result += " " + this.system_impact_css(index);
         }
         return result;
@@ -354,12 +402,57 @@
       module_label(module_name) {
         return module_name.replaceAll(".", " > ") + " (" + this.module_count(module_name) + ")";
       },
-      show_system(system_name) {
+      show_system(system_name, i) {
         let module_name = this.module_name(system_name);
         if (this.module_visibility[module_name] === undefined) {
           this.module_visibility[module_name] = true;
         }
-        return this.module_visibility[module_name];
+        let visibility = this.module_visibility[module_name];
+        if (!visibility) {
+          return false;
+        }
+        if (this.hide_below_pct) {
+          const pct = this.system_time_pct.system_pct[i];
+          if (pct < 0.01) {
+            return false;
+          }
+        }
+        return visibility;
+      },
+      after_sync(index) {
+        if (index == 0) {
+          return true;
+        } else if (this.results[index - 1].name == undefined) {
+          return true;
+        } else {
+          return false;
+        }
+      },
+      next_sync(index) {
+        let result = index;
+        while (result < this.results.length) {
+          if (this.results[result].name == undefined) {
+            return result;
+          }
+          result ++;
+        }
+      },
+      sync_multi_threaded(index) {
+        index = this.next_sync(index);
+        return this.results[index].multi_threaded ? "multi-threaded" : "single-threaded";
+      },
+      sync_no_readonly(index) {
+        index = this.next_sync(index);
+        return this.results[index].no_readonly ? "no_readonly" : "readonly";
+      },
+      block_system_count(index) {
+        index = this.next_sync(index);
+        let count = this.results[index].system_count;
+        return count > 1 ? count + " systems" : count + " system";
+      },
+      has_sync_info(index) {
+        index = this.next_sync(index);
+        return this.results[index].multi_threaded !== undefined;
       }
     }
   }
@@ -403,6 +496,61 @@ div.stats-system {
   margin-bottom: 5px;
 
   width: 950px;
+}
+
+div.stats-merge {
+  display: flex;
+  border-style: none;
+  justify-content: left;
+
+  background-color: var(--panel-bg);
+
+  border-style: solid;
+  border-width: 0px;
+  border-bottom-left-radius: 15px;
+  border-bottom-right-radius: 15px;
+  border-left-width: 10px;
+  border-color: hsl(200, 54%, 15%);
+
+  padding: 7px;
+  padding-left: 15px;
+  padding-top: 10px;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+
+  width: 950px;
+}
+
+div.stats-merge-header {
+  display: flex;
+  border-style: none;
+  justify-content: left;
+
+  background-color: var(--panel-bg);
+  color: var(--secondary-text);
+
+  border-style: solid;
+  border-width: 0px;
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  border-left-width: 10px;
+  border-color: hsl(200, 54%, 15%);
+
+  padding: 7px;
+  padding-left: 15px;
+  padding-bottom: 15px;
+  margin-top: 10px;
+  margin-bottom: 5px;
+
+  width: 950px;
+}
+
+.stats-sync-icon {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
 }
 
 div.stats-system-impact-01 {
@@ -456,6 +604,7 @@ div.stats-system-impact-50 {
 div.stats-system-charts {
   display: flex;
   flex-direction: row;
+  width: 100%;
 }
 
 div.stats-system-charts div {
@@ -463,13 +612,6 @@ div.stats-system-charts div {
   flex-direction: column;
   margin-top: 2px;
   margin-right: 5px;
-}
-
-div.stats-merge {
-  display: flex;
-  background-color: var(--panel-bg-secondary);
-  border-style: none;
-  justify-content: center;
 }
 
 span.stats-chart-label {
@@ -488,6 +630,7 @@ span.top-level-stat {
   padding: 4px;
   padding-left: 8px;
   margin-bottom: 12px;
+  height: 20px;
 }
 
 span.top-level-stat-value {
@@ -500,6 +643,21 @@ span.top-level-stat-value {
   padding-left: 8px;
   padding-right: 8px;
   margin-bottom: 12px;
+  height: 20px;
+}
+
+span.top-level-toggle {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+span.top-level-toggle .toggle-button {
+  position: relative;
+  top: -2px;
+}
+
+span.top-level-toggle svg {
+  margin-right: 1px;
 }
 
 </style>
