@@ -9,7 +9,7 @@
       v-on:blur="evt_focus(false)">
     </textarea>
     <div class="query-default-text" v-if="!query.length" 
-      v-on:click.stop="set_focus">Search</div>
+      v-on:click.stop="set_focus">Enter query</div>
     <div style="padding-left: 2px;">
       <template v-if="!focus">
         <icon-button 

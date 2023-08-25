@@ -789,6 +789,7 @@ const inspector_component = Vue.component('inspector', {
 
       const request_alerts = this.view == "alerts";
       const request_components = this.view == "components";
+      const request_matches = this.view == "matches";
       const request_refs = this.view == "refs";
 
       const r = app.request_entity('inspector', this.entity_name, (reply, url) => {
@@ -813,6 +814,7 @@ const inspector_component = Vue.component('inspector', {
         color: true,
         id_labels: request_components, 
         values: request_components,
+        matches: request_matches,
         alerts: request_alerts,
         refs: request_refs ? "*" : undefined,
         private: this.show_private
@@ -1032,6 +1034,13 @@ const inspector_component = Vue.component('inspector', {
 
       return result;
     },
+    matches: function() {
+      if (!this.entity || !this.entity.matches) {
+        return [];
+      }
+
+      return this.entity.matches;
+    },
     refs: function() {
       if (!this.entity || !this.entity.refs) {
         return [];
@@ -1136,6 +1145,9 @@ const inspector_component = Vue.component('inspector', {
               label: 'Referenced by',
               value: 'refs'
             }, {
+              label: 'Matched by',
+              value: 'matches'
+            }, {
               label: 'Alerts',
               value: 'alerts'
             }]" v-on:select="select_view"></tabs>
@@ -1178,6 +1190,18 @@ const inspector_component = Vue.component('inspector', {
             <template v-else>
               <div class="inspector-no-content">
                 No references
+              </div>
+            </template>
+          </template>
+          <template v-else-if="view == 'matches'">
+            <template v-if="matches.length != 0">
+              <div class="inspector-refs">
+                <inspector-refs :refs="matches" v-on="$listeners"></inspector-refs>
+              </div>
+            </template>
+            <template v-else>
+              <div class="inspector-no-content">
+                Not matched by queries
               </div>
             </template>
           </template>
