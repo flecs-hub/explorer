@@ -996,7 +996,7 @@ const inspector_component = Vue.component('inspector', {
       return Status.Error;
     },
     is_query: function() {
-      return this.has_id("flecs.core.Poly,flecs.core.Query");
+      return this.has_id("flecs.core.Poly,flecs.core.Query") || this.has_id("flecs.core.Query");
     },
     is_disabled: function() {
       return this.has_id("flecs.core.Disabled");
