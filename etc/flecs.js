@@ -67,7 +67,7 @@
 //        });
 //
 
-flecs = {
+const flecs = {
     params: {
         host: "http://localhost:27750",
         timeout_ms: 1000,
@@ -151,10 +151,8 @@ flecs = {
 
                 // If error callback did not set the connection state back to
                 // local, treat this as a loss of connection event.
-                if (this.connection != ConnectionState.Local) {
-                  if (!Request.request_aborted) {
-                    this.connect();
-                  }
+                if (!Request.request_aborted) {
+                  this.connect();
                 }
               }
             } else {    
