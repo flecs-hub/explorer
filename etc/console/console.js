@@ -31,6 +31,7 @@ const query_options = {
   entity_ids: false,  
   variable_labels: false, 
   variable_ids: false,
+  table: false
 };
 
 function deepCopy(arg) {
@@ -152,7 +153,7 @@ new Vue({
     },
 
     show_option: function(option) {
-      if (option == "raw") {
+      if (option == "raw" || option == "table") {
         return true;
       } else {
         if (!this.options.raw) {

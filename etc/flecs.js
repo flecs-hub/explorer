@@ -207,7 +207,8 @@ const flecs = {
           let new_params = {
             values: true,
             entities: true,
-            type_info: params.type_info
+            type_info: params.type_info,
+            table: params.table
           };
 
           if (params.full_paths != true) {
