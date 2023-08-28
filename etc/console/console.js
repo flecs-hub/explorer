@@ -31,7 +31,8 @@ const query_options = {
   entity_ids: false,  
   variable_labels: false, 
   variable_ids: false,
-  table: false
+  table: false,
+  private: false
 };
 
 function deepCopy(arg) {
@@ -165,6 +166,12 @@ new Vue({
         } else {
           if (option == "full_paths") {
             return false;
+          } else if (option == "private") {
+            if (this.options.table) {
+              return true;
+            } else {
+              return false;
+            }
           } else {
             return true;
           }
