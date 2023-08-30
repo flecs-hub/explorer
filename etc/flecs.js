@@ -150,8 +150,6 @@ const flecs = {
             },
             reset: function() {
               state.retry_count = 0;
-              state.request_cancelled = false;
-              // state.request = undefined;
             }
           }
         }
