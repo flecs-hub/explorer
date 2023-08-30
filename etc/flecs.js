@@ -277,7 +277,7 @@ const flecs = {
         return params;
       },
 
-      format_entity_contents: function(parent, name, ids, values) {
+      format_entity_contents: function(parent, name, ids, values, row) {
         let result = {parent: parent, name: name};
         let tags = [];
         let components = {};
@@ -306,7 +306,11 @@ const flecs = {
           }
 
           if (values && values[i] !== 0) {
-            components[id] = values[i];
+            let value = values[i];
+            if (row !== undefined) {
+              value = value[row];
+            }
+            components[id] = value;
           }
         }
 
@@ -376,7 +380,7 @@ const flecs = {
             }
 
             let obj = flecs._.format_entity_contents(
-              result.parent, result.entities[i], ids, result.values);
+              result.parent, result.entities[i], ids, result.values, i);
 
             if (vars) {
               let var_values = result.vars;
