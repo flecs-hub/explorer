@@ -87,7 +87,8 @@ const flecs = {
         let url_params = "";
         if (params) {
           for (var k in params) {
-            if (k === "raw" || k == "full_paths") {
+            // Ignore client-side only parameters
+            if (k === "raw" || k === "full_paths" || k === "poll_interval") {
               continue;
             }
             if (params[k] !== undefined) {
@@ -105,7 +106,7 @@ const flecs = {
       },
 
       // Do HTTP request, automatically retries on failure
-      request: function(method, path, params, recv, err, state) {
+      request: function(method, path, params, recv, err, poll_interval, state) {
         const Request = new XMLHttpRequest();
         let url = flecs.params.host + "/" + path + flecs._.paramStr(params);
 
@@ -113,12 +114,23 @@ const flecs = {
           state = {
             timeout_ms: flecs.params.timeout_ms,
             retry_interval_ms: flecs.params.retry_interval_ms,
-            retry_count: 0
+            retry_count: 0,
+            request_cancelled: false,
+            request: Request,
+            url: url,
+            abort: function() {
+              state.request_cancelled = true;
+              state.request.abort();
+            },
+            reset: function() {
+              state.retry_count = 0;
+              state.request_cancelled = false;
+              // state.request = undefined;
+            }
           }
         }
 
         Request.open(method, url);
-        Request.timeout_ms = state.timeout_ms;
 
         Request.onreadystatechange = (reply) => {
           if (Request.readyState == 4) {
@@ -130,6 +142,11 @@ const flecs = {
                 if (err) {
                   err('{"error": \"' + err_str + '\"}');
                 }
+                return;
+              }
+
+              if (state.request_cancelled) {
+                console.log("request to " + flecs.params.host + " cancelled");
                 return;
               }
 
@@ -150,16 +167,11 @@ const flecs = {
                   "(retried " + state.retry_count + " times)");
 
                 window.setTimeout(() => {
-                  flecs._.request(method, flecs.params.host, params, recv, err, state);
+                  flecs._.request(method, path, params, recv, 
+                      err, poll_interval, state);
                 }, state.retry_interval_ms);
               } else {
                 if (err) err(Request.responseText);
-
-                // If error callback did not set the connection state back to
-                // local, treat this as a loss of connection event.
-                if (!Request.request_aborted) {
-                  this.connect();
-                }
               }
             } else {    
               if (Request.status < 200 || Request.status >= 300) {
@@ -169,6 +181,14 @@ const flecs = {
               } else {
                 if (recv) {
                   recv(Request.responseText, url);
+
+                  if (poll_interval && !state.request_cancelled) {
+                    window.setTimeout(() => {
+                      state.reset();
+                      flecs._.request(method, path, params, recv, 
+                          err, poll_interval, state);
+                    }, poll_interval);
+                  }
                 }
               }
             }
@@ -176,9 +196,8 @@ const flecs = {
         }
 
         Request.send();
-        Request.url = url;
 
-        return Request;
+        return state;
       },
 
       // Parse entity parameters
@@ -194,7 +213,8 @@ const flecs = {
             type_info: params.type_info,
             alerts: params.alerts,
             ids: params.full_paths == true,
-            id_labels: params.full_paths != true
+            id_labels: params.full_paths != true,
+            poll_interval: params.poll_interval
           };
           params = new_params;
         }
@@ -214,7 +234,8 @@ const flecs = {
             values: true,
             entities: true,
             type_info: params.type_info,
-            table: params.table
+            table: params.table,
+            poll_interval: params.poll_interval
           };
 
           if (params.full_paths != true) {
@@ -352,7 +373,7 @@ const flecs = {
       },
 
       // Do query request
-      request_query: function(params, recv, err) {
+      request_query: function(params, recv, err, poll_interval) {
         return flecs._.request("GET", "query", params, (msg) => {
           msg = JSON.parse(msg);
           if (!params.raw)  {
@@ -364,7 +385,7 @@ const flecs = {
           if (err) {
             err(JSON.parse(msg));
           }
-        });
+        }, poll_interval);
       }
     },
 
@@ -388,7 +409,7 @@ const flecs = {
         if (err) {
           err(JSON.parse(msg));
         }
-      });
+      }, params.poll_interval);
     },
 
     // Request query
