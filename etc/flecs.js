@@ -67,6 +67,11 @@
 //        });
 //
 
+// If the environment is Node.js import XMLHttpRequest
+if (typeof process === "object" && typeof require === "function") {
+  XMLHttpRequest = require("xhr2");
+}
+
 const flecs = {
     params: {
         host: "http://localhost:27750",
@@ -120,11 +125,12 @@ const flecs = {
             if (Request.status == 0) {
               state.retry_count ++;
               if (state.retry_count > flecs.params.max_retry_count) {
+                const err_str = "request to " + flecs.params.host + " failed: max retry count exceeded";
+                console.error(err_str);
                 if (err) {
-                  console.error("request to " + flecs.params.host + " failed");
-                  err('{"error": "request failed: max retry count exceeded"}');
-                  return;
+                  err('{"error": \"' + err_str + '\"}');
                 }
+                return;
               }
 
               // Retry if the server did not respond to request
@@ -144,7 +150,7 @@ const flecs = {
                   "(retried " + state.retry_count + " times)");
 
                 window.setTimeout(() => {
-                  flecs._.request(method, flecs.params.host, path, recv, err, state);
+                  flecs._.request(method, flecs.params.host, params, recv, err, state);
                 }, state.retry_interval_ms);
               } else {
                 if (err) err(Request.responseText);
@@ -354,7 +360,11 @@ const flecs = {
           } else {
             recv(msg);
           }
-        }, err);
+        }, (msg) => {
+          if (err) {
+            err(JSON.parse(msg));
+          }
+        });
       }
     },
 
@@ -374,7 +384,11 @@ const flecs = {
         } else {
           recv(flecs._.format_entity_result(msg));
         }
-      }, err);
+      }, (msg) => {
+        if (err) {
+          err(JSON.parse(msg));
+        }
+      });
     },
 
     // Request query
