@@ -28,7 +28,17 @@
 //       false or omitted the response will return labels instead of full paths
 //       for tags and components. To retrieve full paths, set the "full_paths"
 //       parameter to true.
+//
+//       To poll for changes, set the "poll_interval" parameter to the number of
+//       milliseconds between requests. To abort polling, call abort() on the
+//       object returned by the function.
 //    
+//    Return:
+//      Object with the following members:
+//        - abort() : function
+//            Aborts the request.
+//        - url : string
+//
 //    Example:
 //      flecs.entity("flecs.core.World", {}, (response) => {
 //        console.log(response);
@@ -53,6 +63,16 @@
 //      for tags and components. To retrieve full paths, set the "full_paths"
 //      parameter to true.
 //
+//      To poll for changes, set the "poll_interval" parameter to the number of
+//      milliseconds between requests. To abort polling, call abort() on the
+//      object returned by the function.
+//
+//    Return:
+//      Object with the following members:
+//        - abort() : function
+//            Aborts the request.
+//        - url : string
+//
 //      Example:
 //        flecs.query("Position, Velocity", {}, (response) => {
 //          console.log(response);
@@ -60,6 +80,12 @@
 //
 //  - flecs.query_name(query_name, params, recv, err)
 //      Same as flecs.query but for a named query.
+//
+//    Return:
+//      Object with the following members:
+//        - abort() : function
+//            Aborts the request.
+//        - url : string
 //
 //      Example:
 //        flecs.query_name("queries.my_query", {}, (response) => {
@@ -166,7 +192,7 @@ const flecs = {
                   ", ensure app is running and REST is enabled " +
                   "(retried " + state.retry_count + " times)");
 
-                window.setTimeout(() => {
+                setTimeout(() => {
                   flecs._.request(method, path, params, recv, 
                       err, poll_interval, state);
                 }, state.retry_interval_ms);
@@ -183,7 +209,7 @@ const flecs = {
                   recv(Request.responseText, url);
 
                   if (poll_interval && !state.request_cancelled) {
-                    window.setTimeout(() => {
+                    setTimeout(() => {
                       state.reset();
                       flecs._.request(method, path, params, recv, 
                           err, poll_interval, state);
