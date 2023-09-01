@@ -414,7 +414,12 @@ function create_app() {
           if (!remote) {
             if (!param_show && !param_query && !this.wasm) {
               param_show = "tree,query,plecs"
-              param_query = DEFAULT_PARAM_QUERY;
+              if (param_script === undefined) {
+                // Only set default query when no script is provided. If a
+                // script is provided as paramter, the data that the default
+                // query matches on won't be available.
+                param_query = DEFAULT_PARAM_QUERY;
+              }
             }
           }
 
