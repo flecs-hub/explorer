@@ -166,6 +166,13 @@ const flecs = {
                 if (err) {
                   err('{"error": \"' + err_str + '\"}');
                 }
+                if (poll_interval) {
+                  setTimeout(() => {
+                    state.reset();
+                    flecs._.request(method, path, params, recv, 
+                        err, poll_interval, state);
+                  }, poll_interval);
+                }
                 return;
               }
 
@@ -442,6 +449,10 @@ const flecs = {
 
     // Request query
     query: function(query, params, recv, err) {
+      if (query === undefined) {
+        console.error("flecs.query: invalid query parameter");
+        return;
+      }
       params = flecs._.query_params(params);
 
       // Normalize query string
@@ -456,13 +467,188 @@ const flecs = {
       query = query.replaceAll(", ", ",");
 
       params.q = encodeURIComponent(query);
-      return flecs._.request_query(params, recv, err);
+      return flecs._.request_query(params, recv, err, params.poll_interval);
     },
 
     // Request named query
     query_name: function(query, params, recv, err) {
       params = flecs._.query_params(params);
       params.name = encodeURIComponent(query);
-      return flecs._.request_query(params, recv, err);
+      return flecs._.request_query(params, recv, err, params.poll_interval);
+    },
+
+    // Create world object
+    world: function(poll_interval = 1000) {
+      return {
+        // Add query to world
+        query: function(query, params) {
+          if (!params) {
+            params = {};
+          }
+          params.raw = false;
+          params.poll_interval = poll_interval;
+          this.queries.push(
+            flecs.query(query, params, 
+              this._recv.bind(this),
+              this._err.bind(this)));
+          return this;
+        },
+
+        // Callback when update happens (useful for reactivity)
+        on_update: function(callback) {
+          this._on_update = callback;
+          return this;
+        },
+
+        // Receive function
+        _recv: function(reply) {
+          let now = Date.now();
+          for (let entity of reply.entities) {
+            const parent = this._ensure(entity.parent, now);
+            if (!parent.entities) {
+              parent.entities = {};
+            }
+            let name = entity.name;
+            if (typeof name !== "string") {
+              name = "" + name;
+            }
+
+            const prev = parent.entities[name];
+            if (prev) {
+              entity.timestamp = prev.timestamp;
+              entity.entities = prev.entities;
+            }
+
+            this._keep_alive(entity, now);
+
+            parent.entities[name] = entity;
+          }
+
+          // Garbage collect entities that are no longer alive
+          this._gc(now);
+
+          this.error = undefined;
+
+          if (this._on_update) {
+            this._on_update();
+          }
+        },
+
+        _err: function(reply) {
+          this.error = reply;
+          this.entities = {};
+          this.entity_timestamps = {};
+          this._on_update();
+        },
+
+        // If entity was received by query, keep it alive for the next epoch
+        _keep_alive(entity, now) {
+          let path = entity.name;
+          if (entity.parent) {
+            path = entity.parent + "." + path;
+          }
+          if (entity.timestamp) {
+            // Remove entity from old timestamp
+            let entities = this.entity_timestamps[entity.timestamp];
+            if (entities) {
+              delete entities[path];
+              if (Object.keys(entities).length === 0) {
+                delete this.entity_timestamps[entity.timestamp];
+              }
+            }
+          }
+
+          // Add to current timestamp
+          let entities = this.entity_timestamps[now];
+          if (!entities) {
+            entities = this.entity_timestamps[now] = {};
+          }
+          entities[path] = 0;
+          entity.timestamp = now;
+        },
+
+        // Garbage collect entities that are no longer alive
+        _gc: function(now) {
+          let timestamps = Object.keys(this.entity_timestamps);
+          for (let time of timestamps) {
+            if (now - time > this.poll_interval * 2) {
+              let entities = Object.keys(this.entity_timestamps[time]);
+              for (let path of entities) {
+                this._collect(path);
+              }
+
+              delete this.entity_timestamps[time];
+            } else {
+              break;
+            }
+          }
+        },
+
+        // Garbage collect entity
+        _collect: function(path) {
+          let cur = this, prev = undefined;
+
+          if (typeof path !== "string") {
+            path = "" + path;
+          }
+
+          let elems = path.split(".");
+          for (let elem of elems) {
+            if (!cur.entities) {
+              break;
+            }
+            let next = cur.entities[elem];
+            if (!next) {
+              break;
+            }
+            prev = cur;
+            cur = next;
+          }
+
+          if (prev) {
+            delete prev.entities[elems[elems.length - 1]];
+          } else {
+            delete this.entities[path];
+          }
+        },
+
+        // Ensure entity exists
+        _ensure: function(path, now) {
+          let cur = this;
+          let parent = [];
+
+          if (typeof path !== "string") {
+            path = "" + path;
+          }
+
+          let elems = path.split(".");
+          for (let elem of elems) {
+            if (!cur.entities) {
+              cur.entities = {};
+            }
+            let next = cur.entities[elem];
+            if (!next) {
+              next = cur.entities[elem] = {
+                name: elem
+              };
+              if (parent.length) {
+                next.parent = parent.join(".")
+              }
+            }
+            cur = next;
+            this._keep_alive(cur, now);
+            parent.push(elem);
+          }
+
+          return cur;
+        },
+        
+        _on_update: undefined,
+
+        queries: [],
+        entities: {},
+        entity_timestamps: {},
+        poll_interval: poll_interval
+      }
     }
 };
