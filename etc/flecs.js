@@ -321,15 +321,9 @@ const flecs = {
           }
         }
 
-        if (tags.length != 0) {
-          result.tags = tags;
-        }
-        if (Object.keys(pairs).length != 0) {
-          result.pairs = pairs;
-        }
-        if (Object.keys(components).length != 0) {
-          result.components = components;
-        }
+        result.tags = tags;
+        result.pairs = pairs;
+        result.components = components;
 
         return result;
       },
@@ -629,7 +623,10 @@ const flecs = {
             let next = cur.entities[elem];
             if (!next) {
               next = cur.entities[elem] = {
-                name: elem
+                name: elem,
+                tags: [],
+                pairs: {},
+                components: {}
               };
               if (parent.length) {
                 next.parent = parent.join(".")
