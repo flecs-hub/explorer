@@ -264,6 +264,7 @@ const flecs = {
           let new_params = {
             values: true,
             entities: true,
+            is_set: true,
             type_info: params.type_info,
             table: params.table,
             poll_interval: params.poll_interval
@@ -284,7 +285,7 @@ const flecs = {
         return params;
       },
 
-      format_entity_contents: function(parent, name, ids, values, row) {
+      format_entity_contents: function(parent, name, ids, values, row, is_set) {
         let result = {parent: parent, name: name};
         let tags = [];
         let components = {};
@@ -308,7 +309,10 @@ const flecs = {
           } else {
             id = id[0];
             if (!values || values[i] === 0) {
-              tags.push(id);
+              let add = !is_set || is_set[i];
+              if (add) {
+                tags.push(id);
+              }
             }
           }
 
@@ -381,7 +385,8 @@ const flecs = {
             }
 
             let obj = flecs._.format_entity_contents(
-              result.parent, result.entities[i], ids, result.values, i);
+              result.parent, result.entities[i], ids, result.values, i,
+              result.is_set);
 
             if (vars) {
               let var_values = result.vars;
