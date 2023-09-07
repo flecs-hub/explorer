@@ -114,7 +114,7 @@ const flecs = {
         if (params) {
           for (var k in params) {
             // Ignore client-side only parameters
-            if (k === "raw" || k === "full_paths" || k === "poll_interval") {
+            if (k === "raw" || k === "full_paths" || k === "poll_interval" || k === "host") {
               continue;
             }
             if (params[k] !== undefined) {
@@ -132,9 +132,12 @@ const flecs = {
       },
 
       // Do HTTP request, automatically retries on failure
-      request: function(method, path, params, recv, err, poll_interval, state) {
+      request: function(host, method, path, params, recv, err, poll_interval, state) {
         const Request = new XMLHttpRequest();
-        let url = flecs.params.host + "/" + path + flecs._.paramStr(params);
+        if (host === undefined) {
+          host = flecs.params.host;
+        }
+        let url = host + "/" + path + flecs._.paramStr(params);
 
         if (state === undefined) {
           state = {
@@ -161,7 +164,7 @@ const flecs = {
             if (Request.status == 0) {
               state.retry_count ++;
               if (state.retry_count > flecs.params.max_retry_count) {
-                const err_str = "request to " + flecs.params.host + " failed: max retry count exceeded";
+                const err_str = "request to " + host + " failed: max retry count exceeded";
                 console.error(err_str);
                 if (err) {
                   err('{"error": \"' + err_str + '\"}');
@@ -169,7 +172,7 @@ const flecs = {
                 if (poll_interval) {
                   setTimeout(() => {
                     state.reset();
-                    flecs._.request(method, path, params, recv, 
+                    flecs._.request(host, method, path, params, recv, 
                         err, poll_interval, state);
                   }, poll_interval);
                 }
@@ -177,7 +180,7 @@ const flecs = {
               }
 
               if (state.request_cancelled) {
-                console.log("request to " + flecs.params.host + " cancelled");
+                console.log("request to " + host + " cancelled");
                 return;
               }
 
@@ -193,12 +196,12 @@ const flecs = {
                   state.timeout_ms = state.retry_interval_ms;
                 }
 
-                console.error("retrying request to " + flecs.params.host +
+                console.error("retrying request to " + host +
                   ", ensure app is running and REST is enabled " +
                   "(retried " + state.retry_count + " times)");
 
                 setTimeout(() => {
-                  flecs._.request(method, path, params, recv, 
+                  flecs._.request(host, method, path, params, recv, 
                       err, poll_interval, state);
                 }, state.retry_interval_ms);
               } else {
@@ -216,7 +219,7 @@ const flecs = {
                   if (poll_interval && !state.request_cancelled) {
                     setTimeout(() => {
                       state.reset();
-                      flecs._.request(method, path, params, recv, 
+                      flecs._.request(host, method, path, params, recv, 
                           err, poll_interval, state);
                     }, poll_interval);
                   }
@@ -245,7 +248,8 @@ const flecs = {
             alerts: params.alerts,
             ids: params.full_paths == true,
             id_labels: params.full_paths != true,
-            poll_interval: params.poll_interval
+            poll_interval: params.poll_interval,
+            host: params.host
           };
           params = new_params;
         }
@@ -267,7 +271,8 @@ const flecs = {
             is_set: true,
             type_info: params.type_info,
             table: params.table,
-            poll_interval: params.poll_interval
+            poll_interval: params.poll_interval,
+            host: params.host
           };
 
           if (params.full_paths != true) {
@@ -407,8 +412,8 @@ const flecs = {
       },
 
       // Do query request
-      request_query: function(params, recv, err, poll_interval) {
-        return flecs._.request("GET", "query", params, (msg) => {
+      request_query: function(host, params, recv, err, poll_interval) {
+        return flecs._.request(host, "GET", "query", params, (msg) => {
           msg = JSON.parse(msg);
           if (!params.raw)  {
             recv(flecs._.format_query_result(msg));
@@ -432,7 +437,7 @@ const flecs = {
     entity: function(path, params, recv, err) {
       params = flecs._.entity_params(params);
       path = path.replace(/\./g, "/");
-      return flecs._.request("GET", "entity/" + path, params, (msg) => {
+      return flecs._.request(params.host, "GET", "entity/" + path, params, (msg) => {
         msg = JSON.parse(msg);
         if (params.raw) {
           recv(msg);
@@ -466,18 +471,18 @@ const flecs = {
       query = query.replaceAll(", ", ",");
 
       params.q = encodeURIComponent(query);
-      return flecs._.request_query(params, recv, err, params.poll_interval);
+      return flecs._.request_query(params.host, params, recv, err, params.poll_interval);
     },
 
     // Request named query
     query_name: function(query, params, recv, err) {
       params = flecs._.query_params(params);
       params.name = encodeURIComponent(query);
-      return flecs._.request_query(params, recv, err, params.poll_interval);
+      return flecs._.request_query(params.host, params, recv, err, params.poll_interval);
     },
 
     // Create world object
-    world: function(poll_interval = 1000) {
+    world: function(poll_interval = 1000, host = undefined) {
       return {
         // Add query to world
         query: function(query, params) {
@@ -486,6 +491,7 @@ const flecs = {
           }
           params.raw = false;
           params.poll_interval = poll_interval;
+          params.host = host;
           this.queries.push(
             flecs.query(query, params, 
               this._recv.bind(this),
