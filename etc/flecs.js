@@ -114,7 +114,7 @@ const flecs = {
         if (params) {
           for (var k in params) {
             // Ignore client-side only parameters
-            if (k === "raw" || k === "full_paths" || k === "poll_interval" || k === "host") {
+            if (k === "raw" || k === "full_paths" || k === "poll_interval") {
               continue;
             }
             if (params[k] !== undefined) {
@@ -132,12 +132,9 @@ const flecs = {
       },
 
       // Do HTTP request, automatically retries on failure
-      request: function(host, method, path, params, recv, err, poll_interval, state) {
+      request: function(method, path, params, recv, err, poll_interval, state) {
         const Request = new XMLHttpRequest();
-        if (host === undefined) {
-          host = flecs.params.host;
-        }
-        let url = host + "/" + path + flecs._.paramStr(params);
+        let url = flecs.params.host + "/" + path + flecs._.paramStr(params);
 
         if (state === undefined) {
           state = {
@@ -248,8 +245,7 @@ const flecs = {
             alerts: params.alerts,
             ids: params.full_paths == true,
             id_labels: params.full_paths != true,
-            poll_interval: params.poll_interval,
-            host: params.host
+            poll_interval: params.poll_interval
           };
           params = new_params;
         }
@@ -271,8 +267,7 @@ const flecs = {
             is_set: true,
             type_info: params.type_info,
             table: params.table,
-            poll_interval: params.poll_interval,
-            host: params.host
+            poll_interval: params.poll_interval
           };
 
           if (params.full_paths != true) {
@@ -412,8 +407,8 @@ const flecs = {
       },
 
       // Do query request
-      request_query: function(host, params, recv, err, poll_interval) {
-        return flecs._.request(host, "GET", "query", params, (msg) => {
+      request_query: function(params, recv, err, poll_interval) {
+        return flecs._.request("GET", "query", params, (msg) => {
           msg = JSON.parse(msg);
           if (!params.raw)  {
             recv(flecs._.format_query_result(msg));
@@ -437,7 +432,7 @@ const flecs = {
     entity: function(path, params, recv, err) {
       params = flecs._.entity_params(params);
       path = path.replace(/\./g, "/");
-      return flecs._.request(params.host, "GET", "entity/" + path, params, (msg) => {
+      return flecs._.request("GET", "entity/" + path, params, (msg) => {
         msg = JSON.parse(msg);
         if (params.raw) {
           recv(msg);
@@ -471,18 +466,18 @@ const flecs = {
       query = query.replaceAll(", ", ",");
 
       params.q = encodeURIComponent(query);
-      return flecs._.request_query(params.host, params, recv, err, params.poll_interval);
+      return flecs._.request_query(params, recv, err, params.poll_interval);
     },
 
     // Request named query
     query_name: function(query, params, recv, err) {
       params = flecs._.query_params(params);
       params.name = encodeURIComponent(query);
-      return flecs._.request_query(params.host, params, recv, err, params.poll_interval);
+      return flecs._.request_query(params, recv, err, params.poll_interval);
     },
 
     // Create world object
-    world: function(poll_interval = 1000, host = undefined) {
+    world: function(poll_interval = 1000) {
       return {
         // Add query to world
         query: function(query, params) {
@@ -491,7 +486,6 @@ const flecs = {
           }
           params.raw = false;
           params.poll_interval = poll_interval;
-          params.host = host;
           this.queries.push(
             flecs.query(query, params, 
               this._recv.bind(this),
