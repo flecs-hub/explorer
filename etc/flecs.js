@@ -95,7 +95,7 @@
 
 // If the environment is Node.js import XMLHttpRequest
 if (typeof process === "object" && typeof require === "function") {
-  XMLHttpRequest = require("xhr2");
+  var XMLHttpRequest = require("xhr2");
 }
 
 const flecs = {
