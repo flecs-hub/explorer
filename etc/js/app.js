@@ -303,7 +303,11 @@ function create_app() {
       },
 
       request_entity: function(id, path, recv, err, params) {
-        const request = "entity/" + path.replaceAll('.', '/') + paramStr(params);
+        let entity = path;
+        if (typeof entity !== 'number') {
+          entity = entity.replaceAll('.', '/');
+        }
+        const request = "entity/" + entity + paramStr(params);
         return this.request_get(id, request, recv, err);
       },
 

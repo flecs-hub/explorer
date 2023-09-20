@@ -9,7 +9,11 @@ function parent_from_path(path) {
 }
 
 function name_from_path(path) {
-  return path.split('.').pop();
+  if (typeof path === 'number') {
+    return path;
+  } else {
+    return path.split('.').pop();
+  }
 }
 
 Vue.component('entity-parent', {
