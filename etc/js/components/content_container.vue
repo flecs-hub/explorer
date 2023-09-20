@@ -55,7 +55,7 @@
     },
     data: function() {
       return {
-        closed: false,
+        closed: true,
         maximized: false,
         expanded: true,
         url: undefined
