@@ -541,9 +541,22 @@ const flecs = {
 
         _err: function(reply) {
           this.error = reply;
-          this.entities = {};
-          this.entity_timestamps = {};
-          this._on_update();
+
+          // Don't garbage collect entities while one or more queries are 
+          // failing. This ensures that the client can still access the entities
+          // that were retrieved before the error.
+          this._keep_alive_scope(this.entities, Date.now());
+        },
+
+        // Recursively keep alive all entities
+        _keep_alive_scope(entities, now) {
+          for (let path in entities) {
+            let entity = entities[path];
+            this._keep_alive(entity, now);
+            if (entity.entities) {
+              this._keep_alive_scope(entity.entities, now);
+            }
+          }
         },
 
         // If entity was received by query, keep it alive for the next epoch
