@@ -414,15 +414,25 @@ const flecs = {
       // Do query request
       request_query: function(host, params, recv, err, poll_interval) {
         return flecs._.request(host, "GET", "query", params, (msg) => {
-          msg = JSON.parse(msg);
-          if (!params.raw)  {
-            recv(flecs._.format_query_result(msg));
+          if (msg[0] == '{' || msg[0] == '[') {
+            msg = JSON.parse(msg);
+            if (!params.raw)  {
+              recv(flecs._.format_query_result(msg));
+            } else {
+              recv(msg);
+            }
           } else {
-            recv(msg);
+            if (err) {
+              err({error: msg});
+            }
           }
         }, (msg) => {
           if (err) {
-            err(JSON.parse(msg));
+            if (msg[0] == '{' || msg[0] == '[') {
+              err(JSON.parse(msg));
+            } else {
+              err({error: msg});
+            }
           }
         }, poll_interval);
       }
@@ -438,15 +448,25 @@ const flecs = {
       params = flecs._.entity_params(params);
       path = path.replace(/\./g, "/");
       return flecs._.request(params.host, "GET", "entity/" + path, params, (msg) => {
-        msg = JSON.parse(msg);
-        if (params.raw) {
-          recv(msg);
+        if (msg[0] == '{' || msg[0] == '[') {
+          msg = JSON.parse(msg);
+          if (params.raw) {
+            recv(msg);
+          } else {
+            recv(flecs._.format_entity_result(msg));
+          }
         } else {
-          recv(flecs._.format_entity_result(msg));
+          if (err) {
+            err(JSON.parse(msg));
+          }
         }
       }, (msg) => {
         if (err) {
-          err(JSON.parse(msg));
+          if (msg[0] == '{' || msg[0] == '[') {
+            err(JSON.parse(msg));
+          } else {
+            err({error: msg});
+          }
         }
       }, params.poll_interval);
     },
