@@ -5,6 +5,10 @@
         focus: false
       }
     },
+    mounted: function() {
+      // Trick to fix the size/aspect ratio of the canvas
+      this.$refs.canvas.style.min_width = '800px';
+    },
     methods: {
       open: function() {
         this.$refs.container.open();
@@ -44,7 +48,7 @@
       }
     },
     template: `
-        <content-container ref="container" :closable="true"
+        <content-container ref="container" :closable="true" :initially_closed="false"
           v-on:panel-update="evt_panel_update">
           <template v-slot:summary>
             Canvas {{focus_text}}

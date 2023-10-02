@@ -51,11 +51,12 @@
       show_detail: { type: Boolean, required: false, default: true },
       collapse: { type: Boolean, required: false, default: true },
       no_padding: { type: Boolean, required: false },
-      closable: { type: Boolean, required: false }
+      closable: { type: Boolean, required: false },
+      initially_closed: { type: Boolean, required: false, default: true }
     },
     data: function() {
       return {
-        closed: true,
+        closed: this.initially_closed,
         maximized: false,
         expanded: true,
         url: undefined

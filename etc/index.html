@@ -70,7 +70,7 @@
         <!-- Query results & Entity inspector -->
         <split-pane>
           <explorer-canvas v-if="wasm" ref="explorer_canvas"
-            v-on:panel-update="evt_panel_update">
+            v-on:panel-update="evt_panel_update" :initially_closed="false">
           </explorer-canvas>
           <query :valid="valid" ref="query"
             v-on:select-entity="evt_follow_ref"
