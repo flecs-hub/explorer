@@ -339,6 +339,14 @@ const flecs = {
 
       // Format result of entity endpoint
       format_entity_result: function(msg) {
+        if (!msg || !msg.path) {
+          return {
+            tags: [],
+            pairs: {},
+            components: {}
+          };
+        }
+
         let parent = msg.path.split(".").slice(0, -1).join(".");
         let name = msg.path.split(".").slice(-1)[0];
 
@@ -378,6 +386,10 @@ const flecs = {
           out.type_info = msg.type_info;
         }
         out.entities = entities;
+
+        if (!msg.results) {
+          return out;
+        }
 
         for (let result of msg.results) {
           for (let i = 0; i < result.entities.length; i ++) {
