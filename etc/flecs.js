@@ -540,6 +540,15 @@ const flecs = {
         // Receive function
         _recv: function(reply) {
           let now = Date.now();
+          if ((now - this.last_update) > this.poll_interval * 2) {
+            // If requests are taking longer than expected don't garbage 
+            // collect. Garbage collection should only kick in to clean up
+            // entities that are no longer alive/returned by queries. While the 
+            // client has no connection with the server, no assumptions should 
+            // be made about the state & liveliness of entities.
+            this._keep_alive_scope(this.entities, Date.now());
+          }
+
           for (let entity of reply.entities) {
             const parent = this._ensure(entity.parent, now);
             if (!parent.entities) {
@@ -564,6 +573,7 @@ const flecs = {
           // Garbage collect entities that are no longer alive
           this._gc(now);
 
+          // Clear error
           this.error = undefined;
 
           if (this._on_update) {
@@ -573,11 +583,6 @@ const flecs = {
 
         _err: function(reply) {
           this.error = reply;
-
-          // Don't garbage collect entities while one or more queries are 
-          // failing. This ensures that the client can still access the entities
-          // that were retrieved before the error.
-          this._keep_alive_scope(this.entities, Date.now());
         },
 
         // Recursively keep alive all entities
@@ -701,7 +706,8 @@ const flecs = {
         queries: [],
         entities: {},
         entity_timestamps: {},
-        poll_interval: poll_interval
+        poll_interval: poll_interval,
+        last_update: 0
       }
     }
 };
