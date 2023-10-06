@@ -531,6 +531,32 @@ const flecs = {
           return this;
         },
 
+        // Lookup entity in world
+        lookup: function(path) {
+          if (!path) {
+            return undefined;
+          }
+
+          if (typeof path !== "string") {
+            path = "" + path;
+          }
+
+          let cur = this;
+          let elems = path.split(".");
+          for (let elem of elems) {
+            if (!cur.entities) {
+              return undefined;
+            }
+            let next = cur.entities[elem];
+            if (!next) {
+              return undefined;
+            }
+            cur = next;
+          }
+
+          return cur;
+        },
+
         // Callback when update happens (useful for reactivity)
         on_update: function(callback) {
           this._on_update = callback;
