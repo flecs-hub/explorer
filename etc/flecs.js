@@ -602,8 +602,14 @@ const flecs = {
           // Clear error
           this.error = undefined;
 
+          this.recv_count ++;
+
           if (this._on_update) {
-            this._on_update();
+            if (this.recv_count >= this.queries.length) {
+              // Only call on_update when all queries have been received at
+              // least once. This can simplify application logic / reactivity.
+              this._on_update();
+            }
           }
         },
 
@@ -733,7 +739,8 @@ const flecs = {
         entities: {},
         entity_timestamps: {},
         poll_interval: poll_interval,
-        last_update: 0
+        last_update: 0,
+        recv_count: 0
       }
     }
 };
