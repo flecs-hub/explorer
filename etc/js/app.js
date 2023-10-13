@@ -470,7 +470,8 @@ function create_app() {
                 }
               }
             }, undefined, {
-              values: true
+              values: true,
+              private: true
             });
           }
         });
@@ -668,6 +669,10 @@ function create_app() {
 
       refresh_world() {
         this.request_world(undefined, (reply) => {
+          if (!reply.ids) {
+            return;
+          }
+
           let i;
           for (i = 0; i < reply.ids.length; i ++) {
             const id = reply.ids[i];
