@@ -9,7 +9,16 @@
 <script>
   module.exports = {
     name: "toggle-button",
-    prop: { value: Boolean },
+    props: { 
+      value: Boolean,
+      default: Boolean 
+    },
+    mounted: function() {
+      if (this.default !== undefined) {
+        this.toggle_value = this.default;
+        this.$emit('input', this.default);
+      }
+    },
     methods: {
       toggle: function() {
         this.toggle_value = !this.toggle_value;

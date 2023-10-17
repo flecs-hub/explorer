@@ -11,6 +11,18 @@
         Alerts
       </template>
       <template v-slot:detail>
+        <div class="alert-toggles">
+          <span class="alert-toggle noselect">Show warnings&nbsp;<toggle-button 
+              :default="true" 
+              v-model="show_warnings"
+              v-on:input="refresh">
+          </toggle-button></span>
+          <span class="alert-toggle noselect">Show expired&nbsp;<toggle-button 
+              :default="true" 
+              v-model="show_expired"
+              v-on:input="refresh">
+          </toggle-button></span>
+        </div>
         <query-results 
           ref="alerts_results"
           v-if="result"
@@ -40,14 +52,6 @@
     name: "alerts",
     data: function() {
       return {
-        query: `
-          flecs.metrics.Source, 
-          flecs.alerts.Instance, 
-          flecs.metrics.Value,
-          $Severity(),
-          (ChildOf, $Alert), 
-          (flecs.alerts.Alert, $Severity),
-          ?Disabled`,
         result: null,
         request: undefined,
         status: undefined,
@@ -56,7 +60,9 @@
         offset_limit: {
           offset: undefined,
           limit: 0
-        }
+        },
+        show_warnings: true,
+        show_expired: true
       };
     },
     methods: {
@@ -72,7 +78,29 @@
         this.error = true;
       },
       request_alerts() {
-        let r = app.request_query('alert-query', this.query, (reply) => {
+        let severity = "*";
+        if (!this.show_warnings) {
+          severity = "flecs.alerts.Error";
+        }
+
+        let disabled = "?Disabled";
+        if (!this.show_expired) {
+          disabled = "!Disabled";
+        }
+
+        let query =           
+          "flecs.metrics.Source, " +
+          "flecs.alerts.Instance, " +
+          "flecs.metrics.Value, " +
+          "$Severity(), " +
+          "(ChildOf, $Alert), " +
+          "$Severity == " + severity + ", " +
+          "(flecs.alerts.Alert, $Severity), " +
+          disabled;
+
+        app.request_abort('alert-query');
+
+        this.request = app.request_query('alert-query', query, (reply) => {
           if (reply.error === undefined) {
             this.result = reply;
             this.query_ok();
@@ -104,7 +132,7 @@
         });
 
         if (this.$refs.container) {
-          this.$refs.container.set_url(r);
+          this.$refs.container.set_url(this.request);
         }
       },
       open() {
@@ -148,7 +176,7 @@
           background_color = 'var(--alert-error)';
         }
 
-        if (columns.data.is_set[6][i]) {
+        if (columns.data.is_set[7][i]) {
           background_color = 'var(--alert-disabled)';
           row_class = "alert-row-disabled";
         }
@@ -207,5 +235,14 @@
   }
   .alert-row-disabled img {
     opacity: 0.3 !important;
+  }
+  .alert-toggle {
+    position: relative;
+    top: 2px;
+  }
+  .alert-toggles {
+    padding: 7px;
+    padding-left: 10px;
+    color: var(--secondary-text);
   }
 </style>
