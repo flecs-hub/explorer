@@ -27,7 +27,7 @@
       show_this: {type: Boolean, required: false, default: true},
       row_style: {type: Function, required: false },
       column_style: {type: Array, required: false },
-      row_order: {type: Object, required: false, default: { kind: 'this', mode: 'asc', index: 0 } }
+      row_order: {type: Object, required: false, default: () => { return { kind: 'this', mode: 'asc', index: 0 }} }
     },
     data: function() {
       return {

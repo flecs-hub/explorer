@@ -262,6 +262,10 @@
       // Create entity table cells
       create_entities(h, entities, labels) {
         let td_entities = [];
+        if (!entities) {
+          return td_entities;
+        }
+
         if (entities.count && (!labels || !labels.count)) {
           labels = entities;
         }
