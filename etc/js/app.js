@@ -420,7 +420,7 @@ function create_app() {
               param_show = "tree,query,plecs"
               if (param_script === undefined) {
                 // Only set default query when no script is provided. If a
-                // script is provided as paramter, the data that the default
+                // script is provided as parameter, the data that the default
                 // query matches on won't be available.
                 param_query = DEFAULT_PARAM_QUERY;
               }
@@ -579,7 +579,7 @@ function create_app() {
           this.ready_local();
         }
 
-        // If we are reconnecting, use same paramaters. This also ensures that
+        // If we are reconnecting, use same parameters. This also ensures that
         // once connected, the UI stays in remote mode.
         if (this.connection == ConnectionState.RetryConnecting) {
           host = this.host;

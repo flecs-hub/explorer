@@ -115,8 +115,8 @@
   --error: var(--bright-red);
   --light-hover-bg: var(--steel-700);
 
-  --color-acent-emphasis: var(--ui-blue);
-  --color-acent-emphasis-translucent: var(--ui-blue-30);
+  --color-accent-emphasis: var(--ui-blue);
+  --color-accent-emphasis-translucent: var(--ui-blue-30);
 
   /* Text sizes */
   --text-fs-xs: 10px;
