@@ -97,7 +97,7 @@ const frame = Vue.component('split-pane', {
   props: {
     fixed: { type: Boolean, required: false, default: false },
     resizable: { type: Boolean, required: false, default: true },
-    collapseable: { type: Boolean, required: false, default: true },
+    collapsible: { type: Boolean, required: false, default: true },
     initial_width: { type: Number, required: false },
     min_width: { type: Number, required: false, default: 45 },
     max_width: { type: Number, required: false, default: Infinity },
@@ -269,7 +269,7 @@ const frame_container = Vue.component('split-pane-container', {
 
       for (const frame of this.frames) {
         let active = true;
-        if (frame.collapseable) {
+        if (frame.collapsible) {
           active = this.has_active_children(frame);
         }
 
@@ -290,7 +290,7 @@ const frame_container = Vue.component('split-pane-container', {
 
       for (const frame of this.frames) {
         let active = true;
-        if (frame.collapseable) {
+        if (frame.collapsible) {
           active = this.has_active_children(frame);
         }
 

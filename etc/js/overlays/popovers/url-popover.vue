@@ -75,8 +75,8 @@ module.exports = {
 }
 
 .form-control:focus {
-  border-color: var(--color-acent-emphasis);
-  outline: 3px solid var(--color-acent-emphasis-translucent);
+  border-color: var(--color-accent-emphasis);
+  outline: 3px solid var(--color-accent-emphasis-translucent);
 }
 
 .popover-title {

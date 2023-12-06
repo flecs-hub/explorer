@@ -45,7 +45,7 @@
       </div>
 
       <split-pane-container ref="panes">
-        <split-pane :fixed="true" :collapseable="false" :min_width="45" :resizable="false">
+        <split-pane :fixed="true" :collapsible="false" :min_width="45" :resizable="false">
           <panel-menu ref="panel_menu" v-on:panel-update="evt_panel_update">
             <panel-button icon="list-tree" panel="tree" v-tooltip="'Treeview'"></panel-button>
             <panel-button icon="search" panel="query" v-tooltip="'Query editor'"></panel-button>
