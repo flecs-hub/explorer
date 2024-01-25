@@ -906,7 +906,7 @@ const inspector_component = Vue.component('inspector', {
       for (const component in this.edit_inputs) {
         const comp_input = this.edit_inputs[component];
         const comp_input_value = comp_input.value;
-        if (typeof comp_input_value === 'object') {
+        if (Object.getPrototypeOf(comp_input_value) === Object.prototype) {
           let comp_value = {};
           for (const key in comp_input_value) {
             const input = comp_input_value[key];
