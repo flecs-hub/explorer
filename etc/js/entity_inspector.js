@@ -510,8 +510,8 @@ Vue.component('inspector-props', {
   template: `
     <div :class="css">
       <template v-if="is_array">
-        <div class="inspector-prop" v-for="(v, k, i) in value">
-          <inspector-kv :parent_prop="parent_prop" :type="prop_type(k)" ":value="v" :list="list" :first="i == 0" v-on="$listeners"/>
+        <div class="inspector-prop" v-for="(v, i) in value">
+          <inspector-kv :parent_prop="parent_prop" :type="type" :value="v" :list="list" :first="i == 0" v-on="$listeners"/>
         </div>
       </template>
       <template v-else-if="is_object">
