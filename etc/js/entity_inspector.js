@@ -509,18 +509,19 @@ Vue.component('inspector-props', {
   },
   template: `
     <div :class="css">
-      <template v-if="is_object">
-        <template v-if="is_array">
-          <div class="inspector-prop" v-for="(v, k, i) in value"><template v-if="i && list">,&nbsp</template><inspector-kv :parent_prop="parent_prop" :type="prop_type(k)" ":value="v" :list="list" v-on="$listeners"/></div>
-        </template>
-        <template v-else>
-          <div class="inspector-prop" v-for="(v, k, i) in value"><inspector-kv :parent_prop="parent_prop" :prop_key="k" :type="prop_type(k)" :value="v" :list="list" :first="i == 0" v-on="$listeners"/></div>
-        </template>
+      <template v-if="is_array">
+        <div class="inspector-prop" v-for="(v, k, i) in value">
+          <inspector-kv :parent_prop="parent_prop" :type="prop_type(k)" ":value="v" :list="list" :first="i == 0" v-on="$listeners"/>
+        </div>
+      </template>
+      <template v-else-if="is_object">
+        <div class="inspector-prop" v-for="(v, k, i) in value">
+          <inspector-kv :parent_prop="parent_prop" :prop_key="k" :type="prop_type(k)" :value="v" :list="list" :first="i == 0" v-on="$listeners"/>
+        </div>
       </template>
       <template v-else>
         <div class="inspector-prop">
-          <inspector-kv :parent_prop="parent_prop" :type="type" :value="value" :list="list" 
-            v-on="$listeners"/>
+          <inspector-kv :parent_prop="parent_prop" :type="type" :value="value" :list="list" :first="true"  v-on="$listeners"/>
         </div>
       </template>
     </div>
