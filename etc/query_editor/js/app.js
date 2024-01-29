@@ -1,4 +1,13 @@
 
+function getParameterByName(name, url = window.location.href) {
+  name = name.replace(/[\[\]]/g, '\\$&');
+  var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+      results = regex.exec(url);
+  if (!results) return undefined;
+  if (!results[2]) return "";
+  return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
 let components = [
   loadModule('js/components/title-bar.vue', options),
   loadModule('js/components/app-menu.vue', options),
@@ -13,13 +22,27 @@ let components = [
   loadModule('js/components/entity-parent.vue', options),
 ];
 
+let HostParam = getParameterByName("host");
+if (HostParam) {
+  if (HostParam.indexOf(":") == -1) {
+    HostParam += ":27750";
+  }
+} else {
+  HostParam = "http://localhost:27750";
+}
+
+let QueryParam = getParameterByName("query");
+if (!QueryParam) {
+  QueryParam = "(ChildOf, flecs)";
+}
+
 Promise.all(components).then((values) => {
   let app = Vue.createApp({
     data() {
       return {
-        query: "(ChildOf, flecs)",
+        query: QueryParam,
         lastWord: "",
-        host: "http://localhost:27750"
+        host: "http://" + HostParam
       }
     }
   });

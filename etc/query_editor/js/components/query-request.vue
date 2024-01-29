@@ -10,7 +10,7 @@ export default { name: "query-request" }
 </script>
 
 <script setup>
-import { ref, defineProps, watch, computed } from 'vue';
+import { ref, defineProps, watch, onMounted } from 'vue';
 
 const props = defineProps({
   host: {type: String, required: true },
@@ -19,7 +19,7 @@ const props = defineProps({
 
 const query_result = ref({entities: [], error: undefined});
 
-watch(() => props.query, () => {
+const doRequest = () => {
   flecs.connect(props.host);
 
   if (!props.query.length) {
@@ -38,6 +38,14 @@ watch(() => props.query, () => {
       query_result.value.error = err.error;
     });
   }
+}
+
+onMounted(() => {
+  doRequest();
+});
+
+watch(() => props.query, () => {
+  doRequest();
 });
 </script>
 

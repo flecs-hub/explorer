@@ -30,7 +30,7 @@ const lastword = ref("");
 <style scoped>
 div.editor {
   display: grid;
-  grid-template-columns: 30rem 20rem;
+  grid-template-columns: 2fr 1.5fr;
   grid-template-rows: calc(100vh - 3.5em);
   grid-column: 2;
   grid-row: 3;
