@@ -1,0 +1,24 @@
+@import "colors.css";
+
+body {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.0rem;
+  margin: 0.0rem;
+  background: var(--bg-color);
+  font-family: Inter, Helvetica, sans-serif;
+  color: black;
+}
+
+#app {
+  width: 100%;
+  height: 100vh;
+  display: grid;
+  grid-template-columns: 0.5rem 50rem 1fr 0.5rem;
+  grid-template-rows: 0.1rem 2.0rem 1fr 0.5rem;
+  gap: 0.5rem;
+}

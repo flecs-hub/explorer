@@ -1,0 +1,34 @@
+
+:root {
+  --steel-200: #e7e9ee;
+  --steel-300: #dde0e6;
+  --steel-400: #aaaeb5;
+  --steel-500: #7a7e86;
+  --steel-600: #4d515a;
+  --steel-650: #383c46;
+  --steel-675: #2e323c;
+  --steel-700: #242832;
+  --steel-750: #1D2028;
+  --steel-800: #1a1d23;
+  --steel-850: #16171c;
+  --steel-900: #101115;
+  --steel-950: #0a0c0e;
+
+  --grey-200: rgb(237, 237, 237);
+
+  --green: #47B576;
+  --red: #B5494B;
+  --bright-green: #A2D8B4;
+  --bright-red: #EF8784;
+
+  --bg-color-alt: rgb(10,12,14);
+  --bg-color:     hsl(214, 10%, 11%);
+  --bg-error:     var(--red);
+  --bg-ok:        var(--green);
+  --border:       rgb(57, 57, 62);
+  --panel-color:  rgb(24, 29, 34);
+  --text-color:   rgb(175, 175, 175);
+  --highlight-bg: hsl(206, 100%, 40%);
+  --highlight-text: white;
+  --secondary-text: var(--steel-200);
+}
