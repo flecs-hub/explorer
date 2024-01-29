@@ -1,16 +1,16 @@
 
 let components = [
-  loadModule('/js/components/title-bar.vue', options),
-  loadModule('/js/components/app-menu.vue', options),
-  loadModule('/js/components/editor.vue', options),
-  loadModule('/js/components/code-editor.vue', options),
-  loadModule('/js/components/prop-explorer.vue', options),
-  loadModule('/js/components/prop-suggestion.vue', options),
-  loadModule('/js/components/query-request.vue', options),
-  loadModule('/js/components/query-result.vue', options),
-  loadModule('/js/components/query-status.vue', options),
-  loadModule('/js/components/url-bar.vue', options),
-  loadModule('/js/components/entity-parent.vue', options),
+  loadModule('js/components/title-bar.vue', options),
+  loadModule('js/components/app-menu.vue', options),
+  loadModule('js/components/editor.vue', options),
+  loadModule('js/components/code-editor.vue', options),
+  loadModule('js/components/prop-explorer.vue', options),
+  loadModule('js/components/prop-suggestion.vue', options),
+  loadModule('js/components/query-request.vue', options),
+  loadModule('js/components/query-result.vue', options),
+  loadModule('js/components/query-status.vue', options),
+  loadModule('js/components/url-bar.vue', options),
+  loadModule('js/components/entity-parent.vue', options),
 ];
 
 Promise.all(components).then((values) => {

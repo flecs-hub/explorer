@@ -23,7 +23,7 @@ onMounted(() => {
   -moz-appearance: none;
   outline: none;
   position: relative;
-  grid-column: 2;
+  grid-column: 3;
   border-style: solid;
   border-width: 2px;
   border-radius: 0.5em;
