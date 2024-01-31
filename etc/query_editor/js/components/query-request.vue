@@ -55,7 +55,7 @@ watch(() => props.query, () => {
   grid-column: 3;
   grid-row: 3 / 4;
   display: grid;
-  grid-template-rows: 1fr 1.5rem;
+  grid-template-rows: 1fr 0.25rem;
   margin: 0px;
   overflow-y: auto;
   border-radius: 0.5em;

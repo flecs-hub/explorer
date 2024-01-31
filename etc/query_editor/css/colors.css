@@ -30,5 +30,5 @@
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: hsl(206, 100%, 40%);
   --highlight-text: white;
-  --secondary-text: var(--steel-200);
+  --secondary-text: var(--steel-300);
 }

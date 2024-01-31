@@ -2,12 +2,13 @@
   <div class="editor">
     <code-editor 
       v-model:value="query" 
-      v-model:lastword="lastword">
+      v-model:prop_query="prop_query">
     </code-editor>
     
     <prop-explorer 
       :host="host"
-      :prop="lastword">
+      :expr="prop_query.expr"
+      :first="prop_query.first">
     </prop-explorer>
   </div>
 </template>
@@ -24,7 +25,8 @@ const props = defineProps({
 });
 
 const query = defineModel("query");
-const lastword = ref("");
+const prop_query = ref({expr: "", first: ""});
+
 </script>
 
 <style scoped>
