@@ -26,13 +26,8 @@ const doRequest = () => {
     query_result.value.entities = [];
   } else {
     flecs.query(props.query, {}, (reply) => {
-      if (reply.entities) {
-        query_result.value.entities = reply.entities;
-        query_result.value.error = undefined;
-      } else {        
-        query_result.value.entities = [];
-        query_result.value.error = reply.error;
-      }
+      query_result.value.entities = reply.entities;
+      query_result.value.error = reply.error;
     }, (err) => {
       query_result.value.entities = [];
       query_result.value.error = err.error;
