@@ -28,7 +28,7 @@ if (HostParam) {
     HostParam += ":27750";
   }
 } else {
-  HostParam = "http://localhost:27750";
+  HostParam = "localhost:27750";
 }
 
 let QueryParam = getParameterByName("query");

@@ -44,9 +44,12 @@ watch(() => props.prop, () => {
       query = `$this ~= "${expr}"`;
     }
 
-    query += ", ?(flecs.doc.Description, flecs.doc.Brief)"
+    query += ", ?(flecs.doc.Description, flecs.doc.Brief)";
+    query += ", ?$this(_)";
+    query += ", ?$this(_, _)";
 
     flecs.query(query, {limit: 256}, (reply) => {
+      console.log(reply);
       if (reply.entities) {
         prop_query.value.entities = reply.entities;
       }

@@ -3,7 +3,7 @@
     <span class="query-status query-status-ok"> </span>
   </template>
   <template v-else>
-    <span class="query-status query-status-error"> {{ status }}</span>
+    <span class="query-status query-status-error"> </span>
   </template>
 </template>
 

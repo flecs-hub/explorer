@@ -284,6 +284,9 @@ const flecs = {
             new_params.variables = true;
           }
 
+          new_params.offset = params.offset;
+          new_params.limit = params.limit;
+
           params = new_params;
         }
 
@@ -376,15 +379,19 @@ const flecs = {
       // Format result of query endpoint
       format_query_result: function(msg) {
         let term_ids = msg.ids;
+
         if (!term_ids) {
           term_ids = msg.id_labels;
         }
+
         let vars = msg.vars;
         let entities = [];
         let out = {};
+
         if (msg.type_info) {
           out.type_info = msg.type_info;
         }
+
         out.entities = entities;
 
         if (!msg.results) {
@@ -392,7 +399,10 @@ const flecs = {
         }
 
         for (let result of msg.results) {
-          for (let i = 0; i < result.entities.length; i ++) {
+          const entities = result.entities;
+          let len = entities ? entities.length : 1
+
+          for (let i = 0; i < len; i ++) {
             let ids = term_ids;
             if (ids === undefined) {
               ids = result.ids;
@@ -401,8 +411,9 @@ const flecs = {
               ids = result.id_labels;
             }
 
+            let entity = entities ? entities[i] : undefined;
             let obj = flecs._.format_entity_contents(
-              result.parent, result.entities[i], ids, result.values, i,
+              result.parent, entity, ids, result.values, i,
               result.is_set);
 
             if (vars) {
@@ -416,7 +427,9 @@ const flecs = {
               }
             }
 
-            entities.push(obj);
+            obj.is_set = result.is_set;
+
+            out.entities.push(obj);
           }
         }
 

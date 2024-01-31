@@ -3,6 +3,13 @@
     <entity-parent v-if="prop.parent" :path="prop.parent"></entity-parent>
     <span class="prop-name">{{ prop.name }}</span>
     <span class="prop-brief" v-if="description">{{ description }}</span>
+    <template v-if="prop.is_set[2] || prop.is_set[3]">
+      <span class="usage-header">Usage:</span>
+      <span class="usage-example" v-if="prop.is_set[2]"> - {{ prop.name }}</span>
+      <span class="usage-example" v-if="prop.is_set[2]"> - {{ prop.name }}($this)</span>
+      <span class="usage-example" v-if="prop.is_set[3]"> - ({{ prop.name }}, *)</span>
+      <span class="usage-example" v-if="prop.is_set[3]"> - {{ prop.name }}($this, *)</span>
+    </template>
   </div>
 </template>
 
@@ -49,6 +56,20 @@ span.prop-name {
   font-weight: 500;
   margin-top: 0.25em;
   margin-bottom: 0.25em;
+}
+
+span.usage-header {
+  font-size: 1.1em;
+  font-weight: 500;
+  margin-top: 1.0em;
+  margin-bottom: 0.25em;
+}
+
+span.usage-example {
+  font-weight: 500;
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+  font-family: monospace;
 }
 
 </style>

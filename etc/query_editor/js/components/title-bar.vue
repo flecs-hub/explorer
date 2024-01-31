@@ -1,6 +1,10 @@
 <template>
   <div class="title-bar">
-    <a href="https://github.com/SanderMertens/flecs" class="title-bar-logo"></a>
+    <a 
+      href="https://github.com/SanderMertens/flecs" 
+      class="title-bar-logo"
+      target="_blank">
+    </a>
     <url-bar 
       v-model="host">
     </url-bar>
