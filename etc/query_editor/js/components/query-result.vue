@@ -12,7 +12,7 @@ export default { name: "query-result" }
 </script>
 
 <script setup>
-import { ref, defineProps, watch, computed } from 'vue';
+import { defineProps, computed } from 'vue';
 
 const props = defineProps({
   result: {type: Object, required: true }

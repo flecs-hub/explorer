@@ -378,6 +378,10 @@ const flecs = {
 
       // Format result of query endpoint
       format_query_result: function(msg) {
+        if (msg.error) {
+          return {error: msg.error};
+        }
+
         let term_ids = msg.ids;
 
         if (!term_ids) {
