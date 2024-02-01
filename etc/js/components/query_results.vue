@@ -198,7 +198,9 @@
             const values = result.values[this.order_by.index];
             if (values.length === 1) {
               let value = this.unpack_value(values[0]);
-              for (let i = 0; i < (result.entities.length || 1); i ++) {
+              let len = result.entities ? result.entities.length : 1;
+              len = len ? len : 1;
+              for (let i = 0; i < len; i ++) {
                 r.data.index.push({
                   index: index + r.count,
                   order_by: value
@@ -228,7 +230,9 @@
             if (label === '*') {
               label = 'None';
             }
-            for (let i = 0; i < (result.entities.length || 1); i ++) {
+
+            let len = result.entities ? result.entities.length : 1;
+            for (let i = 0; i < len; i ++) {
               r.data.index.push({
                 index: index + r.count,
                 order_by: order_by_value,
