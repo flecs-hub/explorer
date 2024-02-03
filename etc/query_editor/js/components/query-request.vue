@@ -1,8 +1,5 @@
 <template>
-  <div id="query-request" class="ace-github-dark">
-    <query-result :result="query_result"></query-result>
-    <query-status :result="query_result"></query-status>
-  </div>
+  <query-result :result="query_result"></query-result>
 </template>
 
 <script>
@@ -14,10 +11,11 @@ import { ref, defineProps, watch, onMounted } from 'vue';
 
 const props = defineProps({
   host: {type: String, required: true },
-  query: {type: String, required: true }
+  query: {type: String, required: true },
+  params: {type: Object, required: false, default: {}}
 });
 
-const query_result = ref({entities: [], error: undefined});
+const query_result = ref({entities: [], error: undefined, content: undefined});
 
 const doRequest = () => {
   flecs.connect(props.host);
@@ -25,12 +23,14 @@ const doRequest = () => {
   if (!props.query.length) {
     query_result.value.entities = [];
   } else {
-    flecs.query(props.query, {}, (reply) => {
+    flecs.query(props.query, props.params, (reply) => {
       query_result.value.entities = reply.entities;
       query_result.value.error = reply.error;
+      query_result.value.content = reply.content;
     }, (err) => {
       query_result.value.entities = [];
       query_result.value.error = err.error;
+      query_result.value.content = [];
     });
   }
 }
@@ -43,16 +43,3 @@ watch(() => props.query, () => {
   doRequest();
 });
 </script>
-
-<style scoped>
-#query-request {
-  position: relative;
-  grid-column: 3;
-  grid-row: 3 / 4;
-  display: grid;
-  grid-template-rows: 1fr 0.25rem;
-  margin: 0px;
-  overflow-y: auto;
-  border-radius: 0.5em;
-}
-</style>

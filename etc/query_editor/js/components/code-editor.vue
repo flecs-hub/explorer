@@ -167,7 +167,5 @@ onMounted(() => {
     position: relative;
     grid-column: 1;
     font-size: 14px;
-    border-top-left-radius: 0.5em;
-    border-bottom-left-radius: 0.5em;
   }
 </style>

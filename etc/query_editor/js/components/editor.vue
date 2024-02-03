@@ -1,5 +1,5 @@
 <template>
-  <div class="editor">
+  <div class="editor ace-github-dark">
     <code-editor 
       v-model:value="query" 
       v-model:prop_query="prop_query">
@@ -33,8 +33,11 @@ const prop_query = ref({expr: "", first: ""});
 div.editor {
   display: grid;
   grid-template-columns: 2fr 1.5fr;
-  grid-template-rows: calc(100vh - 3.5em);
+  grid-template-rows: calc(100vh - 7rem);
   grid-column: 2;
   grid-row: 3;
+  padding: 1rem;
+  padding-left: 0px;
+  border-radius: var(--border-radius-medium);
 }
 </style>

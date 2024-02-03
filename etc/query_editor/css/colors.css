@@ -16,7 +16,9 @@
 
   --grey-200: rgb(237, 237, 237);
 
-  --green: #47B576;
+  --green: #42b983;
+  --blue: #4272b9;
+  --yellow: #b9a542;
   --red: #B5494B;
   --bright-green: #A2D8B4;
   --bright-red: #EF8784;
@@ -30,5 +32,19 @@
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: hsl(206, 100%, 40%);
   --highlight-text: white;
-  --secondary-text: var(--steel-300);
+
+  --primary-color: var(--green);
+  --secondary-color: var(--blue);
+  --tertiary-color: var(--yellow);
+
+  --primary-text: #d2dbde;
+  --secondary-text: #859399;
+
+  --tab-separator-color: rgba(255,255,255,0.07);
+
+  --border-radius-large: 8px;
+  --border-radius-small: 4px;
+  --border-radius-medium: 6px;
+
+  --animation-duration: .12s;
 }

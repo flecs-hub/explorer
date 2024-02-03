@@ -286,6 +286,7 @@ const flecs = {
 
           new_params.offset = params.offset;
           new_params.limit = params.limit;
+          new_params.plan = params.plan;
 
           params = new_params;
         }
@@ -397,6 +398,7 @@ const flecs = {
         }
 
         out.entities = entities;
+        out.content = msg.content;
 
         if (!msg.results) {
           return out;
@@ -442,7 +444,12 @@ const flecs = {
 
       // Do query request
       request_query: function(host, params, recv, err, poll_interval) {
-        return flecs._.request(host, "GET", "query", params, (msg) => {
+        let endpoint = "query";
+        if (params.plan) {
+          params = {q: params.q};
+          endpoint = "query_plan";
+        }
+        return flecs._.request(host, "GET", endpoint, params, (msg) => {
           if (msg[0] == '{' || msg[0] == '[') {
             msg = JSON.parse(msg);
             if (!params.raw)  {

@@ -1,10 +1,15 @@
 <template>
-  <template v-if="props.result.error">
-    <pre id="query-result"><span class="query-result-error">error</span>: {{query_result_str}}</pre>
-  </template>
-  <template v-else>
-    <pre id="query-result">{{query_result_str}}</pre>
-  </template>
+  <div id="query-result">
+    <template v-if="result.error">
+      <query-error :error="query_result_str"></query-error>
+    </template>
+    <template v-else-if="result.content">
+      <query-plan :plan="query_result_str"></query-plan>
+    </template>
+    <template v-else>
+      <pre>{{query_result_str}}</pre>
+    </template>
+  </div>
 </template>
 
 <script>
@@ -21,6 +26,8 @@ const props = defineProps({
 const query_result_str = computed(() => {
   if (props.result.error) {
     return props.result.error.split("\n").join("\n  ");
+  } else if (props.result.content) {
+    return props.result.content;
   } else {
     return JSON.stringify(props.result, null, 2);
   }
@@ -28,13 +35,10 @@ const query_result_str = computed(() => {
 </script>
 
 <style scoped>
-#query-result {
+#query-result pre {
   position: relative;
-  grid-column: 1;
-  grid-row: 1;
   margin: 0px;
-  padding: 1em;
-  overflow-y: auto;
+  padding: 1rem;
 }
 span.query-result-error {
   color: var(--bright-red);

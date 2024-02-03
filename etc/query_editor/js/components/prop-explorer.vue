@@ -90,8 +90,6 @@ watch(() => [props.expr, oneof.value], () => {
 #prop-explorer {
   grid-column: 2;
   grid-row: 1;
-  border-top-right-radius: 0.5em;
-  border-bottom-right-radius: 0.5em;
   font-size: 14px;
   overflow-y: auto;
 }

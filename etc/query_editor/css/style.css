@@ -22,3 +22,7 @@ body {
   grid-template-rows: 0.1rem 2.0rem 1.0fr 0.5rem;
   gap: 0.5rem;
 }
+
+pre {
+  font: 14px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Source Code Pro', 'source-code-pro', monospace;
+}
