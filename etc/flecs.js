@@ -605,7 +605,15 @@ const flecs = {
             this._keep_alive_scope(this.entities, Date.now());
           }
 
-          for (let entity of reply.results) {
+          let results = reply.results;
+          if (!results || !results.length) {
+            results = reply.entities;
+            if (!results) {
+              results = [];
+            }
+          }
+
+          for (let entity of results) {
             const parent = this._ensure(entity.parent, now);
             if (!parent.entities) {
               parent.entities = {};
