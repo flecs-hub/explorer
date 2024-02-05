@@ -21,6 +21,7 @@ let components = [
   loadModule('js/components/query-result.vue', options),
   loadModule('js/components/query-status.vue', options),
   loadModule('js/components/query-plan.vue', options),
+  loadModule('js/components/query-schema.vue', options),
   loadModule('js/components/query-error.vue', options),
   loadModule('js/components/url-bar.vue', options),
   loadModule('js/components/entity-parent.vue', options),

@@ -1,6 +1,6 @@
 <template>
   <div id="prop-explorer" class="ace-github-dark">
-    <template v-for="el in prop_query.entities">
+    <template v-for="el in prop_query.results">
       <prop-suggestion :prop="el" :show_usage="!is_target"></prop-suggestion>
     </template>
   </div>
@@ -19,7 +19,7 @@ const props = defineProps({
   first: {type: String, required: false }
 });
 
-let prop_query = ref({entities: []});
+let prop_query = ref({results: []});
 let oneof = ref("");
 
 let is_target = computed(() => {
@@ -29,9 +29,9 @@ let is_target = computed(() => {
 watch(() => props.first, () => {
   if (props.first.length) {
     const query = `?OneOf(${props.first}), ?OneOf(${props.first}, $parent)`;
-    flecs.query(query, {limit: 1}, (reply) => {
-      if (reply.entities) {
-        let result = reply.entities[0];
+    flecs.query(query, {rows: true, limit: 1}, (reply) => {
+      if (reply.results) {
+        let result = reply.results[0];
         if (result.is_set && result.is_set[1]) {
           oneof.value = result.vars.parent;
         } else if (result.is_set[0]) {
@@ -50,7 +50,7 @@ watch(() => [props.expr, oneof.value], () => {
   flecs.connect(props.host);
 
   if (!props.expr.length && (!oneof.value.length || !props.first.length)) {
-    prop_query.value.entities.length = 0;
+    prop_query.value.results.length = 0;
   } else {
     let parent;
     let expr = props.expr;
@@ -77,9 +77,9 @@ watch(() => [props.expr, oneof.value], () => {
     query += ", ?$this(_, _)";
     query += ", ?Module";
 
-    flecs.query(query, {limit: 256}, (reply) => {
-      if (reply.entities) {
-        prop_query.value.entities = reply.entities;
+    flecs.query(query, {rows: true, limit: 100}, (reply) => {
+      if (reply.results) {
+        prop_query.value.results = reply.results;
       }
     });
   }

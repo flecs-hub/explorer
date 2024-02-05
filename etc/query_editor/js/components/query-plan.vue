@@ -1,5 +1,7 @@
 <template>
-  <render/>
+  <div id="query-plan">
+    <render/>
+  </div>
 </template>
 
 <script>
@@ -10,13 +12,16 @@ export default { name: "query-plan" };
 import { h, defineProps } from 'vue';
 
 const props = defineProps({
-  plan: {type: String, required: true}
+  result: {type: Object, required: true}
 });
 
 const render = () => {
+  const plan = props.result.content;
+  if (!plan) {
+    return h('pre', []);
+  }
+  
   let elems = [ ];
-  const plan = props.plan;
-
   const lines = plan.split("\n");
   for (const line of lines) {
     const tokens = line.split("[[0;");
@@ -36,6 +41,10 @@ const render = () => {
 </script>
   
 <style>
+#query-plan pre {
+  padding-left: 1rem;
+}
+
 span.plan-color-49 {
   color: var(--primary-text);
 }

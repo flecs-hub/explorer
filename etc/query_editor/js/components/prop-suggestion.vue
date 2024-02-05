@@ -67,10 +67,10 @@ div.prop-suggestion {
   position: relative;
   grid-column: 1;
   grid-row: 2;
-  color: var(--highlight-text);
+  color: var(--primary-text);
   background-color: var(--highlight-bg);
   border-radius: 0.5em;
-  margin: 0.25em;
+  margin-bottom: 0.25em;
   padding: 0.75em;
 }
 span.prop-name {
@@ -78,6 +78,7 @@ span.prop-name {
   font-weight: 500;
   margin-top: 0.25em;
   margin-bottom: 0.25em;
+  color: var(--highlight-text);
 }
 
 span.usage-header {
@@ -85,6 +86,7 @@ span.usage-header {
   font-weight: 500;
   margin-top: 1.0em;
   margin-bottom: 0.25em;
+  color: var(--highlight-text);
 }
 
 span.usage-example {
@@ -95,6 +97,6 @@ span.usage-example {
 }
 
 span.usage-highlight {
-  font-weight: 600;
+  color: var(--highlight-text);
 };
 </style>

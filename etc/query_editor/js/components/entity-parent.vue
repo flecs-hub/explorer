@@ -25,6 +25,6 @@ const path_str = computed(() => {
 <style scoped>
 span.entity-parent {
   font-size: 0.8em;
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }
 </style>

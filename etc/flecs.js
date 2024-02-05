@@ -270,6 +270,7 @@ const flecs = {
             entities: true,
             is_set: true,
             type_info: params.type_info,
+            field_info: params.field_info,
             table: params.table,
             poll_interval: params.poll_interval,
             host: params.host
@@ -287,6 +288,9 @@ const flecs = {
           new_params.offset = params.offset;
           new_params.limit = params.limit;
           new_params.plan = params.plan;
+          new_params.rows = params.rows;
+          new_params.results = params.results;
+          new_params.try = params.try;
 
           params = new_params;
         }
@@ -390,15 +394,17 @@ const flecs = {
         }
 
         let vars = msg.vars;
-        let entities = [];
+        let results = [];
         let out = {};
 
         if (msg.type_info) {
           out.type_info = msg.type_info;
         }
 
-        out.entities = entities;
+        out.entities = results; /* Backwards compatibility */
         out.content = msg.content;
+        out.field_info = msg.field_info;
+        out.vars = msg.vars;
 
         if (!msg.results) {
           return out;
@@ -446,13 +452,13 @@ const flecs = {
       request_query: function(host, params, recv, err, poll_interval) {
         let endpoint = "query";
         if (params.plan) {
-          params = {q: params.q};
+          params = {q: params.q, try: params.try};
           endpoint = "query_plan";
         }
         return flecs._.request(host, "GET", endpoint, params, (msg) => {
           if (msg[0] == '{' || msg[0] == '[') {
             msg = JSON.parse(msg);
-            if (!params.raw)  {
+            if (!params.raw && !params.rows)  {
               recv(flecs._.format_query_result(msg));
             } else {
               recv(msg);
@@ -599,7 +605,7 @@ const flecs = {
             this._keep_alive_scope(this.entities, Date.now());
           }
 
-          for (let entity of reply.entities) {
+          for (let entity of reply.results) {
             const parent = this._ensure(entity.parent, now);
             if (!parent.entities) {
               parent.entities = {};

@@ -1,14 +1,6 @@
 <template>
   <div id="query-result">
-    <template v-if="result.error">
-      <query-error :error="query_result_str"></query-error>
-    </template>
-    <template v-else-if="result.content">
-      <query-plan :plan="query_result_str"></query-plan>
-    </template>
-    <template v-else>
-      <pre>{{query_result_str}}</pre>
-    </template>
+    <pre>{{query_result_str}}</pre>
   </div>
 </template>
 

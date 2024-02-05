@@ -1,5 +1,10 @@
 <template>
-  <query-result :result="query_result"></query-result>
+  <template v-if="query_result.error">
+    <query-error :error="query_result.error"></query-error>
+  </template>
+  <template v-else>
+    <slot :result="query_result"></slot>
+  </template>
 </template>
 
 <script>
@@ -15,22 +20,18 @@ const props = defineProps({
   params: {type: Object, required: false, default: {}}
 });
 
-const query_result = ref({entities: [], error: undefined, content: undefined});
+const query_result = ref({reply: []});
 
 const doRequest = () => {
   flecs.connect(props.host);
 
   if (!props.query.length) {
-    query_result.value.entities = [];
+    query_result.value = {};
   } else {
     flecs.query(props.query, props.params, (reply) => {
-      query_result.value.entities = reply.entities;
-      query_result.value.error = reply.error;
-      query_result.value.content = reply.content;
+      query_result.value = reply;
     }, (err) => {
-      query_result.value.entities = [];
-      query_result.value.error = err.error;
-      query_result.value.content = [];
+      query_result.value = reply;
     });
   }
 }

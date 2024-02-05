@@ -17,6 +17,8 @@ const props = defineProps({
 <style scoped>
 pre.query-result-error {
   word-wrap: break-word;
+  white-space: break-spaces;
+  padding-left: 1rem;
 }
 pre.query-result-error span {
   color: var(--bright-red);
