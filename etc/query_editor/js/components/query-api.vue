@@ -1,7 +1,7 @@
 <template>
   <div id="query-api">
     <p>rest</p>
-    <pre>{{url}}</pre>
+    <pre class="query-api-url"><a :href="url" target="_blank">{{url}}</a></pre>
 
     <p>javascript</p>
     <pre><span class="api-function">flecs.query</span><span class="api-operator">(</span><span class="api-string">"{{ query_trimmed }}"</span><span class="api-operator">,
@@ -62,8 +62,13 @@ const query_trimmed = computed(() => {
   overflow-x: auto;
 }
 
-pre.query-api-js {
+pre.query-api-url a {
+  color: var(--primary-text);
+  text-decoration: none;
+}
 
+pre.query-api-url a:hover {
+  text-decoration: underline;
 }
 
 span.api-function {
