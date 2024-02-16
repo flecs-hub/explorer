@@ -30,7 +30,7 @@ const doRequest = () => {
   } else {
     flecs.query(props.query, props.params, (reply) => {
       query_result.value = reply;
-    }, (err) => {
+    }, (reply) => {
       query_result.value = reply;
     });
   }

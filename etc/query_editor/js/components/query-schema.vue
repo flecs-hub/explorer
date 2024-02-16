@@ -1,7 +1,5 @@
 <template>
-  <div id="query-schema">
-    <render/>
-  </div>
+  <render/>
 </template>
 
 <script>
@@ -296,7 +294,6 @@ const render = () => {
 #query-schema pre {
   position: relative;
   margin: 0px;
-  padding: 1rem;
 }
 
 span.schema-keyword {

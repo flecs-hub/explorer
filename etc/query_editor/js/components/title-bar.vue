@@ -1,10 +1,11 @@
 <template>
   <div class="title-bar">
-    <a 
-      href="https://github.com/SanderMertens/flecs" 
-      class="title-bar-logo"
-      target="_blank">
-    </a>
+    <div class="title-bar-logo">
+      <a 
+        href="https://github.com/SanderMertens/flecs" 
+        target="_blank">
+      </a>
+    </div>
     <url-bar 
       v-model="host">
     </url-bar>
@@ -29,12 +30,19 @@ div.title-bar {
   grid-row: 2;
 }
 
-a.title-bar-logo {
-  grid-column: 1;
+div.title-bar-logo a {
   background-image: url('../../img/flecs_logo.png');
   background-size: contain;
   background-position: center center;
   background-repeat: no-repeat;
+  grid-column: 1;
+}
+
+div.title-bar-logo {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-column: 1;
+  padding: 3px;
 }
 
 </style>

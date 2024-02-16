@@ -18,9 +18,15 @@ body {
   width: 100%;
   height: 100vh;
   display: grid;
-  grid-template-columns: 0.5rem 2.0fr 2.0fr 0.5rem;
+  grid-template-columns: 0.5rem 1fr 40rem 0.5rem;
   grid-template-rows: 0.1rem 2.0rem 1.0fr 0.5rem;
   gap: 0.5rem;
+}
+
+@media screen and (min-width: 1750px) {
+  #app {
+    grid-template-columns: 0.5rem 1fr 60rem 0.5rem;
+  }
 }
 
 pre {

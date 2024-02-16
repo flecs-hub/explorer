@@ -26,6 +26,7 @@
 
   --bg-color-alt: rgb(10,12,14);
   --bg-color:     hsl(214, 10%, 11%);
+  --bg-textbox:   rgb(25, 28, 31, 0.5);
   --bg-error:     var(--red);
   --bg-ok:        var(--green);
   --border:       rgb(57, 57, 62);

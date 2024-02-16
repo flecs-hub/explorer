@@ -266,9 +266,6 @@ const flecs = {
         const raw = params.raw === true;
         if (!raw) {
           let new_params = {
-            values: true,
-            entities: true,
-            is_set: true,
             type_info: params.type_info,
             field_info: params.field_info,
             table: params.table,
@@ -276,13 +273,18 @@ const flecs = {
             host: params.host
           };
 
-          if (params.full_paths != true) {
-            new_params.id_labels = true;
-            new_params.variable_labels = true;
-            new_params.variables = false;
-          } else {
-            new_params.ids = true;
-            new_params.variables = true;
+          if (!params.rows) {
+            new_params.values = true;
+            new_params.entities = true;
+            new_params.is_set = true;
+            if (params.full_paths != true) {
+              new_params.id_labels = true;
+              new_params.variable_labels = true;
+              new_params.variables = false;
+            } else {
+              new_params.ids = true;
+              new_params.variables = true;
+            }
           }
 
           new_params.offset = params.offset;
@@ -455,28 +457,39 @@ const flecs = {
           params = {q: params.q, try: params.try};
           endpoint = "query_plan";
         }
-        return flecs._.request(host, "GET", endpoint, params, (msg) => {
-          if (msg[0] == '{' || msg[0] == '[') {
-            msg = JSON.parse(msg);
-            if (!params.raw && !params.rows)  {
-              recv(flecs._.format_query_result(msg));
-            } else {
-              recv(msg);
-            }
-          } else {
-            if (err) {
-              err({error: msg});
-            }
-          }
-        }, (msg) => {
-          if (err) {
+
+        let on_recv, on_err;
+        if (recv) {
+          on_recv = (msg) => {
             if (msg[0] == '{' || msg[0] == '[') {
-              err(JSON.parse(msg));
+              msg = JSON.parse(msg);
+              if (!params.raw && !params.rows)  {
+                recv(flecs._.format_query_result(msg));
+              } else {
+                recv(msg);
+              }
             } else {
-              err({error: msg});
+              if (err) {
+                err({error: msg});
+              }
             }
           }
-        }, poll_interval);
+        }
+
+        if (err) {
+          on_err = (msg) => {
+            if (err) {
+              if (msg[0] == '{' || msg[0] == '[') {
+                err(JSON.parse(msg));
+              } else {
+                err({error: msg});
+              }
+            }
+          }
+        }
+
+        return flecs._.request(host, "GET", endpoint, params, on_recv, on_err, 
+          poll_interval);
       }
     },
 
@@ -513,6 +526,19 @@ const flecs = {
       }, params.poll_interval);
     },
 
+    // Remove whitespaces from query string
+    query_trim: function(query) {
+      query = query.replaceAll("\n", " ");
+      do {
+        let len = query.length;
+        query = query.replaceAll("  ", " ");
+        if (len == query.length) {
+          break;
+        }
+      } while (true);
+      return query;
+    },
+
     // Request query
     query: function(query, params, recv, err) {
       if (query === undefined) {
@@ -522,14 +548,7 @@ const flecs = {
       params = flecs._.query_params(params);
 
       // Normalize query string
-      query = query.replaceAll("\n", " ");
-      do {
-        let len = query.length;
-        query = query.replaceAll("  ", " ");
-        if (len == query.length) {
-          break;
-        }
-      } while (true);
+      query = flecs.query_trim(query);
       query = query.replaceAll(", ", ",");
 
       params.q = encodeURIComponent(query);

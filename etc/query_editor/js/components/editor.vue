@@ -32,7 +32,7 @@ const prop_query = ref({expr: "", first: ""});
 <style scoped>
 div.editor {
   display: grid;
-  grid-template-columns: 2fr 1.5fr;
+  grid-template-columns: 2fr 15rem;
   grid-template-rows: calc(100vh - 7rem);
   grid-column: 2;
   grid-row: 3;
@@ -40,4 +40,11 @@ div.editor {
   padding-left: 0px;
   border-radius: var(--border-radius-medium);
 }
+
+@media screen and (max-width: 1280px) {
+  div.editor {
+    grid-template-columns: 1fr 0rem;
+  }
+}
+
 </style>
