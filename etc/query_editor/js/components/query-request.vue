@@ -1,9 +1,9 @@
 <template>
+  <div :class="visibleClass">
+    <slot :result="query_result"></slot>
+  </div>
   <template v-if="query_result.error">
     <query-error :error="query_result.error"></query-error>
-  </template>
-  <template v-else>
-    <slot :result="query_result"></slot>
   </template>
 </template>
 
@@ -12,7 +12,7 @@ export default { name: "query-request" }
 </script>
 
 <script setup>
-import { ref, defineProps, watch, onMounted } from 'vue';
+import { ref, defineProps, watch, onMounted, computed } from 'vue';
 
 const props = defineProps({
   host: {type: String, required: true },
@@ -36,6 +36,14 @@ const doRequest = () => {
   }
 }
 
+const visibleClass = computed(() => {
+  if (query_result.value.error) {
+    return "query-request query-request-hide";
+  } else {
+    return "query-request";
+  }
+});
+
 onMounted(() => {
   doRequest();
 });
@@ -44,3 +52,12 @@ watch(() => props.query, () => {
   doRequest();
 });
 </script>
+
+<style scoped>
+div.query-request {
+  height: 100%;
+}
+div.query-request-hide {
+  display: none;
+}
+</style>

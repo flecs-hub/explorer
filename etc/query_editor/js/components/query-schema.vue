@@ -249,16 +249,16 @@ const render = () => {
       this.operator(",");
       this.newLine();
     },
-    operator: function(t) { this.push(token(t, "schema-operator")) },
-    keyword: function(t) { this.push(token(t + " ", "schema-keyword")) },
-    type: function(t) { this.push(token(t, "schema-type")) },
-    identifier: function(t) { this.push(token(t + " ", "schema-identifier")) },
+    operator: function(t) { this.push(token(t, "code-operator")) },
+    keyword: function(t) { this.push(token(t + " ", "code-keyword")) },
+    type: function(t) { this.push(token(t, "code-type")) },
+    identifier: function(t) { this.push(token(t + " ", "code-identifier")) },
     member: function(t) { 
-      this.push(token(t, "schema-identifier"))
+      this.push(token(t, "code-identifier"))
       this.operator(": ");
     },
     optionalMember: function(t) { 
-      this.push(token(t, "schema-identifier"))
+      this.push(token(t, "code-identifier"))
       this.operator("?");
       this.operator(": ");
     },
@@ -290,26 +290,9 @@ const render = () => {
 };
 </script>
   
-<style>
+<style scoped>
 #query-schema pre {
   position: relative;
   margin: 0px;
 }
-
-span.schema-keyword {
-  color: var(--blue);
-}
-
-span.schema-type {
-  color: var(--green);
-}
-
-span.schema-identifier {
-  color: var(--primary-text);
-}
-
-span.schema-operator {
-  color: var(--secondary-text);
-}
-
 </style>

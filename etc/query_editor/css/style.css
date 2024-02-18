@@ -18,17 +18,66 @@ body {
   width: 100%;
   height: 100vh;
   display: grid;
-  grid-template-columns: 0.5rem 1fr 40rem 0.5rem;
+  grid-template-columns: 0.25rem 1fr 40rem 0.25rem;
   grid-template-rows: 0.1rem 2.0rem 1.0fr 0.5rem;
   gap: 0.5rem;
 }
 
 @media screen and (min-width: 1750px) {
   #app {
-    grid-template-columns: 0.5rem 1fr 60rem 0.5rem;
+    grid-template-columns: 0.25rem 1fr 60rem 0.25rem;
   }
 }
 
 pre {
   font: 14px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Source Code Pro', 'source-code-pro', monospace;
+  background-color: var(--bg-textbox);
+  border-radius: var(--border-radius-medium);
+  padding: 1rem;
+  margin-bottom: 2rem;
+  overflow-x: auto;
+}
+
+span.code-function {
+  color: var(--blue);
+}
+
+span.code-operator {
+  color: var(--secondary-text);
+}
+
+span.code-string {
+  color: var(--yellow);
+}
+
+span.code-member {
+  color: var(--primary-text);
+}
+
+span.code-variable {
+  color: var(--green);
+}
+
+span.code-qualifier {
+  color: var(--blue);
+}
+
+span.code-keyword {
+  color: var(--purple);
+}
+
+span.code-comment {
+  color: var(--secondary-text);
+}
+
+span.code-type {
+  color: var(--green);
+}
+
+span.code-identifier {
+  color: var(--primary-text);
+}
+
+span.code-number {
+  color: var(--yellow);
 }

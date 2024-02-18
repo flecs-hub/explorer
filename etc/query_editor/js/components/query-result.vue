@@ -27,10 +27,16 @@ const query_result_str = computed(() => {
 </script>
 
 <style scoped>
+#query-result {
+  height: 100%;
+}
+
 #query-result pre {
   position: relative;
   margin: 0px;
   padding: 1rem;
+  height: calc(100% - 1rem);
+  overflow-y: auto;
 }
 span.query-result-error {
   color: var(--bright-red);

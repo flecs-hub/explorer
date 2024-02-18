@@ -50890,14 +50890,14 @@ typedef struct ecs_json_ser_idr_t {
 } ecs_json_ser_idr_t;
 
 static
-int json_ser_type(
+int flecs_json_ser_type(
     const ecs_world_t *world,
     const ecs_vec_t *ser, 
     const void *base, 
     ecs_strbuf_t *str);
 
 static
-int json_ser_type_ops(
+int flecs_json_ser_type_ops(
     const ecs_world_t *world,
     ecs_meta_type_op_t *ops,
     int32_t op_count,
@@ -50906,7 +50906,7 @@ int json_ser_type_ops(
     int32_t in_array);
 
 static
-int json_ser_type_op(
+int flecs_json_ser_type_op(
     const ecs_world_t *world,
     ecs_meta_type_op_t *op, 
     const void *base,
@@ -51014,7 +51014,7 @@ int json_ser_elements(
     int i;
     for (i = 0; i < elem_count; i ++) {
         ecs_strbuf_list_next(str);
-        if (json_ser_type_ops(world, ops, op_count, ptr, str, is_array)) {
+        if (flecs_json_ser_type_ops(world, ops, op_count, ptr, str, is_array)) {
             return -1;
         }
         ptr = ECS_OFFSET(ptr, elem_size);
@@ -51026,7 +51026,7 @@ int json_ser_elements(
 }
 
 static
-int json_ser_type_elements(
+int flecs_json_ser_type_elements(
     const ecs_world_t *world,
     ecs_entity_t type, 
     const void *base, 
@@ -51059,7 +51059,7 @@ int json_ser_array(
     const EcsArray *a = ecs_get(world, op->type, EcsArray);
     ecs_assert(a != NULL, ECS_INTERNAL_ERROR, NULL);
 
-    return json_ser_type_elements(
+    return flecs_json_ser_type_elements(
         world, a->type, ptr, a->count, str, true);
 }
 
@@ -51079,7 +51079,7 @@ int json_ser_vector(
     void *array = ecs_vec_first(value);
 
     /* Serialize contiguous buffer of vector */
-    return json_ser_type_elements(world, v->type, array, count, str, false);
+    return flecs_json_ser_type_elements(world, v->type, array, count, str, false);
 }
 
 typedef struct json_serializer_ctx_t {
@@ -51171,7 +51171,7 @@ int json_ser_custom_type(
 
 /* Forward serialization to the different type kinds */
 static
-int json_ser_type_op(
+int flecs_json_ser_type_op(
     const ecs_world_t *world,
     ecs_meta_type_op_t *op, 
     const void *ptr,
@@ -51290,7 +51290,7 @@ error:
 
 /* Iterate over a slice of the type ops array */
 static
-int json_ser_type_ops(
+int flecs_json_ser_type_ops(
     const ecs_world_t *world,
     ecs_meta_type_op_t *ops,
     int32_t op_count,
@@ -51354,7 +51354,7 @@ int json_ser_type_ops(
         case EcsOpId:
         case EcsOpString:
         case EcsOpOpaque:
-            if (json_ser_type_op(world, op, base, str)) {
+            if (flecs_json_ser_type_op(world, op, base, str)) {
                 goto error;
             }
             break;
@@ -51370,7 +51370,7 @@ error:
 
 /* Iterate over the type ops of a type */
 static
-int json_ser_type(
+int flecs_json_ser_type(
     const ecs_world_t *world,
     const ecs_vec_t *v_ops,
     const void *base, 
@@ -51378,7 +51378,7 @@ int json_ser_type(
 {
     ecs_meta_type_op_t *ops = ecs_vec_first_t(v_ops, ecs_meta_type_op_t);
     int32_t count = ecs_vec_count(v_ops);
-    return json_ser_type_ops(world, ops, count, base, str, 0);
+    return flecs_json_ser_type_ops(world, ops, count, base, str, 0);
 }
 
 static
@@ -51397,7 +51397,7 @@ int array_to_json_buf_w_type_data(
 
         do {
             ecs_strbuf_list_next(buf);
-            if (json_ser_type(world, &ser->ops, ptr, buf)) {
+            if (flecs_json_ser_type(world, &ser->ops, ptr, buf)) {
                 return -1;
             }
 
@@ -51406,7 +51406,7 @@ int array_to_json_buf_w_type_data(
 
         flecs_json_array_pop(buf);
     } else {
-        if (json_ser_type(world, &ser->ops, ptr, buf)) {
+        if (flecs_json_ser_type(world, &ser->ops, ptr, buf)) {
             return -1;
         }
     }
@@ -51625,7 +51625,7 @@ int flecs_json_append_type_values(
                     ecs_assert(ptr != NULL, ECS_INTERNAL_ERROR, NULL);
 
                     flecs_json_next(buf);
-                    if (json_ser_type(world, &ser->ops, ptr, buf) != 0) {
+                    if (flecs_json_ser_type(world, &ser->ops, ptr, buf) != 0) {
                         /* Entity contains invalid value */
                         return -1;
                     }

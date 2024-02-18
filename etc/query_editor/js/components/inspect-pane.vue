@@ -1,6 +1,6 @@
 <template>
 <div id="inspect-pane" class="ace-github-dark">
-  <tabs :labels="['json', 'api', 'plan']">
+  <tabs :labels="['json', 'api', 'plan']" class="inspect-tab-content">
     <template v-slot:table>
       <!--query-request 
         :host="host"
@@ -32,7 +32,7 @@
       <query-request 
         :host="host"
         :query="query"
-        :params="{try: true, field_info: true, results: false}"
+        :params="{try: true, field_info: true, query_info: true, results: false}"
         v-slot="slotProps">
         <query-api :result="slotProps.result" :query="query"></query-api>
       </query-request>
@@ -66,4 +66,11 @@ const props = defineProps({
   margin: 0px;
 }
 
+</style>
+
+<style>
+.inspect-tab-content {
+  margin: 0px !important;;
+  padding: 0.5rem !important;
+}
 </style>

@@ -268,6 +268,7 @@ const flecs = {
           let new_params = {
             type_info: params.type_info,
             field_info: params.field_info,
+            query_info: params.query_info,
             table: params.table,
             poll_interval: params.poll_interval,
             host: params.host
@@ -406,6 +407,7 @@ const flecs = {
         out.entities = results; /* Backwards compatibility */
         out.content = msg.content;
         out.field_info = msg.field_info;
+        out.query_info = msg.query_info;
         out.vars = msg.vars;
 
         if (!msg.results) {

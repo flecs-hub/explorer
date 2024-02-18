@@ -9,7 +9,7 @@
         </template>
       </div>
     </div>
-    <ul>
+    <ul :class="class">
       <template v-for="label in labels">
         <li :class="tabContentCss(label)">
           <slot :name="label"></slot>
@@ -29,7 +29,8 @@ export default {
 import { ref, defineProps, onMounted } from 'vue';
 
 const props = defineProps({
-  labels: {type: Array, required: true}
+  labels: {type: Array, required: true},
+  class: {type: String, required: false}
 });
 
 const active = ref();
@@ -69,8 +70,7 @@ function tabContentCss(label) {
   padding-inline-start: 0px;
   margin: 0;
   padding: 0;
-  height: calc(100% - 50px - 0.5rem);
-  overflow-y: auto;
+  height: calc(100% - 50px - 2rem);
 }
 
 .tabs-tab {
@@ -79,6 +79,7 @@ function tabContentCss(label) {
 
 .tabs-tab.selected {
   display: block;
+  height: 100%;
 }
 
 .tabs-tab p.startli:first-child {
@@ -116,7 +117,7 @@ function tabContentCss(label) {
   background: transparent;
   padding: calc(1rem / 2) 0;
   display: inline-block;
-  font-size: var(1rem);
+  font-size: 0.9rem;
   cursor: pointer;
   box-shadow: 0 1px 0 0 var(--tab-separator-color);
   position: relative;
