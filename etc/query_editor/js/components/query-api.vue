@@ -50,9 +50,9 @@ const url = computed(() => {
 
 const has_query = computed(() => {
   if (props.query.use_name) {
-    return props.query.name != undefined;
+    return props.query.name && props.query.name.length;
   } else {
-    return props.query.expr != undefined;
+    return props.query.expr && props.query.expr.length;
   }
 });
 
