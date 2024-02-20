@@ -91,6 +91,10 @@ const isSimpleQuery = (qi) => {
   return true;
 }
 
+const getCppSymbol = (sym) => {
+  return sym.replaceAll(".", "::");
+}
+
 const refToken = (g, ref, asEntity) => {
   if (ref.var) {
     if (ref.var == "*") {
@@ -113,7 +117,7 @@ const refToken = (g, ref, asEntity) => {
     g.operator(".");
     g.identifier("id");
     g.operator("<");
-    g.type(ref.symbol);
+    g.type(getCppSymbol(ref.symbol));
     g.operator(">()");
   } else {
     let elems = [];
@@ -130,10 +134,11 @@ const refToken = (g, ref, asEntity) => {
       }
     } else {
       if (ref.symbol) {
+        let symbol = getCppSymbol(ref.symbol);
         if (ref.type) {
-          g.type(ref.symbol);
+          g.type(symbol);
         } else {
-          g.identifier(ref.symbol);
+          g.identifier(symbol);
         }
       } else if (ref.entity) {
         g.string(ref.entity);

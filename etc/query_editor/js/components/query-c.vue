@@ -84,6 +84,10 @@ const refIsSpecialVar = (g, ref) => {
   return false;
 }
 
+const getCSymbol = (sym) => {
+  return sym.replaceAll(".", "::");
+}
+
 const entityToken = (g, ref, identifierOnly) => {
   if (ref.var) {
     if (ref.var == "*") {
@@ -102,12 +106,12 @@ const entityToken = (g, ref, identifierOnly) => {
           g.function("ecs_id");
           g.operator("(");
         }
-        g.type(ref.symbol);
+        g.type(getCSymbol(ref.symbol));
         if (!identifierOnly) {
           g.operator(")");
         }
       } else {
-        g.identifier(ref.symbol);
+        g.identifier(getCSymbol(ref.symbol));
       }
     } else if (ref.entity) {
       g.identifier("ecs_lookup");
@@ -323,13 +327,13 @@ const fieldTokens = (g, fi) => {
   if (fi) {
     for (const field of fi) {
       if (field.symbol) {
-        g.type(field.symbol + " ");
+        g.type(getCSymbol(field.symbol) + " ");
         g.operator("*");
         g.identifier("f" + (i + 1));
         g.operator(" = ");
         g.function("ecs_field");
         g.operator("(&"); g.identifier("it"); g.operator(", ");
-        g.type(field.symbol); g.operator(", ");
+        g.type(getCSymbol(field.symbol)); g.operator(", ");
         g.number(i + 1);
         g.operator(");");
         g.newLine();
