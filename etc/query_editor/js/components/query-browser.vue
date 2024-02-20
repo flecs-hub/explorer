@@ -37,6 +37,8 @@ const doQuery = () => {
     q += `, ${nq.query}`
   }
 
+  flecs.connect(props.host);
+
   flecs.query(q, 
     {rows: true, limit: 250}, 
     (reply) => {
