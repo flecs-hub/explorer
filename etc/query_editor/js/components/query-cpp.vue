@@ -54,6 +54,9 @@ const isTemplateArg = (term) => {
   if (!term.first.type) {
     return false;
   }
+  if (term.oper == "or") {
+    return false;
+  }
   return true;
 }
 
@@ -303,10 +306,17 @@ const builderTokens = (g, qi) => {
       travTokens(g, term);
     }
 
-    if (isTemplate && term.inout != "default") {
-      g.operator(".");
-      g.function(term.inout);
-      g.operator("()");
+    let inout_default = "default";
+    if (!isTemplate) {
+      inout_default = "none";
+    }
+
+    if (term.inout != inout_default) {
+      if (!isTemplate || term.inout != "in") {
+        g.operator(".");
+        g.function(term.inout);
+        g.operator("()");
+      }
     }
 
     if (term.oper != "and" && term.oper != "not") {

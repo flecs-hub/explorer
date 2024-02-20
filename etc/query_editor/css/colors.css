@@ -22,16 +22,22 @@
   --yellow: #b9a542;
   --red: #B5494B;
   --bright-green: #A2D8B4;
-  --bright-blue: hsl(206, 100%, 40%);
+  --bright-blue: rgb(86, 168, 248);
   --bright-red: #EF8784;
 
   --bg-color-alt: rgb(10,12,14);
   --bg-color:     hsl(214, 10%, 11%);
-  --bg-textbox:   rgb(25, 28, 31, 0.5);
+
+  --bg-content:       hsl(214, 10%, 13%);
+  --bg-content-alt:   hsl(214, 10%, 12%);
+  --bg-content-hover: hsl(210, 12%, 20%);
+  --bg-content-select: hsl(210, 12%, 10%);
+
+  --bg-auto-complete: rgb(25, 28, 31, 1.0);
   --bg-error:     var(--red);
   --bg-ok:        var(--green);
   --border:       rgb(57, 57, 62);
-  --panel-color:  rgb(24, 29, 34);
+  --panel-color:  #24292e;
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: var(--blue);
   --highlight-text: white;

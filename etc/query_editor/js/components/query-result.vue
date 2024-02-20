@@ -35,8 +35,9 @@ const query_result_str = computed(() => {
   position: relative;
   margin: 0px;
   padding: 1rem;
-  height: calc(100% - 1rem);
+  height: calc(100% - 2rem);
   overflow-y: auto;
+  color: var(--primary-text);
 }
 span.query-result-error {
   color: var(--bright-red);

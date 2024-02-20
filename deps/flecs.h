@@ -9048,7 +9048,7 @@ int ecs_value_move_ctor(
 #define ecs_lookup_path(world, parent, path)\
     ecs_lookup_path_w_sep(world, parent, path, ".", NULL, true)
 
-#define ecs_lookup_fullpath(world, path)\
+#define ecs_lookup(world, path)\
     ecs_lookup_path_w_sep(world, 0, path, ".", NULL, true)
 
 #define ecs_get_path(world, parent, child)\
@@ -11940,7 +11940,7 @@ ecs_entity_t ecs_metric_init(
  *
  * Example:
  *   ecs_metric(world, {
- *     .member = ecs_lookup_fullpath(world, "Position.x")
+ *     .member = ecs_lookup(world, "Position.x")
  *     .kind = EcsGauge
  *   });
  */
@@ -12559,7 +12559,7 @@ typedef struct ecs_from_json_desc_t {
     const char *expr; /**< Full expression (used for logging) */
 
     /** Callback that allows for specifying a custom lookup function. The 
-     * default behavior uses ecs_lookup_fullpath */
+     * default behavior uses ecs_lookup */
     ecs_entity_t (*lookup_action)(
         const ecs_world_t*, 
         const char *value, 
@@ -13796,7 +13796,7 @@ typedef struct ecs_meta_cursor_t {
     bool valid;
     bool is_primitive_scope;  /**< If in root scope, this allows for a push for primitive types */
 
-    /* Custom entity lookup action for overriding default ecs_lookup_fullpath */
+    /* Custom entity lookup action for overriding default ecs_lookup */
     ecs_entity_t (*lookup_action)(const ecs_world_t*, const char*, void*);
     void *lookup_ctx;
 } ecs_meta_cursor_t;

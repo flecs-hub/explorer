@@ -16,7 +16,7 @@ import { ref, defineProps, watch, onMounted, computed } from 'vue';
 
 const props = defineProps({
   host: {type: String, required: true },
-  query: {type: String, required: true },
+  query: {type: Object, required: true },
   params: {type: Object, required: false, default: {}}
 });
 
@@ -25,10 +25,17 @@ const query_result = ref({reply: []});
 const doRequest = () => {
   flecs.connect(props.host);
 
-  if (!props.query.length) {
+  let query_func = flecs.query;
+  let q = props.query.expr;
+  if (props.query.use_name) {
+    query_func = flecs.query_name;
+    q = props.query.name;
+  }
+
+  if (!q || !q.length) {
     query_result.value = {};
   } else {
-    flecs.query(props.query, props.params, (reply) => {
+    query_func(q, props.params, (reply) => {
       query_result.value = reply;
     }, (reply) => {
       query_result.value = reply;
@@ -48,7 +55,7 @@ onMounted(() => {
   doRequest();
 });
 
-watch(() => props.query, () => {
+watch(() => [props.query.expr, props.query.name, props.query.use_name], () => {
   doRequest();
 });
 </script>

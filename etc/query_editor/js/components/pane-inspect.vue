@@ -1,15 +1,6 @@
 <template>
-<div id="inspect-pane" class="ace-github-dark">
+<div id="pane-inspect" class="ace-github-dark">
   <tabs :labels="['json', 'api', 'plan']" class="inspect-tab-content">
-    <template v-slot:table>
-      <!--query-request 
-        :host="host"
-        :query="query"
-        :params="{try: true, field_info: true, rows: true}"
-        v-slot="slotProps">
-        <query-table :result="slotProps.result"></query-table>
-      </query-request-->
-    </template>
     <template v-slot:json>
       <query-request 
         :host="host"
@@ -23,7 +14,7 @@
       <query-request 
         :host="host"
         :query="query"
-        :params="{try: true, plan: true}"
+        :params="{try: true, query_plan: true, results: false}"
         v-slot="slotProps">
         <query-plan :result="slotProps.result"></query-plan>
       </query-request>
@@ -43,7 +34,7 @@
 
 <script>
 export default {
-  name: "inspect-pane",
+  name: "pane-inspect",
 }
 </script>
 
@@ -52,12 +43,12 @@ import { defineProps } from 'vue';
 
 const props = defineProps({
   host: {type: String, required: true },
-  query: {type: String, required: true }
+  query: {type: Object, required: true },
 });
 </script>
 
 <style scoped>
-#inspect-pane {
+#pane-inspect {
   position: relative;
   grid-column: 3;
   grid-row: 3 / 4;

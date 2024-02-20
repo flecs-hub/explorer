@@ -26,12 +26,14 @@ export default {
 </script>
 
 <script setup>
-import { ref, defineProps, onMounted } from 'vue';
+import { ref, defineProps, onMounted, defineEmits } from 'vue';
 
 const props = defineProps({
   labels: {type: Array, required: true},
   class: {type: String, required: false}
 });
+
+const emit = defineEmits(['changed']);
 
 const active = ref();
 
@@ -41,6 +43,7 @@ onMounted(() => {
 
 function tabSelect(label) {
   active.value = label;
+  emit('changed', {tab: label});
 }
 
 function tabCss(label) {
@@ -70,7 +73,7 @@ function tabContentCss(label) {
   padding-inline-start: 0px;
   margin: 0;
   padding: 0;
-  height: calc(100% - 50px - 2rem);
+  height: calc(100% - 50px - 1rem);
 }
 
 .tabs-tab {

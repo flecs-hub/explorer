@@ -137,7 +137,17 @@ const flecs = {
         if (host === undefined) {
           host = flecs.params.host;
         }
+
+        let dryrun = false;
+        if (params.dryrun) {
+          dryrun = true;
+          delete params.dryrun;
+        }
+
         let url = host + "/" + path + flecs._.paramStr(params);
+        if (dryrun) {
+          return {url: url};
+        }
 
         if (state === undefined) {
           state = {
@@ -269,9 +279,12 @@ const flecs = {
             type_info: params.type_info,
             field_info: params.field_info,
             query_info: params.query_info,
+            query_plan: params.query_plan,
             table: params.table,
             poll_interval: params.poll_interval,
-            host: params.host
+            host: params.host,
+            try: params.try,
+            dryrun: params.dryrun
           };
 
           if (!params.rows) {
@@ -293,7 +306,6 @@ const flecs = {
           new_params.plan = params.plan;
           new_params.rows = params.rows;
           new_params.results = params.results;
-          new_params.try = params.try;
 
           params = new_params;
         }
@@ -405,9 +417,9 @@ const flecs = {
         }
 
         out.entities = results; /* Backwards compatibility */
-        out.content = msg.content;
         out.field_info = msg.field_info;
         out.query_info = msg.query_info;
+        out.query_plan = msg.query_plan;
         out.vars = msg.vars;
 
         if (!msg.results) {
@@ -455,11 +467,6 @@ const flecs = {
       // Do query request
       request_query: function(host, params, recv, err, poll_interval) {
         let endpoint = "query";
-        if (params.plan) {
-          params = {q: params.q, try: params.try};
-          endpoint = "query_plan";
-        }
-
         let on_recv, on_err;
         if (recv) {
           on_recv = (msg) => {
@@ -547,6 +554,7 @@ const flecs = {
         console.error("flecs.query: invalid query parameter");
         return;
       }
+
       params = flecs._.query_params(params);
 
       // Normalize query string

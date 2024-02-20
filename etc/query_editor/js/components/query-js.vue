@@ -1,5 +1,5 @@
 <template>
-  <pre><span class="code-function">flecs.query</span><span class="code-operator">(</span><span class="code-string">"{{ query_trimmed }}"</span><span class="code-operator">,
+  <pre><span class="code-function">{{ query_func }}</span><span class="code-operator">(</span><span class="code-string">"{{ query_trimmed }}"</span><span class="code-operator">,
   {</span><span class="code-member">rows</span><span class="code-operator">: </span><span class="code-keyword">true</span><span class="code-operator">},</span>
   <span class="code-operator">(</span><span class="code-variable">reply</span><span class="code-operator">) => {
     <span class="code-comment">// Success</span>
@@ -17,11 +17,24 @@ export default { name: "query-js" }
 import { defineProps, computed } from 'vue';
 
 const props = defineProps({
-  query: {type: String, required: true}
+  query: {type: Object, required: true}
+});
+
+const query_func = computed(() => {
+  if (props.query.use_name) {
+    return "flecs.query_name";
+  } else {
+    return "flecs.query";
+  }
 });
 
 const query_trimmed = computed(() => {
-  return flecs.query_trim(props.query);
+  console.log(props.query);
+  if (props.query.use_name) {
+    return props.query.name;
+  } else {
+    return flecs.query_trim(props.query.expr);
+  }
 });
 
 </script>

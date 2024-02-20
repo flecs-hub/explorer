@@ -2,19 +2,27 @@
   <div id="query-api">
     <tabs :labels="['c', 'c++', 'js', 'rest']" class="query-api-body">
       <template v-slot:c>
-        <query-c :result="result"></query-c>
+        <template v-if="has_query">
+          <query-c :result="result"></query-c>
+        </template>
       </template>
       <template v-slot:c++>
-        <query-cpp :result="result"></query-cpp>
+        <template v-if="has_query">
+          <query-cpp :result="result"></query-cpp>
+        </template>
       </template>
       <template v-slot:js>
-        <p>code</p>
-        <query-js :query="query"></query-js>
-        <p>schema</p>
-        <query-schema :result="result"></query-schema>
+        <template v-if="has_query">
+          <p>code</p>
+          <query-js :query="query"></query-js>
+          <p>schema</p>
+          <query-schema :result="result"></query-schema>
+        </template>
       </template>
       <template v-slot:rest>
-        <query-rest :url="url"></query-rest>
+        <template v-if="has_query">
+          <query-rest :url="url"></query-rest>
+        </template>
       </template>
     </tabs>
   </div>
@@ -28,12 +36,24 @@ export default { name: "query-api" }
 import { defineProps, computed } from 'vue';
 
 const props = defineProps({
-  query: {type: String, required: true},
+  query: {type: Object, required: true},
   result: {type: Object, required: true}
 });
 
 const url = computed(() => {
-  return flecs.query(props.query, {rows: true}).url;
+  if (props.query.use_name) {
+    return flecs.query_name(props.query.name, {rows: true, dryrun: true}).url;
+  } else {
+    return flecs.query(props.query.expr, {rows: true, dryrun: true}).url;
+  }
+});
+
+const has_query = computed(() => {
+  if (props.query.use_name) {
+    return props.query.name != undefined;
+  } else {
+    return props.query.expr != undefined;
+  }
 });
 
 </script>
@@ -49,7 +69,7 @@ const url = computed(() => {
 }
 
 #query-api pre {
-  background-color: var(--bg-textbox);
+  background-color: var(--bg-content);
   border-radius: var(--border-radius-medium);
   padding: 1rem;
   overflow-x: auto;

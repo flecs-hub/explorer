@@ -8,15 +8,89 @@ function getParameterByName(name, url = window.location.href) {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
+// Webasm module loading
+let native_request;
+let capture_keyboard_events;
+
+function wasmModuleLoaded(wasm_url, onReady) {
+  const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
+  wasm_module = Function(`return ` + name + `;`)();
+  wasm_module().then(function(Module) {
+    native_request = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string']);
+    capture_keyboard_events = Module.sokol_capture_keyboard_events;
+    if (capture_keyboard_events) {
+      Module.sokol_capture_keyboard_events(false);
+    }
+    onReady();
+  });
+}
+
+function loadWasmModule(wasm_url, onReady) {
+  const oldEl = document.getElementById("wasm-module");
+  if (oldEl) {
+    oldEl.remove();
+  }
+
+  const scriptEl = document.createElement("script");
+  scriptEl.id = "wasm-module";
+  scriptEl.onload = () => {
+    wasmModuleLoaded(wasm_url, onReady);
+  };
+  scriptEl.onerror = () => {
+    console.error("failed to load wasm module " + wasm_url);
+  };
+  scriptEl.src = wasm_url;
+
+  document.head.appendChild(scriptEl);
+}
+
+function nameQueryFromExpr(expr, oneof) {
+  if (!expr) {
+    return {
+      parent: undefined,
+      expr: undefined,
+      query: undefined
+    };
+  }
+
+  let parent;
+  let last_sep = expr.lastIndexOf(".");
+  if (last_sep != -1) {
+    parent = expr.slice(0, last_sep);
+    expr = expr.slice(last_sep + 1, expr.length);
+  } else {
+    parent = oneof;
+  }
+
+  let query;
+  if (parent) {
+    query = `(ChildOf, ${parent})`
+    if (expr.length) {
+      query += `, $this ~= "${expr}"`;
+    }
+  } else {
+    query = `$this ~= "${expr}"`;
+  }
+
+  return {
+    parent: parent,
+    expr: expr,
+    query: query
+  };
+}
+
 let components = [
   loadModule('js/components/title-bar.vue', options),
+  loadModule('js/components/search-box.vue', options),
   loadModule('js/components/tabs.vue', options),
-  loadModule('js/components/inspect-pane.vue', options),
+  loadModule('js/components/pane-query.vue', options),
+  loadModule('js/components/pane-inspect.vue', options),
   loadModule('js/components/app-menu.vue', options),
-  loadModule('js/components/editor.vue', options),
+  loadModule('js/components/query-editor.vue', options),
   loadModule('js/components/code-editor.vue', options),
-  loadModule('js/components/prop-explorer.vue', options),
-  loadModule('js/components/prop-suggestion.vue', options),
+  loadModule('js/components/query-list-item.vue', options),
+  loadModule('js/components/prop-browser.vue', options),
+  loadModule('js/components/query-browser.vue', options),
   loadModule('js/components/query-request.vue', options),
   loadModule('js/components/query-result.vue', options),
   loadModule('js/components/query-status.vue', options),
@@ -50,7 +124,11 @@ Promise.all(components).then((values) => {
   let app = Vue.createApp({
     data() {
       return {
-        query: QueryParam,
+        query: {
+          expr: QueryParam,
+          name: undefined,
+          use_name: false
+        },
         lastWord: "",
         host: "http://" + HostParam
       }

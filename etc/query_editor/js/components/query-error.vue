@@ -19,6 +19,7 @@ pre.query-result-error {
   word-wrap: break-word;
   white-space: break-spaces;
   padding-left: 1rem;
+  margin: 0;
 }
 pre.query-result-error span {
   color: var(--bright-red);

@@ -16,15 +16,15 @@
         v-model:host="host">
       </title-bar>
 
-      <editor 
+      <pane-query
         :host="host"
         v-model:query="query">
-      </editor>
+      </pane-query>
 
-      <inspect-pane
+      <pane-inspect
         :host="host"
         :query="query">
-      </inspect-pane>
+      </pane-inspect>
     </div>
 
     <!-- Vue3 -->

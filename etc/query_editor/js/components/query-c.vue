@@ -156,7 +156,7 @@ const simpleIdToken = (g, term) => {
       if (term.first.symbol == "EcsChildOf") {
         g.function("ecs_childof");
         shorthand = true;
-      } else if (term.first.symbol = "EcsIsA") {
+      } else if (term.first.symbol == "EcsIsA") {
         g.function("ecs_isa");
         shorthand = true;
       } else if (term.first.symbol == "EcsDependsOn") {

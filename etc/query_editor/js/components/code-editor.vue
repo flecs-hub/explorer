@@ -12,6 +12,8 @@ import { watch, onMounted, defineModel } from 'vue';
 // Value of editor widget (two way binding)
 const value = defineModel("value");
 const prop_query = defineModel("prop_query");
+const x = defineModel("x");
+const y = defineModel("y");
 
 // Editor object
 let editor = undefined;
@@ -148,24 +150,41 @@ watch(value, (newValue) => {
   prop_query.value.first = ""; // first word, so can't be a pair
 });
 
+const onTextChange = (editor) => {
+  const text = editor.getValue();
+  value.value = editor.getValue();
+}
+
+const onCursorChange = (editor) => {
+  cursor = editor.selection.getCursor();
+  let pos = editor.renderer.textToScreenCoordinates(
+    cursor.row, cursor.column);
+  x.value = pos.pageX;
+  y.value = pos.pageY;
+}
+
 // Create editor
 onMounted(() => {
   editor = ace.edit("editor");
   editor.setValue(value.value);
   cursor = editor.selection.getCursor();
   editor.setTheme("ace/theme/github_dark");
-  editor.session.on('change', function(delta) {
-    value.value = editor.getValue();
-    cursor = editor.selection.getCursor();
+
+  editor.session.on('change', function(e) {
+    onTextChange(editor);
+  });
+
+  editor.session.selection.on('changeCursor', function(e) {
+    onCursorChange(editor);
   });
 });
 
 </script>
 
 <style scoped>
-  #editor {
-    position: relative;
-    grid-column: 1;
-    font-size: 14px;
-  }
+#editor {
+  position: relative;
+  grid-column: 1;
+  font-size: 14px;
+}
 </style>

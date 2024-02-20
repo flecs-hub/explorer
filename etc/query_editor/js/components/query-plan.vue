@@ -16,9 +16,9 @@ const props = defineProps({
 });
 
 const render = () => {
-  const plan = props.result.content;
+  const plan = props.result.query_plan;
   if (!plan) {
-    return h('pre', []);
+    return h('pre', [], "Plan not available");
   }
   
   let elems = [ ];
@@ -43,6 +43,7 @@ const render = () => {
 <style>
 #query-plan pre {
   padding-left: 1rem;
+  margin: 0px;
 }
 
 span.plan-color-49 {
