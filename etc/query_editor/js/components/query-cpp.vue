@@ -311,7 +311,7 @@ const builderTokens = (g, qi) => {
       inout_default = "none";
     }
 
-    if (term.inout != inout_default) {
+    if (term.inout != inout_default && term.inout != "default") {
       if (!isTemplate || term.inout != "in") {
         g.operator(".");
         g.function(term.inout);
