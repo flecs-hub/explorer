@@ -59,6 +59,10 @@ const has_query = computed(() => {
 </script>
 
 <style>
+#query-api {
+  height: calc(100vh - 126px);
+}
+
 #query-api p {
   margin: 0px;
   padding-left: 0.5px;
@@ -75,12 +79,10 @@ const has_query = computed(() => {
   overflow-x: auto;
 }
 
-</style>
-
-<style>
 .query-api-body {
-  padding-top: 2rem !important;
+  padding-top: 1rem !important;
   padding-left: 0.5rem !important;
   padding-right: 0.5rem !important;
+  overflow-y: auto;
 }
 </style>

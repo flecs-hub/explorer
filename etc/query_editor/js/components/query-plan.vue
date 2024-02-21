@@ -41,6 +41,11 @@ const render = () => {
 </script>
   
 <style>
+#query-plan {
+  height: 100%;
+  overflow-y: auto;
+}
+
 #query-plan pre {
   padding-left: 1rem;
   margin: 0px;
