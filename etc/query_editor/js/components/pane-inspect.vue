@@ -57,6 +57,13 @@ const props = defineProps({
   margin: 0px;
 }
 
+@media screen and (max-width: 800px) {
+  #pane-inspect {
+    grid-column: 2;
+    grid-row: 4;
+    height: calc(60vh - 2.25rem);
+  }
+}
 </style>
 
 <style>

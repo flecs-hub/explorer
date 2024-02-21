@@ -104,15 +104,6 @@ function tabContentCss(label) {
   flex-direction: row;
 }
 
-@media screen and (max-width: 767px) {
-  .tabs-overview-container {
-    margin: 0 calc(0px - 1rem);
-  }
-  .tabs-overview {
-    padding: 0 1rem
-  }
-}
-
 .tabs-overview button.tab-button {
   color: var(--page-foreground-color);
   margin: 0;

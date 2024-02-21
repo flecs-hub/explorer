@@ -44,6 +44,14 @@ const onTab = (evt) => {
   border-radius: var(--border-radius-medium);
   height: calc(100vh - 60px);
 }
+
+@media screen and (max-width: 800px) {
+  #pane-query {
+    grid-column: 2;
+    grid-row: 3;
+    height: calc(40vh - 2.0rem);
+  }
+}
 </style>
 
 <style>

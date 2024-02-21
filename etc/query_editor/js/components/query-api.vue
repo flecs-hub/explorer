@@ -60,7 +60,7 @@ const has_query = computed(() => {
 
 <style>
 #query-api {
-  height: calc(100vh - 126px);
+  height: 100%;
 }
 
 #query-api p {

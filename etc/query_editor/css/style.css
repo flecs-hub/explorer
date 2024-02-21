@@ -23,9 +23,16 @@ body {
   gap: 0.5rem;
 }
 
-@media screen and (max-width: 1024px) {
+@media screen and (max-width: 1280px) {
   #app {
     grid-template-columns: 0.25rem 1fr calc(100% - 400px) 0.25rem;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  #app {
+    grid-template-columns: 0.25rem calc(100% - 1.5rem) 0.25rem;
+    grid-template-rows: 0.1rem 2.0rem calc(40vh - 2.0rem) calc(60vh - 2.5rem) 0.5rem;
   }
 }
 

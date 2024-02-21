@@ -29,7 +29,6 @@ const query_func = computed(() => {
 });
 
 const query_trimmed = computed(() => {
-  console.log(props.query);
   if (props.query.use_name) {
     return props.query.name;
   } else {

@@ -30,6 +30,13 @@ div.title-bar {
   grid-row: 2;
 }
 
+@media screen and (max-width: 800px) {
+  div.title-bar {
+    grid-template-columns: 2.5rem 1fr 25rem 1fr 2.5rem;
+    grid-column: 2 / 4;
+}
+}
+
 div.title-bar-logo a {
   background-image: url('../../img/flecs_logo.png');
   background-size: contain;

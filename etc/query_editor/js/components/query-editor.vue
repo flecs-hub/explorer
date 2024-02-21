@@ -42,4 +42,10 @@ div.editor {
   grid-template-rows: calc(100vh - 9rem);
 }
 
+@media screen and (max-width: 800px) {
+div.editor {
+  grid-template-rows: calc(40vh - 7rem);
+}
+}
+
 </style>
