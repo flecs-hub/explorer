@@ -18,14 +18,14 @@ body {
   width: 100%;
   height: 100vh;
   display: grid;
-  grid-template-columns: 0.25rem 1fr calc(100% - 600px) 0.25rem;
+  grid-template-columns: 0.25rem calc(600px - 2rem) calc(100% - 600px) 0.25rem;
   grid-template-rows: 0.1rem 2.0rem 1.0fr 0.5rem;
   gap: 0.5rem;
 }
 
 @media screen and (max-width: 1280px) {
   #app {
-    grid-template-columns: 0.25rem 1fr calc(100% - 400px) 0.25rem;
+    grid-template-columns: 0.25rem calc(400px - 2rem) calc(100% - 400px) 0.25rem;
   }
 }
 

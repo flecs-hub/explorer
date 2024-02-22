@@ -87,7 +87,7 @@ const onSelect = (index) => {
 
 div.query-browser-list {
   border-radius: var(--border-radius-medium);
-  overflow: auto;
+  overflow-y: auto;
   max-height: calc(100% - 2.8rem);
 }
 </style>

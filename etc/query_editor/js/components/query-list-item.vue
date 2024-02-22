@@ -114,6 +114,7 @@ div.query-list-item {
   border-left-width: 0px;
   border-color: var(--green);
   color: var(--primary-text);
+  overflow-x: auto;
   transition: background-color var(--animation-duration), border-left-width var(--animation-duration);
 }
 
