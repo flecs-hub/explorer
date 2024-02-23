@@ -1,14 +1,21 @@
 <template>
   <div :class="css" v-on:click="onClick">
-    <entity-parent :path="prop.parent"></entity-parent>
-    <prop_name/>
-    <span class="prop-brief" v-if="description">{{ description }}</span>
-    <template v-if="show_usage && (isComponent || isRelationship) && !isModule">
-      <span class="usage-example" v-if="isComponent"> - <span class="usage-highlight">{{ prop.name }}</span></span>
-      <span class="usage-example" v-if="isComponent"> - <span class="usage-highlight">{{ prop.name }}</span>($this)</span>
-      <span class="usage-example" v-if="isRelationship"> - (<span class="usage-highlight">{{ prop.name }}</span>, *)</span>
-      <span class="usage-example" v-if="isRelationship"> - <span class="usage-highlight">{{ prop.name }}</span>($this, *)</span>
-    </template>
+    <div class="query-list-item-container">
+      <div class="query-list-item-icon">
+        <icon :src="prop_icon" :opacity="0.5" v-if="prop_icon"></icon>
+      </div>
+      <div class="query-list-item-content">
+        <entity-parent :path="prop.parent"></entity-parent>
+        <prop_name/>
+        <span class="prop-brief" v-if="description">{{ description }}</span>
+        <template v-if="show_usage && (isComponent || isRelationship) && !isModule">
+          <span class="usage-example" v-if="isComponent"> - <span class="usage-highlight">{{ prop.name }}</span></span>
+          <span class="usage-example" v-if="isComponent"> - <span class="usage-highlight">{{ prop.name }}</span>($this)</span>
+          <span class="usage-example" v-if="isRelationship"> - (<span class="usage-highlight">{{ prop.name }}</span>, *)</span>
+          <span class="usage-example" v-if="isRelationship"> - <span class="usage-highlight">{{ prop.name }}</span>($this, *)</span>
+        </template>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -25,6 +32,7 @@ const emit = defineEmits(['select']);
 
 const props = defineProps({
   prop: {type: Object, required: true },
+  prop_icon: {type: String, required: false },
   expr: {type: String, required: false, default: "" },
   index: {type: Number, required: false, default: 0},
   selected: {type: Number, required: false, default: -1},
@@ -100,6 +108,21 @@ const onClick = () => {
 </script>
 
 <style scoped>
+div.query-list-item-container {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+}
+
+div.query-list-item-icon {
+  display: grid;
+  grid-column: 1;
+}
+
+div.query-list-item-content {
+  display: grid;
+  grid-column: 2;
+}
+
 div.query-list-item {
   display: flex;
   flex-direction: column;

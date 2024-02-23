@@ -81,6 +81,7 @@ function nameQueryFromExpr(expr, oneof) {
 
 let components = [
   loadModule('js/components/title-bar.vue', options),
+  loadModule('js/components/icon.vue', options),
   loadModule('js/components/search-box.vue', options),
   loadModule('js/components/tabs.vue', options),
   loadModule('js/components/pane-query.vue', options),

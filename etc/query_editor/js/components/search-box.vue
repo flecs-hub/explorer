@@ -1,5 +1,8 @@
 <template>
-  <input class="search-box" type="text" v-model="value">
+  <div class="search-box">
+    <input class="search-box" type="text" v-model="value">
+    <icon src="search"></icon>
+  </div>
 </template>
 
 <script>
@@ -12,11 +15,21 @@ const value = defineModel();
 </script>
 
 <style scoped>
-input.search-box {
+div.search-box {
   background-color: var(--bg-content);
   border-radius: var(--border-radius-medium);
-  padding: 0.5rem;
   margin-bottom: 0.5rem;
-  width: calc(100% - 1rem);
+  padding: 0.5rem;
+}
+div.search-box input {
+  background-color: var(--bg-content);
+  border-radius: var(--border-radius-medium);
+  width: calc(100% - 0.5rem - 16px);
+}
+
+</style>
+
+<style>
+img.search-icon {
 }
 </style>

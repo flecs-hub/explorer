@@ -3,7 +3,8 @@
     <search-box v-model="filter_expr"></search-box>
     <div class="query-browser-list">
       <query-list-item 
-        :prop="query" 
+        :prop="query"
+        :prop_icon="itemIcon(query)"
         :expr="nameQuery.expr"
         :index="i" 
         :selected="selected"
@@ -31,7 +32,7 @@ const selected = ref(-1);
 const filter_expr = ref();
 
 const doQuery = () => {
-  let q = "Query, ?flecs.system.System, ?flecs.core.Observer";
+  let q = "Query, ?flecs.system.System";
   if (filter_expr.value) {
     let nq = nameQuery.value;
     q += `, ${nq.query}`
@@ -52,6 +53,14 @@ const doQuery = () => {
 const nameQuery = computed(() => {
   return nameQueryFromExpr(filter_expr.value);
 });
+
+const itemIcon = (item) => {
+  if (item.is_set[1]) {
+    return "code";
+  } else {
+    return "search";
+  }
+}
 
 onMounted(() => {
   doQuery();
