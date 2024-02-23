@@ -1,7 +1,8 @@
 <template>
   <div class="title-bar">
     <div class="title-bar-logo">
-      <a 
+      <a
+        class="flecs-logo" 
         href="https://github.com/SanderMertens/flecs" 
         target="_blank">
       </a>
@@ -38,10 +39,6 @@ div.title-bar {
 }
 
 div.title-bar-logo a {
-  background-image: url('../../img/flecs_logo.png');
-  background-size: contain;
-  background-position: center center;
-  background-repeat: no-repeat;
   grid-column: 1;
 }
 

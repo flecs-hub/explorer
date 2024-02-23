@@ -18,7 +18,6 @@ const value = defineModel();
 div.search-box {
   background-color: var(--bg-content);
   border-radius: var(--border-radius-medium);
-  margin-bottom: 0.5rem;
   padding: 0.5rem;
 }
 div.search-box input {

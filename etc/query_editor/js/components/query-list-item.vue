@@ -2,7 +2,7 @@
   <div :class="css" v-on:click="onClick">
     <div class="query-list-item-container">
       <div class="query-list-item-icon">
-        <icon :src="prop_icon" :opacity="0.5" v-if="prop_icon"></icon>
+        <icon :src="img" :opacity="0.5" v-if="img"></icon>
       </div>
       <div class="query-list-item-content">
         <entity-parent :path="prop.parent"></entity-parent>
@@ -32,7 +32,7 @@ const emit = defineEmits(['select']);
 
 const props = defineProps({
   prop: {type: Object, required: true },
-  prop_icon: {type: String, required: false },
+  img: {type: String, required: false },
   expr: {type: String, required: false, default: "" },
   index: {type: Number, required: false, default: 0},
   selected: {type: Number, required: false, default: -1},
@@ -110,7 +110,7 @@ const onClick = () => {
 <style scoped>
 div.query-list-item-container {
   display: grid;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: 28px 1fr;
 }
 
 div.query-list-item-icon {
