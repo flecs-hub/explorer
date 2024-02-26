@@ -119,6 +119,8 @@ const refToken = (g, ref, asEntity) => {
     g.operator("<");
     g.type(getCppSymbol(ref.symbol));
     g.operator(">()");
+  } else if (ref.name) {
+    g.string(ref.name);
   } else {
     let elems = [];
     if (ref.entity) {
@@ -141,7 +143,11 @@ const refToken = (g, ref, asEntity) => {
           g.identifier(symbol);
         }
       } else if (ref.entity) {
-        g.string(ref.entity);
+        if (ref.entity == "0") {
+          g.number(0);
+        } else {
+          g.string(ref.entity);
+        }
       }
     }
   }

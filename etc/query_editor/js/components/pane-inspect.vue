@@ -1,6 +1,6 @@
 <template>
 <div id="pane-inspect" class="ace-github-dark">
-  <tabs :labels="['json', 'api', 'plan']" class="inspect-tab-content">
+  <tabs :labels="['json', 'api', 'inspect']" class="inspect-tab-content">
     <template v-slot:json>
       <query-request 
         :host="host"
@@ -10,15 +10,6 @@
         <query-result :result="slotProps.result"></query-result>
       </query-request>
     </template>
-    <template v-slot:plan>
-      <query-request 
-        :host="host"
-        :query="query"
-        :params="{try: true, query_plan: true, results: false}"
-        v-slot="slotProps">
-        <query-plan :result="slotProps.result"></query-plan>
-      </query-request>
-    </template>
     <template v-slot:api>
       <query-request 
         :host="host"
@@ -26,6 +17,15 @@
         :params="{try: true, field_info: true, query_info: true, results: false}"
         v-slot="slotProps">
         <query-api :result="slotProps.result" :query="query"></query-api>
+      </query-request>
+    </template>
+    <template v-slot:inspect>
+      <query-request 
+        :host="host"
+        :query="query"
+        :params="{try: true, query_info: true, query_plan: true, results: false}"
+        v-slot="slotProps">
+        <query-inspect :result="slotProps.result"></query-inspect>
       </query-request>
     </template>
   </tabs>

@@ -114,12 +114,16 @@ const entityToken = (g, ref, identifierOnly) => {
         g.identifier(getCSymbol(ref.symbol));
       }
     } else if (ref.entity) {
-      g.identifier("ecs_lookup");
-      g.operator("(");
-      g.identifier("world");
-      g.operator(", ");
-      g.string(ref.entity);
-      g.operator(")");
+      if (ref.entity == "0") {
+        g.number(0);
+      } else {
+        g.identifier("ecs_lookup");
+        g.operator("(");
+        g.identifier("world");
+        g.operator(", ");
+        g.string(ref.entity);
+        g.operator(")");
+      }
     } else if (ref.name) {
       g.string(ref.name);
     }
@@ -146,6 +150,14 @@ const refToken = (g, term, refName) => {
     g.operator("."); g.identifier("flags");
     g.operator(" = ");
     g.identifier("EcsIsName");
+  } else if (ref.entity == "0") {
+    g.operator(", ");
+    g.newLine();
+    g.operator(".");
+    g.identifier(refName); 
+    g.operator("."); g.identifier("flags");
+    g.operator(" = ");
+    g.identifier("EcsIsEntity");
   }
 }
 
@@ -190,32 +202,39 @@ const simpleIdToken = (g, term) => {
 }
 
 const travTokens = (g, term) => {
-  g.operator(".");
-  g.identifier("src");
-  g.operator(".");
-  g.identifier("flags");
-  g.operator(" = ");
+  let termFlags = false;
+  if (term.flags && term.flags.length) {
+    g.operator(".");
+    g.identifier("src");
+    g.operator(".");
+    g.identifier("flags");
+    g.operator(" = ");
 
-  let i = 0;
-  for (const flag of term.flags) {
-    if (i) {
-      g.operator("|");
+    let i = 0;
+    for (const flag of term.flags) {
+      if (i) {
+        g.operator("|");
+      }
+      let flagStr;
+      if (flag == "self") {
+        flagStr = "EcsSelf";
+      } else if (flag == "up") {
+        flagStr = "EcsUp";
+      } else if (flag == "cascade") {
+        flagStr = "EcsCascade";
+      }
+      g.identifier(flagStr);
+      i ++;
     }
-    let flagStr;
-    if (flag == "self") {
-      flagStr = "EcsSelf";
-    } else if (flag == "up") {
-      flagStr = "EcsUp";
-    } else if (flag == "cascade") {
-      flagStr = "EcsCascade";
-    }
-    g.identifier(flagStr);
-    i ++;
+
+    termFlags = true;
   }
 
   if (term.trav) {
     if (term.trav.entity != "flecs.core.IsA") {
-      g.operator(", ");
+      if (termFlags) {
+        g.operator(", ");
+      }
       g.newLine();
       g.operator(".");
       g.identifier("src");
@@ -295,10 +314,14 @@ const termTokens = (g, qi) => {
         refToken(g, term, "src");
       }
 
-      if (!defaultTrav(term)) {
-        g.operator(",");
-        g.newLine();
-        travTokens(g, term);
+      if (term.first.entity != "flecs.core.ScopeOpen" &&
+          term.first.entity != "flecs.core.ScopeClose")
+      {
+        if (!defaultTrav(term)) {
+          g.operator(",");
+          g.newLine();
+          travTokens(g, term);
+        }
       }
 
       if (term.inout != "default") {

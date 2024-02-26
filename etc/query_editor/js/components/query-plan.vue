@@ -36,6 +36,8 @@ const render = () => {
     elems.push(h('br'));
   }
 
+  elems.pop();
+
   return h('pre', elems);
 };
 </script>
@@ -48,7 +50,6 @@ const render = () => {
 
 #query-plan pre {
   padding-left: 1rem;
-  margin: 0px;
 }
 
 span.plan-color-49 {
