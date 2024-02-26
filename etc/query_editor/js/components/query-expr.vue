@@ -129,7 +129,11 @@ const skipInout = (term) => {
     return true;
   }
 
-  if (term.oper == "not" || (!term.has_data && term.inout == "none")) {
+  if ((!term.has_data && term.inout == "none")) {
+    return true;
+  }
+
+  if (term.oper == "not" && term.inout == "none") {
     return true;
   }
 
