@@ -343,7 +343,10 @@ Vue.component('entity-tree', {
         container = this.root;
       }
 
-      const q = "(ChildOf, " + container.path + "), ?Module, ?Component, ?Tag, ?Prefab, ?Disabled, ?ChildOf(_, $This)";
+      let path = container.path;
+      path = path.replaceAll(" ", "\\ ");
+
+      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Tag, ?Prefab, ?Disabled, ?ChildOf(_, $This)";
       app.request_query('tree-' + container.path, q, (reply) => {
         if (reply.error) {
           console.error("treeview: " + reply.error);
