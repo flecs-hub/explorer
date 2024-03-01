@@ -53,11 +53,20 @@ const props = defineProps({
 });
 
 const query_profile = computed(() => {
-  return props.result.query_profile;
+  if (props.result.query_profile) {
+    return props.result.query_profile;
+  } else {
+    return {
+      result_count: 0, 
+      entity_count: 0, 
+      eval_time_avg_us: 0, 
+      eval_time_min_us: 0, 
+      eval_time_max_us: 0
+    };
+  }
 });
 
 const result_count = computed(() => {
-  console.log(query_profile);
   return query_profile.value.result_count;
 });
 
