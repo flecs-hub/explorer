@@ -2,13 +2,13 @@
   <div id="query-profile">
     <template v-if="query_profile">
       <div class="query-profile-table">
-        <div class="query-profile-cell" style="grid-column: 1; grid-row: 2">Entities</div>
-        <div class="query-profile-cell" style="grid-column: 2; grid-row: 2; border-right-width: 0px;">
+        <div class="query-profile-cell" style="grid-column: 1; grid-row: 1">Entities</div>
+        <div class="query-profile-cell" style="grid-column: 2; grid-row: 1; border-right-width: 0px;">
           <span class="query-profile-value">{{ entity_count }}</span>
         </div>
 
-        <div class="query-profile-cell query-profile-cell-alt" style="grid-column: 1; grid-row: 1">Results</div>
-        <div class="query-profile-cell query-profile-cell-alt" style="grid-column: 2; grid-row: 1; border-right-width: 0px;">
+        <div class="query-profile-cell query-profile-cell-alt" style="grid-column: 1; grid-row: 2">Results</div>
+        <div class="query-profile-cell query-profile-cell-alt" style="grid-column: 2; grid-row: 2; border-right-width: 0px;">
           <span class="query-profile-value">{{ result_count }}</span>
         </div>
         
