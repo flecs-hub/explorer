@@ -7,13 +7,16 @@ export default { name: "code-editor" };
 </script>
 
 <script setup>
-import { watch, onMounted, defineModel } from 'vue';
+import { ref, watch, onMounted, defineModel, defineExpose } from 'vue';
 
 // Value of editor widget (two way binding)
 const value = defineModel("value");
 const prop_query = defineModel("prop_query");
 const x = defineModel("x");
 const y = defineModel("y");
+
+// Previous value
+const textChanged = ref(false);
 
 // Editor object
 let editor = undefined;
@@ -151,8 +154,8 @@ watch(value, (newValue) => {
 });
 
 const onTextChange = (editor) => {
-  const text = editor.getValue();
   value.value = editor.getValue();
+  textChanged.value = true;
 }
 
 const onCursorChange = (editor) => {
@@ -161,6 +164,11 @@ const onCursorChange = (editor) => {
     cursor.row, cursor.column);
   x.value = pos.pageX;
   y.value = pos.pageY;
+
+  if (textChanged.value) {
+    prop_query.value.expr = "";
+    textChanged.value = false;
+  }
 }
 
 // Create editor
@@ -177,6 +185,35 @@ onMounted(() => {
   editor.session.selection.on('changeCursor', function(e) {
     onCursorChange(editor);
   });
+});
+
+const autoComplete = (prop) => {
+  const lines = value.value.split("\n");
+  let row = cursor ? cursor.row : 0;
+  let col = cursor ? cursor.column : 0;
+  const line = lines[row];
+
+  for (let i = col; i >= 0; i --) {
+    const sep = isSep(line[i]);
+    if (!i || sep) {
+      if (sep) {
+        i ++;
+      }
+      lines[row] = line.slice(0, i);
+      lines[row] += prop.name;
+      break;
+    }
+  }
+
+  col = lines[row].length;
+  editor.setValue(lines.join("\n"));
+  editor.selection.clearSelection();
+  editor.moveCursorTo(row, col + 1);
+  editor.focus();
+}
+
+defineExpose({
+  autoComplete
 });
 
 </script>

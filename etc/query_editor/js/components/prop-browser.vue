@@ -1,7 +1,8 @@
 <template>
-  <div id="prop-browser" class="ace-github-dark" :style="pos_style">
+  <div id="prop-browser" class="ace-github-dark" :style="posStyle">
     <template v-for="(el, i) in prop_query.results">
-      <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="!is_target">
+      <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="!isTarget"
+        v-on:click="selectProp(el)">
       </query-list-item>
     </template>
   </div>
@@ -12,7 +13,9 @@ export default { name: "prop-browser" }
 </script>
 
 <script setup>
-import { ref, defineProps, watch, computed } from 'vue';
+import { ref, defineProps, defineExpose, watch, computed } from 'vue';
+
+const emit = defineEmits(['select']);
 
 const props = defineProps({
   host: {type: String, required: true },
@@ -24,12 +27,19 @@ const props = defineProps({
 
 let prop_query = ref({results: []});
 let oneof = ref("");
+const showWidget = ref(true);
 
-let is_target = computed(() => {
+let selectProp = (prop) => {
+  emit('select', prop);
+}
+
+let isTarget = computed(() => {
   return props.first !== undefined && props.first.length !== 0;
 });
 
 watch(() => props.first, () => {
+  flecs.connect(props.host);
+
   if (props.first.length) {
     const query = `?OneOf(${props.first}), ?OneOf(${props.first}, $parent)`;
     flecs.query(query, {try: true, rows: true, limit: 1}, (reply) => {
@@ -70,15 +80,33 @@ watch(() => [props.expr, oneof.value], () => {
   }
 });
 
-const pos_style = computed(() => {
+const posStyle = computed(() => {
   let x = props.x + 16;
   let y = props.y + 16;
   let height = 0;
   if (props.expr.length) {
     height = 600;
   }
-  return 'left: ' + x + 'px; top: ' + y + 'px; max-height: ' + height + 'px;'
-})
+  let result = 
+    'left: ' + x + 'px; top: ' + y + 'px; max-height: ' + height + 'px;'
+  if (!showWidget.value) {
+    result += " display: none";
+  }
+  return result;
+});
+
+const hide = () => {
+  showWidget.value = false;
+}
+
+const show = () => {
+  showWidget.value = true;
+}
+
+defineExpose({
+  hide,
+  show
+});
 
 </script>
 

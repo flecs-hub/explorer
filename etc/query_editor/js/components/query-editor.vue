@@ -4,7 +4,8 @@
       v-model:value="query" 
       v-model:prop_query="prop_query"
       v-model:x="x"
-      v-model:y="y">
+      v-model:y="y"
+      ref="editor">
     </code-editor>
     
     <prop-browser 
@@ -12,7 +13,9 @@
       :expr="prop_query.expr"
       :first="prop_query.first"
       :x="x"
-      :y="y">
+      :y="y"
+      ref="browser"
+      v-on:select="onSelect">
     </prop-browser>
   </div>
 </template>
@@ -22,16 +25,37 @@ export default { name: "query-editor" };
 </script>
 
 <script setup>
-import { ref, defineProps, defineModel } from 'vue';
+import { ref, watch, defineProps, defineModel, nextTick } from 'vue';
 
 const props = defineProps({
   host: {type: String, required: true}
 });
 
+const editor = ref(null);
+const browser = ref(null);
+
+const onSelect = (prop) => {
+  editor.value.autoComplete(prop);
+
+  nextTick(() => {
+    browser.value.hide();
+  });
+}
+
 const query = defineModel("query");
 const prop_query = ref({expr: "", first: ""});
 const x = ref(0);
 const y = ref(0);
+
+watch(() => query.value, () => {
+  browser.value.show();
+});
+
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Escape') {
+    browser.value.hide();
+  }
+});
 
 </script>
 
