@@ -66,6 +66,9 @@ const entity_count = computed(() => {
 });
 
 const fragmentation = computed(() => {
+  if (!entity_count.value) {
+    return 0;
+  }
   return (result_count.value / entity_count.value * 100).toFixed(2);
 });
 
@@ -82,10 +85,16 @@ const eval_time_max = computed(() => {
 });
 
 const entity_time_ns = computed(() => {
+  if (!entity_count.value) {
+    return 0;
+  }
   return ((query_profile.value.eval_time_avg_us / entity_count.value) * 1000).toFixed(2);
 });
 
 const result_time_ns = computed(() => {
+  if (!result_count.value) {
+    return 0;
+  }
   return ((query_profile.value.eval_time_avg_us / result_count.value) * 1000).toFixed(2);
 });
 
