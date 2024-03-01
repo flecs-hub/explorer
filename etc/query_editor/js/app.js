@@ -97,6 +97,7 @@ let components = [
   loadModule('js/components/query-result.vue', options),
   loadModule('js/components/query-status.vue', options),
   loadModule('js/components/query-plan.vue', options),
+  loadModule('js/components/query-profile.vue', options),
   loadModule('js/components/query-expr.vue', options),
   loadModule('js/components/query-schema.vue', options),
   loadModule('js/components/query-inspect.vue', options),

@@ -23,7 +23,7 @@
       <query-request 
         :host="host"
         :query="query"
-        :params="{try: true, query_info: true, query_plan: true, results: false}"
+        :params="{try: true, query_info: true, query_plan: true, query_profile: true, results: false}"
         v-slot="slotProps">
         <query-inspect :result="slotProps.result"></query-inspect>
       </query-request>

@@ -4,6 +4,8 @@
     <query-expr :result="result"></query-expr>
     <p>query plan</p>
     <query-plan :result="result"></query-plan>
+    <p>query profile</p>
+    <query-profile :result="result"></query-profile>
   </div>
 </template>
 

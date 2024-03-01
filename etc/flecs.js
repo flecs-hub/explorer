@@ -280,6 +280,7 @@ const flecs = {
             field_info: params.field_info,
             query_info: params.query_info,
             query_plan: params.query_plan,
+            query_profile: params.query_profile,
             table: params.table,
             poll_interval: params.poll_interval,
             host: params.host,
@@ -420,6 +421,7 @@ const flecs = {
         out.field_info = msg.field_info;
         out.query_info = msg.query_info;
         out.query_plan = msg.query_plan;
+        out.query_profile = msg.query_profile;
         out.vars = msg.vars;
 
         if (!msg.results) {
