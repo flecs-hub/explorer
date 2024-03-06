@@ -24,6 +24,8 @@ const props = defineProps({
 
 <style scoped>
 #query-inspect {
+  height: calc(100% - 0.5rem);
+  overflow-y: auto;
   padding-top: 0.5rem;
 }
 
