@@ -1,11 +1,11 @@
 <template>
-  <div id="query-result">
-    <pre>{{query_result_str}}</pre>
+  <div id="query-json">
+    <pre>{{query_json_str}}</pre>
   </div>
 </template>
 
 <script>
-export default { name: "query-result" }
+export default { name: "query-json" }
 </script>
 
 <script setup>
@@ -15,7 +15,7 @@ const props = defineProps({
   result: {type: Object, required: true }
 });
 
-const query_result_str = computed(() => {
+const query_json_str = computed(() => {
   if (props.result.error) {
     return props.result.error.split("\n").join("\n  ");
   } else if (props.result.content) {
@@ -27,11 +27,11 @@ const query_result_str = computed(() => {
 </script>
 
 <style scoped>
-#query-result {
+#query-json {
   height: 100%;
 }
 
-#query-result pre {
+#query-json pre {
   position: relative;
   margin: 0px;
   padding: 1rem;
@@ -39,7 +39,7 @@ const query_result_str = computed(() => {
   overflow-y: auto;
   color: var(--primary-text);
 }
-span.query-result-error {
+span.query-json-error {
   color: var(--bright-red);
 }
 </style>
