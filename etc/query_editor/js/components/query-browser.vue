@@ -17,12 +17,15 @@
       <toggle class="query-browser-filter-toggle" v-model="show_systems" :opacity="1.0">
         <icon src="code"></icon> systems
       </toggle>
+      <toggle class="query-browser-filter-toggle" v-model="show_observers" :opacity="1.0">
+        <icon src="bell"></icon> observers
+      </toggle>
       <toggle class="query-browser-filter-toggle" v-model="show_queries" :opacity="1.0">
         <icon src="search"></icon> queries
       </toggle>
     </template>
     <div :class="css">
-      <template v-for="(query, i) in queries.results">
+      <template v-for="(query, i) in results">
         <query-list-item 
           :prop="query"
           :img="itemIcon(query)"
@@ -49,15 +52,18 @@ const props = defineProps({
 });
 
 const query_name = defineModel("query_name");
+const query_kind = defineModel("query_kind");
 const queries = ref({results: []});
+const observers = ref({results: []});
 const selected = ref(-1);
 const filter_expr = ref();
 const show_filter = ref(false);
 const show_flecs = ref(false);
 const show_systems = ref(true);
+const show_observers = ref(true);
 const show_queries = ref(true);
 
-const doQuery = () => {
+const doQueryQuery = () => {
   let q = "Query, ?flecs.system.System";
   if (filter_expr.value) {
     let nq = nameQuery.value;
@@ -67,7 +73,7 @@ const doQuery = () => {
   flecs.connect(props.host);
 
   flecs.query(q, 
-    {rows: true, limit: 250}, 
+    {rows: true, limit: 1000}, 
     (reply) => {
       queries.value.results = reply.results;
     },
@@ -75,6 +81,34 @@ const doQuery = () => {
       // error
     });
 }
+
+const doObserverQuery = () => {
+  let q = "Observer, !Query, ?(ChildOf, $parent), !Observer($parent), !Query($parent)";
+  if (filter_expr.value) {
+    let nq = nameQuery.value;
+    q += `, ${nq.query}`
+  }
+
+  flecs.connect(props.host);
+
+  flecs.query(q, 
+    {rows: true, limit: 1000}, 
+    (reply) => {
+      observers.value.results = reply.results;
+    },
+    (reply) => {
+      // error
+    });
+}
+
+const doQuery = () => {
+  doQueryQuery();
+  doObserverQuery();
+}
+
+const results = computed(() => {
+  return queries.value.results.concat(observers.value.results);
+});
 
 const nameQuery = computed(() => {
   return nameQueryFromExpr(filter_expr.value);
@@ -89,15 +123,30 @@ const css = computed(() => {
 });
 
 const itemIcon = (item) => {
-  if (item.is_set[1]) {
+  if (item.tags[0] == "Observer") {
+    return "bell";
+  } else if (item.is_set[1]) {
     return "code";
   } else {
     return "search";
   }
 }
 
+const queryKind = (item) => {
+  let isObserver = item.tags[0] == "Observer";
+  if (isObserver) {
+    return "observer";
+  } else {
+    let isSystem = item.is_set[1];
+    if (isSystem) {
+      return "system";
+    }
+    return "query";
+  }
+}
+
 const passFilter = (item) => {
-  let isSystem = item.is_set[1];
+  const kind = queryKind(item);
   let isFlecs = false;
 
   if (item.parent) {
@@ -110,12 +159,18 @@ const passFilter = (item) => {
     return false;
   }
 
-  if (isSystem && !show_systems.value) {
-    return false;
-  }
+  if (kind == "observer") {
+    if (!show_observers.value) {
+      return false;
+    }
+  } else {
+    if ((kind == "system") && !show_systems.value) {
+      return false;
+    }
 
-  if (!isSystem && !show_queries.value) {
-    return false;
+    if ((kind == "query") && !show_queries.value) {
+      return false;
+    }
   }
 
   return true;
@@ -134,14 +189,15 @@ const onSelect = (index) => {
     selected.value = -1;
     query_name.value = undefined;
   } else {
-    const q = queries.value.results[index];
+    const item = results.value[index];
     let path = "";
-    if (q.parent) {
-      path += q.parent + ".";
+    if (item.parent) {
+      path += item.parent + ".";
     }
-    path += q.name;
+    path += item.name;
     query_name.value = path;
     selected.value = index;
+    query_kind.value = queryKind(item);
   }
 }
 

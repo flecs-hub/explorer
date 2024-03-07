@@ -19,7 +19,7 @@
     </template>
     <template v-slot:inspect>
       <div :class="visibleClass">
-        <query-inspect :result="result"></query-inspect>
+        <query-inspect :query="query" :result="result"></query-inspect>
       </div>
       <template v-if="result.error">
         <query-error :error="result.error"></query-error>
@@ -58,7 +58,7 @@ const doRequest = () => {
   if (!q || !q.length) {
     result.value = {};
   } else {
-    query_func(q, {try: true, query_info: true, field_info: true, query_plan: true, query_profile: true}, 
+    query_func(q, {try: true, rows: true, query_info: true, field_info: true, query_plan: true, query_profile: true}, 
       (reply) => {
         result.value = reply;
       }, (reply) => {

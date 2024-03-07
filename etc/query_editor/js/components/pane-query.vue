@@ -12,7 +12,8 @@
       <template v-slot:browse>
         <query-browser
           :host="host"
-          v-model:query_name="query.name">
+          v-model:query_name="query.name"
+          v-model:query_kind="query.kind">
         </query-browser>
       </template>
     </tabs>
@@ -33,7 +34,12 @@ const props = defineProps({
 const query = defineModel("query");
 
 const onTab = (evt) => {
-  query.value.use_name = evt.tab == "browse";
+  const isBrowse = evt.tab == "browse";
+  if (!isBrowse) {
+    query.value.kind = "query";
+  }
+
+  query.value.use_name = isBrowse;
 }
 </script>
 

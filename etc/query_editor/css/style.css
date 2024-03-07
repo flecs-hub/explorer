@@ -25,7 +25,7 @@ body {
 
 @media screen and (max-width: 1280px) {
   #app {
-    grid-template-columns: 0.25rem calc(400px - 2rem) calc(100% - 400px) 0.25rem;
+    grid-template-columns: 0.25rem calc(450px - 2rem) calc(100% - 450px) 0.25rem;
   }
 }
 

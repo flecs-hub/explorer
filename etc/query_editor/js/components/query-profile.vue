@@ -2,6 +2,13 @@
   <div id="query-profile">
     <template v-if="query_profile">
       <div class="query-profile-table">
+        <div class="query-profile-cell" style="grid-column: 1; grid-row: 1">Evaluation count</div>
+        <div class="query-profile-cell" style="grid-column: 2; grid-row: 1; border-right-width: 0px;">
+          <span class="query-profile-value">{{ evaluation_count }}</span>
+        </div>
+      </div>
+
+      <div class="query-profile-table">
         <div class="query-profile-cell" style="grid-column: 1; grid-row: 1">Entities</div>
         <div class="query-profile-cell" style="grid-column: 2; grid-row: 1; border-right-width: 0px;">
           <span class="query-profile-value">{{ entity_count }}</span>
@@ -134,6 +141,10 @@ const field_info = computed(() => {
   } else {
     return { };
   }
+});
+
+const evaluation_count = computed(() => {
+  return query_profile.value.eval_count;
 });
 
 const result_count = computed(() => {

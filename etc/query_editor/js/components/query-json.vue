@@ -18,10 +18,8 @@ const props = defineProps({
 const query_json_str = computed(() => {
   if (props.result.error) {
     return props.result.error.split("\n").join("\n  ");
-  } else if (props.result.content) {
-    return props.result.content;
   } else {
-    return JSON.stringify(props.result, null, 2);
+    return JSON.stringify({results: props.result.results}, null, 2);
   }
 });
 </script>
