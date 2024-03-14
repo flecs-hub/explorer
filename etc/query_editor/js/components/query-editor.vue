@@ -9,7 +9,7 @@
     </code-editor>
     
     <prop-browser 
-      :host="host"
+      :conn="conn"
       :expr="prop_query.expr"
       :first="prop_query.first"
       :x="x"
@@ -28,7 +28,7 @@ export default { name: "query-editor" };
 import { ref, watch, defineProps, defineModel, nextTick } from 'vue';
 
 const props = defineProps({
-  host: {type: String, required: true}
+  conn: {type: Object, required: true}
 });
 
 const editor = ref(null);

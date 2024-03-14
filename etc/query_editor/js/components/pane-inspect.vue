@@ -11,7 +11,7 @@
     </template>
     <template v-slot:api>
       <div :class="visibleClass">
-        <query-api :result="result" :query="query"></query-api>
+        <query-api :conn="conn" :result="result" :query="query"></query-api>
       </div>
       <template v-if="result.error">
         <query-error :error="result.error"></query-error>
@@ -39,20 +39,22 @@ export default {
 import { ref, defineProps, computed, onMounted, watch } from 'vue';
 
 const props = defineProps({
-  host: {type: String, required: true },
-  query: {type: Object, required: true },
+  app_state: {type: Object, required: true },
+  conn: {type: Object, required: true },
 });
 
 const result = ref({reply: []});
 
-const doRequest = () => {
-  flecs.connect(props.host);
+const query = computed(() => {
+  return props.app_state.query;
+});
 
-  let query_func = flecs.query;
-  let q = props.query.expr;
-  if (props.query.use_name) {
-    query_func = flecs.query_name;
-    q = props.query.name;
+const doRequest = () => {
+  let query_func = props.conn.query.bind(props.conn);
+  let q = query.value.expr;
+  if (query.value.use_name) {
+    query_func = props.conn.queryName.bind(props.conn);
+    q = query.value.name;
   }
 
   if (!q || !q.length) {
@@ -79,7 +81,7 @@ onMounted(() => {
   doRequest();
 });
 
-watch(() => [props.query.expr, props.query.name, props.query.use_name], () => {
+watch(() => [query.value.expr, query.value.name, query.value.use_name], () => {
   doRequest();
 });
 

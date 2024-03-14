@@ -13,17 +13,17 @@
   <body>
     <div id="app">
       <title-bar
-        v-model:host="host">
+        :app_state="app_state">
       </title-bar>
 
       <pane-query
-        :host="host"
-        v-model:query="query">
+        v-model:app_state="app_state"
+        :conn="conn">
       </pane-query>
 
       <pane-inspect
-        :host="host"
-        :query="query">
+        :app_state="app_state"
+        :conn="conn">
       </pane-inspect>
     </div>
 

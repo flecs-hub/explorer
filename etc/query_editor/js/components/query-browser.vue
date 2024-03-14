@@ -48,7 +48,7 @@ export default { name: "query-browser" }
 import { onMounted, ref, computed, watch, defineProps, defineModel } from 'vue';
 
 const props = defineProps({
-  host: {type: String, required: true},
+  conn: {type: Object, required: true},
 });
 
 const query_name = defineModel("query_name");
@@ -70,9 +70,7 @@ const doQueryQuery = () => {
     q += `, ${nq.query}`
   }
 
-  flecs.connect(props.host);
-
-  flecs.query(q, 
+  props.conn.query(q, 
     {rows: true, limit: 1000}, 
     (reply) => {
       queries.value.results = reply.results;
@@ -89,9 +87,7 @@ const doObserverQuery = () => {
     q += `, ${nq.query}`
   }
 
-  flecs.connect(props.host);
-
-  flecs.query(q, 
+  props.conn.query(q, 
     {rows: true, limit: 1000}, 
     (reply) => {
       observers.value.results = reply.results;

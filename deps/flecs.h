@@ -4024,7 +4024,7 @@ typedef struct ecs_world_info_t {
         int64_t delete_count;          /**< delete commands processed */
         int64_t clear_count;           /**< clear commands processed */
         int64_t set_count;             /**< set commands processed */
-        int64_t get_mut_count;         /**< get_mut/emplace commands processed */
+        int64_t ensure_count;         /**< ensure/emplace commands processed */
         int64_t modified_count;        /**< modified commands processed */
         int64_t other_count;           /**< other commands processed */
         int64_t discard_count;         /**< commands discarded, happens when entity is no longer alive when running the command */
@@ -5510,7 +5510,7 @@ void ecs_ref_update(
  * This operation returns a mutable pointer to a component. If the component did
  * not yet exist, it will be added.
  * 
- * If get_mut is called when the world is in deferred/readonly mode, the 
+ * If ensure is called when the world is in deferred/readonly mode, the 
  * function will:
  * - return a pointer to a temp storage if the component does not yet exist, or
  * - return a pointer to the existing component if it exists
@@ -5521,13 +5521,13 @@ void ecs_ref_update(
  * @return The component pointer.
  */
 FLECS_API
-void* ecs_get_mut_id(
+void* ecs_make_alive_id(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_id_t id);
 
-/** Combines get_mut + modifed in single operation. 
- * This operation is a more efficient alternative to calling ecs_get_mut_id and
+/** Combines ensure + modifed in single operation. 
+ * This operation is a more efficient alternative to calling ecs_make_alive_id and
  * ecs_modified_id separately. This operation is only valid when the world is in
  * deferred mode, which ensures that the Modified event is not emitted before
  * the modification takes place.
@@ -5538,7 +5538,7 @@ void* ecs_get_mut_id(
  * @return The component pointer.
  */
 FLECS_API
-void* ecs_get_mut_modified_id(
+void* ecs_ensure_modified_id(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_id_t id);
@@ -5646,7 +5646,7 @@ const void* ecs_record_get_id(
  * @return Pointer to component, or NULL if entity does not have the component.
  */
 FLECS_API
-void* ecs_record_get_mut_id(
+void* ecs_record_ensure_id(
     ecs_world_t *world,
     ecs_record_t *record,
     ecs_id_t id);
@@ -5664,7 +5664,7 @@ bool ecs_record_has_id(
     ecs_id_t id);
 
 /** Emplace a component.
- * Emplace is similar to get_mut except that the component constructor is not
+ * Emplace is similar to ensure except that the component constructor is not
  * invoked for the returned pointer, allowing the component to be "constructed"
  * directly in the storage.
  *
@@ -5684,7 +5684,7 @@ void* ecs_emplace_id(
 
 /** Signal that a component has been modified.
  * This operation is usually used after modifying a component value obtained by
- * ecs_get_mut_id. The operation will mark the component as dirty, and invoke
+ * ecs_make_alive_id. The operation will mark the component as dirty, and invoke
  * OnSet observers and hooks.
  *
  * @param world The world.
@@ -5699,7 +5699,7 @@ void ecs_modified_id(
 
 /** Set the value of a component.
  * This operation allows an application to set the value of a component. The
- * operation is equivalent to calling ecs_get_mut_id followed by 
+ * operation is equivalent to calling ecs_make_alive_id followed by 
  * ecs_modified_id. The operation will not modify the value of the passed in
  * component. If the component has a copy hook registered, it will be used to
  * copy in the component.
@@ -5847,7 +5847,7 @@ ecs_entity_t ecs_get_alive(
  * @param entity The entity id to make alive.
  */
 FLECS_API
-void ecs_ensure(
+void ecs_make_alive(
     ecs_world_t *world,
     ecs_entity_t entity);
 
@@ -5870,7 +5870,7 @@ void ecs_ensure(
  * @param id The id to make alive.
  */
 FLECS_API
-void ecs_ensure_id(
+void ecs_make_alive_id(
     ecs_world_t *world,
     ecs_id_t id);
 
@@ -8924,18 +8924,18 @@ int ecs_value_move_ctor(
     (ECS_CAST(const Second*, ecs_record_get_id(world, record,\
         ecs_pair(first, ecs_id(Second)))))
 
-#define ecs_record_get_mut(world, record, T)\
-    (ECS_CAST(T*, ecs_record_get_mut_id(world, record, ecs_id(T))))
+#define ecs_record_ensure(world, record, T)\
+    (ECS_CAST(T*, ecs_record_ensure_id(world, record, ecs_id(T))))
 
-#define ecs_record_get_mut_pair(world, record, First, second)\
-    (ECS_CAST(First*, ecs_record_get_mut_id(world, record, \
+#define ecs_record_ensure_pair(world, record, First, second)\
+    (ECS_CAST(First*, ecs_record_ensure_id(world, record, \
         ecs_pair(ecs_id(First), second))))
 
-#define ecs_record_get_mut_pair_second(world, record, first, Second)\
-    (ECS_CAST(Second*, ecs_record_get_mut_id(world, record,\
+#define ecs_record_ensure_pair_second(world, record, first, Second)\
+    (ECS_CAST(Second*, ecs_record_ensure_id(world, record,\
         ecs_pair(first, ecs_id(Second)))))
 
-#define ecs_record_get_mut_pair_object ecs_record_get_mut_pair_second
+#define ecs_record_ensure_pair_object ecs_record_ensure_pair_second
 
 #define ecs_ref_init(world, entity, T)\
     ecs_ref_init_id(world, entity, ecs_id(T))
@@ -8943,18 +8943,18 @@ int ecs_value_move_ctor(
 #define ecs_ref_get(world, ref, T)\
     (ECS_CAST(const T*, ecs_ref_get_id(world, ref, ecs_id(T))))
 
-#define ecs_get_mut(world, entity, T)\
-    (ECS_CAST(T*, ecs_get_mut_id(world, entity, ecs_id(T))))
+#define ecs_ensure(world, entity, T)\
+    (ECS_CAST(T*, ecs_make_alive_id(world, entity, ecs_id(T))))
 
-#define ecs_get_mut_pair(world, subject, First, second)\
-    (ECS_CAST(First*, ecs_get_mut_id(world, subject,\
+#define ecs_ensure_pair(world, subject, First, second)\
+    (ECS_CAST(First*, ecs_make_alive_id(world, subject,\
         ecs_pair(ecs_id(First), second))))
 
-#define ecs_get_mut_pair_second(world, subject, first, Second)\
-    (ECS_CAST(Second*, ecs_get_mut_id(world, subject,\
+#define ecs_ensure_pair_second(world, subject, first, Second)\
+    (ECS_CAST(Second*, ecs_make_alive_id(world, subject,\
         ecs_pair(first, ecs_id(Second)))))
 
-#define ecs_get_mut_pair_object ecs_get_mut_pair_second
+#define ecs_ensure_pair_object ecs_ensure_pair_second
 
 #define ecs_modified(world, entity, component)\
     ecs_modified_id(world, entity, ecs_id(component))
@@ -8984,8 +8984,8 @@ int ecs_value_move_ctor(
 #define ecs_singleton_set(world, comp, ...)\
     ecs_set(world, ecs_id(comp), comp, __VA_ARGS__)
 
-#define ecs_singleton_get_mut(world, comp)\
-    ecs_get_mut(world, ecs_id(comp), comp)
+#define ecs_singleton_ensure(world, comp)\
+    ecs_ensure(world, ecs_id(comp), comp)
 
 #define ecs_singleton_modified(world, comp)\
     ecs_modified(world, ecs_id(comp), comp)
@@ -11453,7 +11453,7 @@ typedef struct ecs_world_stats_t {
         ecs_metric_t delete_count;
         ecs_metric_t clear_count;
         ecs_metric_t set_count;
-        ecs_metric_t get_mut_count;
+        ecs_metric_t ensure_count;
         ecs_metric_t modified_count;
         ecs_metric_t other_count;
         ecs_metric_t discard_count;
@@ -19391,12 +19391,12 @@ inline void set(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t i
     ecs_assert(_::cpp_type<T>::size() != 0, ECS_INVALID_PARAMETER, NULL);
 
     if (!ecs_is_deferred(world)) {
-        T& dst = *static_cast<T*>(ecs_get_mut_id(world, entity, id));
+        T& dst = *static_cast<T*>(ecs_make_alive_id(world, entity, id));
         dst = FLECS_MOV(value);
 
         ecs_modified_id(world, entity, id);
     } else {
-        T& dst = *static_cast<T*>(ecs_get_mut_modified_id(world, entity, id));
+        T& dst = *static_cast<T*>(ecs_ensure_modified_id(world, entity, id));
         dst = FLECS_MOV(value);
     }
 }
@@ -19407,12 +19407,12 @@ inline void set(world_t *world, flecs::entity_t entity, const T& value, flecs::i
     ecs_assert(_::cpp_type<T>::size() != 0, ECS_INVALID_PARAMETER, NULL);
 
     if (!ecs_is_deferred(world)) {
-        T& dst = *static_cast<T*>(ecs_get_mut_id(world, entity, id));
+        T& dst = *static_cast<T*>(ecs_make_alive_id(world, entity, id));
         dst = FLECS_MOV(value);
 
         ecs_modified_id(world, entity, id);
     } else {
-        T& dst = *static_cast<T*>(ecs_get_mut_modified_id(world, entity, id));
+        T& dst = *static_cast<T*>(ecs_ensure_modified_id(world, entity, id));
         dst = FLECS_MOV(value);
     }
 }
@@ -19423,12 +19423,12 @@ inline void set(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t i
     ecs_assert(_::cpp_type<T>::size() != 0, ECS_INVALID_PARAMETER, NULL);
 
     if (!ecs_is_deferred(world)) {
-        T& dst = *static_cast<remove_reference_t<T>*>(ecs_get_mut_id(world, entity, id));
+        T& dst = *static_cast<remove_reference_t<T>*>(ecs_make_alive_id(world, entity, id));
         dst = FLECS_MOV(value);
 
         ecs_modified_id(world, entity, id);
     } else {
-        T& dst = *static_cast<remove_reference_t<T>*>(ecs_get_mut_modified_id(world, entity, id));
+        T& dst = *static_cast<remove_reference_t<T>*>(ecs_ensure_modified_id(world, entity, id));
         dst = FLECS_MOV(value);
     }
 }
@@ -19439,12 +19439,12 @@ inline void set(world_t *world, flecs::entity_t entity, const T& value, flecs::i
     ecs_assert(_::cpp_type<T>::size() != 0, ECS_INVALID_PARAMETER, NULL);
 
     if (!ecs_is_deferred(world)) {
-        T& dst = *static_cast<remove_reference_t<T>*>(ecs_get_mut_id(world, entity, id));
+        T& dst = *static_cast<remove_reference_t<T>*>(ecs_make_alive_id(world, entity, id));
         dst = FLECS_MOV(value);
 
         ecs_modified_id(world, entity, id);
     } else {
-        T& dst = *static_cast<remove_reference_t<T>*>(ecs_get_mut_modified_id(world, entity, id));
+        T& dst = *static_cast<remove_reference_t<T>*>(ecs_ensure_modified_id(world, entity, id));
         dst = FLECS_MOV(value);
     }
 }
@@ -19988,7 +19988,7 @@ struct world {
     /** Get mut singleton component.
      */
     template <typename T>
-    T* get_mut() const;
+    T* ensure() const;
 
     /** Mark singleton component as modified.
      */
@@ -23411,7 +23411,7 @@ struct entity_builder : entity_view {
      *
      * This operation is faster than individually calling get for each component
      * as it only obtains entity metadata once. When this operation is called
-     * while deferred, its performance is equivalent to that of calling get_mut
+     * while deferred, its performance is equivalent to that of calling ensure
      * for each component separately.
      *
      * The operation will invoke modified for each component after the callback
@@ -23719,7 +23719,7 @@ Self& set_json(
         return to_base();
     }
 
-    void *ptr = ecs_get_mut_id(m_world, m_id, e);
+    void *ptr = ecs_make_alive_id(m_world, m_id, e);
     ecs_assert(ptr != NULL, ECS_INTERNAL_ERROR, NULL);
     ecs_ptr_from_json(m_world, type, ptr, json, desc);
     ecs_modified_id(m_world, m_id, e);
@@ -23932,10 +23932,10 @@ struct entity : entity_builder<entity>
      * @return Pointer to the component value.
      */
     template <typename T>
-    T* get_mut() const {
+    T* ensure() const {
         auto comp_id = _::cpp_type<T>::id(m_world);
         ecs_assert(_::cpp_type<T>::size() != 0, ECS_INVALID_PARAMETER, NULL);
-        return static_cast<T*>(ecs_get_mut_id(m_world, m_id, comp_id));
+        return static_cast<T*>(ecs_make_alive_id(m_world, m_id, comp_id));
     }
 
     /** Get mutable component value (untyped).
@@ -23947,8 +23947,8 @@ struct entity : entity_builder<entity>
      * @param comp The component to get.
      * @return Pointer to the component value.
      */
-    void* get_mut(entity_t comp) const {
-        return ecs_get_mut_id(m_world, m_id, comp);
+    void* ensure(entity_t comp) const {
+        return ecs_make_alive_id(m_world, m_id, comp);
     }
 
     /** Get mutable pointer for a pair.
@@ -23959,8 +23959,8 @@ struct entity : entity_builder<entity>
      */
     template <typename First, typename Second, typename P = pair<First, Second>, 
         typename A = actual_type_t<P>, if_not_t< flecs::is_pair<First>::value> = 0>
-    A* get_mut() const {
-        return static_cast<A*>(ecs_get_mut_id(m_world, m_id, ecs_pair(
+    A* ensure() const {
+        return static_cast<A*>(ecs_make_alive_id(m_world, m_id, ecs_pair(
             _::cpp_type<First>::id(m_world),
             _::cpp_type<Second>::id(m_world))));
     }
@@ -23972,11 +23972,11 @@ struct entity : entity_builder<entity>
      * @param second The second element of the pair.
      */
     template <typename First>
-    First* get_mut(entity_t second) const {
+    First* ensure(entity_t second) const {
         auto comp_id = _::cpp_type<First>::id(m_world);
         ecs_assert(_::cpp_type<First>::size() != 0, ECS_INVALID_PARAMETER, NULL);
         return static_cast<First*>(
-            ecs_get_mut_id(m_world, m_id, ecs_pair(comp_id, second)));
+            ecs_make_alive_id(m_world, m_id, ecs_pair(comp_id, second)));
     }
 
     /** Get mutable pointer for a pair (untyped).
@@ -23987,8 +23987,8 @@ struct entity : entity_builder<entity>
      * @param first The first element of the pair.
      * @param second The second element of the pair.
      */
-    void* get_mut(entity_t first, entity_t second) const {
-        return ecs_get_mut_id(m_world, m_id, ecs_pair(first, second));
+    void* ensure(entity_t first, entity_t second) const {
+        return ecs_make_alive_id(m_world, m_id, ecs_pair(first, second));
     }
 
     /** Get mutable pointer for the second element of a pair.
@@ -23998,11 +23998,11 @@ struct entity : entity_builder<entity>
      * @param first The first element of the pair.
      */
     template <typename Second>
-    Second* get_mut_second(entity_t first) const {
+    Second* ensure_second(entity_t first) const {
         auto second = _::cpp_type<Second>::id(m_world);
         ecs_assert(_::cpp_type<Second>::size() != 0, ECS_INVALID_PARAMETER, NULL);
         return static_cast<Second*>(
-            ecs_get_mut_id(m_world, m_id, ecs_pair(first, second)));
+            ecs_make_alive_id(m_world, m_id, ecs_pair(first, second)));
     }           
 
     /** Signal that component was modified.
@@ -24873,11 +24873,11 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
         return true;
     }
 
-    static bool get_mut_ptrs(world_t *world, ecs_entity_t e, ArrayType& ptrs) {
-        /* Get pointers w/get_mut */
+    static bool ensure_ptrs(world_t *world, ecs_entity_t e, ArrayType& ptrs) {
+        /* Get pointers w/ensure */
         size_t i = 0;
         DummyArray dummy ({
-            (ptrs[i ++] = ecs_get_mut_id(world, e, 
+            (ptrs[i ++] = ecs_make_alive_id(world, e, 
                 _::cpp_type<Args>().id(world)), 0)...
         });
 
@@ -24953,7 +24953,7 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
     }
 
     template <typename Func>
-    static bool invoke_get_mut(world_t *world, entity_t id, const Func& func) {
+    static bool invoke_ensure(world_t *world, entity_t id, const Func& func) {
         flecs::world w(world);
 
         ArrayType ptrs;
@@ -25003,9 +25003,9 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
 
             ECS_TABLE_LOCK(world, table);
 
-        // When deferred, obtain pointers with regular get_mut
+        // When deferred, obtain pointers with regular ensure
         } else {
-            get_mut_ptrs(world, id, ptrs);
+            ensure_ptrs(world, id, ptrs);
         }
 
         invoke_callback(func, 0, ptrs);
@@ -25907,7 +25907,7 @@ untyped_component& range(double min, double max) {
 
     flecs::world w(m_world);
     flecs::entity me = w.entity(m->member);
-    flecs::MemberRanges *mr = me.get_mut<flecs::MemberRanges>();
+    flecs::MemberRanges *mr = me.ensure<flecs::MemberRanges>();
     mr->value.min = min;
     mr->value.max = max;
     me.modified<flecs::MemberRanges>();
@@ -25923,7 +25923,7 @@ untyped_component& warning_range(double min, double max) {
 
     flecs::world w(m_world);
     flecs::entity me = w.entity(m->member);
-    flecs::MemberRanges *mr = me.get_mut<flecs::MemberRanges>();
+    flecs::MemberRanges *mr = me.ensure<flecs::MemberRanges>();
     mr->warning.min = min;
     mr->warning.max = max;
     me.modified<flecs::MemberRanges>();
@@ -25939,7 +25939,7 @@ untyped_component& error_range(double min, double max) {
 
     flecs::world w(m_world);
     flecs::entity me = w.entity(m->member);
-    flecs::MemberRanges *mr = me.get_mut<flecs::MemberRanges>();
+    flecs::MemberRanges *mr = me.ensure<flecs::MemberRanges>();
     mr->error.min = min;
     mr->error.max = max;
     me.modified<flecs::MemberRanges>();
@@ -26784,7 +26784,7 @@ flecs::entity ref<T>::entity() const {
 template <typename Self>
 template <typename Func, if_t< is_callable<Func>::value > >
 inline Self& entity_builder<Self>::set(const Func& func) {
-    _::entity_with_delegate<Func>::invoke_get_mut(
+    _::entity_with_delegate<Func>::invoke_ensure(
         this->m_world, this->m_id, func);
     return to_base();
 }
@@ -27430,7 +27430,7 @@ struct term_builder_i : term_id_builder_i<Base> {
     }
 
     /** Short for inout_stage(flecs::InOut).
-     *   Use when system uses get_mut.
+     *   Use when system uses ensure.
      */
     Base& read_write() {
         return this->inout_stage(flecs::InOut);
@@ -31132,9 +31132,9 @@ inline entity world::lookup(const char *name, bool search_path) const {
 }
 
 template <typename T>
-inline T* world::get_mut() const {
+inline T* world::ensure() const {
     flecs::entity e(m_world, _::cpp_type<T>::id(m_world));
-    return e.get_mut<T>();
+    return e.ensure<T>();
 }
 
 template <typename T>
@@ -31292,7 +31292,7 @@ inline void world::get(const Func& func) const {
 template <typename Func, if_t< is_callable<Func>::value > >
 inline void world::set(const Func& func) const {
     static_assert(arity<Func>::value == 1, "singleton component must be the only argument");
-    _::entity_with_delegate<Func>::invoke_get_mut(
+    _::entity_with_delegate<Func>::invoke_ensure(
         this->m_world, this->singleton<first_arg_t<Func>>(), func);
 }
 
@@ -31304,7 +31304,7 @@ inline flecs::entity world::get_alive(flecs::entity_t e) const {
  *  ecs_ensure. */
 #ifndef ensure
 inline flecs::entity world::ensure(flecs::entity_t e) const {
-    ecs_ensure(m_world, e);
+    ecs_make_alive(m_world, e);
     return flecs::entity(m_world, e);
 }
 #endif

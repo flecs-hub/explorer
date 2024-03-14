@@ -5,13 +5,13 @@
         v-on:changed="onTab">
       <template v-slot:editor>
         <query-editor 
-          :host="host"
+          :conn="conn"
           v-model:query="query.expr">
         </query-editor>
       </template>
       <template v-slot:browse>
         <query-browser
-          :host="host"
+          :conn="conn"
           v-model:query_name="query.name"
           v-model:query_kind="query.kind">
         </query-browser>
@@ -25,13 +25,21 @@ export default { name: "pane-query" }
 </script>
 
 <script setup>
-import { defineProps, defineModel } from 'vue';
+import { defineProps, defineModel, computed } from 'vue';
 
 const props = defineProps({
-  host: {type: String, required: true},
+  conn: {type: Object, required: true}
 });
 
-const query = defineModel("query");
+const app_state = defineModel("app_state");
+
+const query = computed(() => {
+  return app_state.value.query;
+});
+
+const host = computed(() => {
+  return app_state.value.host;
+});
 
 const onTab = (evt) => {
   const isBrowse = evt.tab == "browse";

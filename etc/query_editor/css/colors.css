@@ -15,12 +15,14 @@
   --steel-950: #0a0c0e;
 
   --grey-200: rgb(237, 237, 237);
-
+  
+  --dark-blue: #00346E;
   --green: #42b983;
   --blue: rgb(103, 154, 209);
   --purple: rgb(188, 137, 189);
   --yellow: #b9a542;
   --red: #B5494B;
+  --orange: #c38521;;
   --bright-green: #A2D8B4;
   --bright-blue: rgb(86, 168, 248);
   --bright-red: #EF8784;
@@ -41,6 +43,7 @@
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: var(--blue);
   --highlight-text: white;
+  --dark-text: var(--bg-color-alt);
 
   --primary-color: var(--green);
   --secondary-color: var(--blue);

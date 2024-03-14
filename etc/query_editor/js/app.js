@@ -126,16 +126,41 @@ if (!QueryParam) {
 
 Promise.all(components).then((values) => {
   let app = Vue.createApp({
+    created() {
+      this.conn = flecs.connect({
+        host: "http://" + HostParam,
+
+        // Copy host to reactive property
+        on_host: function(host) {
+          this.app_state.host = host;
+        }.bind(this),
+        
+        // Copy connection status to reactive property
+        on_status: function(status) {
+          this.app_state.status = status;
+        }.bind(this),
+
+        // Copy world info to reactive property
+        on_heartbeat: function(msg) {
+          this.app_state.worldInfo = msg;
+        }.bind(this)
+      });
+    },
     data() {
       return {
-        query: {
-          expr: QueryParam,
-          name: undefined,
-          use_name: false
+        app_state: {
+          host: undefined,
+          status: undefined,
+          worldInfo: undefined,
+          query: {
+            expr: QueryParam,
+            name: undefined,
+            use_name: false
+          },
         },
+        conn: undefined,
         lastWord: "",
-        host: "http://" + HostParam
-      }
+      };
     }
   });
 

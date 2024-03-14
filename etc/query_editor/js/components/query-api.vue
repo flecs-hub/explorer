@@ -36,15 +36,16 @@ export default { name: "query-api" }
 import { defineProps, computed } from 'vue';
 
 const props = defineProps({
+  conn: {type: Object, required: true},
   query: {type: Object, required: true},
   result: {type: Object, required: true}
 });
 
 const url = computed(() => {
   if (props.query.use_name) {
-    return flecs.query_name(props.query.name, {rows: true, dryrun: true}).url;
+    return props.conn.queryName(props.query.name, {rows: true, dryrun: true}).url;
   } else {
-    return flecs.query(props.query.expr, {rows: true, dryrun: true}).url;
+    return props.conn.query(props.query.expr, {rows: true, dryrun: true}).url;
   }
 });
 

@@ -22,9 +22,9 @@ const props = defineProps({
 
 const query_func = computed(() => {
   if (props.query.use_name) {
-    return "flecs.query_name";
+    return "conn.queryName";
   } else {
-    return "flecs.query";
+    return "conn.query";
   }
 });
 
@@ -32,8 +32,9 @@ const query_trimmed = computed(() => {
   if (props.query.use_name) {
     return props.query.name;
   } else {
-    return flecs.query_trim(props.query.expr);
+    return flecs.trimQuery(props.query.expr);
   }
 });
 
 </script>
+

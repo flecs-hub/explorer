@@ -18,7 +18,7 @@ import { ref, defineProps, defineExpose, watch, computed } from 'vue';
 const emit = defineEmits(['select']);
 
 const props = defineProps({
-  host: {type: String, required: true },
+  conn: {type: Object, required: true },
   expr: {type: String, required: true },
   first: {type: String, required: false },
   x: {type: Number, required: true },
@@ -38,11 +38,9 @@ let isTarget = computed(() => {
 });
 
 watch(() => props.first, () => {
-  flecs.connect(props.host);
-
   if (props.first.length) {
     const query = `?OneOf(${props.first}), ?OneOf(${props.first}, $parent)`;
-    flecs.query(query, {try: true, rows: true, limit: 1}, (reply) => {
+    props.conn.query(query, {try: true, rows: true, limit: 1}, (reply) => {
       if (reply.results) {
         let result = reply.results[0];
         if (result.is_set && result.is_set[1]) {
@@ -60,8 +58,6 @@ watch(() => props.first, () => {
 });
 
 watch(() => [props.expr, oneof.value], () => {
-  flecs.connect(props.host);
-
   if (!props.expr.length && (!oneof.value.length || !props.first.length)) {
     prop_query.value.results.length = 0;
   } else {
@@ -72,7 +68,7 @@ watch(() => [props.expr, oneof.value], () => {
     query += ", ?$this(_, _)";
     query += ", ?Module";
 
-    flecs.query(query, {try: true, rows: true, limit: 100}, (reply) => {
+    props.conn.query(query, {try: true, rows: true, limit: 100}, (reply) => {
       if (reply.results) {
         prop_query.value.results = reply.results;
       }

@@ -1,96 +1,11 @@
-// Flecs JavaScript client library (c) 2023, Sander Mertens, MIT license
-//   Thin wrapper around the Flecs REST API.
+// Flecs JavaScript client library (c) 2024, Sander Mertens, MIT license
+//   Wrapper around the Flecs REST API.
 //
 // Resources:
 //   Flecs repository: https://github.com/SanderMertens/flecs
 //   API manual: https://www.flecs.dev/flecs/md_docs_RestApi.html
-//   API console: https://www.flecs.dev/explorer/console
 //
-// Functions:
-//  - flecs.connect(host : string)
-//      Initializes the client library with the host address of the server.
-//      Example:
-//        flecs.connect("http://localhost:27750");
-//
-//  - flecs.entity(path : string, params : object, recv : function, err : function)
-//      Retrieves an entity from the server. By default the response is formatted
-//      as a JavaScript object with the following properties:
-//        - parent : string
-//        - name : string
-//        - tags : array
-//        - pairs : object
-//        - components : object
-//        - type_info : object (optional)
-//        - alerts : array (optional)
-//
-//       When the "raw" parameter is set to true, the response format is as 
-//       described in the REST API manual. When the "raw" parameter is set to
-//       false or omitted the response will return labels instead of full paths
-//       for tags and components. To retrieve full paths, set the "full_paths"
-//       parameter to true.
-//
-//       To poll for changes, set the "poll_interval" parameter to the number of
-//       milliseconds between requests. To abort polling, call abort() on the
-//       object returned by the function.
-//    
-//    Return:
-//      Object with the following members:
-//        - abort() : function
-//            Aborts the request.
-//        - url : string
-//
-//    Example:
-//      flecs.entity("flecs.core.World", {}, (response) => {
-//        console.log(response);
-//      });
-//        
-//  - flecs.query(query, params, recv, err)
-//      Retrieves entities from the server that match the provided query. By
-//      default the response is formatted as a JavaScript object with the
-//      following properties:
-//        - type_info : object (optional)
-//        - entities : array
-//          - parent : string
-//          - name : string
-//          - tags : array
-//          - pairs : object
-//          - components : object
-//          - vars : object (optional)
-//
-//      When the "raw" parameter is set to true, the response format is as
-//      described in the REST API manual. When the "raw" parameter is set to
-//      false or omitted the response will return labels instead of full paths
-//      for tags and components. To retrieve full paths, set the "full_paths"
-//      parameter to true.
-//
-//      To poll for changes, set the "poll_interval" parameter to the number of
-//      milliseconds between requests. To abort polling, call abort() on the
-//      object returned by the function.
-//
-//    Return:
-//      Object with the following members:
-//        - abort() : function
-//            Aborts the request.
-//        - url : string
-//
-//      Example:
-//        flecs.query("Position, Velocity", {}, (response) => {
-//          console.log(response);
-//        });
-//
-//  - flecs.query_name(query_name, params, recv, err)
-//      Same as flecs.query but for a named query.
-//
-//    Return:
-//      Object with the following members:
-//        - abort() : function
-//            Aborts the request.
-//        - url : string
-//
-//      Example:
-//        flecs.query_name("queries.my_query", {}, (response) => {
-//          console.log(response);
-//        });
+// For a backwards-compatible version of the API, use /v1/flecs.js
 //
 
 // If the environment is Node.js import XMLHttpRequest
@@ -99,717 +14,410 @@ if (typeof process === "object" && typeof require === "function") {
 }
 
 const flecs = {
-    params: {
-        host: "http://localhost:27750",
+  // State of connection
+  ConnectionStatus: {
+    Connecting:       Symbol('Connecting'),       // Attempting to connect
+    RetryConnecting:  Symbol('RetryConnecting'),  // Attempting to restore a lost connection
+    Connected:        Symbol('Connected'),        // Connected
+    Disconnected:     Symbol('Disconnected'),     // Disconnected (not attempting to connect)
+  },
+
+  // State of outstanding request
+  RequestStatus: {
+    Pending:          Symbol('Pending'),          // Resource is requested but not ready
+    Alive:            Symbol('Alive'),            // Polling request is receiving data
+    Done:             Symbol('Done'),             // Non-polling request received data
+    Aborting:         Symbol('Aborting'),         // Request is being aborted
+    Aborted:          Symbol('Aborted'),          // Request was aborted
+    Failed:           Symbol('Failed'),           // Request failed
+  },
+
+  // Remove whitespaces from query string
+  trimQuery(query) {
+    query = query.replaceAll("\n", " ");
+    do {
+      let len = query.length;
+      query = query.replaceAll("  ", " ");
+      if (len == query.length) {
+        break;
+      }
+    } while (true);
+    return query;
+  },
+
+  // Create a new connection to a Flecs application
+  connect(params) {
+    let conn = this._.createConnection(params);
+    conn.connect(params.host);
+    return conn;
+  },
+
+  // Private methods
+  _: {
+    createConnection(params) {
+      let connParams = {
+        host: undefined,
         timeout_ms: 1000,
         retry_interval_ms: 200,
         max_retry_count: 5
-    },
-
-    _: {
-      // Convert JavaScript object to query string
-      paramStr: function(params) {
-        let count = 0;
-        let url_params = "";
-        if (params) {
-          for (var k in params) {
-            // Ignore client-side only parameters
-            if (k === "raw" || k === "full_paths" || k === "poll_interval" || k === "host") {
-              continue;
-            }
-            if (params[k] !== undefined) {
-              if (count) {
-                url_params += "&";
-              } else {
-                url_params += "?";
-              }
-              url_params += k + "=" + params[k];
-              count ++;
-            }
+      };
+  
+      if (params) {
+        if (params.timeout_ms) connParams.timeout_ms = params.timeout_ms;
+        if (params.retry_interval_ms) connParams.retry_interval_ms = params.retry_interval_ms;
+        if (params.max_retry_count) connParams.max_retry_count = params.max_retry_count;
+        connParams.on_status = params.on_status;
+        connParams.on_host = params.on_host;
+        connParams.on_heartbeat = params.on_heartbeat;
+      }
+  
+      return {
+        status: flecs.ConnectionStatus.Initializing,
+        params: connParams,
+        worldInfo: undefined,
+  
+        // Connect to (different) host
+        connect(host) {
+          let newHost = host;
+          if (!newHost) {
+            newHost = this.params.host;
           }
-        }
-        return url_params;
-      },
-
-      // Do HTTP request, automatically retries on failure
-      request: function(host, method, path, params, recv, err, poll_interval, state) {
-        const Request = new XMLHttpRequest();
-        if (host === undefined) {
-          host = flecs.params.host;
-        }
-
-        let dryrun = false;
-        if (params.dryrun) {
-          dryrun = true;
-          delete params.dryrun;
-        }
-
-        let url = host + "/" + path + flecs._.paramStr(params);
-        if (dryrun) {
-          return {url: url};
-        }
-
-        if (state === undefined) {
-          state = {
-            timeout_ms: flecs.params.timeout_ms,
-            retry_interval_ms: flecs.params.retry_interval_ms,
-            retry_count: 0,
-            request_cancelled: false,
-            request: Request,
-            url: url,
-            abort: function() {
-              state.request_cancelled = true;
-              state.request.abort();
-            },
-            reset: function() {
-              state.retry_count = 0;
-            }
+  
+          if (!newHost) {
+            console.error("no host specified for flecs.connect()");
+            return;
           }
-        }
-
-        Request.open(method, url);
-
-        Request.onreadystatechange = (reply) => {
-          if (Request.readyState == 4) {
-            if (Request.status == 0) {
-              state.retry_count ++;
-              if (state.retry_count > flecs.params.max_retry_count) {
-                const err_str = "request to " + host + " failed: max retry count exceeded";
-                console.error(err_str);
-                if (err) {
-                  err('{"error": \"' + err_str + '\"}');
-                }
-                if (poll_interval) {
-                  setTimeout(() => {
-                    state.reset();
-                    flecs._.request(host, method, path, params, recv, 
-                        err, poll_interval, state);
-                  }, poll_interval);
-                }
-                return;
-              }
-
-              if (state.request_cancelled) {
-                console.log("request to " + host + " cancelled");
-                return;
-              }
-
-              // Retry if the server did not respond to request
-              if (state.retry_interval_ms) {
-                state.retry_interval_ms *= 1.3;
-                if (state.retry_interval_ms > 1000) {
-                  state.retry_interval_ms = 1000;
-                }
-
-                // No point in timing out sooner than retry interval
-                if (state.timeout_ms < state.retry_interval_ms) {
-                  state.timeout_ms = state.retry_interval_ms;
-                }
-
-                console.error("retrying request to " + host +
-                  ", ensure app is running and REST is enabled " +
-                  "(retried " + state.retry_count + " times)");
-
-                setTimeout(() => {
-                  flecs._.request(host, method, path, params, recv, 
-                      err, poll_interval, state);
-                }, state.retry_interval_ms);
+  
+          if (newHost == this.params.host) {
+            if (this.status == flecs.ConnectionStatus.Connected) {
+              /* Already connected */
+              console.warning(`already connected to host ${newHost}`);
+              return;
+            } else if (this.status == flecs.ConnectionStatus.RetryConnecting) {
+              /* Already retrying to connect */
+              console.warning(`already reconnected to host ${newHost}`);
+              return;
+            }
+          } else if (this.params.on_host) {
+            this.params.on_host(newHost);
+          }
+  
+          // If already connected to another host, disconnect first
+          if (this.status != flecs.ConnectionStatus.Initializing) {
+            this.disconnect();
+          }
+  
+          // Connect to host, start connection manager
+          this.params.host = newHost;
+          this._.startConnMgr(this);
+        },
+  
+        // Disconnect from host
+        disconnect() {
+          this._.stopConnMgr(this);
+        },
+  
+        // Request entity
+        entity: function(path, params, recv, err) {
+          path = path.replace(/\./g, "/");
+          return this._.request(this.params, "GET", "entity/" + path, params, 
+            (msg) => {
+              if (msg[0] == '{' || msg[0] == '[') {
+                msg = JSON.parse(msg);
+                recv(msg);
               } else {
-                if (err) err(Request.responseText);
-              }
-            } else {    
-              if (Request.status < 200 || Request.status >= 300) {
                 if (err) {
-                  err(Request.responseText);
+                  err(JSON.parse(msg));
                 }
-              } else {
-                if (recv) {
-                  recv(Request.responseText, url);
+              }
+            }, (msg) => {
+              if (err) {
+                if (msg[0] == '{' || msg[0] == '[') {
+                  err(JSON.parse(msg));
+                } else {
+                  err({error: msg});
+                }
+              }
+            }, params.poll_interval);
+        },
+  
+        // Request query
+        query: function(query, params, recv, err) {
+          if (query === undefined) {
+            console.error("flecs.query: invalid query parameter");
+            return;
+          }
+  
+          // Normalize query string
+          query = flecs.trimQuery(query);
+          query = query.replaceAll(", ", ",");
+  
+          params.q = encodeURIComponent(query);
+          return this._.requestQuery(
+            this.params, params, recv, err, params.poll_interval);
+        },
+  
+        // Request named query
+        queryName: function(query, params, recv, err) {
+          params.name = encodeURIComponent(query);
+          return this._.requestQuery(
+            this.params, params, recv, err, params.poll_interval);
+        },
+  
+        // Private methods
+        _: {
+          requests: [],
 
-                  if (poll_interval && !state.request_cancelled) {
+          // Set status of connection
+          setStatus(pub, status) {
+            if (status != pub.status) {
+              this.status = status;
+              if (pub.params.on_status) {
+                pub.params.on_status(status);
+              }
+            }
+          },
+  
+          // Do HTTP request.
+          request: function(conn, method, path, params, recv, err, poll_interval) {
+            // If this is a dryrun we're only returning the URL. Don't include the
+            // dryrun parameter in the returned URL.
+            let dryrun = false;
+  
+            if (params.dryrun) {
+              dryrun = true;
+              delete params.dryrun;
+            }
+  
+            // Create the request object
+            let result = {
+              // Properties
+              status: flecs.RequestStatus.Pending,
+              owner: this,
+              conn: conn,
+              request: undefined,
+              method: method,
+              url: conn.host + "/" + path + flecs._.paramStr(params),
+              recv: recv,
+              err: err,
+              poll_interval: poll_interval,
+              retry_interval_ms: conn.retry_interval_ms,
+              retry_count: 0,
+              aborted: false,
+  
+              // Do request
+              do(redo = false) {
+                this.request = new XMLHttpRequest();
+                this.request.open(this.method, this.url);
+                this.request.onreadystatechange = (reply) => {
+                  if (this.request.readyState == 4) {
+                    // Request ready
+                    if (this.request.status == 0) {
+                      // No reply was received
+                      this.status = flecs.RequestStatus.Pending;
+  
+                      this._.onError(this, reply);
+                    } else {
+                      // Reply was received, even if it returned an error
+                      this.status = flecs.RequestStatus.Done;
+  
+                      if (this.request.status < 200 || this.request.status >= 300) {
+                        // Error status
+                        if (this.err) {
+                          this.err(this.request.responseText);
+                        }
+                      } else {
+                        // Request OK
+                        if (this.recv) {
+                          this.recv(this.request.responseText, this.url);
+                        }
+                      }
+                    }
+  
+                    // Poll if necessary
+                    this._.poll(this);
+                  }
+                };
+  
+                // Send it
+                this.request.send();
+              },
+  
+              // Redo the request
+              redo() {
+                this.retry_interval_ms = this.conn.retry_interval_ms;
+                this.do(true);
+              },
+  
+              // Abort request
+              abort() {
+                if (this.request) {
+                  this.status = flecs.RequestStatus.Aborting;
+                  this.request.abort();
+                  this.aborted = true;
+                }
+              },
+  
+              // Private methods
+              _: {
+                // Do polling if request has poll interval
+                poll(pub) {
+                  if (pub.poll_interval && !pub.aborted) {
+                    if (pub.status == flecs.RequestStatus.Done) {
+                      // If this is a polling request and valid data was received,
+                      // the request is alive.
+                      pub.status = flecs.RequestStatus.Alive;
+                    }
+  
                     setTimeout(() => {
-                      state.reset();
-                      flecs._.request(host, method, path, params, recv, 
-                          err, poll_interval, state);
-                    }, poll_interval);
+                      this.retry_count = 0;
+                      pub.redo();
+                    }, pub.poll_interval);
+                  }
+                },
+  
+                // Handle request error
+                onError(pub) {
+                  if (pub.poll_interval) {
+                    // When this is a polling request don't bother with retrying
+                    const errMsg = `request to ${pub.conn.host} failed`;
+                    if (pub.err) pub.err(`{"error": \"${errMsg}\"}`);
+                    return;
+                  }
+
+                  pub.retry_count ++;
+                  if (pub.retry_count > pub.conn.max_retry_count) {
+                    const errMsg = 
+                      `request to ${pub.conn.host} failed: max retry count exceeded`;
+                    console.error(errMsg);
+                    if (pub.err) pub.err(`{"error": \"${errMsg}\"}`);
+                    pub.retry_count = 0;
+                    return;
+                  }
+  
+                  if (pub.aborted) {
+                    this.status = flecs.RequestStatus.Aborted;
+                    console.log(`request to ${pub.conn.host} aborted`);
+                    return;
+                  }
+  
+                  // Retry if the server did not respond to request
+                  if (pub.retry_interval_ms) {
+                    pub.retry_interval_ms *= 1.3;
+                    if (pub.retry_interval_ms > 1000) {
+                      pub.retry_interval_ms = 1000;
+                    }
+  
+                    // No point in timing out sooner than retry interval
+                    if (pub.timeout_ms < pub.retry_interval_ms) {
+                      pub.timeout_ms = pub.retry_interval_ms;
+                    }
+  
+                    console.error(`retrying request to ${pub.conn.host}` +
+                      `, ensure app is running and REST is enabled` +
+                      `(retried ${pub.retry_count} times)`);
+  
+                    setTimeout(() => {
+                      pub.redo();
+                    }, pub.retry_interval_ms);
+                  } else {
+                    if (err) err(Request.responseText);
+                  }
+                }
+              }
+            };
+  
+            // Do request
+            result.do();
+  
+            // Return request object
+            return result;
+          },
+  
+          // Do query request
+          requestQuery: function(conn, params, recv, err, poll_interval) {
+            let endpoint = "query";
+            let on_recv, on_err;
+            if (recv) {
+              on_recv = (msg) => {
+                if (msg[0] == '{' || msg[0] == '[') {
+                  msg = JSON.parse(msg);
+                  recv(msg);
+                } else {
+                  if (err) {
+                    err({error: msg});
                   }
                 }
               }
             }
-          }
-        }
-
-        Request.send();
-
-        return state;
-      },
-
-      // Parse entity parameters
-      entity_params: function(params) {
-        if (!params) {
-          params = {};
-        }
-
-        const raw = params.raw === true;
-        if (!raw) {
-          let new_params = {
-            values: true,
-            type_info: params.type_info,
-            alerts: params.alerts,
-            ids: params.full_paths == true,
-            id_labels: params.full_paths != true,
-            poll_interval: params.poll_interval,
-            host: params.host
-          };
-          params = new_params;
-        }
-
-        return params;
-      },
-
-      // Parse query parameters
-      query_params: function(params) {
-        if (!params) {
-          params = {};
-        }
   
-        const raw = params.raw === true;
-        if (!raw) {
-          let new_params = {
-            type_info: params.type_info,
-            field_info: params.field_info,
-            query_info: params.query_info,
-            query_plan: params.query_plan,
-            query_profile: params.query_profile,
-            table: params.table,
-            poll_interval: params.poll_interval,
-            host: params.host,
-            try: params.try,
-            dryrun: params.dryrun
-          };
-
-          if (!params.rows) {
-            new_params.values = true;
-            new_params.entities = true;
-            new_params.is_set = true;
-            if (params.full_paths != true) {
-              new_params.id_labels = true;
-              new_params.variable_labels = true;
-              new_params.variables = false;
-            } else {
-              new_params.ids = true;
-              new_params.variables = true;
-            }
-          }
-
-          new_params.offset = params.offset;
-          new_params.limit = params.limit;
-          new_params.plan = params.plan;
-          new_params.rows = params.rows;
-          new_params.results = params.results;
-
-          params = new_params;
-        }
-
-        return params;
-      },
-
-      format_entity_contents: function(parent, name, ids, values, row, is_set) {
-        let result = {parent: parent, name: name};
-        let tags = [];
-        let components = {};
-        let pairs = {};
-
-        for (let i = 0; i < ids.length; i ++) {
-          let id = ids[i];
-          if (id.length === 2) {
-            const rel = id[0];
-            let targets = pairs[rel];
-            if (targets === undefined) {
-              pairs[rel] = id[1];
-            } else if (typeof targets === "string") {
-              pairs[rel] = [targets];
-              pairs[rel].push(id[1]);
-            } else {
-              pairs[rel].push(id[1]);
-            }
-
-            id = "(" + id.join(",") + ")";
-          } else {
-            id = id[0];
-            if (!values || values[i] === 0) {
-              let add = !is_set || is_set[i];
-              if (add) {
-                tags.push(id);
-              }
-            }
-          }
-
-          if (values && values[i] !== 0) {
-            let value = values[i];
-            if (row !== undefined) {
-              value = value[row];
-            }
-            components[id] = value;
-          }
-        }
-
-        result.tags = tags;
-        result.pairs = pairs;
-        result.components = components;
-
-        return result;
-      },
-
-      // Format result of entity endpoint
-      format_entity_result: function(msg) {
-        if (!msg || !msg.path) {
-          return {
-            tags: [],
-            pairs: {},
-            components: {}
-          };
-        }
-
-        let parent = msg.path.split(".").slice(0, -1).join(".");
-        let name = msg.path.split(".").slice(-1)[0];
-
-        let ids = msg.ids;
-        if (!ids) {
-          ids = msg.id_labels;
-        }
-
-        let result = flecs._.format_entity_contents(
-          parent, name, ids, msg.values);
-
-        if (msg.type_info) {
-          result.type_info = {};
-          for (let i = 0; i < msg.type_info.length; i ++) {
-            if (msg.type_info[i] !== 0) {
-              result.type_info[ids[i]] = msg.type_info[i];
-            }
-          }
-        }
-        if (msg.alerts) {
-          result.alerts = msg.alerts;
-        }
-
-        return result;
-      },
-
-      // Format result of query endpoint
-      format_query_result: function(msg) {
-        if (msg.error) {
-          return {error: msg.error};
-        }
-
-        let term_ids = msg.ids;
-
-        if (!term_ids) {
-          term_ids = msg.id_labels;
-        }
-
-        let vars = msg.vars;
-        let results = [];
-        let out = {};
-
-        if (msg.type_info) {
-          out.type_info = msg.type_info;
-        }
-
-        out.entities = results; /* Backwards compatibility */
-        out.field_info = msg.field_info;
-        out.query_info = msg.query_info;
-        out.query_plan = msg.query_plan;
-        out.query_profile = msg.query_profile;
-        out.vars = msg.vars;
-
-        if (!msg.results) {
-          return out;
-        }
-
-        for (let result of msg.results) {
-          const entities = result.entities;
-          let len = entities ? entities.length : 1
-
-          for (let i = 0; i < len; i ++) {
-            let ids = term_ids;
-            if (ids === undefined) {
-              ids = result.ids;
-            }
-            if (ids === undefined) {
-              ids = result.id_labels;
-            }
-
-            let entity = entities ? entities[i] : undefined;
-            let obj = flecs._.format_entity_contents(
-              result.parent, entity, ids, result.values, i,
-              result.is_set);
-
-            if (vars) {
-              let var_values = result.vars;
-              if (!var_values) {
-                var_values = result.var_labels;
-              }
-              obj.vars = {};
-              for (let j = 0; j < vars.length; j ++) {
-                obj.vars[vars[j]] = var_values[j];
-              }
-            }
-
-            obj.is_set = result.is_set;
-
-            out.entities.push(obj);
-          }
-        }
-
-        return out;
-      },
-
-      // Do query request
-      request_query: function(host, params, recv, err, poll_interval) {
-        let endpoint = "query";
-        let on_recv, on_err;
-        if (recv) {
-          on_recv = (msg) => {
-            if (msg[0] == '{' || msg[0] == '[') {
-              msg = JSON.parse(msg);
-              if (!params.raw && !params.rows)  {
-                recv(flecs._.format_query_result(msg));
-              } else {
-                recv(msg);
-              }
-            } else {
-              if (err) {
-                err({error: msg});
-              }
-            }
-          }
-        }
-
-        if (err) {
-          on_err = (msg) => {
             if (err) {
-              if (msg[0] == '{' || msg[0] == '[') {
-                err(JSON.parse(msg));
-              } else {
-                err({error: msg});
+              on_err = (msg) => {
+                if (err) {
+                  if (msg[0] == '{' || msg[0] == '[') {
+                    err(JSON.parse(msg));
+                  } else {
+                    err({error: msg});
+                  }
+                }
               }
             }
+  
+            return this.request(conn, "GET", endpoint, params, on_recv, on_err, 
+              poll_interval);
+          },
+  
+          // Start heartbeat request that monitors connection liveliness
+          startConnMgr(pub) {
+            this.setStatus(pub, flecs.ConnectionStatus.Initializing);
+  
+            this.connMgrRequest = pub.entity("flecs.core.World", 
+              {values: true, label: true, poll_interval: 1000}, 
+              (msg) => {
+                pub.worldInfo = msg;
+
+                this.setStatus(pub, flecs.ConnectionStatus.Connected);
+
+                if (pub.params.on_heartbeat) {
+                  pub.params.on_heartbeat(msg);
+                }
+              }, (err) => {
+                this.setStatus(pub, flecs.ConnectionStatus.RetryConnecting);
+              });
+          },
+
+          // Stop monitoring heartbeats
+          stopConnMgr(pub) {
+            this.connMgrRequest.abort();
+            this.setStatus(pub, flecs.ConnectionStatus.Disconnected);
+            pub.worldInfo = undefined;
           }
         }
-
-        return flecs._.request(host, "GET", endpoint, params, on_recv, on_err, 
-          poll_interval);
-      }
+      };
     },
 
-    // Set host for client library
-    connect: function(host) {
-      flecs.params.host = host;
-    },
-
-    // Request entity
-    entity: function(path, params, recv, err) {
-      params = flecs._.entity_params(params);
-      path = path.replace(/\./g, "/");
-      return flecs._.request(params.host, "GET", "entity/" + path, params, (msg) => {
-        if (msg[0] == '{' || msg[0] == '[') {
-          msg = JSON.parse(msg);
-          if (params.raw) {
-            recv(msg);
-          } else {
-            recv(flecs._.format_entity_result(msg));
+    // Convert JavaScript object to query string
+    paramStr(params) {
+      let count = 0;
+      let url_params = "";
+      if (params) {
+        for (var k in params) {
+          // Ignore client-side only parameters
+          if (k === "raw" || k === "full_paths" || k === "poll_interval" || k === "host") {
+            continue;
           }
-        } else {
-          if (err) {
-            err(JSON.parse(msg));
-          }
-        }
-      }, (msg) => {
-        if (err) {
-          if (msg[0] == '{' || msg[0] == '[') {
-            err(JSON.parse(msg));
-          } else {
-            err({error: msg});
-          }
-        }
-      }, params.poll_interval);
-    },
-
-    // Remove whitespaces from query string
-    query_trim: function(query) {
-      query = query.replaceAll("\n", " ");
-      do {
-        let len = query.length;
-        query = query.replaceAll("  ", " ");
-        if (len == query.length) {
-          break;
-        }
-      } while (true);
-      return query;
-    },
-
-    // Request query
-    query: function(query, params, recv, err) {
-      if (query === undefined) {
-        console.error("flecs.query: invalid query parameter");
-        return;
-      }
-
-      params = flecs._.query_params(params);
-
-      // Normalize query string
-      query = flecs.query_trim(query);
-      query = query.replaceAll(", ", ",");
-
-      params.q = encodeURIComponent(query);
-      return flecs._.request_query(params.host, params, recv, err, params.poll_interval);
-    },
-
-    // Request named query
-    query_name: function(query, params, recv, err) {
-      params = flecs._.query_params(params);
-      params.name = encodeURIComponent(query);
-      return flecs._.request_query(params.host, params, recv, err, params.poll_interval);
-    },
-
-    // Create world object
-    world: function(poll_interval = 1000, host = undefined) {
-      return {
-        // Add query to world
-        query: function(query, params) {
-          if (!params) {
-            params = {};
-          }
-          params.raw = false;
-          params.poll_interval = poll_interval;
-          params.host = host;
-          this.queries.push(
-            flecs.query(query, params, 
-              this._recv.bind(this),
-              this._err.bind(this)));
-          return this;
-        },
-
-        // Lookup entity in world
-        lookup: function(path) {
-          if (!path) {
-            return undefined;
-          }
-
-          if (typeof path !== "string") {
-            path = "" + path;
-          }
-
-          let cur = this;
-          let elems = path.split(".");
-          for (let elem of elems) {
-            if (!cur.entities) {
-              return undefined;
-            }
-            let next = cur.entities[elem];
-            if (!next) {
-              return undefined;
-            }
-            cur = next;
-          }
-
-          return cur;
-        },
-
-        // Callback when update happens (useful for reactivity)
-        on_update: function(callback) {
-          this._on_update = callback;
-          return this;
-        },
-
-        // Receive function
-        _recv: function(reply) {
-          let now = Date.now();
-          if ((now - this.last_update) > this.poll_interval * 2) {
-            // If requests are taking longer than expected don't garbage 
-            // collect. Garbage collection should only kick in to clean up
-            // entities that are no longer alive/returned by queries. While the 
-            // client has no connection with the server, no assumptions should 
-            // be made about the state & liveliness of entities.
-            this._keep_alive_scope(this.entities, Date.now());
-          }
-
-          let results = reply.results;
-          if (!results || !results.length) {
-            results = reply.entities;
-            if (!results) {
-              results = [];
-            }
-          }
-
-          for (let entity of results) {
-            const parent = this._ensure(entity.parent, now);
-            if (!parent.entities) {
-              parent.entities = {};
-            }
-            let name = entity.name;
-            if (typeof name !== "string") {
-              name = "" + name;
-            }
-
-            const prev = parent.entities[name];
-            if (prev) {
-              entity.timestamp = prev.timestamp;
-              entity.entities = prev.entities;
-            }
-
-            this._keep_alive(entity, now);
-
-            parent.entities[name] = entity;
-          }
-
-          // Garbage collect entities that are no longer alive
-          this._gc(now);
-
-          // Clear error
-          this.error = undefined;
-
-          this.recv_count ++;
-
-          if (this._on_update) {
-            if (this.recv_count >= this.queries.length) {
-              // Only call on_update when all queries have been received at
-              // least once. This can simplify application logic / reactivity.
-              this._on_update();
-            }
-          }
-        },
-
-        _err: function(reply) {
-          this.error = reply;
-        },
-
-        // Recursively keep alive all entities
-        _keep_alive_scope(entities, now) {
-          for (let path in entities) {
-            let entity = entities[path];
-            this._keep_alive(entity, now);
-            if (entity.entities) {
-              this._keep_alive_scope(entity.entities, now);
-            }
-          }
-        },
-
-        // If entity was received by query, keep it alive for the next epoch
-        _keep_alive(entity, now) {
-          let path = entity.name;
-          if (entity.parent) {
-            path = entity.parent + "." + path;
-          }
-          if (entity.timestamp) {
-            // Remove entity from old timestamp
-            let entities = this.entity_timestamps[entity.timestamp];
-            if (entities) {
-              delete entities[path];
-              if (Object.keys(entities).length === 0) {
-                delete this.entity_timestamps[entity.timestamp];
-              }
-            }
-          }
-
-          // Add to current timestamp
-          let entities = this.entity_timestamps[now];
-          if (!entities) {
-            entities = this.entity_timestamps[now] = {};
-          }
-          entities[path] = 0;
-          entity.timestamp = now;
-        },
-
-        // Garbage collect entities that are no longer alive
-        _gc: function(now) {
-          let timestamps = Object.keys(this.entity_timestamps);
-          for (let time of timestamps) {
-            if (now - time > this.poll_interval * 2) {
-              let entities = Object.keys(this.entity_timestamps[time]);
-              for (let path of entities) {
-                this._collect(path);
-              }
-
-              delete this.entity_timestamps[time];
+          if (params[k] !== undefined) {
+            if (count) {
+              url_params += "&";
             } else {
-              break;
+              url_params += "?";
             }
+            url_params += k + "=" + params[k];
+            count ++;
           }
-        },
-
-        // Garbage collect entity
-        _collect: function(path) {
-          let cur = this, prev = undefined;
-
-          if (typeof path !== "string") {
-            path = "" + path;
-          }
-
-          let elems = path.split(".");
-          for (let elem of elems) {
-            if (!cur.entities) {
-              break;
-            }
-            let next = cur.entities[elem];
-            if (!next) {
-              break;
-            }
-            prev = cur;
-            cur = next;
-          }
-
-          if (prev) {
-            delete prev.entities[elems[elems.length - 1]];
-          } else {
-            delete this.entities[path];
-          }
-        },
-
-        // Ensure entity exists
-        _ensure: function(path, now) {
-          let cur = this;
-          let parent = [];
-
-          if (typeof path !== "string") {
-            path = "" + path;
-          }
-
-          let elems = path.split(".");
-          for (let elem of elems) {
-            if (!cur.entities) {
-              cur.entities = {};
-            }
-            let next = cur.entities[elem];
-            if (!next) {
-              next = cur.entities[elem] = {
-                name: elem,
-                tags: [],
-                pairs: {},
-                components: {}
-              };
-              if (parent.length) {
-                next.parent = parent.join(".")
-              }
-            }
-            cur = next;
-            this._keep_alive(cur, now);
-            parent.push(elem);
-          }
-
-          return cur;
-        },
-        
-        _on_update: undefined,
-
-        queries: [],
-        entities: {},
-        entity_timestamps: {},
-        poll_interval: poll_interval,
-        last_update: 0,
-        recv_count: 0
+        }
       }
-    }
+      return url_params;
+    },
+  },
 };
