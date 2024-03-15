@@ -195,7 +195,7 @@ const onSelect = (index) => {
     selected.value = -1;
     query_name.value = undefined;
   } else {
-    const item = results.value[index];
+    const item = filteredResults.value[index];
     let path = "";
     if (item.parent) {
       path += item.parent + ".";
