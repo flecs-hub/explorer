@@ -75,12 +75,14 @@ const setFocus = (value) => {
   text-align: center;
   border-color: var(--border);
   color: var(--secondary-text);
+  cursor: pointer;
 }
 
 #url-bar:focus {
   color: var(--highlight-text);
   border-color: var(--dark-blue);
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  cursor: text;
 }
 
 </style>
