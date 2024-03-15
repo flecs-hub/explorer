@@ -140,4 +140,5 @@ span.code-number {
 /* Sets the scrollbar width */
 ::-webkit-scrollbar {
   width: 8.5px;
+  height: 8.5px;
 }

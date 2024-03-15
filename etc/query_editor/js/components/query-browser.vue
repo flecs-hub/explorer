@@ -25,15 +25,14 @@
       </toggle>
     </template>
     <div :class="css">
-      <template v-for="(query, i) in results">
+      <template v-for="(query, i) in filteredResults">
         <query-list-item 
           :prop="query"
           :img="itemIcon(query)"
           :expr="nameQuery.expr"
           :index="i" 
           :selected="selected"
-          v-on:select="onSelect(i)"
-          v-if="passFilter(query)">
+          v-on:select="onSelect(i)">
         </query-list-item>
       </template>
     </div>
@@ -104,6 +103,17 @@ const doQuery = () => {
 
 const results = computed(() => {
   return queries.value.results.concat(observers.value.results);
+});
+
+const filteredResults = computed(() => {
+  let items = [];
+  for (const item of results.value) {
+    if (passFilter(item)) {
+      items.push(item);
+    }
+  }
+
+  return items;
 });
 
 const nameQuery = computed(() => {
