@@ -1,5 +1,5 @@
 <template>
-<div id="pane-inspect" class="ace-github-dark">
+<div id="pane-inspect" class="queries-right-pane ace-github-dark">
   <tabs :labels="['json', 'api', 'inspect']" class="inspect-tab-content">
     <template v-slot:json>
       <div :class="visibleClass">
@@ -90,24 +90,14 @@ watch(() => [query.value.expr, query.value.name, query.value.use_name], () => {
 <style scoped>
 #pane-inspect {
   position: relative;
-  grid-column: 3;
-  grid-row: 3 / 4;
   border-radius: var(--border-radius-medium);
-  height: calc(100vh - 60px);
   margin: 0px;
-}
-
-@media screen and (max-width: 800px) {
-  #pane-inspect {
-    grid-column: 2;
-    grid-row: 4;
-    height: calc(60vh - 2.25rem);
-  }
 }
 
 div.pane-inspect {
   height: 100%;
 }
+
 div.pane-inspect-hide {
   display: none;
 }

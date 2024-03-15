@@ -1,5 +1,5 @@
 <template>
-  <div class="title-bar">
+  <div class="top-bar title-bar">
     <div class="title-bar-logo">
       <a
         class="flecs-logo" 
@@ -41,18 +41,11 @@ const props = defineProps({
 });
 
 const worldSummary = computed(() => {
-  const app_state = props.app_state;
-  if (app_state && app_state.worldInfo && app_state.worldInfo.values) {
-    let i = 0;
-    for (const i = 0; i < app_state.worldInfo.ids.length; i ++) {
-      const el = app_state.worldInfo.ids[i];
-      if (el == "flecs.monitor.WorldSummary") {
-        return app_state.worldInfo.values[i];
-      }
-    }
+  if (props.app_state.world_info) {
+    return props.app_state.world_info;
+  } else {
+    return {};
   }
-
-  return {};
 });
 
 const version = computed(() => {
@@ -89,8 +82,6 @@ const connected = computed(() => {
 div.title-bar {
   display: grid;
   grid-template-columns: 2.5rem 1fr 30rem 1fr 2.5rem;
-  grid-column: 2 / 4;
-  grid-row: 2;
 }
 
 div.title-bar-logo a {
@@ -162,7 +153,6 @@ div.title-config-debug-bg {
   opacity: 0.075;
 }
 
-
 div.title-config-sanitize {
   color: var(--red);
 }
@@ -175,7 +165,6 @@ div.title-config-sanitize-bg {
 @media screen and (max-width: 800px) {
   div.title-bar {
     grid-template-columns: 2.5rem 1fr 25rem 1fr 2.5rem;
-    grid-column: 2 / 4;
   }
 
   div.title-version {

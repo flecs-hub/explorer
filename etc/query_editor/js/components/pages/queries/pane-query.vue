@@ -1,5 +1,5 @@
 <template>
-  <div id="pane-query" class="ace-github-dark">
+  <div id="pane-query" class="queries-left-pane ace-github-dark">
     <tabs :labels="['editor', 'browse']"
         class="explorer-tab-content"
         v-on:changed="onTab">
@@ -53,18 +53,7 @@ const onTab = (evt) => {
 
 <style scoped>
 #pane-query {
-  grid-column: 2;
-  grid-row: 3;
   border-radius: var(--border-radius-medium);
-  height: calc(100vh - 60px);
-}
-
-@media screen and (max-width: 800px) {
-  #pane-query {
-    grid-column: 2;
-    grid-row: 3;
-    height: calc(40vh - 2.0rem);
-  }
 }
 </style>
 

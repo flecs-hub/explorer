@@ -12,19 +12,45 @@
   </head>
   <body>
     <div id="app">
+      <menu-bar
+        :items="['queries', 'commands', 'info']">
+        <template v-slot:queries>
+          <menu-button 
+            name="queries" 
+            img="search"
+            v-model:page="page">
+          </menu-button>
+        </template>
+        <template v-slot:commands>
+          <menu-button 
+            name="commands" 
+            img="megaphone"
+            v-model:page="page">
+          </menu-button>
+        </template>
+        <template v-slot:info>
+          <menu-button 
+            name="info" 
+            img="info"
+            v-model:page="page">
+          </menu-button>
+        </template>
+      </menu-bar>
+
+      <page-queries 
+        :page="page"
+        :conn="conn"
+        v-model:app_state="app_state">
+      </page-queries>
+
+      <page-info 
+        :page="page"
+        v-model:app_state="app_state">
+      </page-info>
+
       <title-bar
         :app_state="app_state">
       </title-bar>
-
-      <pane-query
-        v-model:app_state="app_state"
-        :conn="conn">
-      </pane-query>
-
-      <pane-inspect
-        :app_state="app_state"
-        :conn="conn">
-      </pane-inspect>
     </div>
 
     <!-- Vue3 -->

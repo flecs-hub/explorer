@@ -20,6 +20,20 @@ const flecs = {
     RetryConnecting:  Symbol('RetryConnecting'),  // Attempting to restore a lost connection
     Connected:        Symbol('Connected'),        // Connected
     Disconnected:     Symbol('Disconnected'),     // Disconnected (not attempting to connect)
+    
+    toString(value) {
+      if (value == this.Connecting) {
+        return "Connecting";
+      } else if (value == this.RetryConnecting) {
+        return "RetryConnecting";
+      } else if (value == this.Connected) {
+        return "Connected";
+      } else if (value == this.Disconnected) {
+        return "Disconnected";
+      } else {
+        return "UnknownConnectionStatus";
+      }
+    }
   },
 
   // State of outstanding request
@@ -75,7 +89,17 @@ const flecs = {
         status: flecs.ConnectionStatus.Initializing,
         params: connParams,
         worldInfo: undefined,
-  
+
+        requests: {
+          sent: 0,
+          received: 0,
+          error: 0
+        },
+
+        bytes: {
+          received: 0
+        },
+
         // Connect to (different) host
         connect(host) {
           let newHost = host;
@@ -120,7 +144,7 @@ const flecs = {
         // Request entity
         entity: function(path, params, recv, err) {
           path = path.replace(/\./g, "/");
-          return this._.request(this.params, "GET", "entity/" + path, params, 
+          return this._.request(this, "GET", "entity/" + path, params, 
             (msg) => {
               if (msg[0] == '{' || msg[0] == '[') {
                 msg = JSON.parse(msg);
@@ -154,14 +178,14 @@ const flecs = {
   
           params.q = encodeURIComponent(query);
           return this._.requestQuery(
-            this.params, params, recv, err, params.poll_interval);
+            this, params, recv, err, params.poll_interval);
         },
   
         // Request named query
         queryName: function(query, params, recv, err) {
           params.name = encodeURIComponent(query);
           return this._.requestQuery(
-            this.params, params, recv, err, params.poll_interval);
+            this, params, recv, err, params.poll_interval);
         },
   
         // Private methods
@@ -188,7 +212,7 @@ const flecs = {
               dryrun = true;
               delete params.dryrun;
             }
-  
+        
             // Create the request object
             let result = {
               // Properties
@@ -197,7 +221,7 @@ const flecs = {
               conn: conn,
               request: undefined,
               method: method,
-              url: conn.host + "/" + path + flecs._.paramStr(params),
+              url: conn.params.host + "/" + path + flecs._.paramStr(params),
               recv: recv,
               err: err,
               poll_interval: poll_interval,
@@ -211,6 +235,13 @@ const flecs = {
                 this.request.open(this.method, this.url);
                 this.request.onreadystatechange = (reply) => {
                   if (this.request.readyState == 4) {
+                    let requestOk = false;
+
+                    conn.requests.received ++;
+                    if (this.request.responseText.length) {
+                      conn.bytes.received += this.request.responseText.length;
+                    }
+
                     // Request ready
                     if (this.request.status == 0) {
                       // No reply was received
@@ -227,11 +258,17 @@ const flecs = {
                           this.err(this.request.responseText);
                         }
                       } else {
+                        requestOk = true;
+
                         // Request OK
                         if (this.recv) {
                           this.recv(this.request.responseText, this.url);
                         }
                       }
+                    }
+
+                    if (!requestOk) {
+                      conn.requests.error ++;
                     }
   
                     // Poll if necessary
@@ -241,6 +278,8 @@ const flecs = {
   
                 // Send it
                 this.request.send();
+
+                conn.requests.sent ++;
               },
   
               // Redo the request

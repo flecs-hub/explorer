@@ -21,14 +21,10 @@ const hasFocus = ref();
 
 const appName = computed(() => {
   const app_state = props.app_state;
-  if (app_state.worldInfo) {
-    let str = app_state.worldInfo.label;
-    str = str.replaceAll("_", " ");
-    str = str.charAt(0).toUpperCase() + str.slice(1);
-    return str;
-  } else {
-    return undefined;
-  }
+  let str = app_state.app_name;
+  str = str.replaceAll("_", " ");
+  str = str.charAt(0).toUpperCase() + str.slice(1);
+  return str;
 });
 
 const value = computed(() => {
@@ -57,7 +53,6 @@ const value = computed(() => {
 const setFocus = (value) => {
   hasFocus.value = value;
 }
-
 </script>
 
 <style scoped>
