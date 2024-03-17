@@ -1,16 +1,14 @@
 <template>
   <div id="page-queries" class="page-content">
-    <template v-if="isActive">
-      <pane-query
-        v-model:app_state="app_state"
-        :conn="conn">
-      </pane-query>
+    <pane-query
+      v-model:app_state="app_state"
+      :conn="conn">
+    </pane-query>
 
-      <pane-inspect
-        :app_state="app_state"
-        :conn="conn">
-      </pane-inspect>
-    </template>
+    <pane-inspect
+      :app_state="app_state"
+      :conn="conn">
+    </pane-inspect>
   </div>
 </template>
 
@@ -22,15 +20,10 @@ export default { name: "page-queries" };
 import { defineProps, defineModel, computed } from 'vue';
 
 const props = defineProps({
-  page: {type: String, required: true},
   conn: {type: Object, required: true}
 });
 
 const app_state = defineModel("app_state");
-
-const isActive = computed(() => {
-    return props.page == "queries";
-});
 </script>
 
 <style scoped>
@@ -48,7 +41,7 @@ const isActive = computed(() => {
 
 @media screen and (max-width: 800px) {
   #page-queries {
-    grid-template-columns: 1fr;
+    grid-template-columns: calc(100%);
     grid-template-rows: calc(40vh - 2.0rem) calc(60vh - 2.5rem);
   }
 }

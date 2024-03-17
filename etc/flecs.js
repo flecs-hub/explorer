@@ -187,6 +187,21 @@ const flecs = {
           return this._.requestQuery(
             this, params, recv, err, params.poll_interval);
         },
+
+        // Other REST endpoints
+        request: function(path, params, recv, err) {
+          return this._.request(this, "GET", path, params, 
+            (msg) => {
+              if (recv) {
+                recv(JSON.parse(msg))
+              }
+            }, (msg) => {
+              if (err) {
+                err(JSON.parse(msg))
+              }
+            },
+            params.poll_interval);
+        },
   
         // Private methods
         _: {
@@ -379,7 +394,7 @@ const flecs = {
             let on_recv, on_err;
             if (recv) {
               on_recv = (msg) => {
-                if (msg[0] == '{' || msg[0] == '[') {
+                if (msg && (msg[0] == '{' || msg[0] == '[')) {
                   msg = JSON.parse(msg);
                   recv(msg);
                 } else {
@@ -393,7 +408,7 @@ const flecs = {
             if (err) {
               on_err = (msg) => {
                 if (err) {
-                  if (msg[0] == '{' || msg[0] == '[') {
+                  if (msg && (msg[0] == '{' || msg[0] == '[')) {
                     err(JSON.parse(msg));
                   } else {
                     err({error: msg});

@@ -37,16 +37,25 @@
         </template>
       </menu-bar>
 
-      <page-queries 
-        :page="page"
-        :conn="conn"
-        v-model:app_state="app_state">
-      </page-queries>
+      <template v-if="page == 'queries'">
+        <page-queries 
+          :conn="conn"
+          v-model:app_state="app_state">
+        </page-queries>
+      </template>
 
-      <page-info 
-        :page="page"
-        v-model:app_state="app_state">
-      </page-info>
+      <template v-if="page == 'commands'">
+        <page-commands 
+          :conn="conn"
+          v-model:app_state="app_state">
+        </page-commands>
+      </template>
+
+      <template v-if="page == 'info'">
+        <page-info 
+          v-model:app_state="app_state">
+        </page-info>
+      </template>
 
       <title-bar
         :app_state="app_state">

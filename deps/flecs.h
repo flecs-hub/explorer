@@ -21525,7 +21525,7 @@ public:
      */
     template <typename T, typename A = actual_type_t<T>,
         typename std::enable_if<std::is_const<T>::value, void>::type* = nullptr>
-    flecs::column<A> field(int32_t index) const {
+    flecs::field<A> field(int32_t index) const {
         return get_field<A>(index);
     }
 
@@ -21540,7 +21540,7 @@ public:
     template <typename T, typename A = actual_type_t<T>,
         typename std::enable_if<
             std::is_const<T>::value == false, void>::type* = nullptr>
-    flecs::column<A> field(int32_t index) const {
+    flecs::field<A> field(int32_t index) const {
         ecs_assert(!ecs_field_is_readonly(m_iter, index), 
             ECS_ACCESS_VIOLATION, NULL);
         return get_field<A>(index);
@@ -21560,8 +21560,8 @@ public:
      *
      * @return The entity ids.
      */
-    flecs::column<const flecs::entity_t> entities() const {
-        return flecs::column<const flecs::entity_t>(m_iter->entities, static_cast<size_t>(m_iter->count), false);
+    flecs::field<const flecs::entity_t> entities() const {
+        return flecs::field<const flecs::entity_t>(m_iter->entities, static_cast<size_t>(m_iter->count), false);
     }
 
     /** Obtain the total number of tables the iterator will iterate over. */
@@ -21606,7 +21606,7 @@ public:
 private:
     /* Get field, check if correct type is used */
     template <typename T, typename A = actual_type_t<T>>
-    flecs::column<T> get_field(int32_t index) const {
+    flecs::field<T> get_field(int32_t index) const {
 
 #ifndef FLECS_NDEBUG
         ecs_entity_t term_id = ecs_field_id(m_iter, index);
@@ -21629,7 +21629,7 @@ private:
             count = static_cast<size_t>(m_iter->count);
         }
         
-        return flecs::column<A>(
+        return flecs::field<A>(
             static_cast<T*>(ecs_field_w_size(m_iter, sizeof(A), index)), 
             count, is_shared);
     }

@@ -18,7 +18,7 @@ body {
   width: 100%;
   height: 100vh;
   display: grid;
-  grid-template-columns: 0.0rem 2.5rem 1fr 0.0rem;
+  grid-template-columns: 0.0rem 2.5rem calc(100% - 4.0rem) 0.0rem;
   grid-template-rows: 0.1rem 2.0rem 1.0fr 0.0rem;
   gap: 0.5rem;
 }
@@ -75,6 +75,24 @@ input {
   caret-color: var(--secondary-text);
   font-size: inherit;
   font-family: inherit;
+}
+
+button {
+  padding: 0.5rem;
+	background: none;
+	border: none;
+  text-transform: capitalize;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+  border-radius: var(--border-radius-medium);
+  background-color: var(--primary-color);
+  color: var(--dark-text);
+  cursor: pointer;
+}
+
+button:active {
+  opacity: 0.8;
 }
 
 input:focus {

@@ -22,8 +22,13 @@
         <span class="info-table-value">{{ sanitize }}</span>
       </div>
 
-      <div class="info-table-cell" style="grid-column: 1; grid-row: 5">Compiler</div>
+      <div class="info-table-cell" style="grid-column: 1; grid-row: 5">Perf tracing</div>
       <div class="info-table-cell" style="grid-column: 2; grid-row: 5; border-right-width: 0px;">
+        <span class="info-table-value">{{ perf_trace }}</span>
+      </div>
+
+      <div class="info-table-cell info-table-cell-alt" style="grid-column: 1; grid-row: 6">Compiler</div>
+      <div class="info-table-cell info-table-cell-alt" style="grid-column: 2; grid-row: 6; border-right-width: 0px;">
         <span class="info-table-value">{{ compiler }}</span>
       </div>
     </div>
@@ -106,6 +111,14 @@ const debug = computed(() => {
 const sanitize = computed(() => {
   if (props.app_state.build_info) {
     return props.app_state.build_info.sanitize ? "Enabled" : "Disabled";
+  } else {
+    return "Unknown";
+  }
+});
+
+const perf_trace = computed(() => {
+  if (props.app_state.build_info) {
+    return props.app_state.build_info.perf_trace ? "Enabled" : "Disabled";
   } else {
     return "Unknown";
   }

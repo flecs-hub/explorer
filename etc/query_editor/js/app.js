@@ -79,6 +79,55 @@ function nameQueryFromExpr(expr, oneof) {
   };
 }
 
+function fmtDuration(seconds) {
+  let result = "";
+
+  if (seconds === 0) {
+    return "0s";
+  }
+
+  let days = Math.floor(seconds / (24 * 60 * 60));
+  seconds -= days * (24 * 60 * 60);
+
+  let hours = Math.floor(seconds / (60 * 60));
+  seconds -= hours * (60 * 60);
+
+  let minutes = Math.floor(seconds / 60);
+  seconds -= minutes * 60;
+  
+  if (days) {
+    result += days + "d\xa0";
+  }
+  if (hours || (result.length && minutes && seconds)) {
+    result += hours + "h\xa0";
+  }
+  if (minutes || (result.length && seconds)) {
+    result += minutes + "min\xa0";
+  }
+  if (seconds) {
+    if (seconds < 1.0 && (!days && !hours && !minutes)) {
+      // Small duration, multiply until we have something that's > 1
+      let multiplied = 0;
+      if (seconds > 0) {
+        do {
+          multiplied ++;
+          seconds *= 1000;
+        } while (seconds < 1.0);
+      }
+
+      result += seconds.toFixed(2);
+      result += ['s', 'ms', 'us', 'ns', 'ps'][multiplied];
+    } else {
+      // don't bother with decimals of seconds when the duration is longer than
+      // a minute.
+      result += Math.round(seconds);
+      result += "s";
+    }
+  }
+
+  return result;
+}
+
 let components = [
   // Common components
   loadModule('js/components/title-bar.vue', options),
@@ -114,6 +163,15 @@ let components = [
   loadModule('js/components/pages/queries/query-api.vue', options),
   loadModule('js/components/pages/queries/query-error.vue', options),
   loadModule('js/components/pages/queries/query-list-item.vue', options),
+
+  // Commands page
+  loadModule('js/components/pages/commands/page.vue', options),
+  loadModule('js/components/pages/commands/pane-header.vue', options),
+  loadModule('js/components/pages/commands/pane-inspect.vue', options),
+  loadModule('js/components/pages/commands/inspect-sync.vue', options),
+  loadModule('js/components/pages/commands/inspect-cmd-header.vue', options),
+  loadModule('js/components/pages/commands/inspect-cmd-history.vue', options),
+  loadModule('js/components/pages/commands/inspect-cmd.vue', options),
 
   // Info page
   loadModule('js/components/pages/info/page.vue', options),
@@ -170,6 +228,30 @@ Promise.all(components).then((values) => {
           }
         }.bind(this)
       });
+
+      // Start timer to track command counts. Run timer separately from 
+      // heartbeats so we still populate the array even if the connection is
+      // gone.
+      setInterval(function() {
+        if (this.app_state.world_info && 
+            this.app_state.status == flecs.ConnectionStatus.Connected) 
+        {
+          if (this.prev_command_count == -1) {
+            // First received heartbeat. To ensure we don't insert a very large
+            // value, just set the prev count. 
+          } else {
+            this.app_state.command_counts.unshift(
+              this.app_state.world_info.command_count - this.prev_command_count);
+          }
+          this.prev_command_count = this.app_state.world_info.command_count;
+        } else {
+          this.app_state.command_counts.unshift(-1);
+          this.prev_command_count = -1;
+        }
+        if (this.app_state.command_counts.length > 120) {
+          this.app_state.command_counts.pop();
+        }
+      }.bind(this), 1000);
     },
     data() {
       return {
@@ -189,6 +271,7 @@ Promise.all(components).then((values) => {
           },
           world_info: undefined,
           build_info: undefined,
+          command_counts: new Array(120).fill(0),
           query: {
             expr: QueryParam,
             name: undefined,
@@ -198,6 +281,8 @@ Promise.all(components).then((values) => {
         page: "queries",
         conn: undefined,
         lastWord: "",
+        prev_command_count: -1,
+        prev_heartbeats_received: -1
       };
     }
   });

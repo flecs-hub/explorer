@@ -16,6 +16,7 @@ const props = defineProps({
   class: { type: String, required: false, default: ""},
   size: { type: Number, required: false, default: 16 },
   opacity: { type: Number, required: false, default: 0.7 },
+  rotate: { type: Number, required: false, default: 0.0 },
 });
 
 const style = computed(() => {
@@ -24,6 +25,7 @@ const style = computed(() => {
     width: ${props.size}px;
     height: ${props.size}px;
     opacity: ${props.opacity};
+    transform: rotate(${props.rotate}deg);
     vertical-align: middle;
     height: 100%;
     `;

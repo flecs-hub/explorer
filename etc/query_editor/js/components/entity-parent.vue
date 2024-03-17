@@ -40,6 +40,7 @@ const render = () => {
 span.entity-parent {
   font-size: 0.8em;
   color: var(--secondary-text);
+  white-space: preserve;
 }
 
 span.entity-parent-sep {
