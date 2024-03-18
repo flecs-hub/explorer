@@ -7,7 +7,7 @@
             <icon :src="query_icon" :opacity="0.5" v-if="query_icon"></icon>
           </div>
           <div class="query-inspect-content">
-            <entity-parent :path="query_parent"></entity-parent>
+            <entity-path :path="query_parent"></entity-path>
             <span class="query-inspect-name">{{ query_name }}</span>
           </div>
         </div>

@@ -5,7 +5,7 @@
         <icon :src="img" :opacity="0.5" v-if="img"></icon>
       </div>
       <div class="query-list-item-content">
-        <entity-parent :path="prop.parent"></entity-parent>
+        <entity-path :path="prop.parent"></entity-path>
         <prop_name/>
         <span class="prop-brief" v-if="description">{{ description }}</span>
         <template v-if="show_usage && (isComponent || isRelationship) && !isModule">

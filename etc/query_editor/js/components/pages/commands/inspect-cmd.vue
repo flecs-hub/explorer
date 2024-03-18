@@ -5,11 +5,11 @@
     </span>
     <template v-if="cmd.system">
       <span class="commands-cmd-system">
-        <entity-parent :path="cmd.system"></entity-parent>
+        <entity-path :path="cmd.system"></entity-path>
       </span>
     </template>
     <template v-else>
-      <entity-parent path="unknown source"></entity-parent>
+      <entity-path path="unknown source"></entity-path>
     </template>
     <span class="commands-cmd-kind">
       {{ cmd.kind }}
@@ -20,8 +20,12 @@
       </template>
     </span>
     <template v-if="cmd.entity">
-      <span class="commands-cmd-entity code-identifier">
-        {{ cmd.entity }}
+        <span class="commands-cmd-entity-parent code-identifier">
+          <entity-parent :path="cmd.entity"></entity-parent>
+        </span>
+        <span class="commands-cmd-entity code-identifier">
+          <entity-name :path="cmd.entity"></entity-name>
+        </span>
         <template v-if="!cmd.is_alive">
           <span class="commands-cmd-not-alive">not alive</span>
         </template>
@@ -131,9 +135,15 @@ span.commands-cmd-is-alive {
   color: var(--secondary-text);
 }
 
+span.commands-cmd-entity-parent {
+  grid-column: 3;
+  grid-row: 1;
+  overflow: hidden;
+}
+
 span.commands-cmd-entity {
   grid-column: 3;
-  grid-row: 1 / 3;
+  grid-row: 2;
   overflow: hidden;
 }
 

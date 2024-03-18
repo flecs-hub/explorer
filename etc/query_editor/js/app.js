@@ -141,7 +141,9 @@ let components = [
   loadModule('js/components/code-editor.vue', options),
   loadModule('js/components/prop-browser.vue', options),
   loadModule('js/components/url-bar.vue', options),
+  loadModule('js/components/entity-path.vue', options),
   loadModule('js/components/entity-parent.vue', options),
+  loadModule('js/components/entity-name.vue', options),
 
   // Queries page
   loadModule('js/components/pages/queries/page.vue', options),

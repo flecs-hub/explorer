@@ -1,9 +1,9 @@
 <template>
-  <entity-path :path="parent"></entity-path>
+  {{ entityName }}
 </template>
 
 <script>
-export default { name: "entity-parent" };
+export default { name: "entity-name" };
 </script>
 
 <script setup>
@@ -13,10 +13,9 @@ const props = defineProps({
   path: {type: String, required: true}
 });
 
-const parent = computed(() => {
+const entityName = computed(() => {
   const names = props.path.split(".");
-  names.pop();
-  return names.join(".");
+  return names.pop();
 });
 
 </script>

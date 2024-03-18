@@ -389,8 +389,8 @@ extern "C" {
 
 #define EcsFilterMatchThis             (1u << 1u)  /* Has terms that match This */
 #define EcsFilterMatchOnlyThis         (1u << 2u)  /* Has only terms that match This */
-#define EcsFilterMatchPrefab           (1u << 3u)  /* Does filter match prefabs */
-#define EcsFilterMatchDisabled         (1u << 4u)  /* Does filter match disabled entities */
+#define EcsQueryMatchPrefab           (1u << 3u)  /* Does filter match prefabs */
+#define EcsQueryMatchDisabled         (1u << 4u)  /* Does filter match disabled entities */
 #define EcsFilterMatchEmptyTables      (1u << 5u)  /* Does filter return empty tables */
 #define EcsFilterMatchAnything         (1u << 6u)  /* False if filter has no/only Not terms */
 #define EcsFilterNoData                (1u << 7u)  /* When true, data fields won't be populated */
@@ -2939,7 +2939,7 @@ typedef enum ecs_oper_kind_t {
 #define EcsTermMatchPrefab            (1u << 8)
 
 /** Type that describes a single identifier in a term */
-typedef struct ecs_term_id_t {
+typedef struct ecs_term_ref_t {
     ecs_entity_t id;            /**< Entity id. If left to 0 and flags does not 
                                  * specify whether id is an entity or a variable
                                  * the id will be initialized to EcsThis. 
@@ -2957,7 +2957,7 @@ typedef struct ecs_term_id_t {
                                  * the Traversable property. Default is IsA. */
 
     ecs_flags32_t flags;        /**< Term flags */
-} ecs_term_id_t;
+} ecs_term_ref_t;
 
 /** Type that describes a term (single element in a query) */
 struct ecs_term_t {
@@ -2966,9 +2966,9 @@ struct ecs_term_t {
                                  * first/second members, which provide more
                                  * flexibility. */
 
-    ecs_term_id_t src;          /**< Source of term */
-    ecs_term_id_t first;        /**< Component or first element of pair */
-    ecs_term_id_t second;       /**< Second element of pair */
+    ecs_term_ref_t src;          /**< Source of term */
+    ecs_term_ref_t first;        /**< Component or first element of pair */
+    ecs_term_ref_t second;       /**< Second element of pair */
     
     ecs_inout_kind_t inout;     /**< Access to contents matched by term */
     ecs_oper_kind_t oper;       /**< Operator of term */
@@ -6771,7 +6771,7 @@ bool ecs_children_next(
  */
 FLECS_API 
 bool ecs_term_id_is_set(
-    const ecs_term_id_t *id);
+    const ecs_term_ref_t *id);
 
 /** Test whether a term is set.
  * This operation can be used to test whether a term has been initialized with
@@ -8777,7 +8777,7 @@ int ecs_value_move_ctor(
  *
  * Example:
  *   ecs_query(world, {
- *     .filter.terms = {{ ecs_id(Position) }}
+ *     .terms = {{ ecs_id(Position) }}
  *   });
  */
 #define ecs_query(world, ...)\
@@ -8787,7 +8787,7 @@ int ecs_value_move_ctor(
  *
  * Example:
  *   ecs_observer(world, {
- *     .filter.terms = {{ ecs_id(Position) }},
+ *     .terms = {{ ecs_id(Position) }},
  *     .events = { EcsOnAdd },
  *     .callback = AddPosition
  *   });
@@ -11211,7 +11211,7 @@ ecs_entity_t ecs_system_init(
  *       .name = "MyEntity",
  *       .add = { ecs_dependson(EcsOnUpdate) }
  *     }),
- *     .query.filter.terms = {
+ *     .query.terms = {
  *       { ecs_id(Position) },
  *       { ecs_id(Velocity) }
  *     },
@@ -15100,7 +15100,7 @@ bool ecs_rule_next_instanced(
  * @return The string
  */
 FLECS_API
-char* ecs_rule_str(
+char* ecs_query_plan(
     const ecs_rule_t *rule);
 
 /** Convert rule to string with profile.
@@ -15112,7 +15112,7 @@ char* ecs_rule_str(
  * @return The string
  */
 FLECS_API
-char* ecs_rule_str_w_profile(
+char* ecs_query_plan_w_profile(
     const ecs_rule_t *rule,
     const ecs_iter_t *it);
 
@@ -15383,7 +15383,7 @@ char* ecs_parse_term(
     const char *expr,
     const char *ptr,
     ecs_term_t *term_out,
-    ecs_term_id_t *extra_args);
+    ecs_term_ref_t *extra_args);
 
 #ifdef __cplusplus
 }
@@ -27246,7 +27246,7 @@ struct term_id_builder_i {
         return *this;
     }
 
-    ecs_term_id_t *m_term_id;
+    ecs_term_ref_t *m_term_id;
     
 protected:
     virtual flecs::world_t* world_v() = 0;
@@ -29022,8 +29022,8 @@ namespace _ {
     {
         ecs_observer_desc_t desc = {};
         desc.events[0] = event;
-        desc.filter.terms[0].id = EcsAny;
-        desc.filter.terms[0].src.id = entity;
+        desc.terms[0].id = EcsAny;
+        desc.terms[0].src.id = entity;
         desc.callback = callback;
         desc.binding_ctx = binding_ctx;
         desc.binding_ctx_free = binding_ctx_free;
@@ -29478,8 +29478,8 @@ struct system final : entity
         m_world = world;
         m_id = ecs_system_init(world, desc);
 
-        if (desc->query.filter.terms_buffer) {
-            ecs_os_free(desc->query.filter.terms_buffer);
+        if (desc->query.terms_buffer) {
+            ecs_os_free(desc->query.terms_buffer);
         }
     }
 
@@ -29669,8 +29669,8 @@ struct pipeline : entity {
             ecs_abort(ECS_INVALID_PARAMETER, NULL);
         }
 
-        if (desc->query.filter.terms_buffer) {
-            ecs_os_free(desc->query.filter.terms_buffer);
+        if (desc->query.terms_buffer) {
+            ecs_os_free(desc->query.terms_buffer);
         }
     }
 };
@@ -30131,10 +30131,10 @@ struct rule_base {
 
     /** Converts this rule to a string that can be used to aid debugging
      * the behavior of the rule.
-     * @see ecs_rule_str
+     * @see ecs_query_plan
      */
     flecs::string rule_str() const {
-        char *result = ecs_rule_str(m_rule);
+        char *result = ecs_query_plan(m_rule);
         return flecs::string(result);
     }
 

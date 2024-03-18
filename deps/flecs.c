@@ -2853,7 +2853,7 @@ void flecs_register_symmetric(ecs_iter_t *it) {
          * added, or remove the reverse relationship when R(X, Y) is removed. */
         ecs_observer(world, {
             .entity = ecs_entity(world, {.add = {ecs_childof(r)}}),
-            .filter.terms[0] = { .id = ecs_pair(r, EcsWildcard) },
+            .terms[0] = { .id = ecs_pair(r, EcsWildcard) },
             .callback = flecs_on_symmetric_add_remove,
             .events = {EcsOnAdd, EcsOnRemove}
         });
@@ -3128,7 +3128,7 @@ void flecs_bootstrap(
     /* Register observer for tag property before adding EcsTag */
     ecs_observer(world, {
         .entity = ecs_entity(world, {.add = { ecs_childof(EcsFlecsInternals)}}),
-        .filter.terms[0] = { .id = EcsTag, .src.flags = EcsSelf },
+        .terms[0] = { .id = EcsTag, .src.flags = EcsSelf },
         .events = {EcsOnAdd, EcsOnRemove},
         .callback = flecs_register_tag,
         .yield_existing = true
@@ -3264,13 +3264,13 @@ void flecs_bootstrap(
      * set flags on an id record when a property is added to a component, which
      * allows for quick property testing in various operations. */
     ecs_observer(world, {
-        .filter.terms = {{ .id = EcsFinal, .src.flags = EcsSelf }, match_prefab },
+        .terms = {{ .id = EcsFinal, .src.flags = EcsSelf }, match_prefab },
         .events = {EcsOnAdd},
         .callback = flecs_register_final
     });
 
     ecs_observer(world, {
-        .filter.terms = {
+        .terms = {
             { .id = ecs_pair(EcsOnDelete, EcsWildcard), .src.flags = EcsSelf },
             match_prefab
         },
@@ -3279,7 +3279,7 @@ void flecs_bootstrap(
     });
 
     ecs_observer(world, {
-        .filter.terms = {
+        .terms = {
             { .id = ecs_pair(EcsOnDeleteTarget, EcsWildcard), .src.flags = EcsSelf },
             match_prefab
         },
@@ -3288,7 +3288,7 @@ void flecs_bootstrap(
     });
 
     ecs_observer(world, {
-        .filter.terms = {
+        .terms = {
             { .id = EcsTraversable, .src.flags = EcsSelf },
             match_prefab
         },
@@ -3297,31 +3297,31 @@ void flecs_bootstrap(
     });
 
     ecs_observer(world, {
-        .filter.terms = {{ .id = EcsExclusive, .src.flags = EcsSelf  }, match_prefab },
+        .terms = {{ .id = EcsExclusive, .src.flags = EcsSelf  }, match_prefab },
         .events = {EcsOnAdd, EcsOnRemove},
         .callback = flecs_register_exclusive
     });
 
     ecs_observer(world, {
-        .filter.terms = {{ .id = EcsSymmetric, .src.flags = EcsSelf  }, match_prefab },
+        .terms = {{ .id = EcsSymmetric, .src.flags = EcsSelf  }, match_prefab },
         .events = {EcsOnAdd},
         .callback = flecs_register_symmetric
     });
 
     ecs_observer(world, {
-        .filter.terms = {{ .id = EcsDontInherit, .src.flags = EcsSelf }, match_prefab },
+        .terms = {{ .id = EcsDontInherit, .src.flags = EcsSelf }, match_prefab },
         .events = {EcsOnAdd},
         .callback = flecs_register_dont_inherit
     });
 
     ecs_observer(world, {
-        .filter.terms = {{ .id = EcsAlwaysOverride, .src.flags = EcsSelf } },
+        .terms = {{ .id = EcsAlwaysOverride, .src.flags = EcsSelf } },
         .events = {EcsOnAdd},
         .callback = flecs_register_always_override
     });
 
     ecs_observer(world, {
-        .filter.terms = {
+        .terms = {
             { .id = ecs_pair(EcsWith, EcsWildcard), .src.flags = EcsSelf },
             match_prefab
         },
@@ -3330,7 +3330,7 @@ void flecs_bootstrap(
     });
 
     ecs_observer(world, {
-        .filter.terms = {{ .id = EcsUnion, .src.flags = EcsSelf }, match_prefab },
+        .terms = {{ .id = EcsUnion, .src.flags = EcsSelf }, match_prefab },
         .events = {EcsOnAdd},
         .callback = flecs_register_union
     });
@@ -3338,7 +3338,7 @@ void flecs_bootstrap(
     /* Entities used as slot are marked as exclusive to ensure a slot can always
      * only point to a single entity. */
     ecs_observer(world, {
-        .filter.terms = {
+        .terms = {
             { .id = ecs_pair(EcsSlotOf, EcsWildcard), .src.flags = EcsSelf },
             match_prefab
         },
@@ -3349,7 +3349,7 @@ void flecs_bootstrap(
     /* Define observer to make sure that adding a module to a child entity also
      * adds it to the parent. */
     ecs_observer(world, {
-        .filter.terms = {{ .id = EcsModule, .src.flags = EcsSelf }, match_prefab},
+        .terms = {{ .id = EcsModule, .src.flags = EcsSelf }, match_prefab},
         .events = {EcsOnAdd},
         .callback = flecs_ensure_module_tag
     });
@@ -9239,7 +9239,7 @@ void flecs_on_set_symbol(ecs_iter_t *it) {
 void flecs_bootstrap_hierarchy(ecs_world_t *world) {
     ecs_observer(world, {
         .entity = ecs_entity(world, {.add = {ecs_childof(EcsFlecsInternals)}}),
-        .filter.terms[0] = {
+        .terms[0] = {
             .id = ecs_pair(ecs_id(EcsIdentifier), EcsSymbol), 
             .src.flags = EcsSelf 
         },
@@ -9770,7 +9770,7 @@ void flecs_filter_error(
 
 static
 int flecs_term_id_finalize_flags(
-    ecs_term_id_t *term_id,
+    ecs_term_ref_t *term_id,
     ecs_filter_finalize_ctx_t *ctx)
 {
     if ((term_id->flags & EcsIsEntity) && (term_id->flags & EcsIsVariable)) {
@@ -9817,7 +9817,7 @@ static
 int flecs_term_id_lookup(
     const ecs_world_t *world,
     ecs_entity_t scope,
-    ecs_term_id_t *term_id,
+    ecs_term_ref_t *term_id,
     bool free_name,
     ecs_filter_finalize_ctx_t *ctx)
 {
@@ -9906,9 +9906,9 @@ int flecs_term_ids_finalize(
     ecs_term_t *term,
     ecs_filter_finalize_ctx_t *ctx)
 {
-    ecs_term_id_t *src = &term->src;
-    ecs_term_id_t *first = &term->first;
-    ecs_term_id_t *second = &term->second;
+    ecs_term_ref_t *src = &term->src;
+    ecs_term_ref_t *first = &term->first;
+    ecs_term_ref_t *second = &term->second;
 
     /* Include inherited components (like from prefabs) by default for src */
     if (!(src->flags & EcsTraverseFlags)) {
@@ -9991,7 +9991,7 @@ int flecs_term_ids_finalize(
 
 static
 ecs_entity_t flecs_term_id_get_entity(
-    const ecs_term_id_t *term_id)
+    const ecs_term_ref_t *term_id)
 {
     if (term_id->flags & EcsIsEntity) {
         return term_id->id; /* Id is known */
@@ -10117,8 +10117,8 @@ int flecs_term_verify_eq_pred(
     ecs_filter_finalize_ctx_t *ctx)
 {
     ecs_entity_t first_id = term->first.id;
-    const ecs_term_id_t *second = &term->second;
-    const ecs_term_id_t *src = &term->src;
+    const ecs_term_ref_t *second = &term->second;
+    const ecs_term_ref_t *src = &term->src;
 
     if (term->oper != EcsAnd && term->oper != EcsNot && term->oper != EcsOr) {
         flecs_filter_error(ctx, "invalid operator combination");
@@ -10167,9 +10167,9 @@ int flecs_term_verify(
     const ecs_term_t *term,
     ecs_filter_finalize_ctx_t *ctx)
 {
-    const ecs_term_id_t *first = &term->first;
-    const ecs_term_id_t *second = &term->second;
-    const ecs_term_id_t *src = &term->src;
+    const ecs_term_ref_t *first = &term->first;
+    const ecs_term_ref_t *second = &term->second;
+    const ecs_term_ref_t *src = &term->src;
     ecs_entity_t first_id = 0, second_id = 0;
     ecs_id_t role = term->id_flags;
     ecs_id_t id = term->id;
@@ -10344,9 +10344,9 @@ int flecs_term_finalize(
 {
     ctx->term = term;
 
-    ecs_term_id_t *src = &term->src;
-    ecs_term_id_t *first = &term->first;
-    ecs_term_id_t *second = &term->second;
+    ecs_term_ref_t *src = &term->src;
+    ecs_term_ref_t *first = &term->first;
+    ecs_term_ref_t *second = &term->second;
     ecs_flags32_t first_flags = first->flags;
     ecs_flags32_t src_flags = src->flags;
     ecs_flags32_t second_flags = second->flags;
@@ -10703,7 +10703,7 @@ ecs_flags32_t ecs_id_get_flags(
 }
 
 bool ecs_term_id_is_set(
-    const ecs_term_id_t *id)
+    const ecs_term_ref_t *id)
 {
     return id->id != 0 || id->name != NULL || id->flags & EcsIsEntity;
 }
@@ -10863,10 +10863,10 @@ int ecs_filter_finalize(
         }
 
         if (term->id == EcsPrefab) {
-            ECS_BIT_SET(f->flags, EcsFilterMatchPrefab);
+            ECS_BIT_SET(f->flags, EcsQueryMatchPrefab);
         }
         if (term->id == EcsDisabled && (term->src.flags & EcsSelf)) {
-            ECS_BIT_SET(f->flags, EcsFilterMatchDisabled);
+            ECS_BIT_SET(f->flags, EcsQueryMatchDisabled);
         }
 
         if (ECS_BIT_IS_SET(f->flags, EcsFilterNoData)) {
@@ -11144,7 +11144,7 @@ ecs_filter_t* ecs_filter_init(
         const char *name = NULL;
         const char *ptr = desc->expr;
         ecs_term_t term = {0};
-        ecs_term_id_t extra_args[ECS_PARSER_MAX_ARGS];
+        ecs_term_ref_t extra_args[ECS_PARSER_MAX_ARGS];
         int32_t expr_size = 0;
 
         ecs_os_zeromem(extra_args);
@@ -11324,7 +11324,7 @@ static
 void flecs_filter_str_add_id(
     const ecs_world_t *world,
     ecs_strbuf_t *buf,
-    const ecs_term_id_t *id,
+    const ecs_term_ref_t *id,
     bool is_subject,
     ecs_flags32_t default_traverse_flags)
 {
@@ -11389,8 +11389,8 @@ void flecs_term_str_w_strbuf(
     ecs_strbuf_t *buf,
     int32_t t)
 {
-    const ecs_term_id_t *src = &term->src;
-    const ecs_term_id_t *second = &term->second;
+    const ecs_term_ref_t *src = &term->src;
+    const ecs_term_ref_t *second = &term->second;
 
     uint8_t def_src_mask = EcsSelf|EcsUp;
     uint8_t def_first_mask = EcsSelf;
@@ -11654,7 +11654,7 @@ bool flecs_term_match_table(
     bool first,
     ecs_flags32_t iter_flags)
 {
-    const ecs_term_id_t *src = &term->src;
+    const ecs_term_ref_t *src = &term->src;
     ecs_oper_kind_t oper = term->oper;
     const ecs_table_t *match_table = table;
     ecs_id_t id = term->id;
@@ -11820,7 +11820,7 @@ bool flecs_filter_match_table(
             }
         }
 
-        ecs_term_id_t *src = &term->src;
+        ecs_term_ref_t *src = &term->src;
         const ecs_table_t *match_table = table;
         int32_t t_i = term->field_index;
 
@@ -11942,7 +11942,7 @@ void term_iter_init(
     ecs_term_iter_t *iter,
     bool empty_tables)
 {    
-    const ecs_term_id_t *src = &term->src;
+    const ecs_term_ref_t *src = &term->src;
 
     iter->term = *term;
 
@@ -12073,7 +12073,7 @@ bool flecs_term_iter_find_superset(
     ecs_id_t *id, 
     int32_t *column)
 {
-    ecs_term_id_t *src = &term->src;
+    ecs_term_ref_t *src = &term->src;
 
     /* Test if following the relationship finds the id */
     int32_t index = flecs_search_relation_w_idr(world, table, 0, 
@@ -12596,9 +12596,9 @@ bool ecs_filter_next_instanced(
                         /* Find new match, starting with the leading term */
                         if (!flecs_term_iter_next(world, term_iter, 
                             ECS_BIT_IS_SET(filter->flags, 
-                                EcsFilterMatchPrefab), 
+                                EcsQueryMatchPrefab), 
                             ECS_BIT_IS_SET(filter->flags, 
-                                EcsFilterMatchDisabled))) 
+                                EcsQueryMatchDisabled))) 
                         {
                             goto done;
                         }
@@ -13104,7 +13104,7 @@ bool ecs_field_is_readonly(
             return true;
         }
 
-        ecs_term_id_t *src = &term->src;
+        ecs_term_ref_t *src = &term->src;
         if (!(src->flags & EcsSelf)) {
             return true;
         }
@@ -15728,9 +15728,9 @@ bool flecs_ignore_observer(
     ecs_flags32_t table_flags = table->flags, filter_flags = observer->filter.flags;
 
     bool result = (table_flags & EcsTableIsPrefab) &&
-        !(filter_flags & EcsFilterMatchPrefab);
+        !(filter_flags & EcsQueryMatchPrefab);
     result = result || ((table_flags & EcsTableIsDisabled) &&
-        !(filter_flags & EcsFilterMatchDisabled));
+        !(filter_flags & EcsQueryMatchDisabled));
 
     return result;
 }
@@ -16193,13 +16193,13 @@ int flecs_multi_observer_init(
     child_desc.ctx = observer;
     child_desc.ctx_free = NULL;
     child_desc.filter.expr = NULL;
-    child_desc.filter.terms_buffer = NULL;
-    child_desc.filter.terms_buffer_count = 0;
+    child_desc.terms_buffer = NULL;
+    child_desc.terms_buffer_count = 0;
     child_desc.binding_ctx = NULL;
     child_desc.binding_ctx_free = NULL;
     child_desc.yield_existing = false;
     ecs_os_zeromem(&child_desc.entity);
-    ecs_os_zeromem(&child_desc.filter.terms);
+    ecs_os_zeromem(&child_desc.terms);
     ecs_os_memcpy_n(child_desc.events, observer->events, 
         ecs_entity_t, observer->event_count);
 
@@ -16213,11 +16213,11 @@ int flecs_multi_observer_init(
         }
     }
 
-    if (filter->flags & EcsFilterMatchPrefab) {
-        child_desc.filter.flags |= EcsFilterMatchPrefab;
+    if (filter->flags & EcsQueryMatchPrefab) {
+        child_desc.filter.flags |= EcsQueryMatchPrefab;
     }
-    if (filter->flags & EcsFilterMatchDisabled) {
-        child_desc.filter.flags |= EcsFilterMatchDisabled;
+    if (filter->flags & EcsQueryMatchDisabled) {
+        child_desc.filter.flags |= EcsQueryMatchDisabled;
     }
 
     /* Create observers as children of observer */
@@ -16228,7 +16228,7 @@ int flecs_multi_observer_init(
             continue;
         }
 
-        ecs_term_t *term = &child_desc.filter.terms[0];
+        ecs_term_t *term = &child_desc.terms[0];
         child_desc.term_index = filter->terms[i].field_index;
         *term = filter->terms[i];
 
@@ -18665,7 +18665,7 @@ void flecs_query_for_each_component_monitor(
 
     for (i = 0; i < count; i++) {
         ecs_term_t *term = &terms[i];
-        ecs_term_id_t *src = &term->src;
+        ecs_term_ref_t *src = &term->src;
 
         if (src->flags & EcsUp) {
             callback(world, ecs_pair(src->trav, EcsWildcard), query);
@@ -18682,7 +18682,7 @@ void flecs_query_for_each_component_monitor(
 
 static
 bool flecs_query_is_term_id_supported(
-    ecs_term_id_t *term_id)
+    ecs_term_ref_t *term_id)
 {
     if (!(term_id->flags & EcsIsVariable)) {
         return true;
@@ -18703,9 +18703,9 @@ int flecs_query_process_signature(
 
     for (i = 0; i < count; i ++) {
         ecs_term_t *term = &terms[i];
-        ecs_term_id_t *first = &term->first;
-        ecs_term_id_t *src = &term->src;
-        ecs_term_id_t *second = &term->second;
+        ecs_term_ref_t *first = &term->first;
+        ecs_term_ref_t *src = &term->src;
+        ecs_term_ref_t *second = &term->second;
         ecs_inout_kind_t inout = term->inout;
 
         bool is_src_ok = flecs_query_is_term_id_supported(src);
@@ -19342,8 +19342,8 @@ ecs_query_t* ecs_query_init(
 
         /* ecs_filter_init could have moved away resources from the terms array
          * in the descriptor, so use the terms array from the filter. */
-        observer_desc.filter.terms_buffer = result->filter.terms;
-        observer_desc.filter.terms_buffer_count = result->filter.term_count;
+        observer_desc.terms_buffer = result->filter.terms;
+        observer_desc.terms_buffer_count = result->filter.term_count;
         observer_desc.filter.expr = NULL; /* Already parsed */
 
         entity = ecs_observer_init(world, &observer_desc);
@@ -29334,7 +29334,7 @@ int flecs_member_metric_init(
     ecs_observer(world, {
         .entity = metric,
         .events = { EcsOnAdd },
-        .filter.terms[0] = {
+        .terms[0] = {
             .id = id,
             .src.flags = EcsSelf,
             .inout = EcsInOutNone
@@ -29369,7 +29369,7 @@ int flecs_id_metric_init(
     ecs_observer(world, {
         .entity = metric,
         .events = { EcsOnAdd },
-        .filter.terms[0] = {
+        .terms[0] = {
             .id = desc->id,
             .src.flags = EcsSelf,
             .inout = EcsInOutNone
@@ -29444,7 +29444,7 @@ int flecs_oneof_metric_init(
     ecs_observer(world, {
         .entity = metric,
         .events = { EcsMonitor },
-        .filter.terms[0] = {
+        .terms[0] = {
             .id = desc->id,
             .src.flags = EcsSelf,
             .inout = EcsInOutNone
@@ -30166,7 +30166,7 @@ void flecs_stats_monitor_import(
     // Called each frame, collects 60 measurements per second
     ecs_system(world, {
         .entity = ecs_entity(world, { .name = "Monitor1s", .add = {ecs_dependson(EcsPreFrame)} }),
-        .query.filter.terms = {{
+        .query.terms = {{
             .id = ecs_pair(kind, EcsPeriod1s),
             .src.id = EcsWorld 
         }},
@@ -30176,7 +30176,7 @@ void flecs_stats_monitor_import(
     // Called each second, reduces into 60 measurements per minute
     ecs_entity_t mw1m = ecs_system(world, {
         .entity = ecs_entity(world, { .name = "Monitor1m", .add = {ecs_dependson(EcsPreFrame)} }),
-        .query.filter.terms = {{
+        .query.terms = {{
             .id = ecs_pair(kind, EcsPeriod1m),
             .src.id = EcsWorld 
         }, {
@@ -30190,7 +30190,7 @@ void flecs_stats_monitor_import(
     // Called each minute, reduces into 60 measurements per hour
     ecs_system(world, {
         .entity = ecs_entity(world, { .name = "Monitor1h", .add = {ecs_dependson(EcsPreFrame)} }),
-        .query.filter.terms = {{
+        .query.terms = {{
             .id = ecs_pair(kind, EcsPeriod1h),
             .src.id = EcsWorld 
         }, {
@@ -30205,7 +30205,7 @@ void flecs_stats_monitor_import(
     // Called each minute, reduces into 60 measurements per day
     ecs_system(world, {
         .entity = ecs_entity(world, { .name = "Monitor1d", .add = {ecs_dependson(EcsPreFrame)} }),
-        .query.filter.terms = {{
+        .query.terms = {{
             .id = ecs_pair(kind, EcsPeriod1d),
             .src.id = EcsWorld 
         }, {
@@ -30221,7 +30221,7 @@ void flecs_stats_monitor_import(
     // Called each hour, reduces into 60 measurements per week
     ecs_system(world, {
         .entity = ecs_entity(world, { .name = "Monitor1w", .add = {ecs_dependson(EcsPreFrame)} }),
-        .query.filter.terms = {{
+        .query.terms = {{
             .id = ecs_pair(kind, EcsPeriod1w),
             .src.id = EcsWorld 
         }, {
@@ -30313,7 +30313,7 @@ void FlecsMonitorImport(
             .name = "UpdateWorldSummary", 
             .add = {ecs_dependson(EcsPreFrame)} 
         }),
-        .query.filter.terms[0] = { .id = ecs_id(EcsWorldSummary) },
+        .query.terms[0] = { .id = ecs_id(EcsWorldSummary) },
         .callback = UpdateWorldSummary
     });
 
@@ -30590,7 +30590,7 @@ const char* ecs_parse_identifier(
 static
 int flecs_parse_identifier(
     const char *token,
-    ecs_term_id_t *out)
+    ecs_term_ref_t *out)
 {
     const char *tptr = token;
     if (tptr[0] == TOK_VARIABLE && tptr[1]) {
@@ -30727,7 +30727,7 @@ const char* flecs_parse_term_flags(
     int64_t column,
     const char *ptr,
     char *token,
-    ecs_term_id_t *id,
+    ecs_term_ref_t *id,
     char tok_end)
 {
     char token_buf[ECS_MAX_TOKEN_SIZE] = {0};
@@ -30823,14 +30823,14 @@ const char* flecs_parse_arguments(
     const char *ptr,
     char *token,
     ecs_term_t *term,
-    ecs_term_id_t *extra_args)
+    ecs_term_ref_t *extra_args)
 {
     (void)column;
 
     int32_t arg = 0;
 
     if (extra_args) {
-        ecs_os_memset_n(extra_args, 0, ecs_term_id_t, ECS_PARSER_MAX_ARGS);
+        ecs_os_memset_n(extra_args, 0, ecs_term_ref_t, ECS_PARSER_MAX_ARGS);
     }
 
     if (!term) {
@@ -30850,7 +30850,7 @@ const char* flecs_parse_arguments(
                 return NULL;
             }
 
-            ecs_term_id_t *term_id = NULL;
+            ecs_term_ref_t *term_id = NULL;
 
             if (arg == 0) {
                 term_id = &term->src;
@@ -30949,7 +30949,7 @@ const char* flecs_parse_term(
     const char *name,
     const char *expr,
     ecs_term_t *term_out,
-    ecs_term_id_t *extra_args)
+    ecs_term_ref_t *extra_args)
 {
     const char *ptr = expr;
     char token[ECS_MAX_TOKEN_SIZE] = {0};
@@ -31107,13 +31107,13 @@ parse_predicate:
 
 parse_eq:
     term.src = term.first;
-    term.first = (ecs_term_id_t){0};
+    term.first = (ecs_term_ref_t){0};
     term.first.id = EcsPredEq;
     goto parse_right_operand;
 
 parse_neq:
     term.src = term.first;
-    term.first = (ecs_term_id_t){0};
+    term.first = (ecs_term_ref_t){0};
     term.first.id = EcsPredEq;
     if (term.oper != EcsAnd) {
         ecs_parser_error(name, expr, (ptr - expr), 
@@ -31125,7 +31125,7 @@ parse_neq:
     
 parse_match:
     term.src = term.first;
-    term.first = (ecs_term_id_t){0};
+    term.first = (ecs_term_ref_t){0};
     term.first.id = EcsPredMatch;
     goto parse_right_operand;
 
@@ -31293,13 +31293,13 @@ char* ecs_parse_term(
     const char *expr,
     const char *ptr,
     ecs_term_t *term,
-    ecs_term_id_t *extra_args)
+    ecs_term_ref_t *extra_args)
 {
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_check(ptr != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_check(term != NULL, ECS_INVALID_PARAMETER, NULL);
 
-    ecs_term_id_t *src = &term->src;
+    ecs_term_ref_t *src = &term->src;
 
     if (ptr != expr) {
         if (ptr[0]) {
@@ -32016,7 +32016,7 @@ static
 ecs_entity_t plecs_ensure_term_id(
     ecs_world_t *world,
     plecs_state_t *state,
-    ecs_term_id_t *term_id,
+    ecs_term_ref_t *term_id,
     const char *expr,
     int64_t column,
     ecs_entity_t pred,
@@ -36546,7 +36546,7 @@ void ecs_randomize_timers(
 {
     ecs_observer(world, {
         .entity = ecs_entity(world, { .name = "flecs.timer.RandomizeTimers" }),
-        .filter.terms = {{
+        .terms = {{
             .id = ecs_id(EcsTimer)
         }},
         .events = {EcsOnSet},
@@ -36574,7 +36574,7 @@ void FlecsTimerImport(
     /* Add EcsTickSource to timers and rate filters */
     ecs_system(world, {
         .entity = ecs_entity(world, {.name = "AddTickSource", .add = { ecs_dependson(EcsPreFrame) }}),
-        .query.filter.terms = {
+        .query.terms = {
             { .id = ecs_id(EcsTimer), .oper = EcsOr, .inout = EcsIn },
             { .id = ecs_id(EcsRateFilter), .oper = EcsAnd, .inout = EcsIn },
             { .id = ecs_id(EcsTickSource), .oper = EcsNot, .inout = EcsOut}
@@ -36585,7 +36585,7 @@ void FlecsTimerImport(
     /* Timer handling */
     ecs_system(world, {
         .entity = ecs_entity(world, {.name = "ProgressTimers", .add = { ecs_dependson(EcsPreFrame)}}),
-        .query.filter.terms = {
+        .query.terms = {
             { .id = ecs_id(EcsTimer) },
             { .id = ecs_id(EcsTickSource) }
         },
@@ -36595,7 +36595,7 @@ void FlecsTimerImport(
     /* Rate filter handling */
     ecs_system(world, {
         .entity = ecs_entity(world, {.name = "ProgressRateFilters", .add = { ecs_dependson(EcsPreFrame)}}),
-        .query.filter.terms = {
+        .query.terms = {
             { .id = ecs_id(EcsRateFilter), .inout = EcsIn },
             { .id = ecs_id(EcsTickSource), .inout = EcsOut }
         },
@@ -36605,7 +36605,7 @@ void FlecsTimerImport(
     /* TickSource without a timer or rate filter just increases each frame */
     ecs_system(world, {
         .entity = ecs_entity(world, { .name = "ProgressTickSource", .add = { ecs_dependson(EcsPreFrame)}}),
-        .query.filter.terms = {
+        .query.terms = {
             { .id = ecs_id(EcsTickSource), .inout = EcsOut },
             { .id = ecs_id(EcsRateFilter), .oper = EcsNot },
             { .id = ecs_id(EcsTimer), .oper = EcsNot }
@@ -57388,85 +57388,85 @@ void FlecsMetaImport(
     ecs_entity_t old_scope = ecs_set_scope( /* Keep meta scope clean */
         world, EcsFlecsInternals);
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsPrimitive), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsPrimitive), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_primitive
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsMember), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsMember), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_member
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsMemberRanges), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsMemberRanges), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_member_ranges
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsEnum), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsEnum), .src.flags = EcsSelf },
         .events = {EcsOnAdd},
         .callback = flecs_add_enum
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsBitmask), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsBitmask), .src.flags = EcsSelf },
         .events = {EcsOnAdd},
         .callback = flecs_add_bitmask
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = EcsConstant, .src.flags = EcsSelf },
+        .terms[0] = { .id = EcsConstant, .src.flags = EcsSelf },
         .events = {EcsOnAdd},
         .callback = flecs_add_constant
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_pair(EcsConstant, EcsWildcard), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_pair(EcsConstant, EcsWildcard), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_add_constant
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsArray), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsArray), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_array
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsVector), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsVector), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_vector
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsOpaque), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsOpaque), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_custom_type
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsUnit), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsUnit), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = flecs_set_unit
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsMetaType), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsMetaType), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = ecs_meta_type_serialized_init
     });
 
     ecs_observer(world, {
-        .filter.terms[0] = { .id = ecs_id(EcsMetaType), .src.flags = EcsSelf },
+        .terms[0] = { .id = ecs_id(EcsMetaType), .src.flags = EcsSelf },
         .events = {EcsOnSet},
         .callback = ecs_meta_type_init_default_ctor
     });
 
     ecs_observer(world, {
-        .filter.terms = {
+        .terms = {
             { .id = ecs_id(EcsUnit) },
             { .id = EcsQuantity }
         },
@@ -58719,7 +58719,7 @@ bool flecs_pipeline_check_term(
 {
     (void)world;
 
-    ecs_term_id_t *src = &term->src;
+    ecs_term_ref_t *src = &term->src;
     if (src->flags & EcsInOutNone) {
         return false;
     }
@@ -59285,7 +59285,7 @@ void flecs_run_startup_systems(
     ecs_log_push_2();
     ecs_entity_t start_pip = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
         .query = {
-            .filter.terms = {
+            .terms = {
                 { .id = EcsSystem },
                 { .id = EcsPhase, .src.flags = EcsCascade, .src.trav = EcsDependsOn },
                 { .id = ecs_dependson(EcsOnStart), .src.trav = EcsDependsOn },
@@ -59506,7 +59506,7 @@ void FlecsPipelineImport(
     world->pipeline = ecs_pipeline(world, {
         .entity = ecs_entity(world, { .name = "BuiltinPipeline" }),
         .query = {
-            .filter.terms = {
+            .terms = {
                 { .id = EcsSystem },
                 { .id = EcsPhase, .src.flags = EcsCascade, .src.trav = EcsDependsOn },
                 { .id = ecs_dependson(EcsOnStart), .src.trav = EcsDependsOn, .oper = EcsNot },
@@ -60408,7 +60408,7 @@ int32_t flecs_rule_op_ref_str(
     return color_chars;
 }
 
-char* ecs_rule_str_w_profile(
+char* ecs_query_plan_w_profile(
     const ecs_rule_t *rule,
     const ecs_iter_t *it)
 {
@@ -60517,10 +60517,10 @@ char* ecs_rule_str_w_profile(
     return ecs_strbuf_get(&buf);
 }
 
-char* ecs_rule_str(
+char* ecs_query_plan(
     const ecs_rule_t *rule)
 {
-    return ecs_rule_str_w_profile(rule, NULL);
+    return ecs_query_plan_w_profile(rule, NULL);
 }
 
 const ecs_filter_t* ecs_rule_get_filter(
@@ -60860,7 +60860,7 @@ bool ecs_rule_var_is_entity(
 
 static
 const char* flecs_term_id_var_name(
-    ecs_term_id_t *term_id)
+    ecs_term_ref_t *term_id)
 {
     if (!(term_id->flags & EcsIsVariable)) {
         return NULL;
@@ -60875,7 +60875,7 @@ const char* flecs_term_id_var_name(
 
 static
 bool flecs_term_id_is_wildcard(
-    ecs_term_id_t *term_id)
+    ecs_term_ref_t *term_id)
 {
     if ((term_id->flags & EcsIsVariable) && 
         ((term_id->id == EcsWildcard) || (term_id->id == EcsAny))) 
@@ -60972,7 +60972,7 @@ ecs_var_id_t flecs_rule_add_var(
 static
 ecs_var_id_t flecs_rule_add_var_for_term_id(
     ecs_rule_t *rule,
-    ecs_term_id_t *term_id,
+    ecs_term_ref_t *term_id,
     ecs_vec_t *vars,
     ecs_var_kind_t kind)
 {
@@ -61003,9 +61003,9 @@ void flecs_rule_discover_vars(
 
     for (i = 0; i < count; i ++) {
         ecs_term_t *term = &terms[i];
-        ecs_term_id_t *first = &term->first;
-        ecs_term_id_t *second = &term->second;
-        ecs_term_id_t *src = &term->src;
+        ecs_term_ref_t *first = &term->first;
+        ecs_term_ref_t *second = &term->second;
+        ecs_term_ref_t *src = &term->src;
 
         if (first->id == EcsScopeOpen) {
             /* Keep track of which variables are first used in scope, so that we
@@ -61736,7 +61736,7 @@ void flecs_rule_compile_term_id(
     ecs_world_t *world,
     ecs_rule_t *rule,
     ecs_rule_op_t *op,
-    ecs_term_id_t *term_id,
+    ecs_term_ref_t *term_id,
     ecs_rule_ref_t *ref,
     ecs_flags8_t ref_kind,
     ecs_var_kind_t kind,
@@ -64296,7 +64296,7 @@ bool flecs_rule_setfixed(
     int32_t i;
     for (i = 0; i < filter->term_count; i ++) {
         ecs_term_t *term = &filter->terms[i];
-        ecs_term_id_t *src = &term->src;
+        ecs_term_ref_t *src = &term->src;
         if (src->flags & EcsIsEntity) {
             it->sources[term->field_index] = src->id;
         }
@@ -64643,7 +64643,7 @@ void flecs_rule_iter_fini(
 
 #ifdef FLECS_DEBUG
     if (it->flags & EcsIterProfile) {
-        char *str = ecs_rule_str_w_profile(rit->rule, it);
+        char *str = ecs_query_plan_w_profile(rit->rule, it);
         printf("%s\n", str);
         ecs_os_free(str);
     }
