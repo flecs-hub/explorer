@@ -18,8 +18,20 @@ export default { name: "commands-inspect-cmd-header" };
 
 div.commands-cmd-hdr {
   display: grid;
-  grid-template-columns: 2.0rem 300px 300px 1fr;
+  grid-template-columns: 2.0rem 300px 500px 1fr;
   padding: 0.5rem;
+}
+
+@media screen and (max-width: 1280px) {
+  div.commands-cmd-hdr {
+    grid-template-columns: 2.0rem 250px 300px 1fr;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  div.commands-cmd-hdr {
+    grid-template-columns: 2.0rem 250px 250px 1fr;
+  }
 }
 
 div.commands-cmd-hdr span {

@@ -72,11 +72,23 @@ const liveliness = (cmd) => {
 
 div.commands-cmd {
   display: grid;
-  grid-template-columns: 2.0rem 300px 300px 1fr;
+  grid-template-columns: 2.0rem 300px 500px 1fr;
   grid-template-rows: 20px 20px;
   padding: 0.25rem;
   padding-left: 0.5rem;
   background-color: var(--bg-content);
+}
+
+@media screen and (max-width: 1280px) {
+  div.commands-cmd {
+    grid-template-columns: 2.0rem 250px 300px 1fr;
+  }
+}
+
+@media screen and (max-width: 800px) {
+  div.commands-cmd {
+    grid-template-columns: 2.0rem 250px 250px 1fr;
+  }
 }
 
 div.commands-cmd span {
