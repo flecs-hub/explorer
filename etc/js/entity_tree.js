@@ -320,9 +320,9 @@ Vue.component('entity-tree', {
             entity.color = color;
             entity.has_children = elem.is_set[6];
             entity.is_module = elem.is_set[1];
-            entity.is_component = elem.is_set[2] || elem.is_set[3];
-            entity.is_prefab = elem.is_set[4];
-            entity.is_disabled = elem.is_set[5];
+            entity.is_component = elem.is_set[2];
+            entity.is_prefab = elem.is_set[3];
+            entity.is_disabled = elem.is_set[4];
 
             Vue.set(result, name, entity);
           }
@@ -346,7 +346,7 @@ Vue.component('entity-tree', {
       let path = container.path;
       path = path.replaceAll(" ", "\\ ");
 
-      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Tag, ?Prefab, ?Disabled, ?ChildOf(_, $This)";
+      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Prefab, ?Disabled, ?ChildOf(_, $This)";
       app.request_query('tree-' + container.path, q, (reply) => {
         if (reply.error) {
           console.error("treeview: " + reply.error);
