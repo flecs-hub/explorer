@@ -5112,7 +5112,7 @@ ecs_id_t ecs_make_pair(
  * @return The new entity id.
  */
 FLECS_API
-ecs_entity_t ecs_new_id(
+ecs_entity_t ecs_new(
     ecs_world_t *world);
 
 /** Create new low id.
@@ -5762,12 +5762,12 @@ bool ecs_is_valid(
  * the original id in that they have a different generation count. This makes it
  * possible for the API to distinguish between the two. An example:
  * 
- *   ecs_entity_t e1 = ecs_new_id(world);
+ *   ecs_entity_t e1 = ecs_new(world);
  *   ecs_is_alive(world, e1);             // true
  *   ecs_delete(world, e1);
  *   ecs_is_alive(world, e1);             // false
  * 
- *   ecs_entity_t e2 = ecs_new_id(world); // recycles e1
+ *   ecs_entity_t e2 = ecs_new(world); // recycles e1
  *   ecs_is_alive(world, e2);             // true
  *   ecs_is_alive(world, e1);             // false
  *
@@ -8813,7 +8813,7 @@ int ecs_value_move_ctor(
  * @{
  */
 
-#define ecs_new(world, T) ecs_new_w_id(world, ecs_id(T))
+#define ecs_new_w(world, T) ecs_new_w_id(world, ecs_id(T))
 
 #define ecs_new_w_pair(world, first, second)\
     ecs_new_w_id(world, ecs_pair(first, second))
@@ -23881,7 +23881,7 @@ struct entity : entity_builder<entity>
         : entity_builder() 
     {
         m_world = world;
-        m_id = ecs_new(world, 0);
+        m_id = ecs_new_w(world, 0);
     }
 
     /** Wrap an existing entity id.
@@ -26958,7 +26958,7 @@ inline flecs::entity entity_view::lookup(const char *path, bool search_path) con
 
 inline flecs::entity entity_view::clone(bool copy_value, flecs::entity_t dst_id) const {
     if (!dst_id) {
-        dst_id = ecs_new_id(m_world);
+        dst_id = ecs_new(m_world);
     }
 
     flecs::entity dst = flecs::entity(m_world, dst_id);

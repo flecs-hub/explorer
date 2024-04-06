@@ -4597,7 +4597,7 @@ error:
     return 0;
 }
 
-ecs_entity_t ecs_new_id(
+ecs_entity_t ecs_new(
     ecs_world_t *world)
 {
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -4663,7 +4663,7 @@ ecs_entity_t ecs_new_low_id(
 
     if (!id || id >= FLECS_HI_COMPONENT_ID) {
         /* If the low component ids are depleted, return a regular entity id */
-        id = ecs_new_id(unsafe_world);
+        id = ecs_new(unsafe_world);
     } else {
         flecs_entities_ensure(world, id);
     }
@@ -4683,7 +4683,7 @@ ecs_entity_t ecs_new_w_id(
     ecs_check(!id || ecs_id_is_valid(world, id), ECS_INVALID_PARAMETER, NULL);
 
     ecs_stage_t *stage = flecs_stage_from_world(&world);    
-    ecs_entity_t entity = ecs_new_id(world);
+    ecs_entity_t entity = ecs_new(world);
 
     ecs_id_t ids[3];
     ecs_type_t to_add = { .array = ids, .count = 0 };
@@ -4748,7 +4748,7 @@ ecs_entity_t ecs_new_w_table(
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
 
     flecs_stage_from_world(&world);    
-    ecs_entity_t entity = ecs_new_id(world);
+    ecs_entity_t entity = ecs_new(world);
     ecs_record_t *r = flecs_entities_get(world, entity);
 
     ecs_table_diff_t table_diff = { .added = table->type };
@@ -5144,7 +5144,7 @@ ecs_entity_t ecs_entity_init(
             if (desc->use_low_id) {
                 result = ecs_new_low_id(world);
             } else {
-                result = ecs_new_id(world);
+                result = ecs_new(world);
             }
             flecs_new_entity = true;
             ecs_assert(ecs_get_type(world, result) == NULL,
@@ -6067,7 +6067,7 @@ ecs_entity_t ecs_clone(
 
     ecs_stage_t *stage = flecs_stage_from_world(&world);
     if (!dst) {
-        dst = ecs_new_id(world);
+        dst = ecs_new(world);
     }
 
     if (flecs_defer_clone(stage, dst, src, copy_value)) {
@@ -6605,7 +6605,7 @@ ecs_entity_t ecs_set_id(
     ecs_stage_t *stage = flecs_stage_from_world(&world);
 
     if (!entity) {
-        entity = ecs_new_id(world);
+        entity = ecs_new(world);
         ecs_entity_t scope = stage->scope;
         if (scope) {
             ecs_add_pair(world, entity, EcsChildOf, scope);
@@ -7173,7 +7173,7 @@ ecs_entity_t flecs_set_identifier(
     ecs_check(entity != 0 || name != NULL, ECS_INVALID_PARAMETER, NULL);
 
     if (!entity) {
-        entity = ecs_new_id(world);
+        entity = ecs_new(world);
     }
 
     if (!name) {
@@ -9594,7 +9594,7 @@ ecs_entity_t ecs_add_path_w_sep(
 
     if (!path) {
         if (!entity) {
-            entity = ecs_new_id(world);
+            entity = ecs_new(world);
         }
 
         if (parent) {
@@ -9656,10 +9656,10 @@ ecs_entity_t ecs_add_path_w_sep(
                 if (!e) {
                     if (last_elem) {
                         ecs_entity_t prev = ecs_set_scope(world, 0);
-                        e = ecs_new(world, 0);
+                        e = ecs_new_w(world, 0);
                         ecs_set_scope(world, prev);
                     } else {
-                        e = ecs_new_id(world);
+                        e = ecs_new(world);
                     }
                 }
 
@@ -16308,7 +16308,7 @@ ecs_entity_t ecs_observer_init(
 
     ecs_entity_t entity = desc->entity;
     if (!entity) {
-        entity = ecs_new(world, 0);
+        entity = ecs_new_w(world, 0);
     }
 
     EcsPoly *poly = ecs_poly_bind(world, entity, ecs_observer_t);
@@ -19412,7 +19412,7 @@ ecs_query_t* ecs_query_init(
     }
 
     if (!entity) {
-        entity = ecs_new_id(world);
+        entity = ecs_new(world);
     }
 
     EcsPoly *poly = ecs_poly_bind(world, entity, ecs_query_t);
@@ -20760,7 +20760,7 @@ bool flecs_defer_bulk_new(
         /* Use ecs_new_id as this is thread safe */
         int i;
         for (i = 0; i < count; i ++) {
-            ids[i] = ecs_new_id(world);
+            ids[i] = ecs_new(world);
         }
 
         *ids_out = ids;
@@ -24317,7 +24317,7 @@ ecs_entity_t ecs_alert_init(
 
     ecs_entity_t result = desc->entity;
     if (!result) {
-        result = ecs_new(world, 0);
+        result = ecs_new_w(world, 0);
     }
 
     ecs_filter_desc_t private_desc = desc->filter;
@@ -28409,7 +28409,7 @@ ecs_entity_t meta_lookup_array(
     }
 
     if (!e) {
-        e = ecs_new_id(world);
+        e = ecs_new(world);
     }
 
     ecs_check(params.count <= INT32_MAX, ECS_INVALID_PARAMETER, NULL);
@@ -28446,7 +28446,7 @@ ecs_entity_t meta_lookup_vector(
         world, &params.type, params_decl, 1, &param_ctx);
 
     if (!e) {
-        e = ecs_new_id(world);
+        e = ecs_new(world);
     }
 
     return ecs_set(world, e, EcsVector, { element_type });
@@ -29506,7 +29506,7 @@ ecs_entity_t ecs_metric_init(
 
     ecs_entity_t result = desc->entity;
     if (!result) {
-        result = ecs_new_id(world);
+        result = ecs_new(world);
     }
 
     ecs_entity_t kind = desc->kind;
@@ -31947,7 +31947,7 @@ ecs_entity_t plecs_ensure_entity(
     bool is_new = false;
     if (is_anonymous) {
         path = NULL;
-        e = ecs_new_id(world);
+        e = ecs_new(world);
         is_new = true;
     }
 
@@ -33697,7 +33697,7 @@ ecs_entity_t ecs_script_init(
         if (desc->filename) {
             e = ecs_new_from_path_w_sep(world, 0, desc->filename, "/", NULL);
         } else {
-            e = ecs_new_id(world);
+            e = ecs_new(world);
         }
     }
 
@@ -36423,7 +36423,7 @@ ecs_entity_t ecs_set_interval(
     ecs_check(world != NULL, ECS_INVALID_PARAMETER, NULL);
 
     if (!timer) {
-        timer = ecs_new(world, EcsTimer);
+        timer = ecs_new_w(world, EcsTimer);
     }
 
     EcsTimer *t = ecs_ensure(world, timer, EcsTimer);
@@ -49805,7 +49805,7 @@ ecs_entity_t flecs_json_new_id(
     if (ser_id < FLECS_HI_COMPONENT_ID) {
         return ecs_new_low_id(world);
     } else {
-        return ecs_new_id(world);
+        return ecs_new(world);
     }
 }
 
@@ -59399,7 +59399,7 @@ ecs_entity_t ecs_pipeline_init(
 
     ecs_entity_t result = desc->entity;
     if (!result) {
-        result = ecs_new(world, 0);
+        result = ecs_new_w(world, 0);
     }
 
     ecs_query_desc_t qd = desc->query;
@@ -59475,7 +59475,7 @@ void FlecsPipelineImport(
      * relationships. This ensures that, for example, EcsOnUpdate doesn't have a
      * direct DependsOn relationship on EcsPreUpdate, which ensures that when
      * the EcsPreUpdate phase is disabled, EcsOnUpdate still runs. */
-    ecs_entity_t phase_0 = ecs_new(world, 0);
+    ecs_entity_t phase_0 = ecs_new_w(world, 0);
     ecs_entity_t phase_1 = ecs_new_w_pair(world, EcsDependsOn, phase_0);
     ecs_entity_t phase_2 = ecs_new_w_pair(world, EcsDependsOn, phase_1);
     ecs_entity_t phase_3 = ecs_new_w_pair(world, EcsDependsOn, phase_2);
@@ -65600,7 +65600,7 @@ ecs_entity_t ecs_system_init(
 
     ecs_entity_t entity = desc->entity;
     if (!entity) {
-        entity = ecs_new(world, 0);
+        entity = ecs_new_w(world, 0);
     }
     EcsPoly *poly = ecs_poly_bind(world, entity, ecs_system_t);
     if (!poly->poly) {

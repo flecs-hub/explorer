@@ -318,7 +318,7 @@ Vue.component('entity-tree', {
 
             entity.label = label;
             entity.color = color;
-            entity.has_children = elem.is_set[6];
+            entity.has_children = elem.is_set[5];
             entity.is_module = elem.is_set[1];
             entity.is_component = elem.is_set[2];
             entity.is_prefab = elem.is_set[3];
