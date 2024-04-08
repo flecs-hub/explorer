@@ -58,6 +58,13 @@ Vue.component('entity-tree-item', {
     },
     xp: function() {
       return this.x + 3;
+    },
+    entity_label: function() {
+      let result = this.entity_data.label;
+      if (this.entity_data.prefab != "*") {
+        result += " : " + this.entity_data.prefab;
+      }
+      return result;
     }
   },
   template: `
@@ -88,7 +95,7 @@ Vue.component('entity-tree-item', {
 
       <entity-icon :x="xp + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
 
-      <text :class="css_text" :x="xp + 33" :y="y" v-on:click="select" ref="item_text">{{entity_data.label}}</text>
+      <text :class="css_text" :x="xp + 33" :y="y" v-on:click="select" ref="item_text">{{entity_label}}</text>
     </svg>`
 });
 
@@ -323,6 +330,7 @@ Vue.component('entity-tree', {
             entity.is_component = elem.is_set[2];
             entity.is_prefab = elem.is_set[3];
             entity.is_disabled = elem.is_set[4];
+            entity.prefab = elem.vars[0];
 
             Vue.set(result, name, entity);
           }
@@ -346,7 +354,7 @@ Vue.component('entity-tree', {
       let path = container.path;
       path = path.replaceAll(" ", "\\ ");
 
-      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Prefab, ?Disabled, ?ChildOf(_, $This)";
+      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Prefab, ?Disabled, ?ChildOf(_, $This), ?IsA($this, $base:self)";
       app.request_query('tree-' + container.path, q, (reply) => {
         if (reply.error) {
           console.error("treeview: " + reply.error);
@@ -364,7 +372,8 @@ Vue.component('entity-tree', {
         entity_labels: true,
         variable_labels: true,
         colors: true,
-        is_set: true
+        is_set: true,
+        prefab: undefined
       });
     },
     update_expanded: function(container) {
