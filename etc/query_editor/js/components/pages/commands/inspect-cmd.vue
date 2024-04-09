@@ -20,16 +20,15 @@
       </template>
     </span>
     <template v-if="cmd.entity">
-        <span class="commands-cmd-entity-parent code-identifier">
-          <entity-parent :path="cmd.entity"></entity-parent>
-        </span>
-        <span class="commands-cmd-entity code-identifier">
-          <entity-name :path="cmd.entity"></entity-name>
-        </span>
-        <template v-if="!cmd.is_alive">
-          <span class="commands-cmd-not-alive">not alive</span>
-        </template>
+      <span class="commands-cmd-entity-parent code-identifier">
+        <entity-parent :path="cmd.entity"></entity-parent>
       </span>
+      <span class="commands-cmd-entity code-identifier">
+        <entity-name :path="cmd.entity"></entity-name>
+      </span>
+      <template v-if="!cmd.is_alive">
+        <span class="commands-cmd-not-alive">not alive</span>
+      </template>
     </template>
     <template v-if="cmd.id">
       <span class="commands-cmd-id code-type">{{ cmd.id }}</span>
