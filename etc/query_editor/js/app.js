@@ -220,7 +220,7 @@ Promise.all(components).then((values) => {
           this.app_state.requests.error = this.conn.requests.error;
           this.app_state.bytes.received = this.conn.bytes.received;
 
-          for (const i = 0; i < msg.ids.length; i ++) {
+          for (let i = 0; i < msg.ids.length; i ++) {
             let el = msg.ids[i];
             if (el == "flecs.monitor.WorldSummary") {
               this.app_state.world_info = msg.values[i];
