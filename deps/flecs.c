@@ -3097,7 +3097,7 @@ void flecs_bootstrap(
     });
 
     flecs_type_info_init(world, EcsIterable, { 0 });
-    flecs_type_info_init(world, EcsTarget, { 0 });
+    flecs_type_info_init(world, EcsFlattenTarget, { 0 });
 
     /* Create and cache often used id records on world */
     flecs_init_id_records(world);
@@ -3113,7 +3113,7 @@ void flecs_bootstrap(
     flecs_bootstrap_builtin_t(world, table, EcsComponent);
     flecs_bootstrap_builtin_t(world, table, EcsIterable);
     flecs_bootstrap_builtin_t(world, table, EcsPoly);
-    flecs_bootstrap_builtin_t(world, table, EcsTarget);
+    flecs_bootstrap_builtin_t(world, table, EcsFlattenTarget);
 
     /* Initialize default entity id range */
     world->info.last_component_id = EcsFirstUserComponentId;
@@ -6815,8 +6815,8 @@ ecs_entity_t ecs_get_target(
             return 0;
         }
     } else if (table->flags & EcsTableHasTarget) {
-        EcsTarget *tf = ecs_table_get_id(world, table, 
-            ecs_pair_t(EcsTarget, rel), ECS_RECORD_TO_ROW(r->row));
+        EcsFlattenTarget *tf = ecs_table_get_id(world, table, 
+            ecs_pair_t(EcsFlattenTarget, rel), ECS_RECORD_TO_ROW(r->row));
         if (tf) {
             return ecs_record_get_entity(tf->target);
         }
@@ -6989,7 +6989,7 @@ void flecs_flatten(
 
     ecs_entity_t depth_id = flecs_id_for_depth(world, depth);
     ecs_id_t root_pair = ecs_pair(EcsChildOf, root);
-    ecs_id_t tgt_pair = ecs_pair_t(EcsTarget, EcsChildOf);
+    ecs_id_t tgt_pair = ecs_pair_t(EcsFlattenTarget, EcsChildOf);
     ecs_id_t depth_pair = ecs_pair(EcsFlatten, depth_id);
     ecs_id_t name_pair = ecs_pair_t(EcsIdentifier, EcsName);
 
@@ -7053,7 +7053,7 @@ void flecs_flatten(
                 &td.added, 0);
             flecs_table_diff_builder_fini(world, &diff);
 
-            EcsTarget *fh = ecs_table_get_id(world, dst, tgt_pair, 0);
+            EcsFlattenTarget *fh = ecs_table_get_id(world, dst, tgt_pair, 0);
             ecs_assert(fh != NULL, ECS_INTERNAL_ERROR, NULL);
             ecs_assert(count != 0, ECS_INTERNAL_ERROR, NULL);
             int32_t remain = count;
@@ -8688,7 +8688,7 @@ done:
 static
 int32_t flecs_get_flattened_target(
     ecs_world_t *world,
-    EcsTarget *cur,
+    EcsFlattenTarget *cur,
     ecs_entity_t rel,
     ecs_id_t id,
     ecs_entity_t *src_out,
@@ -8717,8 +8717,8 @@ int32_t flecs_get_flattened_target(
     if (table->flags & EcsTableHasTarget) {
         int32_t col = table->column_map[table->_->ft_offset];
         ecs_assert(col != -1, ECS_INTERNAL_ERROR, NULL);
-        EcsTarget *next = table->data.columns[col].data.array;
-        next = ECS_ELEM_T(next, EcsTarget, ECS_RECORD_TO_ROW(r->row));
+        EcsFlattenTarget *next = table->data.columns[col].data.array;
+        next = ECS_ELEM_T(next, EcsFlattenTarget, ECS_RECORD_TO_ROW(r->row));
         return flecs_get_flattened_target(
             world, next, rel, id, src_out, tr_out);
     }
@@ -8818,7 +8818,7 @@ void flecs_entity_filter_init(
     /* Look for flattened fields */
     if (table->flags & EcsTableHasTarget) {
         const ecs_table_record_t *tr = flecs_table_record_get(world, table, 
-            ecs_pair_t(EcsTarget, EcsWildcard));
+            ecs_pair_t(EcsFlattenTarget, EcsWildcard));
         ecs_assert(tr != NULL, ECS_INTERNAL_ERROR, NULL);
         int32_t column = tr->index;
         ecs_assert(column != -1, ECS_INTERNAL_ERROR, NULL);
@@ -8925,7 +8925,7 @@ int flecs_entity_filter_next(
             bool first_for_table = it->prev != table;
             ecs_iter_t *iter = it->it;
             ecs_world_t *world = iter->real_world;
-            EcsTarget *ft = table->data.columns[flat_tree_column].data.array;
+            EcsFlattenTarget *ft = table->data.columns[flat_tree_column].data.array;
             int32_t ft_offset;
             int32_t ft_count;
 
@@ -8941,7 +8941,7 @@ int flecs_entity_filter_next(
             ecs_assert(ft_offset < ecs_table_count(table), 
                 ECS_INTERNAL_ERROR, NULL);
 
-            EcsTarget *cur = &ft[ft_offset];
+            EcsFlattenTarget *cur = &ft[ft_offset];
             ft_count = cur->count;
             bool is_last = (ft_offset + ft_count) >= range_end;
 
@@ -20457,7 +20457,7 @@ int32_t flecs_relation_depth(
     int32_t depth_offset = 0;
     if (table->flags & EcsTableHasTarget) {
         if (ecs_table_get_type_index(world, table, 
-            ecs_pair_t(EcsTarget, r)) != -1)
+            ecs_pair_t(EcsFlattenTarget, r)) != -1)
         {
             ecs_id_t id;
             int32_t col = ecs_search(world, table, 
@@ -21736,7 +21736,7 @@ const ecs_entity_t EcsDelete =                      FLECS_HI_COMPONENT_ID + 51;
 const ecs_entity_t EcsPanic =                       FLECS_HI_COMPONENT_ID + 52;
 
 /* Misc */
-const ecs_entity_t ecs_id(EcsTarget) =              FLECS_HI_COMPONENT_ID + 53;
+const ecs_entity_t ecs_id(EcsFlattenTarget) =              FLECS_HI_COMPONENT_ID + 53;
 const ecs_entity_t EcsFlatten =                     FLECS_HI_COMPONENT_ID + 54;
 const ecs_entity_t EcsDefaultChildComponent =       FLECS_HI_COMPONENT_ID + 55;
 
@@ -24257,8 +24257,8 @@ void MonitorAlertInstances(ecs_iter_t *it) {
                         ecs_os_free(alert_instance[i].message);
                     }
 
-                    ecs_iter_to_vars(&rit, &vars, 0);
-                    alert_instance[i].message = ecs_interpolate_string(
+                    ecs_script_vars_from_iter(&rit, &vars, 0);
+                    alert_instance[i].message = ecs_script_string_interpolate(
                         world, alert->message, &vars);
                 }
 
@@ -32330,8 +32330,8 @@ const char* plecs_parse_assign_var_expr(
         }
     }
 
-    ptr = ecs_parse_expr(world, ptr, &value, 
-        &(ecs_parse_expr_desc_t){
+    ptr = ecs_script_expr_run(world, ptr, &value, 
+        &(ecs_script_expr_run_desc_t){
             .name = name,
             .expr = expr,
             .lookup_action = plecs_lookup_action,
@@ -32424,8 +32424,8 @@ const char* plecs_parse_assign_expr(
 
     void *value_ptr = ecs_make_alive_id(world, assign_to, assign_id);
 
-    ptr = ecs_parse_expr(world, ptr, &(ecs_value_t){type, value_ptr}, 
-        &(ecs_parse_expr_desc_t){
+    ptr = ecs_script_expr_run(world, ptr, &(ecs_value_t){type, value_ptr}, 
+        &(ecs_script_expr_run_desc_t){
             .name = name,
             .expr = expr,
             .lookup_action = plecs_lookup_action,
@@ -32546,8 +32546,8 @@ const char* plecs_parse_assign_with_stmt(
         return NULL;
     }
 
-    ptr = ecs_parse_expr(world, ptr, &v->value,
-        &(ecs_parse_expr_desc_t){
+    ptr = ecs_script_expr_run(world, ptr, &v->value,
+        &(ecs_script_expr_run_desc_t){
             .name = name,
             .expr = expr,
             .lookup_action = plecs_lookup_action,
@@ -42813,7 +42813,7 @@ void flecs_table_init_flags(
                         meta->sw_offset = flecs_ito(int16_t, i);
                     }
                     meta->sw_count ++;
-                } else if (r == ecs_id(EcsTarget)) {
+                } else if (r == ecs_id(EcsFlattenTarget)) {
                     ecs_table__t *meta = table->_;
                     table->flags |= EcsTableHasTarget;
                     meta->ft_offset = flecs_ito(int16_t, i);
@@ -46696,13 +46696,13 @@ typedef struct ecs_value_stack_t {
 } ecs_value_stack_t;
 
 static
-const char* flecs_parse_expr(
+const char* flecs_script_expr_run(
     ecs_world_t *world,
     ecs_value_stack_t *stack,
     const char *ptr,
     ecs_value_t *value,
     ecs_expr_oper_t op,
-    const ecs_parse_expr_desc_t *desc);
+    const ecs_script_expr_run_desc_t *desc);
 
 static
 void* flecs_expr_value_new(
@@ -46791,7 +46791,7 @@ const char* flecs_str_to_expr_oper(
     return NULL;
 }
 
-const char *ecs_parse_expr_token(
+const char *flecs_script_expr_parse_token(
     const char *name,
     const char *expr,
     const char *ptr,
@@ -46999,7 +46999,7 @@ ecs_entity_t flecs_parse_discover_type(
     const char *expr,
     const char *ptr,
     ecs_entity_t input_type,
-    const ecs_parse_expr_desc_t *desc)
+    const ecs_script_expr_run_desc_t *desc)
 {
     /* String literal */
     if (ptr[0] == '"' || ptr[0] == '`') {
@@ -47039,7 +47039,7 @@ ecs_entity_t flecs_parse_discover_type(
             return 0;
         }
         char token[ECS_MAX_TOKEN_SIZE];
-        if (ecs_parse_expr_token(name, expr, &ptr[1], token) == NULL) {
+        if (flecs_script_expr_parse_token(name, expr, &ptr[1], token) == NULL) {
             return 0;
         }
 
@@ -47550,7 +47550,7 @@ const char* flecs_binary_expr_parse(
     ecs_value_t *lvalue,
     ecs_value_t *result,
     ecs_expr_oper_t left_op,
-    const ecs_parse_expr_desc_t *desc)
+    const ecs_script_expr_run_desc_t *desc)
 {
     ecs_entity_t result_type = result->type;
     do {
@@ -47564,7 +47564,7 @@ const char* flecs_binary_expr_parse(
         ptr = ecs_parse_ws_eol(ptr);
 
         ecs_value_t rvalue = {0};
-        const char *rptr = flecs_parse_expr(world, stack, ptr, &rvalue, op, desc);
+        const char *rptr = flecs_script_expr_run(world, stack, ptr, &rvalue, op, desc);
         if (!rptr) {
             return NULL;
         }
@@ -47611,7 +47611,7 @@ const char* flecs_funccall_parse(
     ecs_meta_cursor_t *cur,
     ecs_value_t *value,
     bool isvar,
-    const ecs_parse_expr_desc_t *desc)
+    const ecs_script_expr_run_desc_t *desc)
 {
     char *sep = strrchr(token, '.');
     if (!sep) {
@@ -47680,13 +47680,13 @@ error:
 }
 
 static
-const char* flecs_parse_expr(
+const char* flecs_script_expr_run(
     ecs_world_t *world,
     ecs_value_stack_t *stack,
     const char *ptr,
     ecs_value_t *value,
     ecs_expr_oper_t left_op,
-    const ecs_parse_expr_desc_t *desc)
+    const ecs_script_expr_run_desc_t *desc)
 {
     ecs_assert(value != NULL, ECS_INTERNAL_ERROR, NULL);
     char token[ECS_MAX_TOKEN_SIZE];
@@ -47733,7 +47733,7 @@ const char* flecs_parse_expr(
     }
 
     /* Loop that parses all values in a value scope */
-    while ((ptr = ecs_parse_expr_token(name, expr, ptr, token))) {
+    while ((ptr = flecs_script_expr_parse_token(name, expr, ptr, token))) {
         /* Used to track of the result of the parsed token can be used as the
          * lvalue for a binary expression */
         bool is_lvalue = false;
@@ -47755,7 +47755,7 @@ const char* flecs_parse_expr(
             }
 
             /* Parenthesis, parse nested expression */
-            ptr = flecs_parse_expr(world, stack, ptr, out, EcsLeftParen, desc);
+            ptr = flecs_script_expr_run(world, stack, ptr, out, EcsLeftParen, desc);
             if (ptr[0] != ')') {
                 ecs_parser_error(name, expr, ptr - expr, 
                     "missing closing parenthesis");
@@ -48027,11 +48027,11 @@ error:
     return NULL;
 }
 
-const char* ecs_parse_expr(
+const char* ecs_script_expr_run(
     ecs_world_t *world,
     const char *ptr,
     ecs_value_t *value,
-    const ecs_parse_expr_desc_t *desc)
+    const ecs_script_expr_run_desc_t *desc)
 {
     /* Prepare storage for temporary values */
     ecs_stage_t *stage = flecs_stage_from_world(&world);
@@ -48043,7 +48043,7 @@ const char* ecs_parse_expr(
 
     /* Parse expression */
     bool storage_provided = value->ptr != NULL;
-    ptr = flecs_parse_expr(world, &stack, ptr, value, EcsExprOperUnknown, desc);
+    ptr = flecs_script_expr_run(world, &stack, ptr, value, EcsExprOperUnknown, desc);
 
     /* If no result value was provided, allocate one as we can't return a 
      * pointer to a temporary storage */
@@ -48904,7 +48904,7 @@ error:
     return NULL;
 }
 
-char* ecs_interpolate_string(
+char* ecs_script_string_interpolate(
     ecs_world_t *world,
     const char *str,
     const ecs_vars_t *vars)
@@ -48966,11 +48966,11 @@ char* ecs_interpolate_string(
                 goto error;
             }
 
-            ecs_parse_expr_desc_t expr_desc = { 
+            ecs_script_expr_run_desc_t expr_desc = { 
                 .vars = ECS_CONST_CAST(ecs_vars_t*, vars) 
             };
             ecs_value_t expr_result = {0};
-            if (!ecs_parse_expr(world, token, &expr_result, &expr_desc)) {
+            if (!ecs_script_expr_run(world, token, &expr_result, &expr_desc)) {
                 goto error;
             }
 
@@ -48993,7 +48993,7 @@ error:
     return NULL;
 }
 
-void ecs_iter_to_vars(
+void ecs_script_vars_from_iter(
     const ecs_iter_t *it,
     ecs_vars_t *vars,
     int offset)

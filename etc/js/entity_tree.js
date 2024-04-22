@@ -61,8 +61,11 @@ Vue.component('entity-tree-item', {
     },
     entity_label: function() {
       let result = this.entity_data.label;
-      if (this.entity_data.prefab != "*") {
-        result += " : " + this.entity_data.prefab;
+      let prefab = this.entity_data.prefab;
+      if (prefab != "*") {
+        let dot_sep = prefab.split(".");
+        prefab = dot_sep[dot_sep.length - 1];
+        result += " : " + prefab;
       }
       return result;
     }

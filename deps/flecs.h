@@ -4074,10 +4074,10 @@ typedef struct EcsPoly {
 } EcsPoly;
 
 /** Target data for flattened relationships. */
-typedef struct EcsTarget {
+typedef struct EcsFlattenTarget {
     int32_t count;
     ecs_record_t *target;
-} EcsTarget;
+} EcsFlattenTarget;
 
 /** Component for iterable entities */
 typedef ecs_iterable_t EcsIterable;
@@ -4346,7 +4346,7 @@ FLECS_API extern const ecs_entity_t EcsDelete;
 FLECS_API extern const ecs_entity_t EcsPanic;
 
 /** Component that stores data for flattened relationships */
-FLECS_API extern const ecs_entity_t ecs_id(EcsTarget);
+FLECS_API extern const ecs_entity_t ecs_id(EcsFlattenTarget);
 
 /** Tag added to root entity to indicate its subtree should be flattened. Used
  * together with assemblies. */
@@ -12055,7 +12055,7 @@ typedef struct ecs_alert_desc_t {
 
     /** Template for alert message. This string is used to generate the alert
      * message and may refer to variables in the query result. The format for
-     * the template expressions is as specified by ecs_interpolate_string.
+     * the template expressions is as specified by ecs_script_string_interpolate.
      * 
      * Examples:
      *   "$this has Position but not Velocity"
@@ -14393,8 +14393,8 @@ ecs_expr_var_t* ecs_vars_lookup(
     const ecs_vars_t *vars,
     const char *name);
 
-/** Used with ecs_parse_expr. */
-typedef struct ecs_parse_expr_desc_t {
+/** Used with ecs_script_expr_run. */
+typedef struct ecs_script_expr_run_desc_t {
     const char *name;
     const char *expr;
     ecs_entity_t (*lookup_action)(
@@ -14403,7 +14403,7 @@ typedef struct ecs_parse_expr_desc_t {
         void *ctx);
     void *lookup_ctx;
     ecs_vars_t *vars;
-} ecs_parse_expr_desc_t;
+} ecs_script_expr_run_desc_t;
 
 /** Parse expression into value.
  * This operation parses a flecs expression into the provided pointer. The
@@ -14420,11 +14420,11 @@ typedef struct ecs_parse_expr_desc_t {
  * @return Pointer to the character after the last one read, or NULL if failed.
  */
 FLECS_API
-const char* ecs_parse_expr(
+const char* ecs_script_expr_run(
     ecs_world_t *world,
     const char *ptr,
     ecs_value_t *value,
-    const ecs_parse_expr_desc_t *desc);
+    const ecs_script_expr_run_desc_t *desc);
 
 /** Serialize value into expression string.
  * This operation serializes a value of the provided type to a string. The 
@@ -14519,7 +14519,7 @@ int ecs_primitive_to_expr_buf(
  * @return Pointer to the character after the last one read, or NULL if failed.
  */
 FLECS_API
-const char *ecs_parse_expr_token(
+const char *flecs_script_expr_parse_token(
     const char *name,
     const char *expr,
     const char *ptr,
@@ -14538,7 +14538,7 @@ const char *ecs_parse_expr_token(
  * @param vars The variables to use for evaluation.
  */
 FLECS_API
-char* ecs_interpolate_string(
+char* ecs_script_string_interpolate(
     ecs_world_t *world,
     const char *str,
     const ecs_vars_t *vars);
@@ -14576,7 +14576,7 @@ char* ecs_interpolate_string(
  * @param offset The offset to the current element.
  */
 FLECS_API
-void ecs_iter_to_vars(
+void ecs_script_vars_from_iter(
     const ecs_iter_t *it,
     ecs_vars_t *vars,
     int offset);
@@ -15820,7 +15820,7 @@ static const flecs::entity_t Toggle = ECS_TOGGLE;
 using Component = EcsComponent;
 using Identifier = EcsIdentifier;
 using Poly = EcsPoly;
-using Target = EcsTarget;
+using Target = EcsFlattenTarget;
 
 /* Builtin tags */
 static const flecs::entity_t Query = EcsQuery;
