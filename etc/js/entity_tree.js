@@ -290,15 +290,14 @@ Vue.component('entity-tree', {
         for (var r = 0; r < data.results.length; r ++) {
           const elem = data.results[r];
           for (var e = 0; e < elem.entities.length; e ++) {
-            let path = elem.entities[e] + "";
-            let name;
+            const name = elem.entities[e] + "";
+            const name_esc = name.replaceAll(".", "\\.");
+            let path = name_esc
             if (elem.parent) {
-              name = path;
-              path = elem.parent + "." + path;
-            } else {
-              // Backwards compatibility
-              name = this.get_name(path);
+              path = elem.parent + "." + name_esc
             }
+
+            console.log(path);
 
             let label;
             let color;
