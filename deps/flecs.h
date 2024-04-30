@@ -811,7 +811,7 @@ typedef struct ecs_allocator_t ecs_allocator_t;
 #define ecs_pair_relation ecs_pair_first
 #define ecs_pair_object ecs_pair_second
 
-#define ecs_poly_id(tag) ecs_pair(ecs_id(EcsPoly), tag)
+#define flecs_poly_id(tag) ecs_pair(ecs_id(EcsPoly), tag)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2689,7 +2689,7 @@ typedef struct ecs_table_record_t ecs_table_record_t;
 /** A poly object.
  * A poly (short for polymorph) object is an object that has a variable list of
  * capabilities, determined by a mixin table. This is the current list of types
- * in the flecs API that can be used as an ecs_poly_t:
+ * in the flecs API that can be used as an flecs_poly_t:
  * 
  * - ecs_world_t
  * - ecs_stage_t
@@ -2698,7 +2698,7 @@ typedef struct ecs_table_record_t ecs_table_record_t;
  * - ecs_rule_t
  * - (more to come)
  * 
- * Functions that accept an ecs_poly_t argument can accept objects of these
+ * Functions that accept an flecs_poly_t argument can accept objects of these
  * types. If the object does not have the requested mixin the API will throw an
  * assert.
  * 
@@ -2708,12 +2708,12 @@ typedef struct ecs_table_record_t ecs_table_record_t;
  * (in some ways it's like a mini-ECS). Additionally, each poly object has a
  * header that enables the API to do sanity checking on the input arguments.
  */
-typedef void ecs_poly_t;
+typedef void flecs_poly_t;
 
 /** Type that stores poly mixins */
 typedef struct ecs_mixins_t ecs_mixins_t;
 
-/** Header for ecs_poly_t objects. */
+/** Header for flecs_poly_t objects. */
 typedef struct ecs_header_t {
     int32_t magic; /* Magic number verifying it's a flecs object */
     int32_t type;  /* Magic number indicating which type of flecs object */
@@ -2762,7 +2762,7 @@ typedef void (*ecs_iter_action_t)(
  */
 typedef void (*ecs_iter_init_action_t)(
     const ecs_world_t *world,
-    const ecs_poly_t *iterable,
+    const flecs_poly_t *iterable,
     ecs_iter_t *it,
     ecs_term_t *filter);
 
@@ -2865,8 +2865,8 @@ typedef void (*ecs_move_t)(
     const ecs_type_info_t *type_info);
 
 /* Destructor function for poly objects */
-typedef void (*ecs_poly_dtor_t)(
-    ecs_poly_t *poly);
+typedef void (*flecs_poly_dtor_t)(
+    flecs_poly_t *poly);
 
 /** @} */
 
@@ -3006,7 +3006,7 @@ struct ecs_filter_t {
     /* Mixins */
     ecs_entity_t entity;       /**< Entity associated with filter (optional) */
     ecs_iterable_t iterable;   /**< Iterable mixin */
-    ecs_poly_dtor_t dtor;      /**< Dtor mixin */
+    flecs_poly_dtor_t dtor;      /**< Dtor mixin */
     ecs_world_t *world;        /**< World mixin */
 };
 
@@ -3044,7 +3044,7 @@ struct ecs_observer_t {
     bool is_multi;              /**< If true, the observer triggers on more than one term */
 
     /* Mixins */
-    ecs_poly_dtor_t dtor;
+    flecs_poly_dtor_t dtor;
 };
 
 /** @} */
@@ -3460,28 +3460,28 @@ extern "C" {
 #define FLECS_ID0ID_ 0
 
 FLECS_API
-char* ecs_module_path_from_c(
+char* flecs_module_path_from_c(
     const char *c_name);
 
-bool ecs_identifier_is_0(
+bool flecs_identifier_is_0(
     const char *id);
 
 /* Constructor that zeromem's a component value */
 FLECS_API
-void ecs_default_ctor(
+void flecs_default_ctor(
     void *ptr, 
     int32_t count, 
     const ecs_type_info_t *ctx);
 
 /* Create allocated string from format */
 FLECS_DBG_API
-char* ecs_vasprintf(
+char* flecs_vasprintf(
     const char *fmt,
     va_list args);
 
 /* Create allocated string from format */
 FLECS_API
-char* ecs_asprintf(
+char* flecs_asprintf(
     const char *fmt,
     ...);
 
@@ -3908,7 +3908,7 @@ typedef struct ecs_observer_desc_t {
     ecs_ctx_free_t binding_ctx_free;
 
     /** Observable with which to register the observer */
-    ecs_poly_t *observable;
+    flecs_poly_t *observable;
 
     /** Optional shared last event id for multiple observers. Ensures only one
      * of the observers with the shared id gets triggered for an event */
@@ -3961,7 +3961,7 @@ typedef struct ecs_event_desc_t {
     const void *const_param;
 
     /** Observable (usually the world) */
-    ecs_poly_t *observable;
+    flecs_poly_t *observable;
 
     /** Event flags */
     ecs_flags32_t flags;
@@ -4070,7 +4070,7 @@ typedef struct EcsComponent {
 
 /** Component for storing a poly object */
 typedef struct EcsPoly {
-    ecs_poly_t *poly;          /**< Pointer to poly object */
+    flecs_poly_t *poly;          /**< Pointer to poly object */
 } EcsPoly;
 
 /** Target data for flattened relationships. */
@@ -5046,7 +5046,7 @@ int32_t ecs_delete_empty_tables(
  */
 FLECS_API
 const ecs_world_t* ecs_get_world(
-    const ecs_poly_t *poly);
+    const flecs_poly_t *poly);
 
 /** Get entity from poly.
  *
@@ -5055,11 +5055,11 @@ const ecs_world_t* ecs_get_world(
  */
 FLECS_API
 ecs_entity_t ecs_get_entity(
-    const ecs_poly_t *poly);
+    const flecs_poly_t *poly);
 
 /** Test if pointer is of specified type.
  * Usage:
- *   ecs_poly_is(ptr, ecs_world_t)
+ *   flecs_poly_is(ptr, ecs_world_t)
  * 
  * This operation only works for poly types.
  * 
@@ -5068,12 +5068,12 @@ ecs_entity_t ecs_get_entity(
  * @return True if the pointer is of the specified type.
  */
 FLECS_API
-bool ecs_poly_is_(
-    const ecs_poly_t *object,
+bool flecs_poly_is_(
+    const flecs_poly_t *object,
     int32_t type);
 
-#define ecs_poly_is(object, type)\
-    ecs_poly_is_(object, type##_magic)
+#define flecs_poly_is(object, type)\
+    flecs_poly_is_(object, type##_magic)
 
 /** Make a pair id.
  * This function is equivalent to using the ecs_pair macro, and is added for
@@ -7523,7 +7523,7 @@ void* ecs_observer_get_binding_ctx(
 FLECS_API
 void ecs_iter_poly(
     const ecs_world_t *world,
-    const ecs_poly_t *poly,
+    const flecs_poly_t *poly,
     ecs_iter_t *iter,
     ecs_term_t *filter);
 
@@ -14281,7 +14281,7 @@ extern "C" {
  * @return Pointer to the character after the last one written.
  */
 FLECS_API
-char* ecs_chresc(
+char* flecs_chresc(
     char *out, 
     char in, 
     char delimiter);
@@ -14293,7 +14293,7 @@ char* ecs_chresc(
  * @param out Output string.
  * @return Pointer to the character after the last one read.
  */ 
-const char* ecs_chrparse(
+const char* flecs_chrparse(
     const char *in, 
     char *out);
 
@@ -14310,14 +14310,14 @@ const char* ecs_chrparse(
  * @return The number of characters that (would) have been written.
  */
 FLECS_API
-ecs_size_t ecs_stresc(
+ecs_size_t flecs_stresc(
     char *out, 
     ecs_size_t size, 
     char delimiter, 
     const char *in);
 
 /** Return escaped string.
- * Return escaped version of input string. Same as ecs_stresc, but returns an
+ * Return escaped version of input string. Same as flecs_stresc, but returns an
  * allocated string of the right size.
  * 
  * @param delimiter The delimiter used (for example '"').
@@ -14325,7 +14325,7 @@ ecs_size_t ecs_stresc(
  * @return Escaped string.
  */
 FLECS_API
-char* ecs_astresc(
+char* flecs_astresc(
     char delimiter, 
     const char *in);
 
@@ -15298,7 +15298,7 @@ extern "C" {
  * @return Pointer to the next non-whitespace character.
  */
 FLECS_API
-const char* ecs_parse_ws(
+const char* flecs_parse_ws(
     const char *ptr);
 
 /** Skip whitespace and newline characters.
@@ -15308,7 +15308,7 @@ const char* ecs_parse_ws(
  * @return Pointer to the next non-whitespace character.
  */
 FLECS_API
-const char* ecs_parse_ws_eol(
+const char* flecs_parse_ws_eol(
     const char *ptr);
 
 /** Utility function to parse an identifier */
@@ -15327,7 +15327,7 @@ const char* ecs_parse_identifier(
  * @return Pointer to the first non-digit character.
  */
 FLECS_API
-const char* ecs_parse_digit(
+const char* flecs_parse_digit(
     const char *ptr,
     char *token);
 
@@ -15341,7 +15341,7 @@ const char* ecs_parse_digit(
  * @return Pointer to the next token, or NULL if error occurred.
  */
 FLECS_API
-const char* ecs_parse_token(
+const char* flecs_parse_expr_token(
     const char *name,
     const char *expr,
     const char *ptr,
@@ -19728,10 +19728,10 @@ struct world {
      */
     bool is_stage() const {
         ecs_assert(
-            ecs_poly_is(m_world, ecs_world_t) || 
-            ecs_poly_is(m_world, ecs_stage_t),
+            flecs_poly_is(m_world, ecs_world_t) || 
+            flecs_poly_is(m_world, ecs_stage_t),
                 ECS_INVALID_PARAMETER, NULL);
-        return ecs_poly_is(m_world, ecs_stage_t);
+        return flecs_poly_is(m_world, ecs_stage_t);
     }
 
     /** Enable/disable automerging for world or stage.

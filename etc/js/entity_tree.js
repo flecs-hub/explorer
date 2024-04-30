@@ -356,7 +356,7 @@ Vue.component('entity-tree', {
       let path = container.path;
       path = path.replaceAll(" ", "\\ ");
 
-      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Prefab, ?Disabled, ?ChildOf(_, $This), ?IsA($this, $base:self)";
+      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Prefab, ?Disabled, ?ChildOf(_, $this), ?IsA($this, $base:self)";
       app.request_query('tree-' + container.path, q, (reply) => {
         if (reply.error) {
           console.error("treeview: " + reply.error);
