@@ -13,7 +13,7 @@ export default { name: "prop-browser" }
 </script>
 
 <script setup>
-import { ref, defineProps, defineExpose, watch, computed } from 'vue';
+import { ref, defineProps, defineExpose, defineEmits, watch, computed } from 'vue';
 
 const emit = defineEmits(['select']);
 

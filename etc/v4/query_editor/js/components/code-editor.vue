@@ -206,10 +206,14 @@ const autoComplete = (prop) => {
   }
 
   col = lines[row].length;
-  editor.setValue(lines.join("\n"));
-  editor.selection.clearSelection();
-  editor.moveCursorTo(row, col + 1);
-  editor.focus();
+
+  const result = lines.join("\n");
+  if (result !== value.value) {
+    editor.setValue(lines.join("\n"));
+    editor.selection.clearSelection();
+    editor.moveCursorTo(row, col + 1);
+    editor.focus();
+  }
 }
 
 defineExpose({
