@@ -83,8 +83,8 @@ button {
 	border: none;
   text-transform: capitalize;
   cursor: pointer;
-  font-weight: bold;
-  font-size: 1rem;
+  font-weight: 700;
+  font-size: 0.9rem;
   border-radius: var(--border-radius-medium);
   background-color: var(--primary-color);
   color: var(--dark-text);

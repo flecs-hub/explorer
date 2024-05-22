@@ -19,19 +19,17 @@ const props = defineProps({
 });
 
 const defaultTrav = (term) => {
-  if (term.flags.join("|") == "self") {
-    return term.dont_inherit == true;
+  if (!term.trav) {
+    return !term.can_inherit;
   }
 
-  if (!term.trav || term.trav.entity != "flecs.core.IsA") {
+  if (term.trav.entity == "flecs.core.IsA") {
+    if (term.flags.join("|") == "self|up") {
+      return true;
+    }
+  } else {
     return false;
   }
-
-  if (term.flags.join("|") != "self|up") {
-    return false;
-  } 
-
-  return true;
 }
 
 const defaultSrc = (term) => {
