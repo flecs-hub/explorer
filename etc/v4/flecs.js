@@ -246,6 +246,10 @@ const flecs = {
   
               // Do request
               do(redo = false) {
+                if (dryrun) {
+                  return;
+                }
+
                 this.request = new XMLHttpRequest();
                 this.request.open(this.method, this.url);
                 this.request.onreadystatechange = (reply) => {
