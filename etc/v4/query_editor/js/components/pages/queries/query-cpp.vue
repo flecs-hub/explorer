@@ -223,7 +223,7 @@ const travTokens = (g, term) => {
       g.operator(".");
       g.function(flag);
       g.operator("(");
-      if (term.trav.entity != "flecs.core.IsA") {
+      if (term.trav.entity != "flecs.core.ChildOf") {
         refToken(g, term.trav);
       }
       g.operator(")");
@@ -250,7 +250,7 @@ const builderTokens = (g, qi) => {
       g.operator(".");
       g.function("term_at");
       g.operator("(");
-      g.number(templateArg);
+      g.number(templateArg - 1);
       g.operator(")");
 
       if (term.second) {
@@ -389,7 +389,7 @@ const render_decl = () => {
 
   g.identifier("flecs");
   g.operator("::");
-  g.identifier("rule");
+  g.identifier("query");
   if (!templateTokens(g, qi)) {
     g.operator("<>");
   }
@@ -413,9 +413,9 @@ const render_create = () => {
   g.identifier("world");
   g.operator(".");
   if (simpleQuery) {
-    g.function("rule");
+    g.function("query");
   } else {
-    g.function("rule_builder");
+    g.function("query_builder");
   }
 
   templateTokens(g, qi);

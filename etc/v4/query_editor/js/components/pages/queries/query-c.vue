@@ -21,19 +21,17 @@ const token = (t, css) => {
 }
 
 const defaultTrav = (term) => {
-  if (term.flags.join("|") == "self") {
-    return term.dont_inherit == true;
+  if (!term.trav) {
+    return !term.can_inherit;
   }
 
-  if (!term.trav || term.trav.entity != "flecs.core.IsA") {
+  if (term.trav.entity == "flecs.core.IsA") {
+    if (term.flags.join("|") == "self|up") {
+      return true;
+    }
+  } else {
     return false;
   }
-
-  if (term.flags.join("|") != "self|up") {
-    return false;
-  } 
-
-  return true;
 }
 
 const defaultSrc = (term) => {
@@ -135,29 +133,43 @@ const refToken = (g, term, refName) => {
   g.operator(".");
   g.identifier(refName);
   g.operator(".");
+
+  let isName = false;
   if (refIsSpecialVar(g, ref) || ref.entity) {
     g.identifier("id");
   } else if (ref.var || ref.name) {
     g.identifier("name");
+    isName = true;
   }
+
   g.operator(" = ");
   entityToken(g, ref);
+
   if (ref.name) {
     g.operator(", ");
     g.newLine();
     g.operator(".");
     g.identifier(refName); 
-    g.operator("."); g.identifier("flags");
+    g.operator("."); g.identifier("id");
     g.operator(" = ");
     g.identifier("EcsIsName");
   } else if (ref.entity == "0") {
-    g.operator(", ");
-    g.newLine();
-    g.operator(".");
-    g.identifier(refName); 
-    g.operator("."); g.identifier("flags");
-    g.operator(" = ");
+    g.operator("|");
     g.identifier("EcsIsEntity");
+  }
+
+  if (refName === "src" && ref.flags && !defaultTrav(term)) {
+    if (isName && !ref.name) {
+      g.operator(", ");
+      g.newLine();
+      g.operator(".");
+      g.identifier(refName); 
+      g.operator("."); g.identifier("id");
+    }
+
+    g.operator("|");
+
+    travFlagTokens(g, term);
   }
 }
 
@@ -189,6 +201,7 @@ const simpleIdToken = (g, term) => {
   if (!shorthand) {
     entityToken(g, term.first);
   }
+
   if (term.second) {
     if (!shorthand) {
       g.operator(", ");
@@ -202,19 +215,20 @@ const simpleIdToken = (g, term) => {
 }
 
 const travTokens = (g, term) => {
-  let termFlags = false;
-  if (term.flags && term.flags.length) {
-    g.operator(".");
-    g.identifier("src");
-    g.operator(".");
-    g.identifier("flags");
-    g.operator(" = ");
+  if (term.trav) {
+    if (term.trav.entity != "flecs.core.IsA") {
+      g.operator(".");
+      g.identifier("trav");
+      g.operator(" = ");
+      entityToken(g, term.trav);
+    }
+  }
+}
 
+const travFlagTokens = (g, term) => {
+  if (term.flags && term.flags.length) {
     let i = 0;
     for (const flag of term.flags) {
-      if (i) {
-        g.operator("|");
-      }
       let flagStr;
       if (flag == "self") {
         flagStr = "EcsSelf";
@@ -223,25 +237,14 @@ const travTokens = (g, term) => {
       } else if (flag == "cascade") {
         flagStr = "EcsCascade";
       }
-      g.identifier(flagStr);
-      i ++;
-    }
 
-    termFlags = true;
-  }
-
-  if (term.trav) {
-    if (term.trav.entity != "flecs.core.IsA") {
-      if (termFlags) {
-        g.operator(", ");
+      if (i) {
+        g.operator("|");
       }
-      g.newLine();
-      g.operator(".");
-      g.identifier("src");
-      g.operator(".");
-      g.identifier("trav");
-      g.operator(" = ");
-      entityToken(g, term.trav);
+
+      g.identifier(flagStr);
+
+      i ++;
     }
   }
 }
@@ -312,12 +315,20 @@ const termTokens = (g, qi) => {
         g.operator(",");
         g.newLine();
         refToken(g, term, "src");
+      } else if (!defaultTrav(term)) {
+        g.operator(", ");
+        g.newLine();
+        g.operator(".");
+        g.identifier("src"); 
+        g.operator("."); g.identifier("id");
+        g.operator(" = ");
+        travFlagTokens(g, term);
       }
 
       if (term.first.entity != "flecs.core.ScopeOpen" &&
           term.first.entity != "flecs.core.ScopeClose")
       {
-        if (!defaultTrav(term)) {
+        if (!defaultTrav(term) && term.trav) {
           g.operator(",");
           g.newLine();
           travTokens(g, term);
@@ -352,12 +363,12 @@ const fieldTokens = (g, fi) => {
       if (field.symbol) {
         g.type(getCSymbol(field.symbol) + " ");
         g.operator("*");
-        g.identifier("f" + (i + 1));
+        g.identifier("f" + i);
         g.operator(" = ");
         g.function("ecs_field");
         g.operator("(&"); g.identifier("it"); g.operator(", ");
         g.type(getCSymbol(field.symbol)); g.operator(", ");
-        g.number(i + 1);
+        g.number(i);
         g.operator(");");
         g.newLine();
         fields ++;
@@ -405,11 +416,11 @@ const render_create = () => {
 
   let g = generator();
 
-  g.type("ecs_rule_t");
+  g.type("ecs_query_t");
   g.operator(" *");
   g.identifier("q");
   g.operator(" = ");
-  g.identifier("ecs_rule");
+  g.identifier("ecs_query");
   g.operator("(");
   g.identifier("world");
   g.operator(", {");
@@ -439,7 +450,7 @@ const render_iter = () => {
   g.type("ecs_iter_t ");
   g.identifier("it");
   g.operator(" = ");
-  g.function("ecs_rule_iter");
+  g.function("ecs_query_iter");
   g.operator("(");
   g.identifier("world");
   g.operator(", ");
@@ -450,7 +461,7 @@ const render_iter = () => {
 
   g.keyword("while");
   g.operator(" (");
-  g.function("ecs_rule_next");
+  g.function("ecs_query_next");
   g.operator("(&");
   g.identifier("it");
   g.operator(")) {");

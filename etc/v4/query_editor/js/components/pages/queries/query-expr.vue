@@ -17,22 +17,6 @@ const token = (t, css) => {
   return h('span', {class: css}, t);
 }
 
-const defaultTrav = (term) => {
-  if (term.flags.join("|") == "self") {
-    return term.dont_inherit == true;
-  }
-
-  if (!term.trav || term.trav.entity != "flecs.core.IsA") {
-    return false;
-  }
-
-  if (term.flags.join("|") != "self|up") {
-    return false;
-  } 
-
-  return true;
-}
-
 const entityStr = (ref) => {
   if (ref.var) {
     if (ref.var == "*") {
@@ -94,11 +78,8 @@ const travTokens = (g, term) => {
   }
 
   if (term.trav) {
-    if (term.trav.entity != "flecs.core.IsA") {
-      g.operator("(");
-      entityToken(g, term.trav);
-      g.operator(")");
-    }
+    g.operator(" ");
+    entityToken(g, term.trav);
   }
 }
 
@@ -224,8 +205,8 @@ const termTokens = (g, qi) => {
         entityToken(g, term.first);
         g.operator(" ".repeat(firstWidth - firstLen) + " (");
         entityToken(g, term.src);
-        if (!defaultTrav(term)) {
-          g.operator(":");
+        if (term.trav) {
+          g.operator("|");
           travTokens(g, term);
         }
         if (term.second) {
