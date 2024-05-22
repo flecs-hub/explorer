@@ -11,7 +11,9 @@
         <entity-tree-icon :item="item"></entity-tree-icon>
       </div>
       <div class="entity-tree-item-name noselect">
-        {{ item.name }}
+        <span>
+          {{ item.name }}<template v-if="item.baseEntity"><span class="entity-tree-item-base">&nbsp;:&nbsp;{{ item.baseEntity }}</span></template>
+        </span>
       </div>
     </div>
     <template v-if="expand">
@@ -126,6 +128,10 @@ div.entity-tree-item-chevron:hover {
 div.entity-tree-item-name {
   grid-column: 3;
   color: var(--primary-text);
+}
+
+span.entity-tree-item-base {
+  color: var(--secondary-text);
 }
 
 </style>

@@ -45,13 +45,14 @@ const treeQueryResult = ref();
 
 onMounted(() => {
   const q = `
-    (ChildOf, ${props.path}), 
-    ?Module, 
-    ?Component, 
-    ?Prefab, 
-    ?Disabled, 
-    ?ChildOf(_, $this), 
-    ?IsA($this, $base|self)`
+    (flecs.core.ChildOf, ${props.path}), 
+    ?flecs.core.Module, 
+    ?flecs.core.Component,
+    ?flecs.core.Query,
+    ?flecs.core.Prefab, 
+    ?flecs.core.Disabled, 
+    ?flecs.core.ChildOf(_, $this), 
+    ?flecs.core.IsA($this, $base|self)`
     ;
 
   treeQuery.value = 
@@ -76,10 +77,11 @@ onMounted(() => {
         treeItem.path = path;
         treeItem.isModule = item.is_set[1];
         treeItem.isComponent = item.is_set[2];
-        treeItem.isPrefab = item.is_set[3];
-        treeItem.isDisabled = item.is_set[4];
-        treeItem.isParent = item.is_set[5];
-        treeItem.baseEntity = item.is_set[6] ? item.vars["base"] : undefined;
+        treeItem.isQuery = item.is_set[3];
+        treeItem.isPrefab = item.is_set[4];
+        treeItem.isDisabled = item.is_set[5];
+        treeItem.isParent = item.is_set[6];
+        treeItem.baseEntity = item.is_set[7] ? item.vars["base"] : undefined;
         sortedItems.push(treeItem);
       }
 
