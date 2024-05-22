@@ -15,20 +15,26 @@ const props = defineProps({
   src: { type: String, required: true },
   class: { type: String, required: false, default: ""},
   size: { type: Number, required: false, default: 16 },
-  opacity: { type: Number, required: false, default: 0.7 },
+  opacity: { type: Number, required: false },
   rotate: { type: Number, required: false, default: 0.0 },
 });
 
 const style = computed(() => {
-  return `
+  let result = `
     position: relative;
     width: ${props.size}px;
     height: ${props.size}px;
-    opacity: ${props.opacity};
     transform: rotate(${props.rotate}deg);
     vertical-align: middle;
-    height: 100%;
+    height: 100%;`;
+
+  if (props.opacity !== undefined) {
+    result += `
+      opacity: ${props.opacity};
     `;
+  }
+
+  return result;
 });
 
 const src = computed(() => {

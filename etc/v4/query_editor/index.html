@@ -13,7 +13,14 @@
   <body>
     <div id="app">
       <menu-bar
-        :items="['queries', 'commands', 'info']">
+        :items="['entities', 'queries', 'commands', 'info']">
+        <template v-slot:entities>
+          <menu-button 
+            name="entities" 
+            img="list-tree"
+            v-model:page="page">
+          </menu-button>
+        </template>
         <template v-slot:queries>
           <menu-button 
             name="queries" 
@@ -36,6 +43,13 @@
           </menu-button>
         </template>
       </menu-bar>
+
+      <template v-if="page == 'entities'">
+        <page-entities 
+          :conn="conn"
+          v-model:app_state="app_state">
+        </page-entities>
+      </template>
 
       <template v-if="page == 'queries'">
         <page-queries 

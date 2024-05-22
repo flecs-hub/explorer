@@ -145,6 +145,14 @@ let components = [
   loadModule('js/components/entity-parent.vue', options),
   loadModule('js/components/entity-name.vue', options),
 
+  // Entities page
+  loadModule('js/components/pages/entities/page.vue', options),
+  loadModule('js/components/pages/entities/pane-tree.vue', options),
+  loadModule('js/components/pages/entities/entity-tree.vue', options),
+  loadModule('js/components/pages/entities/entity-subtree.vue', options),
+  loadModule('js/components/pages/entities/entity-tree-item.vue', options),
+  loadModule('js/components/pages/entities/entity-tree-icon.vue', options),
+
   // Queries page
   loadModule('js/components/pages/queries/page.vue', options),
   loadModule('js/components/pages/queries/pane-query.vue', options),
