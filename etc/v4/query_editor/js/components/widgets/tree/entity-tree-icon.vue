@@ -24,13 +24,15 @@ const fillColor = computed(() => {
   if (props.item.color) {
     return props.item.color;
   } else if (props.item.isModule) {
-    return "#FFE100";
+    return "var(--module-color)";
   } else if (props.item.isComponent) {
-    return "#4981B5";
+    return "var(--component-color)";
+  } else if (props.item.isTarget) {
+    return "var(--target-color)";
   } else if (props.item.isQuery) {
-    return "#DDE0E6";
+    return "var(--query-color)";
   } else if (props.item.isPrefab) {
-    return "var(--purple)";
+    return "var(--prefab-color)";
   } else {
     return "var(--green)";
   }

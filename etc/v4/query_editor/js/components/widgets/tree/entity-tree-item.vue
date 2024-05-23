@@ -3,8 +3,7 @@
     <div :class="itemClass" :style="itemIndent" @click="selectItem">
       <template v-if="item.isParent">
         <div class="entity-tree-item-chevron" @click.stop="toggleItem">
-          <icon class="noselect" src="chevron-right" :size="16" v-if="!expand"></icon>
-          <icon class="noselect" src="chevron-down" :size="16" v-if="expand"></icon>
+          <icon class="noselect" src="chevron-right" :size="16" :rotate="chevronRotation"></icon>
         </div>
       </template>
       <div class="entity-tree-item-icon">
@@ -12,7 +11,7 @@
       </div>
       <div class="entity-tree-item-name noselect">
         <span>
-          {{ item.name }}<template v-if="item.baseEntity"><span class="entity-tree-item-base">&nbsp;:&nbsp;{{ item.baseEntity }}</span></template>
+          {{ itemName }}<template v-if="item.baseEntity"><span class="entity-tree-item-base">&nbsp;:&nbsp;{{ item.baseEntity }}</span></template>
         </span>
       </div>
     </div>
@@ -22,7 +21,6 @@
         :path="item.path"
         :depth="depth + 1"
         :selectedItem="selectedItem"
-        :key="'entity-subtree-' + item.path"
         @select="selectChild">
       </entity-subtree>
     </template>
@@ -34,7 +32,7 @@ export default { name: "entity-tree-item" }
 </script>
 
 <script setup>
-import { defineProps, computed, ref, defineEmits } from 'vue';
+import { defineProps, computed, ref, defineEmits, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -70,6 +68,10 @@ const itemClass = computed(() => {
     result.push("entity-tree-item-selected");
   }
 
+  if (props.item.isDisabled) {
+    result.push("entity-tree-item-disabled");
+  }
+
   return result;
 });
 
@@ -77,8 +79,24 @@ const itemIndent = computed(() => {
   return `padding-left: ${props.depth * 12}px;`;
 });
 
+const itemName = computed(() => {
+  if (props.item.label) {
+    return props.item.label;
+  } else {
+    return props.item.name;
+  }
+});
+
 const isSelected = computed(() => {
   return props.item == props.selectedItem;
+});
+
+const chevronRotation = computed(() => {
+  if (expand.value) {
+    return 90
+  } else {
+    return 0;
+  }
 });
 
 </script>
@@ -106,6 +124,11 @@ div.entity-tree-item-selected {
   border-color: var(--less-dark-blue);
 }
 
+div.entity-tree-item-disabled .entity-tree-item-name {
+  color: var(--secondary-text);
+  font-style: italic;
+}
+
 div.entity-tree-item-selected:hover {
   background-color: var(--dark-blue);
   border-color: var(--less-dark-blue);
@@ -128,6 +151,7 @@ div.entity-tree-item-chevron:hover {
 div.entity-tree-item-name {
   grid-column: 3;
   color: var(--primary-text);
+  white-space: nowrap;
 }
 
 span.entity-tree-item-base {

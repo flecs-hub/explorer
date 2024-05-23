@@ -188,6 +188,49 @@ const flecs = {
             this, params, recv, err, params.poll_interval);
         },
 
+        // Set component
+        set: function(path, component, data) {
+          path = path.replaceAll(".", "/");
+          if (typeof data == "object") {
+            data = JSON.stringify(data);
+            data = encodeURIComponent(data);
+          }
+          return this._.request(this, "PUT", "set/" + path, 
+            {component: component, data: data});
+        },
+
+        // Add component
+        add: function(path, component) {
+          path = path.replaceAll(".", "/");
+          return this._.request(this, "PUT", "add/" + path, 
+            {component: component});
+        },
+
+        // Remove component
+        remove: function(path, component) {
+          path = path.replaceAll(".", "/");
+          return this._.request(this, "PUT", "remove/" + path, 
+            {component: component});
+        },
+
+        // Enable entity
+        enable: function(path) {
+          path = path.replaceAll(".", "/");
+          return this._.request(this, "PUT", "enable/" + path, {});
+        },
+
+        // Disable entity
+        disable: function(path) {
+          path = path.replaceAll(".", "/");
+          return this._.request(this, "PUT", "disable/" + path, {});
+        },
+
+        // Delete entity
+        delete: function(path) {
+          path = path.replaceAll(".", "/");
+          return this._.request(this, "PUT", "delete/" + path, {});
+        },
+
         // Other REST endpoints
         request: function(path, params, recv, err) {
           return this._.request(this, "GET", path, params, 
@@ -273,14 +316,14 @@ const flecs = {
   
                       if (this.request.status < 200 || this.request.status >= 300) {
                         // Error status
-                        if (this.err) {
+                        if (this.err && !this.aborted) {
                           this.err(this.request.responseText);
                         }
                       } else {
                         requestOk = true;
 
                         // Request OK
-                        if (this.recv) {
+                        if (this.recv && !this.aborted) {
                           this.recv(this.request.responseText, this.url);
                         }
                       }
@@ -461,7 +504,7 @@ const flecs = {
       if (params) {
         for (var k in params) {
           // Ignore client-side only parameters
-          if (k === "raw" || k === "full_paths" || k === "poll_interval" || k === "host") {
+          if (k === "poll_interval" || k === "host") {
             continue;
           }
           if (params[k] !== undefined) {

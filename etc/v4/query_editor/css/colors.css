@@ -18,7 +18,8 @@
   
   --dark-blue: #00346E;
   --less-dark-blue: #094a94;
-  --green: #42b983;
+  --green: rgb(66, 185, 131);
+  --light-green: #A2D8B4;
   --blue: rgb(103, 154, 209);
   --purple: rgb(188, 137, 189);
   --yellow: #b9a542;
@@ -29,8 +30,8 @@
   --bright-red: #EF8784;
   --cyan: #00AABB;
 
-  --bg-color-alt: rgb(10,12,14);
-  --bg-color:     hsl(214, 10%, 11%);
+  --bg-color-alt: hsl(210, 17%, 5%);
+  --bg-color:     hsl(210, 11%, 12%);
 
   --bg-content:       hsl(214, 10%, 13%);
   --bg-content-alt:   hsl(214, 10%, 12%);
@@ -41,7 +42,7 @@
   --bg-error:     var(--red);
   --bg-ok:        var(--green);
   --border:       rgb(57, 57, 62);
-  --panel-color:  #24292e;
+  --panel-color:  hsl(210, 12%, 16%);
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: var(--blue);
   --highlight-text: white;
@@ -61,4 +62,10 @@
   --border-radius-medium: 6px;
 
   --animation-duration: .12s;
+
+  --module-color: #FFE100;
+  --component-color: #4981B5;
+  --target-color: var(--cyan);
+  --query-color: #DDE0E6;
+  --prefab-color: var(--cyan);
 }

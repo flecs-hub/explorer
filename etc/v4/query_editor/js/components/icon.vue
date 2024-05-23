@@ -1,6 +1,6 @@
 <template>
   <div style="display: inline-block;">
-    <img :style="style" :class="class" :src="src"/>
+    <img :style="style" :class="cssClass" :src="src"/>
   </div>
 </template>
 
@@ -25,6 +25,7 @@ const style = computed(() => {
     width: ${props.size}px;
     height: ${props.size}px;
     transform: rotate(${props.rotate}deg);
+    transition: transform 0.1s ease-out;
     vertical-align: middle;
     height: 100%;`;
 
@@ -39,6 +40,10 @@ const style = computed(() => {
 
 const src = computed(() => {
   return `./img/icons/codicons-set/${props.src}.svg`;
+});
+
+const cssClass = computed(() => {
+  return props.class + " noselect";
 });
 
 </script>
