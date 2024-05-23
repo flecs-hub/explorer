@@ -25,6 +25,7 @@ const style = computed(() => {
     width: ${props.size}px;
     height: ${props.size}px;
     transform: rotate(${props.rotate}deg);
+    transition: transform 0.1s ease-out;
     vertical-align: middle;
     height: 100%;`;
 

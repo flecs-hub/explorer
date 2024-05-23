@@ -27,6 +27,8 @@ const fillColor = computed(() => {
     return "#FFE100";
   } else if (props.item.isComponent) {
     return "#4981B5";
+  } else if (props.item.isTarget) {
+    return "var(--cyan)";
   } else if (props.item.isQuery) {
     return "#DDE0E6";
   } else if (props.item.isPrefab) {

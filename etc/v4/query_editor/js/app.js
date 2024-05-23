@@ -148,10 +148,17 @@ let components = [
   // Entities page
   loadModule('js/components/pages/entities/page.vue', options),
   loadModule('js/components/pages/entities/pane-tree.vue', options),
+  loadModule('js/components/pages/entities/pane-inspector.vue', options),
   loadModule('js/components/pages/entities/entity-tree.vue', options),
   loadModule('js/components/pages/entities/entity-subtree.vue', options),
   loadModule('js/components/pages/entities/entity-tree-item.vue', options),
   loadModule('js/components/pages/entities/entity-tree-icon.vue', options),
+  loadModule('js/components/pages/entities/entity-inspector.vue', options),
+  loadModule('js/components/pages/entities/entity-inspector-module.vue', options),
+  loadModule('js/components/pages/entities/entity-inspector-component.vue', options),
+  loadModule('js/components/pages/entities/entity-inspector-value.vue', options),
+  loadModule('js/components/pages/entities/entity-inspector-kv.vue', options),
+  loadModule('js/components/pages/entities/entity-inspector-field.vue', options),
 
   // Queries page
   loadModule('js/components/pages/queries/page.vue', options),
@@ -228,13 +235,9 @@ Promise.all(components).then((values) => {
           this.app_state.requests.error = this.conn.requests.error;
           this.app_state.bytes.received = this.conn.bytes.received;
 
-          for (let i = 0; i < msg.ids.length; i ++) {
-            let el = msg.ids[i];
-            if (el == "flecs.monitor.WorldSummary") {
-              this.app_state.world_info = msg.values[i];
-              this.app_state.build_info = msg.values[i].build_info;
-              return;
-            }
+          if (msg.components && msg.components.WorldSummary) {
+            this.app_state.world_info = msg.components.WorldSummary;
+            this.app_state.build_info = msg.components.WorldSummary.build_info;
           }
         }.bind(this)
       });
@@ -266,7 +269,7 @@ Promise.all(components).then((values) => {
     data() {
       return {
         app_state: {
-          host: undefined,
+          // Populated by code
           app_name: "Flecs app",
           status: undefined,
           heartbeat: undefined,
@@ -282,11 +285,17 @@ Promise.all(components).then((values) => {
           world_info: undefined,
           build_info: undefined,
           command_counts: new Array(120).fill(0),
+
+          // Populated by user
+          host: undefined,
           query: {
             expr: QueryParam,
             name: undefined,
             use_name: false
           },
+          entity: {
+            path: undefined
+          }
         },
         page: "queries",
         conn: undefined,

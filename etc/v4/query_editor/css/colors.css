@@ -19,6 +19,7 @@
   --dark-blue: #00346E;
   --less-dark-blue: #094a94;
   --green: #42b983;
+  --light-green: #A2D8B4;
   --blue: rgb(103, 154, 209);
   --purple: rgb(188, 137, 189);
   --yellow: #b9a542;
@@ -41,7 +42,7 @@
   --bg-error:     var(--red);
   --bg-ok:        var(--green);
   --border:       rgb(57, 57, 62);
-  --panel-color:  #24292e;
+  --panel-color:  hsl(210, 12%, 16%);
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: var(--blue);
   --highlight-text: white;

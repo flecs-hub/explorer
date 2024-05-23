@@ -53,7 +53,9 @@ watch(() => query.value, () => {
 
 document.addEventListener('keydown', function(event) {
   if (event.key === 'Escape') {
-    browser.value.hide();
+    if (browser.value) {
+      browser.value.hide();
+    }
   }
 });
 

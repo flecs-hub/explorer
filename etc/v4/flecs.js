@@ -273,14 +273,14 @@ const flecs = {
   
                       if (this.request.status < 200 || this.request.status >= 300) {
                         // Error status
-                        if (this.err) {
+                        if (this.err && !this.aborted) {
                           this.err(this.request.responseText);
                         }
                       } else {
                         requestOk = true;
 
                         // Request OK
-                        if (this.recv) {
+                        if (this.recv && !this.aborted) {
                           this.recv(this.request.responseText, this.url);
                         }
                       }
@@ -461,7 +461,7 @@ const flecs = {
       if (params) {
         for (var k in params) {
           // Ignore client-side only parameters
-          if (k === "raw" || k === "full_paths" || k === "poll_interval" || k === "host") {
+          if (k === "poll_interval" || k === "host") {
             continue;
           }
           if (params[k] !== undefined) {

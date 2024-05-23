@@ -3,8 +3,7 @@
     <div :class="itemClass" :style="itemIndent" @click="selectItem">
       <template v-if="item.isParent">
         <div class="entity-tree-item-chevron" @click.stop="toggleItem">
-          <icon class="noselect" src="chevron-right" :size="16" v-if="!expand"></icon>
-          <icon class="noselect" src="chevron-down" :size="16" v-if="expand"></icon>
+          <icon class="noselect" src="chevron-right" :size="16" :rotate="chevronRotation"></icon>
         </div>
       </template>
       <div class="entity-tree-item-icon">
@@ -79,6 +78,14 @@ const itemIndent = computed(() => {
 
 const isSelected = computed(() => {
   return props.item == props.selectedItem;
+});
+
+const chevronRotation = computed(() => {
+  if (expand.value) {
+    return 90
+  } else {
+    return 0;
+  }
 });
 
 </script>
