@@ -6,6 +6,7 @@
     :class="inputCss" 
     type="text" 
     ref="editBox" 
+    v-if="!readonly"
     @click.stop
     @keydown.enter="onSubmit"
     @keydown.esc="onCancel">
@@ -21,7 +22,8 @@ import { defineProps, ref, computed, nextTick, defineEmits, watch } from 'vue';
 const props = defineProps({
   value: {required: true},
   type: {type: Object, required: true},
-  readonly: {type: Boolean, required: true}
+  readonly: {type: Boolean, required: true},
+  class: {type: String, required: false, default: "value"}
 });
 
 const emit = defineEmits(["setValue"]);
@@ -29,24 +31,24 @@ const editMode = ref("default");
 const editBox = ref(null);
 
 const css = computed(() => {
-  let classes = ["value"];
+  let classes = [props.class];
   classes.push(`value-${props.type[0]}`);
   if (props.readonly) {
-    classes.push("value-readonly");
+    classes.push(`${props.class}-readonly`);
   }
   if (editMode.value !== "default") {
-    classes.push("value-hidden");
+    classes.push(`${props.class}-hidden`);
   }
   return classes;
 });
 
 const inputCss = computed(() => {
-  let classes = ["value"];
+  let classes = [props.class];
   classes.push(`value-${props.type[0]}`);
   if (editMode.value === "default") {
-    classes.push("value-hidden");
+    classes.push(`${props.class}-hidden`);
   } else if (editMode.value == "pendingChange") {
-    classes.push("value-pending");
+    classes.push(`${props.class}-pending`);
   }
   return classes;
 });

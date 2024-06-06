@@ -1,24 +1,38 @@
 <template>
   <div>
     <template v-if="!expand">
-      <template v-if="previewTypeKind === 'vector'">
+      <template v-if="previewTypeKind === 'scalar'">
+        <entity-inspector-field 
+          :value="value"
+          :type="type"
+          :readonly="readonly"
+          :class="fieldClass"
+          @setValue="(evt) => setValue(evt, key)">
+        </entity-inspector-field>
+      </template>
+      <template v-else-if="previewTypeKind === 'vector'">
         <div class="component-preview-vector">
-          <div class="component-preview-vector-elem" v-for="(field, key) in value">
-            <entity-inspector-field 
-              :value="field"
-              :type="type[key]"
-              :readonly="readonly"
-              @setValue="(evt) => setValue(evt, key)">
-            </entity-inspector-field>
-          </div>
+          <template v-for="(field, key, i) in value">
+            <div class="component-preview-vector-comma" v-if="i">,&nbsp;</div>
+            <div :class="vectorElemClass">
+              <entity-inspector-field 
+                :value="field"
+                :type="type[key]"
+                :readonly="readonly"
+                :class="fieldClass"
+                @setValue="(evt) => setValue(evt, key)">
+              </entity-inspector-field>
+            </div>
+          </template>
         </div>
       </template>
-      <template v-if="previewTypeKind === 'single'">
+      <template v-else-if="previewTypeKind === 'single'">
         <div class="component-preview-single">
           <entity-inspector-field 
             :value="firstProp(value)"
             :type="firstProp(type)"
             :readonly="readonly"
+            :class="fieldClass"
             @setValue="(evt) => setValue(evt, firstKey(type))">
           </entity-inspector-field>
         </div>
@@ -31,14 +45,14 @@
         </color-preview>
       </div>
     </template>
-    <template v-if="previewTypeKind === 'hslColor'">
+    <template v-else-if="previewTypeKind === 'hslColor'">
       <div class="component-preview-color">
         <color-preview
           :value="`hsl(${propBy(value, 0)}, ${propBy(value, 1)}, ${propBy(value, 2)})`">
         </color-preview>
       </div>
     </template>
-    <template v-if="previewTypeKind === 'cssColor'">
+    <template v-else-if="previewTypeKind === 'cssColor'">
       <div class="component-preview-color">
         <color-preview
           :value="firstProp(value)">
@@ -54,14 +68,16 @@ export default { name: "entity-inspector-preview" }
 
 <script setup>
 
-import { defineProps, ref, computed, defineEmits } from 'vue';
+import { defineProps, computed, defineEmits } from 'vue';
 
 const props = defineProps({
-  value: {type: Object, required: false},
+  value: {required: false},
   type: {type: Object, required: false},
   targets: {required: false},
   expand: {type: Boolean, required: true},
-  readonly: {type: Boolean, required: true}
+  readonly: {type: Boolean, required: true},
+  compact: {type: Boolean, required: true},
+  fieldClass: {type: String, required: false, default: "value"}
 });
 
 const emit = defineEmits(["setValue"]);
@@ -73,7 +89,7 @@ const previewTypeKind = computed(() => {
   }
 
   if (Array.isArray(type)) {
-    return undefined;
+    return "scalar";
   }
 
   let propCount = Object.keys(type).length;
@@ -139,6 +155,14 @@ function setValue(evt, key) {
   }
 }
 
+function vectorElemClass() {
+  let classes = ["component-preview-vector-elem"];
+  if (!props.compact) {
+    classes.push("component-preview-vector-elem-min-width");
+  }
+  return classes;
+}
+
 </script>
 
 <style scoped>
@@ -150,8 +174,15 @@ div.component-preview-vector {
 }
 
 div.component-preview-vector-elem {
-  width: 85px;
   margin-left: 4px;
+}
+
+div.component-preview-vector-comma {
+  color: var(--secondary-text);
+}
+
+div.component-preview-vector-elem-width {
+  width: 85px;
 }
 
 div.component-preview-single {

@@ -1,6 +1,14 @@
 <template>
 <div id="pane-inspect" class="queries-right-pane ace-github-dark">
-  <tabs :labels="['json', 'api', 'inspect']" class="inspect-tab-content">
+  <tabs :labels="['table', 'json', 'api', 'inspect']" class="inspect-tab-content">
+    <template v-slot:table>
+      <div :class="visibleClass">
+        <entity-table :result="result"></entity-table>
+      </div>
+      <template v-if="result.error">
+        <query-error :error="result.error"></query-error>
+      </template>
+    </template>
     <template v-slot:json>
       <div :class="visibleClass">
         <query-json :result="result"></query-json>

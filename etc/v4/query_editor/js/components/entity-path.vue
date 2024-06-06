@@ -9,7 +9,7 @@ export default { name: "entity-path" };
 </script>
 
 <script setup>
-import { computed, defineProps, h } from 'vue';
+import { defineProps, h } from 'vue';
 
 const props = defineProps({
   path: {type: String, required: false}
@@ -40,7 +40,7 @@ const render = () => {
 span.entity-path {
   font-size: 0.8em;
   color: var(--secondary-text);
-  white-space: preserve;
+  white-space: nowrap;
 }
 
 span.entity-path-sep {

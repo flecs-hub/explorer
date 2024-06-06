@@ -171,6 +171,9 @@ let components = [
   loadModule('js/components/widgets/inspector/entity-inspector-preview.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-add-component.vue', options),
 
+  // Table widget
+  loadModule('js/components/widgets/table/entity-table.vue', options),
+
   // Queries page
   loadModule('js/components/pages/queries/page.vue', options),
   loadModule('js/components/pages/queries/pane-query.vue', options),

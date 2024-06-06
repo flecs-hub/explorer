@@ -41,7 +41,7 @@ export default { name: "entity-inspector-kv" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed } from 'vue';
+import { defineProps, defineEmits, ref } from 'vue';
 
 const props = defineProps({
   keyname: {type: String, required: true},
