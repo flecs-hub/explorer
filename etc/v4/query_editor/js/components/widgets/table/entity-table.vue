@@ -2,17 +2,38 @@
   <div class="entity-table">
     <table>
       <thead>
-        <th v-for="col in tableHeaders">{{ col.name }}</th>
+        <template v-for="col in tableHeaders">
+          <th class="noselect" @click="toggleOrderBy(col)">
+            {{ col.name }}
+            <template v-if="orderBy.index === col.index">
+              <template v-if="orderBy.mode === 'none'">
+              </template>
+              <template v-if="orderBy.mode === 'asc'">
+                <icon src="arrow-down"></icon>
+              </template>
+              <template v-if="orderBy.mode === 'desc'">
+                <icon src="arrow-up"></icon>
+              </template>
+            </template>
+          </th>
+        </template>
         <th class="squeeze"></th>
       </thead>
       <tbody>
-        <tr v-for="(result, i) in result.results">
+        <tr v-for="(result, i) in results">
           <td v-for="col in tableHeaders" :class="tdCss(i)">
             <template v-if="isEntity(col)">
-              <div class="entity-table-name">
-                <entity-parent :path="col.get(result)"></entity-parent>
-                <entity-name :path="col.get(result)"></entity-name>
-              </div>
+              <template v-if="col.get(result) === '*'">
+                <div class="entity-table-none">
+                  None
+                </div>
+              </template>
+              <template v-else>
+                <div class="entity-table-name">
+                  <entity-parent :path="col.get(result)"></entity-parent>
+                  <entity-name :path="col.get(result)"></entity-name>
+                </div>
+              </template>
             </template>
             <template v-else>
               <entity-inspector-preview
@@ -37,23 +58,19 @@ export default { name: "entity-table" }
 </script>
 
 <script setup>
-import { defineProps, computed } from 'vue';
+import { defineProps, computed, ref } from 'vue';
+
+const orderByModes = ["none", "asc", "desc"];
+const orderBy = ref({});
 
 const props = defineProps({
   result: {type: Object, required: true }
 });
 
-const query_json_str = computed(() => {
-  if (props.result.error) {
-    return props.result.error.split("\n").join("\n  ");
-  } else {
-    return JSON.stringify({results: props.result}, null, 2);
-  }
-});
-
 const tableHeaders = computed(() => {
   const result = props.result;
   const columns = [];
+  let index = 0;
 
   // Append each variable as column
   const query_info = result.query_info;
@@ -64,6 +81,7 @@ const tableHeaders = computed(() => {
         columns.push({
           name: "Entity",
           schema: ["entity"],
+          index: index++,
           get: (result) => {
             if (result.parent) {
               return result.parent + "." + result.name;
@@ -75,8 +93,10 @@ const tableHeaders = computed(() => {
       } else {
         columns.push({
           name: varName,
+          schema: ["entity"],
+          index: index++,
           get: (result) => {
-            return result.vars[i];
+            return result.vars[varName];
           }
         });
       }
@@ -95,6 +115,7 @@ const tableHeaders = computed(() => {
       columns.push({
         name: field.id,
         schema: field.schema,
+        index: index++,
         get: (result) => {
           return result.fields[i].data;
         }
@@ -103,6 +124,67 @@ const tableHeaders = computed(() => {
   }
 
   return columns;
+});
+
+const orderByIndices = computed(() => {
+  if (!orderBy.value.mode || orderBy.value.mode === 'none') {
+    return undefined;
+  }
+
+  let orderByIndex = orderBy.value.index;
+  let orderByValues = [];
+
+  const result = props.result;
+  let resultIndex = 0;
+  for (let r of result.results) {
+    const value = tableHeaders.value[orderByIndex].get(r);
+    orderByValues.push({value: value, resultIndex: resultIndex});
+    resultIndex ++;
+  }
+
+  orderByValues.sort((a, b) => {
+    let aValue = a.value;
+    let bValue = b.value;
+
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return (aValue - bValue) - (bValue - aValue);
+    }
+
+    if (typeof aValue === 'number') {
+      aValue = "" + aValue;
+    }
+    if (typeof bValue === 'number') {
+      bValue = "" + bValue;
+    }
+
+    if (typeof aValue === 'object') {
+      aValue = JSON.stringify(aValue);
+    }
+    if (typeof bValue === 'object') {
+      bValue = JSON.stringify(bValue);
+    }
+
+    let comp = aValue.localeCompare(bValue);
+    if (orderBy.value.mode === 'desc') {
+      comp *= -1;
+    }
+
+    return comp;
+  });
+
+  return orderByValues;
+});
+
+const results = computed(() => {
+  if (!orderByIndices.value) {
+    return props.result.results;
+  } else {
+    let results = [];
+    for (let elem of orderByIndices.value) {
+      results.push(props.result.results[elem.resultIndex]);
+    }
+    return results;
+  }
 });
 
 function isEntity(col) {
@@ -121,11 +203,29 @@ function tdCss(i) {
   }
 }
 
+function toggleOrderBy(col) {
+  if (orderBy.value.index != col.index) {
+    orderBy.value.index = col.index;
+    orderBy.value.mode = orderByModes[1];
+  } else {
+    let orderByIndex = orderByModes.indexOf(orderBy.value.mode);
+    if (orderByIndex == -1) {
+      orderByIndex = 0;
+    } else {
+      orderByIndex = (orderByIndex + 1) % orderByModes.length;
+    }
+
+    orderBy.value.mode = orderByModes[orderByIndex];
+  }
+}
+
 </script>
 
 <style scoped>
 
 div.entity-table {
+  position: relative;
+  top: -0.5rem; /* table header has padding */
   height: 100%;
   overflow-y: auto;
 }
@@ -150,17 +250,23 @@ th {
   padding: var(--table-padding);
   height: 1.5rem;
   min-width: 100px;
-  text-align: center;
   color: var(--primary-text);
   background-color: var(--bg-cell);
+  cursor: pointer;
 }
 
 th.squeeze {
   width: 100%;
+  background-color: var(--bg-cell);
+  cursor: default;
 }
 
-table th:first-child {
-  text-align: left;
+th:hover {
+  background-color: var(--bg-cell-hover);
+}
+
+th.squeeze:hover {
+  background-color: var(--bg-cell);
 }
 
 tr {
@@ -172,6 +278,8 @@ tr {
 
 td {
   padding: var(--table-padding);
+  padding-top: calc(var(--table-padding) * 0.5);
+  padding-bottom: calc(var(--table-padding) * 0.5);
   background-color: var(--bg-cell);
 }
 
@@ -182,6 +290,11 @@ td.cell-alt {
 div.entity-table-name {
   display: flex;
   flex-direction: column;
+  color: var(--primary-text);
+}
+
+div.entity-table-none {
+  color: var(--secondary-text);
 }
 
 </style>

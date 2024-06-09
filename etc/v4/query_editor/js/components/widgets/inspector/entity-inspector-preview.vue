@@ -11,10 +11,10 @@
         </entity-inspector-field>
       </template>
       <template v-else-if="previewTypeKind === 'vector'">
-        <div class="component-preview-vector">
+        <div :class="vectorClass()">
           <template v-for="(field, key, i) in value">
-            <div class="component-preview-vector-comma" v-if="i">,&nbsp;</div>
-            <div :class="vectorElemClass">
+            <div class="component-preview-vector-comma" v-if="i && compact">,&nbsp;</div>
+            <div :class="vectorElemClass()">
               <entity-inspector-field 
                 :value="field"
                 :type="type[key]"
@@ -39,21 +39,21 @@
       </template>
     </template>
     <template v-if="previewTypeKind === 'rgbColor'">
-      <div class="component-preview-color">
+      <div :class="colorClass()">
         <color-preview
           :value="`rgb(${propBy(value, 0)}, ${propBy(value, 1)}, ${propBy(value, 2)})`">
         </color-preview>
       </div>
     </template>
     <template v-else-if="previewTypeKind === 'hslColor'">
-      <div class="component-preview-color">
+      <div :class="colorClass()">
         <color-preview
           :value="`hsl(${propBy(value, 0)}, ${propBy(value, 1)}, ${propBy(value, 2)})`">
         </color-preview>
       </div>
     </template>
     <template v-else-if="previewTypeKind === 'cssColor'">
-      <div class="component-preview-color">
+      <div :class="colorClass()">
         <color-preview
           :value="firstProp(value)">
         </color-preview>
@@ -76,7 +76,7 @@ const props = defineProps({
   targets: {required: false},
   expand: {type: Boolean, required: true},
   readonly: {type: Boolean, required: true},
-  compact: {type: Boolean, required: true},
+  compact: {type: Boolean, required: false, default: false},
   fieldClass: {type: String, required: false, default: "value"}
 });
 
@@ -158,7 +158,23 @@ function setValue(evt, key) {
 function vectorElemClass() {
   let classes = ["component-preview-vector-elem"];
   if (!props.compact) {
-    classes.push("component-preview-vector-elem-min-width");
+    classes.push("component-preview-vector-elem-width");
+  }
+  return classes;
+}
+
+function vectorClass() {
+  let classes = ["component-preview-vector"];
+  if (props.compact) {
+    classes.push("component-preview-compact");
+  }
+  return classes;
+}
+
+function colorClass() {
+  let classes = ["component-preview-color"];
+  if (props.compact) {
+    classes.push("component-preview-compact");
   }
   return classes;
 }
@@ -193,6 +209,10 @@ div.component-preview-color {
   display: flex;
   flex-direction: row;
   justify-content: right;
+}
+
+div.component-preview-compact {
+  justify-content: left;
 }
 
 div.component-preview-color div {

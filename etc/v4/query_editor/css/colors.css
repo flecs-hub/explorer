@@ -35,6 +35,7 @@
 
   --bg-cell: hsl(210, 12%, 16%);
   --bg-cell-alt: hsl(210, 12%, 15%);
+  --bg-cell-hover: hsl(210, 12%, 20%);
 
   --bg-content:       hsl(214, 10%, 13%);
   --bg-content-alt:   hsl(214, 10%, 12%);

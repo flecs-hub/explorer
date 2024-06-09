@@ -137,6 +137,10 @@ div.value-text, input.value-text {
   color: #B5894B;
 }
 
+div.value-entity {
+  color: var(--primary-text);
+}
+
 div.value-enum, input.value-enum, div.value-bitmask, input.value-bitmask {
   color: #7D67B5;
 }

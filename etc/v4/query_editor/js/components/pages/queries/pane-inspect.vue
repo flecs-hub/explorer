@@ -68,7 +68,15 @@ const doRequest = () => {
   if (!q || !q.length) {
     result.value = {};
   } else {
-    query_func(q, {try: true, rows: true, query_info: true, field_info: true, query_plan: true, query_profile: true}, 
+    query_func(q, {
+        try: true, 
+        rows: true, 
+        full_paths: true,
+        query_info: true, 
+        field_info: true, 
+        query_plan: true, 
+        query_profile: true
+      }, 
       (reply) => {
         result.value = reply;
       }, (reply) => {
