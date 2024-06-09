@@ -7,22 +7,6 @@
         target="_blank">
       </a>
     </div>
-    <div class="title-info title-info-left" v-if="connected">
-      <div class="title-version">
-        {{ version }}
-      </div>
-    </div>
-
-    <div class="title-info title-info-right" v-if="connected">
-      <div :class="`title-config title-config-${config}-bg`">{{ config }}</div>
-    </div>
-    <div class="title-info title-info-right" v-if="connected">
-      <div :class="`title-config title-config-${config}-bg-border`">{{ config }}</div>
-    </div>
-    <div class="title-info title-info-right" v-if="connected">
-      <div :class="`title-config title-config-${config}`">{{ config }}</div>
-    </div>
-
     <url-bar
       :app_state="app_state">
     </url-bar>
@@ -40,48 +24,14 @@ const props = defineProps({
   app_state: {type: Object, required: true},
 });
 
-const worldSummary = computed(() => {
-  if (props.app_state.world_info) {
-    return props.app_state.world_info;
-  } else {
-    return {};
-  }
-});
-
-const version = computed(() => {
-  const bi = worldSummary.value.build_info;
-  if (bi) {
-    return bi.version;
-  } else {
-    return "3.x.x";
-  }
-});
-
-const config = computed(() => {
-  const bi = worldSummary.value.build_info;
-  if (bi) {
-    if (bi.sanitize) {
-      return "sanitize";
-    } else if (bi.debug) {
-      return "debug";
-    } else {
-      return "release";
-    }
-  } else {
-    return undefined;
-  }
-});
-
-const connected = computed(() => {
-  return props.app_state.status == flecs.ConnectionStatus.Connected;
-});
-
 </script>
 
 <style scoped>
+
 div.title-bar {
   display: grid;
   grid-template-columns: 2.5rem 1fr 30rem 1fr 2.5rem;
+  font-size: 0.9rem;
 }
 
 div.title-bar-logo a {
@@ -92,7 +42,7 @@ div.title-bar-logo {
   display: grid;
   grid-template-columns: 1fr;
   grid-column: 1;
-  padding: 3px;
+  padding: 0px;
 }
 
 div.title-info {
@@ -119,59 +69,12 @@ div.title-version {
   text-align: center;
 }
 
-div.title-config {
-  margin: 0px;
-  margin-left: 1rem;
-  padding: 0.3rem;
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
-  border-radius: var(--border-radius-large);
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(0,0,0,0);
-  height: 20px;
-  color: var(--secondary-text);
-  text-align: center;
-  opacity: 0.7;
-}
-
-div.title-config-release {
-  color: var(--green);
-}
-
-div.title-config-release-bg {
-  background-color: var(--green);
-  opacity: 0.075;
-}
-
-div.title-config-debug {
-  color: var(--orange);
-}
-
-div.title-config-debug-bg {
-  background-color: var(--orange);
-  opacity: 0.075;
-}
-
-div.title-config-sanitize {
-  color: var(--red);
-}
-
-div.title-config-sanitize-bg {
-  background-color: var(--red);
-  opacity: 0.075;
-}
-
 @media screen and (max-width: 800px) {
   div.title-bar {
     grid-template-columns: 2.5rem 1fr 25rem 1fr 2.5rem;
   }
 
   div.title-version {
-    display: none;
-  }
-
-  div.title-config {
     display: none;
   }
 }

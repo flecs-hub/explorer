@@ -36,14 +36,21 @@
               </template>
             </template>
             <template v-else>
-              <entity-inspector-preview
-                :value="col.get(result)"
-                :type="col.schema"
-                :expand="false"
-                :readonly="true"
-                :compact="true"
-                fieldClass="table-field">
-              </entity-inspector-preview>
+              <template v-if="col.get(result)">
+                <entity-inspector-preview
+                  :value="col.get(result)"
+                  :type="col.schema"
+                  :expand="false"
+                  :readonly="true"
+                  :compact="true"
+                  fieldClass="table-field">
+                </entity-inspector-preview>
+              </template>
+              <template v-else>
+                <div class="entity-table-none">
+                  None
+                </div>
+              </template>
             </template>
           </td>
           <td :class="tdCss(i)"></td>
@@ -117,7 +124,11 @@ const tableHeaders = computed(() => {
         schema: field.schema,
         index: index++,
         get: (result) => {
-          return result.fields[i].data;
+          if (!result.is_set || result.is_set[i]) {
+            return result.fields[i].data;
+          } else {
+            return undefined;
+          }
         }
       });
     }

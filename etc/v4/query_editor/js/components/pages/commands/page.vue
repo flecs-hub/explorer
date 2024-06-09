@@ -37,6 +37,6 @@ const onCapture = () => {
   display: grid;
   grid-template-rows: 50px calc(100% - 50px - 0.5rem);
   gap: 0.5rem;
-  height: calc(100vh - 57px);
+  height: calc(100vh - 4.5rem);
 }
 </style>

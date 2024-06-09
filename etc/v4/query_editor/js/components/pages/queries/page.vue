@@ -51,13 +51,13 @@ const app_state = defineModel("app_state");
 div.queries-left-pane {
   grid-column: 1;
   grid-row: 1;
-  height: calc(100vh - 57px);
+  height: calc(100vh - 4.5rem);
 }
 
 div.queries-right-pane {
   grid-column: 2;
   grid-row: 1;
-  height: calc(100vh - 57px);
+  height: calc(100vh - 4.5rem);
 }
 
 @media screen and (max-width: 800px) {
@@ -70,7 +70,7 @@ div.queries-right-pane {
   div.queries-right-pane {
     grid-column: 1;
     grid-row: 2;
-    height: calc(60vh - 2.25rem);
+    height: calc(60vh - 3rem);
   }
 }
 </style>

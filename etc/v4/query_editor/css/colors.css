@@ -30,7 +30,7 @@
   --bright-red: #EF8784;
   --cyan: #00AABB;
 
-  --bg-color-alt: hsl(210, 17%, 5%);
+  --bg-color-alt: hsl(210, 17%, 10%);
   --bg-color:     hsl(210, 11%, 12%);
 
   --bg-cell: hsl(210, 12%, 16%);
@@ -50,7 +50,7 @@
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: var(--blue);
   --highlight-text: white;
-  --dark-text: var(--bg-color-alt);
+  --dark-text: hsl(210, 17%, 5%);
 
   --primary-color: var(--green);
   --secondary-color: var(--blue);

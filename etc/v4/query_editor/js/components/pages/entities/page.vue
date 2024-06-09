@@ -36,6 +36,6 @@ function onDelete(evt) {
   display: grid;
   grid-template-columns: 300px calc(100% - 300px - 450px - 1.0rem) 450px;
   gap: 0.5rem;
-  height: calc(100vh - 57px);
+  height: calc(100vh - 4.5rem);
 }
 </style>
