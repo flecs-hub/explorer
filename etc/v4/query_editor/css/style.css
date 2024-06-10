@@ -18,9 +18,9 @@ body {
   width: 100%;
   height: 100vh;
   display: grid;
-  grid-template-columns: 0.0rem 2.5rem calc(100% - 4.0rem) 0.0rem;
-  grid-template-rows: 0.0rem 1.5rem 1.0fr 0.0rem 1.0rem;
-  gap: 0.5rem;
+  grid-template-columns: 0.0rem 2.5rem calc(100% - 2.5rem - 3 * var(--gap)) 0.0rem;
+  grid-template-rows: 0.0rem var(--header-height) 1.0fr var(--footer-height);
+  gap: var(--gap);
 }
 
 div.top-bar {
@@ -31,7 +31,6 @@ div.top-bar {
 div.left-bar {
   grid-column: 2;
   grid-row: 3;
-  height: calc(100vh - 4.5rem);
 }
 
 div.page-content {
@@ -41,8 +40,8 @@ div.page-content {
 
 @media screen and (max-width: 800px) {
   #app {
-    grid-template-columns: 0.0rem calc(100% - 1rem) 0.0rem;
-    grid-template-rows: 0.0rem 1.5rem calc(100% - 4.5rem) 0.0rem 1.5rem;
+    grid-template-columns: 0.0rem calc(100% - 2 * var(--gap)) 0.0rem;
+    grid-template-rows: 0.0rem var(--header-height) calc(100% - var(--header-height) - var(--footer-height) - 3 * var(--gap)) 0.0rem var(--footer-height);
   }
 
   div.top-bar {

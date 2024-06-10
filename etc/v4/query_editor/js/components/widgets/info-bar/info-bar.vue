@@ -35,7 +35,7 @@ div.info-bar {
   position: absolute;
   bottom: 0px;
   width: 100%;
-  height: 1.5rem;
+  height: var(--footer-height);
   background-color: var(--bg-color-alt);
 }
 

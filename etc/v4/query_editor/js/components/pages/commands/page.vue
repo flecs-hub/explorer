@@ -35,8 +35,8 @@ const onCapture = () => {
 <style scoped>
 #page-commands {
   display: grid;
-  grid-template-rows: 50px calc(100% - 50px - 0.5rem);
-  gap: 0.5rem;
-  height: calc(100vh - 4.5rem);
+  grid-template-rows: 50px calc(100% - 50px - var(--gap));
+  gap: var(--gap);
+  height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
 }
 </style>

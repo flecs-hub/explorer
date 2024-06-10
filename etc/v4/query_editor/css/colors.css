@@ -42,6 +42,8 @@
   --bg-content-hover: hsl(210, 12%, 20%);
   --bg-content-select: hsl(210, 12%, 10%);
 
+  --bg-button-alt: hsl(210, 12%, 20%);
+
   --bg-auto-complete: rgb(25, 28, 31, 1.0);
   --bg-error:     var(--red);
   --bg-ok:        var(--green);
@@ -64,6 +66,11 @@
   --border-radius-large: 8px;
   --border-radius-small: 4px;
   --border-radius-medium: 6px;
+
+  --gap: 0.4rem;
+  --header-height: 2.0rem;
+  --footer-height: 1.5rem;
+  --footprint: 5.0rem; /* var(--header-height) + var(--footer-height) + 3 * var(--gap); */
 
   --animation-duration: .12s;
 

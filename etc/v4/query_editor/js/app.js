@@ -130,7 +130,9 @@ function fmtDuration(seconds) {
 
 let components = [
   // Common components
-  loadModule('js/components/title-bar.vue', options),
+  loadModule('js/components/widgets/title-bar/title-bar.vue', options),
+  loadModule('js/components/widgets/title-bar/refresh-control.vue', options),
+  loadModule('js/components/widgets/title-bar/url-bar.vue', options),
   loadModule('js/components/widgets/info-bar/info-bar.vue', options),
   loadModule('js/components/widgets/info-bar/info-connected.vue', options),
   loadModule('js/components/widgets/info-bar/info-build-version.vue', options),
@@ -144,7 +146,6 @@ let components = [
   loadModule('js/components/app-menu.vue', options),
   loadModule('js/components/code-editor.vue', options),
   loadModule('js/components/prop-browser.vue', options),
-  loadModule('js/components/url-bar.vue', options),
   loadModule('js/components/entity-path.vue', options),
   loadModule('js/components/entity-parent.vue', options),
   loadModule('js/components/entity-name.vue', options),

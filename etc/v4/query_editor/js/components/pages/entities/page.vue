@@ -26,7 +26,7 @@ const props = defineProps({
 const appState = defineModel("app_state");
 
 function onDelete(evt) {
-  appState.value.entity = undefined;
+  appState.value.entity.path = undefined;
 }
 
 </script>
@@ -36,6 +36,6 @@ function onDelete(evt) {
   display: grid;
   grid-template-columns: 300px calc(100% - 300px - 450px - 1.0rem) 450px;
   gap: 0.5rem;
-  height: calc(100vh - 4.5rem);
+  height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
 }
 </style>

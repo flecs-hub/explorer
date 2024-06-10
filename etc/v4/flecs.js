@@ -5,8 +5,6 @@
 //   Flecs repository: https://github.com/SanderMertens/flecs
 //   API manual: https://www.flecs.dev/flecs/md_docs_RestApi.html
 //
-// For a backwards-compatible version of the API, use /v1/flecs.js
-//
 
 // If the environment is Node.js import XMLHttpRequest
 if (typeof process === "object" && typeof require === "function") {
@@ -72,12 +70,14 @@ const flecs = {
       let connParams = {
         host: undefined,
         timeout_ms: 1000,
+        poll_interval_ms: 1000, // For managed queries
         retry_interval_ms: 200,
         max_retry_count: 5
       };
   
       if (params) {
         if (params.timeout_ms) connParams.timeout_ms = params.timeout_ms;
+        if (params.poll_interval_ms) connParams.poll_interval_ms = params.poll_interval_ms;
         if (params.retry_interval_ms) connParams.retry_interval_ms = params.retry_interval_ms;
         if (params.max_retry_count) connParams.max_retry_count = params.max_retry_count;
         connParams.on_status = params.on_status;
@@ -89,6 +89,8 @@ const flecs = {
         status: flecs.ConnectionStatus.Initializing,
         params: connParams,
         worldInfo: undefined,
+
+        managedRequests: [],
 
         requests: {
           sent: 0,
@@ -140,6 +142,34 @@ const flecs = {
         disconnect() {
           this._.stopConnMgr(this);
         },
+
+        // Set params for managed requests. Supported params:
+        //  - poll_interval_ms
+        set_managed_params(params) {
+          if (params.poll_interval_ms !== undefined) {
+            this.params.poll_interval_ms = params.poll_interval_ms;
+
+            for (let r of this.managedRequests) {
+              const old_interval = r.poll_interval_ms;
+              r.poll_interval_ms = params.poll_interval_ms;
+
+              if (!old_interval) {
+                r.do();
+              } else if (params.poll_interval_ms === 0) {
+                r.cancel();
+              }
+            }
+          }
+        },
+
+        // Request managed requests
+        request_managed() {
+          for (let r of this.managedRequests) {
+            if (!r.poll_interval_ms) {
+              r.do();
+            }
+          }
+        },
   
         // Request entity
         entity: function(path, params, recv, err) {
@@ -162,7 +192,7 @@ const flecs = {
                   err({error: msg});
                 }
               }
-            }, params.poll_interval);
+            }, params.poll_interval_ms);
         },
   
         // Request query
@@ -178,14 +208,14 @@ const flecs = {
   
           params.q = encodeURIComponent(query);
           return this._.requestQuery(
-            this, params, recv, err, params.poll_interval);
+            this, params, recv, err, params.poll_interval_ms);
         },
   
         // Request named query
         queryName: function(query, params, recv, err) {
           params.name = encodeURIComponent(query);
           return this._.requestQuery(
-            this, params, recv, err, params.poll_interval);
+            this, params, recv, err, params.poll_interval_ms);
         },
 
         // Set component
@@ -243,7 +273,7 @@ const flecs = {
                 err(JSON.parse(msg))
               }
             },
-            params.poll_interval);
+            params.poll_interval_ms);
         },
   
         // Private methods
@@ -261,7 +291,7 @@ const flecs = {
           },
   
           // Do HTTP request.
-          request: function(conn, method, path, params, recv, err, poll_interval) {
+          request: function(conn, method, path, params, recv, err, poll_interval_ms) {
             // If this is a dryrun we're only returning the URL. Don't include the
             // dryrun parameter in the returned URL.
             let dryrun = false;
@@ -269,6 +299,10 @@ const flecs = {
             if (params.dryrun) {
               dryrun = true;
               delete params.dryrun;
+            }
+
+            if (params.managed) {
+              poll_interval_ms = conn.params.poll_interval_ms;
             }
         
             // Create the request object
@@ -282,13 +316,14 @@ const flecs = {
               url: conn.params.host + "/" + path + flecs._.paramStr(params),
               recv: recv,
               err: err,
-              poll_interval: poll_interval,
+              poll_interval_ms: poll_interval_ms,
               retry_interval_ms: conn.retry_interval_ms,
+              managed: params.managed,
               retry_count: 0,
               aborted: false,
   
               // Do request
-              do(redo = false) {
+              do() {
                 if (dryrun) {
                   return;
                 }
@@ -335,6 +370,8 @@ const flecs = {
   
                     // Poll if necessary
                     this._.poll(this);
+
+                    this.aborted = false;
                   }
                 };
   
@@ -349,9 +386,9 @@ const flecs = {
                 this.retry_interval_ms = this.conn.retry_interval_ms;
                 this.do(true);
               },
-  
-              // Abort request
-              abort() {
+
+              // Cancel request
+              cancel() {
                 if (this.request) {
                   this.status = flecs.RequestStatus.Aborting;
                   this.request.abort();
@@ -359,11 +396,23 @@ const flecs = {
                 }
               },
   
+              // Abort request
+              abort() {
+                if (this.request) {
+                  this.cancel();
+
+                  if (this.managed) {
+                    this.conn.managedRequests = 
+                      this.conn.managedRequests.filter(item => item !== this);
+                  }
+                }
+              },
+  
               // Private methods
               _: {
                 // Do polling if request has poll interval
                 poll(pub) {
-                  if (pub.poll_interval && !pub.aborted) {
+                  if (pub.poll_interval_ms && !pub.aborted) {
                     if (pub.status == flecs.RequestStatus.Done) {
                       // If this is a polling request and valid data was received,
                       // the request is alive.
@@ -373,13 +422,13 @@ const flecs = {
                     setTimeout(() => {
                       this.retry_count = 0;
                       pub.redo();
-                    }, pub.poll_interval);
+                    }, pub.poll_interval_ms);
                   }
                 },
   
                 // Handle request error
                 onError(pub) {
-                  if (pub.poll_interval) {
+                  if (pub.poll_interval_ms) {
                     // When this is a polling request don't bother with retrying
                     const errMsg = `request to ${pub.conn.host} failed`;
                     if (pub.err) pub.err(`{"error": \"${errMsg}\"}`);
@@ -398,7 +447,6 @@ const flecs = {
   
                   if (pub.aborted) {
                     this.status = flecs.RequestStatus.Aborted;
-                    console.log(`request to ${pub.conn.host} aborted`);
                     return;
                   }
   
@@ -427,7 +475,11 @@ const flecs = {
                 }
               }
             };
-  
+
+            if (params.managed) {
+              conn.managedRequests.push(result);
+            }
+
             // Do request
             result.do();
   
@@ -436,7 +488,7 @@ const flecs = {
           },
   
           // Do query request
-          requestQuery: function(conn, params, recv, err, poll_interval) {
+          requestQuery: function(conn, params, recv, err, poll_interval_ms) {
             let endpoint = "query";
             let on_recv, on_err;
             if (recv) {
@@ -465,7 +517,7 @@ const flecs = {
             }
   
             return this.request(conn, "GET", endpoint, params, on_recv, on_err, 
-              poll_interval);
+              poll_interval_ms);
           },
   
           // Start heartbeat request that monitors connection liveliness
@@ -473,7 +525,7 @@ const flecs = {
             this.setStatus(pub, flecs.ConnectionStatus.Initializing);
   
             this.connMgrRequest = pub.entity("flecs.core.World", 
-              {values: true, label: true, poll_interval: 1000}, 
+              {values: true, label: true, poll_interval_ms: 1000}, 
               (msg) => {
                 pub.worldInfo = msg;
 
@@ -504,7 +556,7 @@ const flecs = {
       if (params) {
         for (var k in params) {
           // Ignore client-side only parameters
-          if (k === "poll_interval" || k === "host") {
+          if (k === "poll_interval_ms" || k === "host" || k === "managed") {
             continue;
           }
           if (params[k] !== undefined) {

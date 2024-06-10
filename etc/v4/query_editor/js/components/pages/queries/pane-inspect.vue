@@ -44,7 +44,7 @@ export default {
 </script>
 
 <script setup>
-import { ref, defineProps, computed, onMounted, watch } from 'vue';
+import { ref, defineProps, computed, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
   app_state: {type: Object, required: true },
@@ -52,12 +52,17 @@ const props = defineProps({
 });
 
 const result = ref({reply: []});
+const request = ref(undefined);
 
 const query = computed(() => {
   return props.app_state.query;
 });
 
 const doRequest = () => {
+  if (request.value) {
+    request.value.abort();
+  }
+
   let query_func = props.conn.query.bind(props.conn);
   let q = query.value.expr;
   if (query.value.use_name) {
@@ -67,15 +72,17 @@ const doRequest = () => {
 
   if (!q || !q.length) {
     result.value = {};
+    request.value = undefined;
   } else {
-    query_func(q, {
+    request.value = query_func(q, {
         try: true, 
         rows: true, 
         full_paths: true,
         query_info: true, 
         field_info: true, 
         query_plan: true, 
-        query_profile: true
+        query_profile: true,
+        managed: true
       }, 
       (reply) => {
         result.value = reply;
@@ -96,6 +103,12 @@ const visibleClass = computed(() => {
 onMounted(() => {
   doRequest();
 });
+
+onUnmounted(() => {
+  if (request.value) {
+    request.value.abort();
+  }
+})
 
 watch(() => [query.value.expr, query.value.name, query.value.use_name], () => {
   doRequest();

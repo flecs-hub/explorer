@@ -6,7 +6,8 @@
       :depth="depth"
       :selectedItem="selectedItem"
       v-for="item in treeQueryResult"
-      @select="selectItem">
+      @select="selectItem"
+      :key="item.name">
     </entity-tree-item>
     <template v-if="path !== '0'">
       <div class="entity-tree-vertical-line" :style="lineIndent"></div>
@@ -79,7 +80,7 @@ function updateQuery() {
     ;
 
   treeQuery.value = 
-    props.conn.query(q, {try: true, rows: true, limit: 1000, poll_interval: 1000}, (reply) => {
+    props.conn.query(q, {try: true, rows: true, limit: 1000, managed: true}, (reply) => {
       let sortedItems = [];
 
       if (!reply.results) {
@@ -157,6 +158,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+
 div.entity-subtree {
   position: relative;
 }

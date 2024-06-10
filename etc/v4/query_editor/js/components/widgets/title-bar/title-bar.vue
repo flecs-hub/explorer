@@ -10,6 +10,9 @@
     <url-bar
       :app_state="app_state">
     </url-bar>
+    <div class="title-info-right">
+      <refresh-control :conn="conn"></refresh-control>
+    </div>
   </div>
 </template>
 
@@ -21,6 +24,7 @@ export default { name: "title-bar" };
 import { defineProps, computed } from 'vue';
 
 const props = defineProps({
+  conn: {type: Object, required: true},
   app_state: {type: Object, required: true},
 });
 
@@ -31,6 +35,7 @@ const props = defineProps({
 div.title-bar {
   display: grid;
   grid-template-columns: 2.5rem 1fr 30rem 1fr 2.5rem;
+  gap: var(--gap);
   font-size: 0.9rem;
 }
 
@@ -57,24 +62,17 @@ div.title-info-left {
 div.title-info-right {
   grid-column: 4;
   position: absolute;
-  top: calc(0.7rem - 1px);
-  right: 0.7rem;
-}
-
-div.title-version {
-  padding-top: 0.1rem;
-  margin-left: 0.5rem;
-  width: 50px;
-  color: var(--secondary-text);
-  text-align: center;
+  right: var(--gap);
+  height: var(--header-height);
 }
 
 @media screen and (max-width: 800px) {
   div.title-bar {
-    grid-template-columns: 2.5rem 1fr 25rem 1fr 2.5rem;
+    display: grid;
+    grid-template-columns: 2.5rem 0px 1fr 0px;
   }
 
-  div.title-version {
+  div.title-info-right {
     display: none;
   }
 }

@@ -33,6 +33,7 @@ function selectItem(evt) {
 </script>
 
 <style scoped>
+
 #entity-tree {
   display: grid;
   grid-template-rows: 1rem;
@@ -42,4 +43,5 @@ function selectItem(evt) {
   gap: 0.5rem;
   border-radius: var(--border-radius-medium);
 }
+
 </style>

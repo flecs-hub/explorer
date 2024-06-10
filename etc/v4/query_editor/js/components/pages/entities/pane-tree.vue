@@ -53,8 +53,7 @@ div.pane-tree-search-box {
 
 div.pane-tree-entity-tree {
   grid-row: 2;
-  /* grid-template-rows: calc(100vh - 9rem); */
-  height: calc(100vh - 36px - 8px - 3.5rem);
+  height: calc(100vh - 36px - 8px - var(--header-height) - var(--footer-height) - 3 * var(--gap));
   overflow: auto;
 }
 

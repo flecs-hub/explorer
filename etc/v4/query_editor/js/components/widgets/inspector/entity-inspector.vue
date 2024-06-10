@@ -152,7 +152,7 @@ function updateQuery() {
       props.conn.entity(props.path, 
         {
           try: true, 
-          poll_interval: 500, 
+          managed: true,
           values: true, 
           full_paths: true, 
           type_info: true,
@@ -229,7 +229,12 @@ function onDisable() {
 }
 
 function onDelete() {
+  if (entityQuery.value) {
+    entityQuery.value.abort();
+  }
+
   props.conn.delete(props.path);
+
   emit("delete", props.path);
 }
 

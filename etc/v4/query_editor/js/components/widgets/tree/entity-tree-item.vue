@@ -102,6 +102,7 @@ const chevronRotation = computed(() => {
 </script>
 
 <style scoped>
+
 div.entity-tree-item {
   position: relative;
   display: grid;

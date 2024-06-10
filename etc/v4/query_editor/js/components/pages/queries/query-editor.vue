@@ -65,7 +65,7 @@ document.addEventListener('keydown', function(event) {
 div.editor {
   display: grid;
   grid-template-columns: 1fr;
-  grid-template-rows: calc(100vh - 9rem);
+  grid-template-rows: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap) - 4rem);
 }
 
 @media screen and (max-width: 800px) {

@@ -34,7 +34,7 @@ const version = computed(() => {
 div.build-version {
   padding-top: 2px;
   width: 100px;
-  height: calc(1.5rem - 2px);
+  height: calc(var(--footer-height) - 2px);
   text-align: center;
   font-size: 0.9rem;
   color: var(--secondary-text);

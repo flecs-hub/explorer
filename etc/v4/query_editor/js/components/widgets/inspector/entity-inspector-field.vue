@@ -1,6 +1,6 @@
 <template>
   <div :class="css" @click.stop="editField">
-    {{ value }}
+    {{ formattedValue }}
   </div>
   <input 
     :class="inputCss" 
@@ -51,6 +51,14 @@ const inputCss = computed(() => {
     classes.push(`${props.class}-pending`);
   }
   return classes;
+});
+
+const formattedValue = computed(() => {
+  if (typeof props.value === "number") {
+    return props.value.toFixed(2);
+  } else {
+    return props.value;
+  }
 });
 
 watch(() => props.value, () => {

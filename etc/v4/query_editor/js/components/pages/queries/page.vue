@@ -29,20 +29,20 @@ const app_state = defineModel("app_state");
 <style scoped>
 #page-queries {
   display: grid;
-  grid-template-columns: calc(600px - 0.5rem) calc(100% - 600px);
-  gap: 0.5rem;
+  grid-template-columns: calc(600px) calc(100% - 600px - var(--gap));
+  gap: var(--gap);
 }
 
 @media screen and (max-width: 1280px) {
   #page-queries {
-    grid-template-columns: calc(450px - 0.5rem) calc(100% - 450px);
+    grid-template-columns: calc(450px - var(--gap)) calc(100% - 450px);
   }
 }
 
 @media screen and (max-width: 800px) {
   #page-queries {
     grid-template-columns: calc(100%);
-    grid-template-rows: calc(40vh - 2.0rem) calc(60vh - 2.5rem);
+    grid-template-rows: calc(40vh - var(--header-height) - var(--gap)) calc(60vh - var(--footer-height) - var(--gap));
   }
 }
 </style>
@@ -51,26 +51,26 @@ const app_state = defineModel("app_state");
 div.queries-left-pane {
   grid-column: 1;
   grid-row: 1;
-  height: calc(100vh - 4.5rem);
+  height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
 }
 
 div.queries-right-pane {
   grid-column: 2;
   grid-row: 1;
-  height: calc(100vh - 4.5rem);
+  height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
 }
 
 @media screen and (max-width: 800px) {
   div.queries-left-pane {
     grid-column: 1;
     grid-row: 1;
-    height: calc(40vh - 2.0rem);
+    height: calc(40vh - - var(--header-height) - var(--gap));
   }
 
   div.queries-right-pane {
     grid-column: 1;
     grid-row: 2;
-    height: calc(60vh - 3rem);
+    height: calc(60vh - var(--footer-height) - 3 * var(--gap));
   }
 }
 </style>
