@@ -23,10 +23,6 @@ const props = defineProps({
   app_state: {type: Object, required: true}
 });
 
-const connected = computed(() => {
-  return props.app_state.status == flecs.ConnectionStatus.Connected;
-});
-
 </script>
 
 <style scoped>

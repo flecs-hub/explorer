@@ -2,11 +2,11 @@
   <div id="page-entities" class="page-content">
     <pane-tree 
       :conn="conn"
-      v-model:app_state="appState">
+      v-model:app_params="appParams">
     </pane-tree>
     <pane-inspector 
       :conn="conn"
-      :app_state="appState"
+      :app_params="appParams"
       @abort="onAbort">
     </pane-inspector>
   </div>
@@ -21,12 +21,13 @@ import { defineProps, defineModel } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
+  app_state: {type: Object, required: true},
 });
 
-const appState = defineModel("app_state");
+const appParams = defineModel("app_params");
 
 function onAbort(evt) {
-  appState.value.entity.path = undefined;
+  appParams.value.entity.path = undefined;
 }
 
 </script>

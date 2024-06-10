@@ -21,6 +21,7 @@ import { defineProps, ref } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
+  app_params: {type: Object, required: true},
   app_state: {type: Object, required: true}
 });
 

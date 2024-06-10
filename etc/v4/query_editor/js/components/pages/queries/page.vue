@@ -1,12 +1,12 @@
 <template>
   <div id="page-queries" class="page-content">
     <pane-query
-      v-model:app_state="app_state"
+      v-model:app_params="app_params"
       :conn="conn">
     </pane-query>
 
     <pane-inspect
-      :app_state="app_state"
+      :app_params="app_params"
       :conn="conn">
     </pane-inspect>
   </div>
@@ -20,10 +20,11 @@ export default { name: "page-queries" };
 import { defineProps, defineModel } from 'vue';
 
 const props = defineProps({
-  conn: {type: Object, required: true}
+  conn: {type: Object, required: true},
+  app_params: {type: Object, required: true},
 });
 
-const app_state = defineModel("app_state");
+const app_params = defineModel("app_params");
 </script>
 
 <style scoped>

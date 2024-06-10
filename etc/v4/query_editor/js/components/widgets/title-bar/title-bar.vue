@@ -8,7 +8,8 @@
       </a>
     </div>
     <url-bar
-      v-model:app_state="app_state">
+      :app_state="app_state"
+      v-model:app_params="app_params">
     </url-bar>
     <div class="title-info-right">
       <refresh-control :conn="conn"></refresh-control>
@@ -25,9 +26,10 @@ import { defineProps, defineModel } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
+  app_state: {type: Object, required: true}
 });
 
-const app_state = defineModel("app_state");
+const app_params = defineModel("app_params");
 
 </script>
 

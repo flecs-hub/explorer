@@ -24,14 +24,14 @@ const props = defineProps({
   conn: {type: Object, required: true},
 });
 
-const appState = defineModel("app_state");
+const appParams = defineModel("app_params");
 const nameFilter = ref();
 
 function selectItem(item) {
   if (item) {
-    appState.value.entity.path = item.path;
+    appParams.value.entity.path = item.path;
   } else {
-    appState.value.entity.path = undefined;
+    appParams.value.entity.path = undefined;
   }
 }
 

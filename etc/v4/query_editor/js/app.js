@@ -236,7 +236,7 @@ Promise.all(components).then((values) => {
 
         // Copy host to reactive property
         on_host: function(host) {
-          this.app_state.host = host;
+          this.app_params.host = host;
         }.bind(this),
         
         // Copy connection status to reactive property
@@ -244,7 +244,7 @@ Promise.all(components).then((values) => {
           this.app_state.status = status;
 
           if (status === flecs.ConnectionStatus.Disconnected) {
-            this.app_state.entity.path = undefined;
+            this.app_params.entity.path = undefined;
           }
         }.bind(this),
 
@@ -291,7 +291,7 @@ Promise.all(components).then((values) => {
     },
 
     watch: {
-      app_state: {
+      app_params: {
         handler(value) {
           if (!this.conn || value.host != this.conn.params.host) {
             this.conn.connect(value.host);
@@ -303,8 +303,7 @@ Promise.all(components).then((values) => {
 
     data() {
       return {
-        app_state: {
-          // Populated by code
+        app_state: { // Populated by code
           app_name: "Flecs app",
           status: undefined,
           heartbeat: undefined,
@@ -320,8 +319,8 @@ Promise.all(components).then((values) => {
           world_info: undefined,
           build_info: undefined,
           command_counts: new Array(120).fill(0),
-
-          // Populated by user
+        },
+        app_params: { // Populated by user
           host: undefined,
           query: {
             expr: QueryParam,

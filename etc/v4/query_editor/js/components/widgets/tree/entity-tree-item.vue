@@ -21,7 +21,8 @@
         :path="item.path"
         :depth="depth + 1"
         :selectedItem="selectedItem"
-        @select="selectChild">
+        @select="selectChild"
+        :key="item.path">
       </entity-subtree>
     </template>
   </div>

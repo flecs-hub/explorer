@@ -31,14 +31,14 @@ const props = defineProps({
   conn: {type: Object, required: true}
 });
 
-const app_state = defineModel("app_state");
+const app_params = defineModel("app_params");
 
 const query = computed(() => {
-  return app_state.value.query;
+  return app_params.value.query;
 });
 
 const host = computed(() => {
-  return app_state.value.host;
+  return app_params.value.host;
 });
 
 const onTab = (evt) => {

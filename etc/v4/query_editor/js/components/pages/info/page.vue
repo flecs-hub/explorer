@@ -12,6 +12,7 @@ export default { name: "page-info" };
 import { defineProps, defineModel, computed } from 'vue';
 
 const props = defineProps({
+  app_params: {type: Object, required: true},
   app_state: {type: Object, required: true}
 });
 </script>

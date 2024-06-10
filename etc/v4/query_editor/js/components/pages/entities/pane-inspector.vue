@@ -19,12 +19,12 @@ const emit = defineEmits(["abort"]);
 
 const props = defineProps({
   conn: {type: Object, required: true},
-  app_state: {type: Object, required: true}
+  app_params: {type: Object, required: true}
 });
 
 const path = computed(() => {
-  if (props.app_state.entity) {
-    return props.app_state.entity.path;
+  if (props.app_params.entity) {
+    return props.app_params.entity.path;
   } else {
     return undefined;
   }

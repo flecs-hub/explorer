@@ -13,14 +13,18 @@ export default { name: "url-bar" }
 </script>
 
 <script setup>
-import { computed, ref, defineModel } from 'vue';
+import { computed, ref, defineProps, defineModel } from 'vue';
 
-const app_state = defineModel("app_state");
+const props = defineProps({
+  app_state: {type: Object, required: true}
+});
+
+const app_params = defineModel("app_params");
 const hasFocus = ref();
 const urlBox = ref(null);
 
 const appName = computed(() => {
-  let str = app_state.value.app_name;
+  let str = props.app_state.app_name;
   str = str.replaceAll("_", " ");
   str = str.charAt(0).toUpperCase() + str.slice(1);
   return str;
@@ -28,9 +32,9 @@ const appName = computed(() => {
 
 const value = computed(() => {
   if (hasFocus.value) {
-    return app_state.value.host;
+    return app_params.value.host;
   } else {
-    let status = app_state.value.status;
+    let status = props.app_state.status;
     if (status == flecs.ConnectionStatus.Initializing) {
       return "[ initializing ]";
     } else if (status == flecs.ConnectionStatus.RetryConnecting) {
@@ -43,7 +47,7 @@ const value = computed(() => {
     if (name) {
       return name;
     } else {
-      return app_state.value.host;
+      return props.app_state.host;
     }
   }
 });
@@ -53,7 +57,7 @@ const setFocus = (value) => {
 }
 
 function onChange() {
-  app_state.value.host = urlBox.value.value;
+  app_params.value.host = urlBox.value.value;
   urlBox.value.blur();
 }
 

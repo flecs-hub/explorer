@@ -47,7 +47,7 @@ export default {
 import { ref, defineProps, computed, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
-  app_state: {type: Object, required: true },
+  app_params: {type: Object, required: true },
   conn: {type: Object, required: true },
 });
 
@@ -55,7 +55,7 @@ const result = ref({reply: []});
 const request = ref(undefined);
 
 const query = computed(() => {
-  return props.app_state.query;
+  return props.app_params.query;
 });
 
 const doRequest = () => {
