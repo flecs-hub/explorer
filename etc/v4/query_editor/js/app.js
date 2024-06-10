@@ -142,7 +142,7 @@ let components = [
   loadModule('js/components/icon.vue', options),
   loadModule('js/components/toggle.vue', options),
   loadModule('js/components/search-box.vue', options),
-  loadModule('js/components/tabs.vue', options),
+  loadModule('js/components/widgets/tabs.vue', options),
   loadModule('js/components/app-menu.vue', options),
   loadModule('js/components/code-editor.vue', options),
   loadModule('js/components/prop-browser.vue', options),
@@ -214,25 +214,18 @@ let components = [
   loadModule('js/components/pages/info/pane-info.vue', options),
 ];
 
-let HostParam = getParameterByName("host");
-if (HostParam) {
-  if (HostParam.indexOf(":") == -1) {
-    HostParam += ":27750";
-  }
-} else {
-  HostParam = "http://localhost:27750";
-}
-
-let QueryParam = getParameterByName("query");
-if (!QueryParam) {
-  QueryParam = "(ChildOf, flecs)";
-}
-
 Promise.all(components).then((values) => {
   let app = Vue.createApp({
     created() {
+      // Load URL parameters
+      this.fromUrlParams();
+
+      if (!this.app_params.host) {
+        this.app_params.host = "localhost";
+      }
+
       this.conn = flecs.connect({
-        host: HostParam,
+        host: this.app_params.host,
 
         // Copy host to reactive property
         on_host: function(host) {
@@ -242,10 +235,6 @@ Promise.all(components).then((values) => {
         // Copy connection status to reactive property
         on_status: function(status) {
           this.app_state.status = status;
-
-          if (status === flecs.ConnectionStatus.Disconnected) {
-            this.app_params.entity.path = undefined;
-          }
         }.bind(this),
 
         // Copy heartbeat to reactive properties
@@ -290,12 +279,90 @@ Promise.all(components).then((values) => {
       }.bind(this), 1000);
     },
 
+    methods: {
+      convertTo(type, value) {
+        if (type === "undefined") {
+          return value;
+        }
+
+        switch(type) {
+          case 'string':
+            return String(value);
+          case 'number':
+            return Number(value);
+          case 'boolean':
+            return value === "true" ? true : false;
+          default:
+            console.error(`unsupported type: ${type}`);
+        }
+      },
+      toUrlParams(obj) {
+        let result = "";
+        let first = true;
+        for (let key in obj) {
+          const value = obj[key];
+          if (typeof value === "object") {
+            for (let value_key in value) { // max 1 lvl of nesting
+              const nested = value[value_key];
+              if (nested !== undefined) {
+                result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
+                first = false;
+              }
+            }
+          } else if (value !== undefined) {
+            result += `${first ? "?" : "&"}${key}=${encodeURIComponent(value)}`;
+            first = false;
+          }
+        }
+        return result;
+      },
+      fromUrlParams(url = window.location.search) {
+        if (window.location.search === undefined) {
+          return;
+        }
+
+        let first = true;
+        let paramNamePos = -1;
+        while ((paramNamePos = url.indexOf(first ? "?" : "&", paramNamePos + 1)) !== -1) {
+          let paramValuePos = url.indexOf("=", paramNamePos);
+          let paramValueEnd = url.indexOf("&", paramValuePos);
+          const key = url.slice(paramNamePos + 1, paramValuePos).split(".");
+          let value;
+          if (paramValueEnd !== -1) {
+            value = url.slice(paramValuePos + 1, paramValueEnd);
+          } else {
+            value = url.slice(paramValuePos + 1);
+          }
+
+          if (key.length == 1) {
+            const type = typeof this.app_params[key[0]];
+            this.app_params[key[0]] = 
+              this.convertTo(type, decodeURIComponent(value));
+          } else if (key.length == 2) {
+            let type = 'string';
+            if (this.app_params[key[0]]) {
+              type = typeof this.app_params[key[0]][key[1]];
+            }
+            this.app_params[key[0]][key[1]] = 
+              this.convertTo(type, decodeURIComponent(value));
+          }
+          
+          first = false;
+        }
+      }
+    },
+
     watch: {
       app_params: {
         handler(value) {
           if (!this.conn || value.host != this.conn.params.host) {
             this.conn.connect(value.host);
           }
+          
+          history.pushState({}, document.title,
+              window.location.origin + 
+              window.location.pathname +
+              this.toUrlParams(this.app_params));
         },
         deep: true
       }
@@ -321,17 +388,20 @@ Promise.all(components).then((values) => {
           command_counts: new Array(120).fill(0),
         },
         app_params: { // Populated by user
+          page: "entities",
           host: undefined,
           query: {
-            expr: QueryParam,
+            expr: "(ChildOf, flecs)",
             name: undefined,
-            use_name: false
+            use_name: false,
+            query_tab: "editor",
+            inspect_tab: "table"
           },
           entity: {
             path: undefined
-          }
+          },
+          refresh: "auto"
         },
-        page: "entities",
         conn: undefined,
         lastWord: "",
         prev_command_count: -1,

@@ -26,7 +26,7 @@ export default {
 </script>
 
 <script setup>
-import { ref, defineProps, onMounted, defineEmits } from 'vue';
+import { ref, defineProps, defineModel, onMounted, defineEmits } from 'vue';
 
 const props = defineProps({
   labels: {type: Array, required: true},
@@ -35,10 +35,12 @@ const props = defineProps({
 
 const emit = defineEmits(['changed']);
 
-const active = ref();
+const active = defineModel("active_tab");
 
 onMounted(() => {
-  active.value = props.labels[0];
+  if (active.value === undefined) {
+    active.value = props.labels[0];
+  }
 });
 
 function tabSelect(label) {

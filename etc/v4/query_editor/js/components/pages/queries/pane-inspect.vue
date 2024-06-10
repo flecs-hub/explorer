@@ -1,6 +1,8 @@
 <template>
 <div id="pane-inspect" class="queries-right-pane pane">
-  <tabs :labels="['table', 'json', 'api', 'inspect']" class="inspect-tab-content">
+  <tabs :labels="['table', 'json', 'api', 'inspect']" 
+      v-model:active_tab="app_params.query.inspect_tab"
+      class="inspect-tab-content">
     <template v-slot:table>
       <div :class="visibleClass">
         <entity-table :result="result"></entity-table>

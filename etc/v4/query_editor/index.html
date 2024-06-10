@@ -18,33 +18,33 @@
           <menu-button 
             name="entities" 
             img="list-tree"
-            v-model:page="page">
+            v-model:page="app_params.page">
           </menu-button>
         </template>
         <template v-slot:queries>
           <menu-button 
             name="queries" 
             img="search"
-            v-model:page="page">
+            v-model:page="app_params.page">
           </menu-button>
         </template>
         <template v-slot:commands>
           <menu-button 
             name="commands" 
             img="megaphone"
-            v-model:page="page">
+            v-model:page="app_params.page">
           </menu-button>
         </template>
         <template v-slot:info>
           <menu-button 
             name="info" 
             img="info"
-            v-model:page="page">
+            v-model:page="app_params.page">
           </menu-button>
         </template>
       </menu-bar>
 
-      <template v-if="page == 'entities'">
+      <template v-if="app_params.page == 'entities'">
         <page-entities 
           :conn="conn"
           v-model:app_params="app_params"
@@ -52,7 +52,7 @@
         </page-entities>
       </template>
 
-      <template v-if="page == 'queries'">
+      <template v-if="app_params.page == 'queries'">
         <page-queries 
           :conn="conn"
           v-model:app_params="app_params"
@@ -60,7 +60,7 @@
         </page-queries>
       </template>
 
-      <template v-if="page == 'commands'">
+      <template v-if="app_params.page == 'commands'">
         <page-commands 
           :conn="conn"
           v-model:app_params="app_params"
@@ -68,10 +68,10 @@
         </page-commands>
       </template>
 
-      <template v-if="page == 'info'">
+      <template v-if="app_params.page == 'info'">
         <page-info 
-        v-model:app_params="app_params"  
-        :app_state="app_state">
+          v-model:app_params="app_params"  
+          :app_state="app_state">
         </page-info>
       </template>
 

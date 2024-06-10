@@ -333,7 +333,18 @@ const flecs = {
                   return;
                 }
 
-                const url = conn.params.host + "/" + this.url;
+                let url = conn.params.host;
+                if (url.slice(0, 4) !== "http") {
+                  url = "http://" + url;
+                }
+
+                let portIndex = url.indexOf(":"); // first is protocol
+                portIndex = url.indexOf(portIndex + 1, ":");
+                if (portIndex == -1) {
+                  url += ":27750";
+                }
+
+                url += "/" + this.url;
 
                 this.request = new XMLHttpRequest();
                 this.request.open(this.method, url);

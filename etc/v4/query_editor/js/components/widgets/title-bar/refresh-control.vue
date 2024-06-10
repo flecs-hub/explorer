@@ -16,13 +16,17 @@ export default { name: "refresh-control" };
 </script>
 
 <script setup>
-import { defineProps, ref, computed } from 'vue';
+import { defineProps, defineModel, computed } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
 });
 
-const autoRefresh = ref(true);
+const app_params = defineModel("app_params");
+
+const autoRefresh = computed(() => {
+  return app_params.value.refresh === "auto";
+});
 
 const buttonText = computed(() => {
   return autoRefresh.value ? "Auto refresh" : "Manual refresh";
@@ -37,10 +41,14 @@ const buttonIconOpacity = computed(() => {
 })
 
 function toggle() {
-  autoRefresh.value = !autoRefresh.value;
+  if (app_params.value.refresh === "auto") {
+    app_params.value.refresh = "manual";
+  } else {
+    app_params.value.refresh = "auto";
+  }
 
   let poll_interval_ms = 1000;
-  if (!autoRefresh.value) {
+  if (app_params.value.refresh !== "auto") {
     poll_interval_ms = 0;
   }
 

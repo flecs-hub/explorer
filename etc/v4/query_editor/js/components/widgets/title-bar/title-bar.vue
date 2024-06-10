@@ -12,7 +12,10 @@
       v-model:app_params="app_params">
     </url-bar>
     <div class="title-info-right">
-      <refresh-control :conn="conn"></refresh-control>
+      <refresh-control 
+        :conn="conn" 
+        v-model:app_params="app_params">
+      </refresh-control>
     </div>
   </div>
 </template>
