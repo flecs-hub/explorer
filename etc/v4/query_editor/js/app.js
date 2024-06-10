@@ -220,7 +220,7 @@ if (HostParam) {
     HostParam += ":27750";
   }
 } else {
-  HostParam = "localhost:27750";
+  HostParam = "http://localhost:27750";
 }
 
 let QueryParam = getParameterByName("query");
@@ -232,7 +232,7 @@ Promise.all(components).then((values) => {
   let app = Vue.createApp({
     created() {
       this.conn = flecs.connect({
-        host: "http://" + HostParam,
+        host: HostParam,
 
         // Copy host to reactive property
         on_host: function(host) {
@@ -242,6 +242,10 @@ Promise.all(components).then((values) => {
         // Copy connection status to reactive property
         on_status: function(status) {
           this.app_state.status = status;
+
+          if (status === flecs.ConnectionStatus.Disconnected) {
+            this.app_state.entity.path = undefined;
+          }
         }.bind(this),
 
         // Copy heartbeat to reactive properties
@@ -285,6 +289,18 @@ Promise.all(components).then((values) => {
         }
       }.bind(this), 1000);
     },
+
+    watch: {
+      app_state: {
+        handler(value) {
+          if (!this.conn || value.host != this.conn.params.host) {
+            this.conn.connect(value.host);
+          }
+        },
+        deep: true
+      }
+    },
+
     data() {
       return {
         app_state: {
@@ -316,7 +332,7 @@ Promise.all(components).then((values) => {
             path: undefined
           }
         },
-        page: "queries",
+        page: "entities",
         conn: undefined,
         lastWord: "",
         prev_command_count: -1,

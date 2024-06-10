@@ -30,6 +30,8 @@
   --bright-red: #EF8784;
   --cyan: #00AABB;
 
+  --bg-pane: hsl(210, 12%, 16%);
+
   --bg-color-alt: hsl(210, 17%, 10%);
   --bg-color:     hsl(210, 11%, 12%);
 
@@ -48,7 +50,6 @@
   --bg-error:     var(--red);
   --bg-ok:        var(--green);
   --border:       rgb(57, 57, 62);
-  --panel-color:  hsl(210, 12%, 16%);
   --text-color:   rgb(175, 175, 175);
   --highlight-bg: var(--blue);
   --highlight-text: white;

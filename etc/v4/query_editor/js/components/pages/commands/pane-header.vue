@@ -1,5 +1,5 @@
 <template>
-  <div class="commands-header ace-github-dark">
+  <div class="commands-header pane">
     <div class="commands-header-label">
       <p>Commands</p>
     </div>

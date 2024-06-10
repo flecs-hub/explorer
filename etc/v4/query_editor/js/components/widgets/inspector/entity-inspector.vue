@@ -65,7 +65,7 @@ const props = defineProps({
   path: {type: String, required: false}
 });
 
-const emit = defineEmits(["delete"]);
+const emit = defineEmits(["abort"]);
 
 const entityQuery = ref();
 const entityQueryResult = ref();
@@ -142,8 +142,11 @@ function addComponent(component) {
 }
 
 function updateQuery() {
-  if (entityQuery.value) {
-    entityQuery.value.abort();
+  const lastQuery = entityQuery.value;
+  entityQuery.value = undefined;
+
+  if (lastQuery) {
+    lastQuery.abort();
     entityQueryResult.value = undefined;
   }
 
@@ -212,6 +215,10 @@ function updateQuery() {
           entityModules.value.sort((a, b) => {
             return a.name.localeCompare(b.name);
           });
+        }, (err) => {}, (request) => {
+          if (entityQuery.value == request) {
+            emit("abort", props.path);
+          }
         });
   }
 }
@@ -234,8 +241,6 @@ function onDelete() {
   }
 
   props.conn.delete(props.path);
-
-  emit("delete", props.path);
 }
 
 watch(() => props.path, () => {

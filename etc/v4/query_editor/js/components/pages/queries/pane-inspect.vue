@@ -1,5 +1,5 @@
 <template>
-<div id="pane-inspect" class="queries-right-pane ace-github-dark">
+<div id="pane-inspect" class="queries-right-pane pane">
   <tabs :labels="['table', 'json', 'api', 'inspect']" class="inspect-tab-content">
     <template v-slot:table>
       <div :class="visibleClass">
@@ -82,12 +82,15 @@ const doRequest = () => {
         field_info: true, 
         query_plan: true, 
         query_profile: true,
-        managed: true
+        managed: true,
+        persist: true
       }, 
       (reply) => {
         result.value = reply;
       }, (reply) => {
         result.value = reply;
+      }, () => {
+        result.value = []; // Aborted
       });
   }
 }

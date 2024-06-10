@@ -1,5 +1,5 @@
 <template>
-  <div id="pane-info" class="ace-github-dark">
+  <div id="pane-info" class="pane">
     <p>Build</p>
     <div class="info-table">
       <div class="info-table-cell" style="grid-column: 1; grid-row: 1">Name</div>

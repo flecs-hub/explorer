@@ -1,5 +1,5 @@
 <template>
-  <div id="pane-query" class="queries-left-pane ace-github-dark">
+  <div id="pane-query" class="queries-left-pane pane">
     <tabs :labels="['editor', 'browse']"
         class="explorer-tab-content"
         v-on:changed="onTab">

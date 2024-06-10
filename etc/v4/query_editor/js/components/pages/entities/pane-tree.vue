@@ -1,5 +1,5 @@
 <template>
-  <div id="pane-tree" class="ace-github-dark">
+  <div id="pane-tree" class="pane">
     <div class="pane-tree-search-box">
       <search-box v-model="nameFilter"></search-box>
     </div>

@@ -80,7 +80,14 @@ function updateQuery() {
     ;
 
   treeQuery.value = 
-    props.conn.query(q, {try: true, rows: true, limit: 1000, managed: true}, (reply) => {
+    props.conn.query(q, {
+      try: true, 
+      rows: true, 
+      limit: 1000, 
+      managed: true,
+      persist: props.path === "0" // persist root query across reconnects
+    },
+    (reply) => {
       let sortedItems = [];
 
       if (!reply.results) {
@@ -148,6 +155,8 @@ function updateQuery() {
       });
 
       treeQueryResult.value = sortedItems;
+    }, (err) => {}, () => {
+      treeQueryResult.value = [];
     });
 }
 

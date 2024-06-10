@@ -17,7 +17,7 @@ export default { name: "page-queries" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, computed } from 'vue';
+import { defineProps, defineModel } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}

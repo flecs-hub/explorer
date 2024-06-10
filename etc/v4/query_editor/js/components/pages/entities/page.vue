@@ -7,7 +7,7 @@
     <pane-inspector 
       :conn="conn"
       :app_state="appState"
-      @delete="onDelete">
+      @abort="onAbort">
     </pane-inspector>
   </div>
 </template>
@@ -25,7 +25,7 @@ const props = defineProps({
 
 const appState = defineModel("app_state");
 
-function onDelete(evt) {
+function onAbort(evt) {
   appState.value.entity.path = undefined;
 }
 

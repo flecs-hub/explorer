@@ -129,9 +129,7 @@ const flecs = {
           }
   
           // If already connected to another host, disconnect first
-          if (this.status != flecs.ConnectionStatus.Initializing) {
-            this.disconnect();
-          }
+          this.disconnect();
   
           // Connect to host, start connection manager
           this.params.host = newHost;
@@ -140,6 +138,9 @@ const flecs = {
   
         // Disconnect from host
         disconnect() {
+          for (let r of this.managedRequests) {
+            r.abort(true /* keep persistent requests */);
+          }
           this._.stopConnMgr(this);
         },
 
@@ -154,7 +155,7 @@ const flecs = {
               r.poll_interval_ms = params.poll_interval_ms;
 
               if (!old_interval) {
-                r.do();
+                r.resume();
               } else if (params.poll_interval_ms === 0) {
                 r.cancel();
               }
@@ -166,13 +167,13 @@ const flecs = {
         request_managed() {
           for (let r of this.managedRequests) {
             if (!r.poll_interval_ms) {
-              r.do();
+              r.resume();
             }
           }
         },
   
         // Request entity
-        entity: function(path, params, recv, err) {
+        entity: function(path, params, recv, err, abort) {
           path = path.replace(/\./g, "/");
           return this._.request(this, "GET", "entity/" + path, params, 
             (msg) => {
@@ -192,11 +193,11 @@ const flecs = {
                   err({error: msg});
                 }
               }
-            }, params.poll_interval_ms);
+            }, abort, params.poll_interval_ms);
         },
   
         // Request query
-        query: function(query, params, recv, err) {
+        query: function(query, params, recv, err, abort) {
           if (query === undefined) {
             console.error("flecs.query: invalid query parameter");
             return;
@@ -208,14 +209,14 @@ const flecs = {
   
           params.q = encodeURIComponent(query);
           return this._.requestQuery(
-            this, params, recv, err, params.poll_interval_ms);
+            this, params, recv, err, abort, params.poll_interval_ms);
         },
   
         // Request named query
-        queryName: function(query, params, recv, err) {
+        queryName: function(query, params, recv, err, abort) {
           params.name = encodeURIComponent(query);
           return this._.requestQuery(
-            this, params, recv, err, params.poll_interval_ms);
+            this, params, recv, err, abort, params.poll_interval_ms);
         },
 
         // Set component
@@ -262,7 +263,7 @@ const flecs = {
         },
 
         // Other REST endpoints
-        request: function(path, params, recv, err) {
+        request: function(path, params, recv, err, abort) {
           return this._.request(this, "GET", path, params, 
             (msg) => {
               if (recv) {
@@ -273,6 +274,7 @@ const flecs = {
                 err(JSON.parse(msg))
               }
             },
+            abort,
             params.poll_interval_ms);
         },
   
@@ -283,7 +285,7 @@ const flecs = {
           // Set status of connection
           setStatus(pub, status) {
             if (status != pub.status) {
-              this.status = status;
+              pub.status = status;
               if (pub.params.on_status) {
                 pub.params.on_status(status);
               }
@@ -291,7 +293,7 @@ const flecs = {
           },
   
           // Do HTTP request.
-          request: function(conn, method, path, params, recv, err, poll_interval_ms) {
+          request: function(conn, method, path, params, recv, err, on_abort, poll_interval_ms) {
             // If this is a dryrun we're only returning the URL. Don't include the
             // dryrun parameter in the returned URL.
             let dryrun = false;
@@ -313,12 +315,15 @@ const flecs = {
               conn: conn,
               request: undefined,
               method: method,
-              url: conn.params.host + "/" + path + flecs._.paramStr(params),
+              // relative URL so we can persist requests across connections
+              url: path + flecs._.paramStr(params), 
               recv: recv,
               err: err,
+              on_abort: on_abort,
               poll_interval_ms: poll_interval_ms,
               retry_interval_ms: conn.retry_interval_ms,
               managed: params.managed,
+              persist: params.persist,
               retry_count: 0,
               aborted: false,
   
@@ -328,8 +333,10 @@ const flecs = {
                   return;
                 }
 
+                const url = conn.params.host + "/" + this.url;
+
                 this.request = new XMLHttpRequest();
-                this.request.open(this.method, this.url);
+                this.request.open(this.method, url);
                 this.request.onreadystatechange = (reply) => {
                   if (this.request.readyState == 4) {
                     let requestOk = false;
@@ -359,7 +366,7 @@ const flecs = {
 
                         // Request OK
                         if (this.recv && !this.aborted) {
-                          this.recv(this.request.responseText, this.url);
+                          this.recv(this.request.responseText, url);
                         }
                       }
                     }
@@ -383,8 +390,16 @@ const flecs = {
   
               // Redo the request
               redo() {
-                this.retry_interval_ms = this.conn.retry_interval_ms;
-                this.do(true);
+                if (!this.aborted) {
+                  this.retry_interval_ms = this.conn.retry_interval_ms;
+                  this.do(true);
+                }
+              },
+
+              // Resume cancelled request
+              resume() {
+                this.aborted = false;
+                this.do();
               },
 
               // Cancel request
@@ -397,14 +412,22 @@ const flecs = {
               },
   
               // Abort request
-              abort() {
+              abort(keepPersist = false) {
                 if (this.request) {
                   this.cancel();
 
                   if (this.managed) {
-                    this.conn.managedRequests = 
-                      this.conn.managedRequests.filter(item => item !== this);
+                    if (!this.persist || !keepPersist) {
+                      this.conn.managedRequests = 
+                        this.conn.managedRequests.filter(item => item !== this);
+                    }
                   }
+
+                  if (this.on_abort) {
+                    this.on_abort(this);
+                  }
+
+                  this.request = undefined;
                 }
               },
   
@@ -428,6 +451,11 @@ const flecs = {
   
                 // Handle request error
                 onError(pub) {
+                  if (pub.aborted) {
+                    this.status = flecs.RequestStatus.Aborted;
+                    return;
+                  }
+                
                   if (pub.poll_interval_ms) {
                     // When this is a polling request don't bother with retrying
                     const errMsg = `request to ${pub.conn.host} failed`;
@@ -442,11 +470,6 @@ const flecs = {
                     console.error(errMsg);
                     if (pub.err) pub.err(`{"error": \"${errMsg}\"}`);
                     pub.retry_count = 0;
-                    return;
-                  }
-  
-                  if (pub.aborted) {
-                    this.status = flecs.RequestStatus.Aborted;
                     return;
                   }
   
@@ -488,7 +511,7 @@ const flecs = {
           },
   
           // Do query request
-          requestQuery: function(conn, params, recv, err, poll_interval_ms) {
+          requestQuery: function(conn, params, recv, err, on_abort, poll_interval_ms) {
             let endpoint = "query";
             let on_recv, on_err;
             if (recv) {
@@ -517,7 +540,7 @@ const flecs = {
             }
   
             return this.request(conn, "GET", endpoint, params, on_recv, on_err, 
-              poll_interval_ms);
+              on_abort, poll_interval_ms);
           },
   
           // Start heartbeat request that monitors connection liveliness
@@ -529,21 +552,32 @@ const flecs = {
               (msg) => {
                 pub.worldInfo = msg;
 
+                if (pub.status !== flecs.ConnectionStatus.Connected) {
+                  for (let r of pub.managedRequests) {
+                    r.resume();
+                  }
+                }
+
                 this.setStatus(pub, flecs.ConnectionStatus.Connected);
 
                 if (pub.params.on_heartbeat) {
                   pub.params.on_heartbeat(msg);
                 }
               }, (err) => {
-                this.setStatus(pub, flecs.ConnectionStatus.RetryConnecting);
+                if (pub.status == flecs.ConnectionStatus.Connected) {
+                  this.setStatus(pub, flecs.ConnectionStatus.RetryConnecting);
+                }
               });
           },
 
           // Stop monitoring heartbeats
           stopConnMgr(pub) {
-            this.connMgrRequest.abort();
-            this.setStatus(pub, flecs.ConnectionStatus.Disconnected);
-            pub.worldInfo = undefined;
+            if (this.connMgrRequest) {
+              this.connMgrRequest.abort();
+              this.setStatus(pub, flecs.ConnectionStatus.Disconnected);
+              this.connMgrRequest = undefined;
+              pub.worldInfo = undefined;
+            }
           }
         }
       };
@@ -556,7 +590,7 @@ const flecs = {
       if (params) {
         for (var k in params) {
           // Ignore client-side only parameters
-          if (k === "poll_interval_ms" || k === "host" || k === "managed") {
+          if (k === "poll_interval_ms" || k === "host" || k === "managed" || k === "persist") {
             continue;
           }
           if (params[k] !== undefined) {

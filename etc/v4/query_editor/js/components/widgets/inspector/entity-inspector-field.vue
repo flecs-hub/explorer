@@ -5,7 +5,7 @@
   <input 
     :class="inputCss" 
     type="text" 
-    ref="editBox" 
+    ref="editBox"
     v-if="!readonly"
     @click.stop
     @keydown.enter="onSubmit"

@@ -1,5 +1,5 @@
 <template>
-  <div id="prop-browser" class="ace-github-dark" :style="posStyle">
+  <div id="prop-browser" class="pane" :style="posStyle">
     <template v-for="(el, i) in prop_query.results">
       <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="!isTarget"
         v-on:click="selectProp(el)">

@@ -1,5 +1,5 @@
 <template>
-  <div id="entity-tree" class="ace-github-dark">
+  <div id="entity-tree" class="pane">
     <entity-subtree 
       :conn="conn"
       :selectedItem="selectedItem"

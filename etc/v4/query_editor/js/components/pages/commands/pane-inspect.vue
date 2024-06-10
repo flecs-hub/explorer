@@ -1,5 +1,5 @@
 <template>
-  <div class="commands-inspect ace-github-dark">
+  <div class="commands-inspect pane">
     <div class="commands-inspect-container">
       <template v-if="syncs.length">
         <div class="commands-frame-header">

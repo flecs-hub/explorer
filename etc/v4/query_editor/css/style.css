@@ -98,6 +98,11 @@ input:focus {
   outline: none !important;
 }
 
+div.pane, input.pane {
+  background-color: var(--bg-pane);
+  color: var(--primary-text);
+}
+
 .noselect {
   -webkit-touch-callout: none; /* iOS Safari */
     -webkit-user-select: none; /* Safari */

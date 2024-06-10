@@ -1,5 +1,5 @@
 <template>
-  <div id="menu-bar" class="left-bar ace-github-dark">
+  <div id="menu-bar" class="left-bar pane">
     <div class="menu-bar-items">
       <template v-for="item in items">
         <slot :name="item"></slot>

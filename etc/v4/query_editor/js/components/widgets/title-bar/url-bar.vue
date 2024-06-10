@@ -1,8 +1,10 @@
 <template>
-  <input id="url-bar" type="text" class="ace-github-dark"
+  <input id="url-bar" type="text" class="pane"
     v-on:focus="setFocus(true)"
     v-on:blur="setFocus(false)"
-    :value="value">
+    ref="urlBox"
+    :value="value"
+    @keydown.enter="onChange">
   </input>
 </template>
 
@@ -11,28 +13,24 @@ export default { name: "url-bar" }
 </script>
 
 <script setup>
-import { computed, ref, defineProps } from 'vue';
+import { computed, ref, defineModel } from 'vue';
 
-const props = defineProps({
-  app_state: {type: Object, required: true},
-});
-
+const app_state = defineModel("app_state");
 const hasFocus = ref();
+const urlBox = ref(null);
 
 const appName = computed(() => {
-  const app_state = props.app_state;
-  let str = app_state.app_name;
+  let str = app_state.value.app_name;
   str = str.replaceAll("_", " ");
   str = str.charAt(0).toUpperCase() + str.slice(1);
   return str;
 });
 
 const value = computed(() => {
-  const app_state = props.app_state;
   if (hasFocus.value) {
-    return app_state.host;
+    return app_state.value.host;
   } else {
-    let status = app_state.status;
+    let status = app_state.value.status;
     if (status == flecs.ConnectionStatus.Initializing) {
       return "[ initializing ]";
     } else if (status == flecs.ConnectionStatus.RetryConnecting) {
@@ -45,7 +43,7 @@ const value = computed(() => {
     if (name) {
       return name;
     } else {
-      return app_state.host;
+      return app_state.value.host;
     }
   }
 });
@@ -53,6 +51,12 @@ const value = computed(() => {
 const setFocus = (value) => {
   hasFocus.value = value;
 }
+
+function onChange() {
+  app_state.value.host = urlBox.value.value;
+  urlBox.value.blur();
+}
+
 </script>
 
 <style scoped>

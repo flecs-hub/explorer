@@ -1,9 +1,9 @@
 <template>
-  <div id="pane-inspector" class="ace-github-dark">
+  <div id="pane-inspector" class="pane">
     <entity-inspector
       :conn="conn"
       :path="path"
-      @delete="onDelete">
+      @abort="onAbort">
     </entity-inspector>
   </div>
 </template>
@@ -15,7 +15,7 @@ export default { name: "pane-inspector" }
 <script setup>
 import { defineProps, defineEmits, computed } from 'vue';
 
-const emit = defineEmits(["delete"]);
+const emit = defineEmits(["abort"]);
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -30,8 +30,8 @@ const path = computed(() => {
   }
 });
 
-function onDelete(evt) {
-  emit("delete", evt)
+function onAbort(evt) {
+  emit("abort", evt)
 }
 
 </script>
