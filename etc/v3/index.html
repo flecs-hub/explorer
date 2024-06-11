@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/split-panes.css">
+    <link rel="stylesheet" href="deps/TextareaDecorator.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link rel="icon" href="img/flecs_logo.png" />
+  </head>
+  <body>
+    <div id="app">
+      <!-- Overlays -->
+      <tooltip ref="tooltip"></tooltip>
+      <url-popover :url="url" ref="share_url_popover"></url-popover>
+
+      <!-- Top bar -->
+      <div class="top-box">
+        <div class="top-content">
+          <app-title ref="title" 
+            :app_name="app_name"
+            :subtitle="subtitle"
+            :connection="connection"
+            :retry_count="retry_count">
+          </app-title>
+          <div class="play-button-box">
+            <a href="https://github.com/SanderMertens/flecs" target="_blank">
+              <img src="img/flecs_logo.png" alt="Flecs GitHub">
+            </a>
+          </div>
+          <div class="load-box">
+            <load :value="get_load()"></load>
+          </div>
+          <div class="save-button-box" v-on:click="rest_world_link" ref="save_url_button" v-tooltip="'REST endpoint for world'" v-if="remote_mode">
+            <icon-button :size="20" icon="feather:download" />
+          </div>
+          <div class="share-button-box" ref="share_url_button" v-on:click="show_url_modal" v-tooltip="'Save layout to URL'">
+            <icon-button :size="20" icon="feather:save" />
+          </div>
+        </div>
+      </div>
+
+      <split-pane-container ref="panes">
+        <split-pane :fixed="true" :collapsible="false" :min_width="45" :resizable="false">
+          <panel-menu ref="panel_menu" v-on:panel-update="evt_panel_update">
+            <panel-button icon="list-tree" panel="tree" v-tooltip="'Treeview'"></panel-button>
+            <panel-button icon="search" panel="query" v-tooltip="'Query editor'"></panel-button>
+            <panel-button icon="symbol-method" panel="explorer_canvas" v-tooltip="'Canvas'"></panel-button>
+            <panel-button icon="code" panel="plecs" v-tooltip="'Script editor'"></panel-button>
+            <panel-button icon="inspect" panel="inspector" v-tooltip="'Entity inspector'"></panel-button>
+            <panel-button icon="graph-line" panel="stats_world"  v-tooltip="'World statistics'"></panel-button>
+            <panel-button icon="server" panel="stats_pipeline"  v-tooltip="'Pipeline statistics'"></panel-button>
+            <panel-button icon="warning" panel="alerts"  v-tooltip="'Alerts'"></panel-button>
+          </panel-menu>
+        </split-pane>
+
+        <!-- Tree view -->
+        <split-pane :fixed="true" :initial_width="200">
+          <entity-tree ref="tree" 
+            :valid="valid"
+            v-on:select="evt_entity_changed" 
+            v-on:select_query="evt_select_query"
+            v-on:panel-update="evt_panel_update"/>
+        </split-pane>
+
+        <!-- Query results & Entity inspector -->
+        <split-pane>
+          <explorer-canvas v-if="wasm" ref="explorer_canvas"
+            v-on:panel-update="evt_panel_update" :initially_closed="false">
+          </explorer-canvas>
+          <query :valid="valid" ref="query"
+            v-on:select-entity="evt_follow_ref"
+            v-on:panel-update="evt_panel_update">
+          </query>
+          <stats-world ref="stats_world"
+            v-on:panel-update="evt_panel_update">
+          </stats-world>
+          <stats-pipeline ref="stats_pipeline"
+            v-on:select-entity="evt_follow_ref"
+            v-on:panel-update="evt_panel_update">
+          </stats-pipeline>
+          <alerts ref="alerts"
+            v-on:panel-update="evt_panel_update"
+            v-on:select-entity="evt_follow_ref">
+          </alerts>
+        </split-pane>
+
+        <!-- Editor -->
+        <split-pane :fixed="true" :initial_width="400">
+          <editor ref="plecs" 
+              v-on:panel-update="evt_panel_update"
+              v-on:request-focus="evt_request_plecs_focus">
+          </editor>
+          <inspector 
+            :valid="valid"
+            v-on:select-entity="evt_follow_ref"
+            v-on:tree-navigate="evt_tree_navigate"
+            v-on:select-query="evt_select_query"
+            v-on:append-query="evt_append_query"
+            v-on:panel-update="evt_panel_update"
+            v-on:request-focus="evt_request_plecs_focus"
+            ref="inspector"></inspector>
+        </split-pane>
+      </split-pane-container>
+
+      <!-- URL modal -->
+      <url-modal ref="url" :url="url"/>
+    </div>
+
+    <!-- Dependencies -->
+    <script src="deps/vue.min.js"></script>
+    <!-- script src="deps/vue.dev.js">
+      Vue.config.devtools = true;
+    </script -->
+    <script src="deps/Parser.js"></script>
+    <script src="deps/SelectHelper.js"></script>
+    <script src="deps/TextareaDecorator.js"></script>
+    <script src="deps/Behave.js"></script> <!-- provides IDE-like behavior in text editor -->
+    <script src="deps/floating-ui.core.min.js"></script>
+    <script src="deps/floating-ui.dom.min.js"></script>
+    <script src="deps/httpVueLoader.js"></script> <!-- loads Vue SFCs without webpack -->
+    <script src="deps/d3.v6.min.js"></script>
+
+    <script>
+      var syntax_highlighter = new Parser(
+        { whitespace: /\s+/,
+          property: /[a-zA-Z_0-9]+(?=:)/,
+          variable: /(\$[a-zA-Z_0-9]+)/,
+          number: /\b[0-9e]+\b/,
+          comment: /\/\/[^\r\n]*/,
+          operator: /[(),{}\[\]\-\.:?!=+*/|~]/,
+          annotation: /\@[^\r\n]*/,
+          type: /\b(Struct|Enum|Bitmask|Primitive|Array|Vector)\b/,
+          builtin_type: /\b(bool|byte|char|i8|i16|i32|i64|iptr|u8|u16|u32|u64|uptr|f32|f64|string|entity)\b/,
+          builtin_literal: /\b(true|false|null)\b/,
+          builtin_variable: /(\bThis\b)|[\\*]|[$]/,
+          keyword: /\b(const|prop|using|with|assembly)\b/,
+          entity: /\b[a-zA-Z_0-9]+\b/,
+          string: /"[^"]*"/,
+          multiline_string: /`[^`]*`/,
+          other: /\S/
+        } );
+    </script>
+
+    <!-- Generic UI elements -->
+    <script src="js/icon.js"></script>
+    <script src="js/detail_toggle.js"></script>
+    <script src="js/split_panes.js"></script>
+
+    <!-- Functional components -->
+    <script src="js/functional_components/functional_icon.js"></script>
+    <script src="js/functional_components/functional_icon_button.js"></script>
+    <script src="js/functional_components/functional_entity_hierarchy.js"></script>
+
+    <script src="js/status.js"></script>
+    <script src="js/entity_icon.js"></script>
+    <script src="js/entity_reference.js"></script>
+    <script src="js/entity_parent.js"></script>
+    <script src="js/entity_tree.js"></script>
+    <script src="js/entity_inspector.js"></script>
+    <script src="js/url_modal.js"></script>
+    <script src="js/app_title.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
