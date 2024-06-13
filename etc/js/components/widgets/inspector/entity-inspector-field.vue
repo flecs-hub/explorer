@@ -53,7 +53,7 @@ const css = computed(() => {
 });
 
 const formattedValue = computed(() => {
-  if (typeof props.value === "number") {
+  if (props.type[0] === "float") {
     return props.value.toFixed(2);
   } else {
     return props.value;

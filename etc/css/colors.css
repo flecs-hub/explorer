@@ -18,6 +18,8 @@
   
   --dark-blue: #00346E;
   --less-dark-blue: #094a94;
+  --darker-green: hsl(153, 27%, 20%);
+  --dark-green: hsl(153, 37%, 30%);
   --green: rgb(66, 185, 131);
   --light-green: #A2D8B4;
   --blue: rgb(103, 154, 209);
@@ -44,7 +46,8 @@
   --bg-content-hover: hsl(210, 12%, 20%);
   --bg-content-select: hsl(210, 12%, 10%);
 
-  --bg-button-alt: hsl(210, 12%, 20%);
+  --bg-button-alt: hsl(210, 12%, 22%);
+  --bg-button-hover: hsl(210, 12%, 30%);
 
   --bg-auto-complete: rgb(25, 28, 31, 1.0);
   --bg-error:     var(--red);
@@ -82,4 +85,7 @@
   --target-color: var(--cyan);
   --query-color: #DDE0E6;
   --prefab-color: var(--cyan);
+
+  --chart-primary: #A2D8B4;
+  --chart-secondary: hsl(222, 8%, 35%);
 }

@@ -9,7 +9,7 @@ export default { name: "page-info" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, computed } from 'vue';
+import { defineProps } from 'vue';
 
 const props = defineProps({
   app_params: {type: Object, required: true},

@@ -8,6 +8,12 @@
           @click="toggle">
         </expand-button>
       </div>
+      <div class="entity-inspector-icon-close">
+        <icon-button
+          src="close"
+          @click="onClose">
+        </icon-button>
+      </div>
       <entity-path :path="entityQueryResult.parent"></entity-path>
       <template v-if="entityLabel">
         <span class="entity-inspector-name">{{ entityLabel }}</span>
@@ -227,6 +233,10 @@ function toggle() {
   expand.value = !expand.value;
 }
 
+function onClose() {
+  emit("abort", props.path);
+}
+
 function onEnable() {
   props.conn.enable(props.path);
 }
@@ -255,7 +265,9 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (entityQuery.value) {
-    entityQuery.value.abort();
+    const q = entityQuery.value;
+    entityQuery.value = undefined;
+    q.abort();
   }
 });
 
@@ -322,6 +334,11 @@ button.enable-button {
 
 <style>
 div.entity-inspector-icon-expand {
+  position: absolute;
+  top: 8px;
+  right: 32px;
+}
+div.entity-inspector-icon-close {
   position: absolute;
   top: 8px;
   right: 8px;

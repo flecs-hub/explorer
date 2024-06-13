@@ -41,7 +41,7 @@
           In C:
         </p>
         <code>
-          ECS_IMPORT(world, FlecsMonitor);
+          ECS_IMPORT(world, FlecsStats);
         </code>
         <p>
           In C++:

@@ -88,7 +88,6 @@ button {
   border-radius: var(--border-radius-medium);
   background-color: var(--primary-color);
   color: var(--dark-text);
-  cursor: pointer;
 }
 
 button:active {

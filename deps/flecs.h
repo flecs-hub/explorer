@@ -12948,7 +12948,7 @@ void FlecsAlertsImport(
 extern "C" {
 #endif
 
-FLECS_API extern ECS_COMPONENT_DECLARE(FlecsMonitor);      /**< Flecs monitor module. */
+FLECS_API extern ECS_COMPONENT_DECLARE(FlecsStats);      /**< Flecs monitor module. */
 FLECS_API extern ECS_COMPONENT_DECLARE(EcsWorldStats);     /**< Component id for EcsWorldStats. */
 FLECS_API extern ECS_COMPONENT_DECLARE(EcsWorldSummary);   /**< Component id for EcsWorldSummary. */
 FLECS_API extern ECS_COMPONENT_DECLARE(EcsPipelineStats);  /**< Component id for EcsPipelineStats. */
@@ -13002,13 +13002,13 @@ typedef struct {
 /** Monitor module import function.
  * Usage:
  * @code
- * ECS_IMPORT(world, FlecsMonitor)
+ * ECS_IMPORT(world, FlecsStats)
  * @endcode
  * 
  * @param world The world.
  */
 FLECS_API
-void FlecsMonitorImport(
+void FlecsStatsImport(
     ecs_world_t *world);
 
 #ifdef __cplusplus
@@ -31098,7 +31098,7 @@ namespace flecs {
 
 inline monitor::monitor(flecs::world& world) {
     /* Import C module  */
-    FlecsMonitorImport(world);
+    FlecsStatsImport(world);
 
     world.component<WorldSummary>();
     world.component<WorldStats>();

@@ -84,7 +84,7 @@ The explorer can visualize statistics from Flecs applications. Statistics collec
 
 In C:
 ```c
-ECS_IMPORT(world, FlecsMonitor);
+ECS_IMPORT(world, FlecsStats);
 ```
 
 In C++:

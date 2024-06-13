@@ -146,6 +146,10 @@ const orderByIndices = computed(() => {
   let orderByValues = [];
 
   const result = props.result;
+  if (!result.results) {
+    return [];
+  }
+
   let resultIndex = 0;
   for (let r of result.results) {
     const value = tableHeaders.value[orderByIndex].get(r);

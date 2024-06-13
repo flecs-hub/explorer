@@ -107,6 +107,9 @@ let components = [
   loadModule('js/components/widgets/info-bar/info-build-config.vue', options),
   loadModule('js/components/widgets/menu-bar/menu-bar.vue', options),
   loadModule('js/components/widgets/menu-bar/menu-button.vue', options),
+  loadModule('js/components/widgets/stat-chart.vue', options),
+  loadModule('js/components/widgets/dropdown.vue', options),
+  loadModule('js/components/widgets/detail-toggle.vue', options),
   loadModule('js/components/icon.vue', options),
   loadModule('js/components/toggle.vue', options),
   loadModule('js/components/search-box.vue', options),
@@ -167,6 +170,17 @@ let components = [
   loadModule('js/components/pages/queries/query-api.vue', options),
   loadModule('js/components/pages/queries/query-error.vue', options),
   loadModule('js/components/pages/queries/query-list-item.vue', options),
+
+  // Stats page
+  loadModule('js/components/pages/stats/page.vue', options),
+  loadModule('js/components/pages/stats/world-stats.vue', options),
+  loadModule('js/components/pages/stats/world-stat.vue', options),
+
+  // Pipeline page
+  loadModule('js/components/pages/pipeline/page.vue', options),
+  loadModule('js/components/pages/pipeline/pipeline.vue', options),
+  loadModule('js/components/pages/pipeline/pipeline-system.vue', options),
+  loadModule('js/components/pages/pipeline/pipeline-segment.vue', options),
 
   // Commands page
   loadModule('js/components/pages/commands/page.vue', options),
@@ -371,6 +385,7 @@ Promise.all(components).then((values) => {
           entity: {
             path: undefined
           },
+          pipeline: "All systems",
           refresh: "auto"
         },
         conn: undefined,

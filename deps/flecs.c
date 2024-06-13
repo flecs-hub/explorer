@@ -20340,7 +20340,7 @@ int ecs_app_run(
     /* Monitoring periodically collects statistics */
     if (desc->enable_monitor) {
 #ifdef FLECS_MONITOR
-        ECS_IMPORT(world, FlecsMonitor);
+        ECS_IMPORT(world, FlecsStats);
 #else
         ecs_warn("cannot enable monitoring, MONITOR addon not available");
 #endif
@@ -24800,7 +24800,7 @@ error:
 
 #ifdef FLECS_MONITOR
 
-ECS_COMPONENT_DECLARE(FlecsMonitor);
+ECS_COMPONENT_DECLARE(FlecsStats);
 ECS_COMPONENT_DECLARE(EcsWorldStats);
 ECS_COMPONENT_DECLARE(EcsWorldSummary);
 ECS_COMPONENT_DECLARE(EcsPipelineStats);
@@ -25001,7 +25001,7 @@ void AggregateStats(ecs_iter_t *it) {
 }
 
 static
-void flecs_stats_monitor_import(
+void flecs_stats_api_import(
     ecs_world_t *world,
     ecs_id_t kind)
 {
@@ -25097,7 +25097,7 @@ void flecs_world_monitor_import(
         .ctor = flecs_default_ctor
     });
 
-    flecs_stats_monitor_import(world, ecs_id(EcsWorldStats));
+    flecs_stats_api_import(world, ecs_id(EcsWorldStats));
 }
 
 static
@@ -25113,13 +25113,13 @@ void flecs_pipeline_monitor_import(
         .dtor = ecs_dtor(EcsPipelineStats)
     });
 
-    flecs_stats_monitor_import(world, ecs_id(EcsPipelineStats));
+    flecs_stats_api_import(world, ecs_id(EcsPipelineStats));
 }
 
-void FlecsMonitorImport(
+void FlecsStatsImport(
     ecs_world_t *world)
 {
-    ECS_MODULE_DEFINE(world, FlecsMonitor);
+    ECS_MODULE_DEFINE(world, FlecsStats);
     ECS_IMPORT(world, FlecsPipeline);
     ECS_IMPORT(world, FlecsTimer);
 #ifdef FLECS_META
@@ -25130,7 +25130,7 @@ void FlecsMonitorImport(
 #endif
 #ifdef FLECS_DOC
     ECS_IMPORT(world, FlecsDoc);
-    ecs_doc_set_brief(world, ecs_id(FlecsMonitor), 
+    ecs_doc_set_brief(world, ecs_id(FlecsStats), 
         "Module that automatically monitors statistics for the world & systems");
 #endif
 
@@ -26034,7 +26034,7 @@ bool flecs_rest_reply_stats(
     ecs_entity_t period = EcsPeriod1s;
     if (period_str) {
         char *period_name = flecs_asprintf("Period%s", period_str);
-        period = ecs_lookup_child(world, ecs_id(FlecsMonitor), period_name);
+        period = ecs_lookup_child(world, ecs_id(FlecsStats), period_name);
         ecs_os_free(period_name);
         if (!period) {
             flecs_reply_error(reply, "bad request (invalid period string)");

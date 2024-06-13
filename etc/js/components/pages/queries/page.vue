@@ -30,13 +30,13 @@ const app_params = defineModel("app_params");
 <style scoped>
 #page-queries {
   display: grid;
-  grid-template-columns: calc(600px) calc(100% - 600px - var(--gap));
+  grid-template-columns: calc(500px) calc(100% - 500px - var(--gap));
   gap: var(--gap);
 }
 
-@media screen and (max-width: 1280px) {
+@media screen and (max-width: 1200px) {
   #page-queries {
-    grid-template-columns: calc(450px - var(--gap)) calc(100% - 450px);
+    grid-template-columns: calc(300px - var(--gap)) calc(100% - 300px);
   }
 }
 

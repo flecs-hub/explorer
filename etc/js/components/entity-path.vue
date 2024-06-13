@@ -1,5 +1,5 @@
 <template>
-  <span class="entity-path">
+  <span class="noselect entity-path">
     <render/>
   </span>
 </template>
@@ -38,7 +38,7 @@ const render = () => {
 
 <style>
 span.entity-path {
-  font-size: 0.8em;
+  font-size: 0.8rem;
   color: var(--secondary-text);
   white-space: nowrap;
 }

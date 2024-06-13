@@ -694,7 +694,7 @@ const flecs = {
               this.wasmModuleLoaded(js_url, onReady);
             };
             scriptEl.onerror = () => {
-              reject(`failed to load wasm module ${wasm_url}`);
+              console.error(`failed to load wasm module ${wasm_url}`);
             };
             scriptEl.src = js_url;
           

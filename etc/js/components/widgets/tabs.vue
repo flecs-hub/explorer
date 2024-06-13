@@ -4,7 +4,7 @@
       <div class="tabs-overview">
         <template v-for="label in labels">
           <button :class="tabCss(label)" v-on:click="tabSelect(label)">
-            <b class="tab-title" :title="label">{{ label }}</b>
+            <span class="noselect tab-title" :title="label">{{ label }}</span>
           </button>
         </template>
       </div>
@@ -12,7 +12,7 @@
     <ul :class="class">
       <template v-for="label in labels">
         <li :class="tabContentCss(label)">
-          <slot :name="label"></slot>
+          <slot :name="slotLabel(label)"></slot>
         </li>
       </template>
     </ul>
@@ -26,11 +26,11 @@ export default {
 </script>
 
 <script setup>
-import { ref, defineProps, defineModel, onMounted, defineEmits } from 'vue';
+import { defineProps, defineModel, onMounted, defineEmits } from 'vue';
 
 const props = defineProps({
   labels: {type: Array, required: true},
-  class: {type: String, required: false}
+  class: {type: String, required: false},
 });
 
 const emit = defineEmits(['changed']);
@@ -62,6 +62,10 @@ function tabContentCss(label) {
   } else {
     return "tabs-tab";
   }
+}
+
+function slotLabel(label) {
+  return label.replaceAll(" ", "-");
 }
 
 </script>
@@ -111,13 +115,11 @@ function tabContentCss(label) {
   margin: 0;
   border: none;
   background: transparent;
-  padding: calc(1rem / 2) 0;
+  padding: calc(1rem / 2.5) 0;
   display: inline-block;
   font-size: 0.9rem;
   cursor: pointer;
-  box-shadow: 0 1px 0 0 var(--tab-separator-color);
   position: relative;
-  
   -webkit-tap-highlight-color: transparent;
 }
 
