@@ -53,7 +53,7 @@ div.title-bar-logo {
   display: grid;
   grid-template-columns: 1fr;
   grid-column: 1;
-  padding: 0px;
+  padding: 2px;
 }
 
 div.title-info {

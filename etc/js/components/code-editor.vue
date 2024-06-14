@@ -175,6 +175,8 @@ const onCursorChange = (editor) => {
 onMounted(() => {
   editor = ace.edit("editor");
   editor.setValue(value.value);
+  editor.setOption("highlightActiveLine", false);
+
   cursor = editor.selection.getCursor();
   editor.setTheme("ace/theme/github_dark");
 
@@ -185,6 +187,10 @@ onMounted(() => {
   editor.session.selection.on('changeCursor', function(e) {
     onCursorChange(editor);
   });
+
+  editor.clearSelection();
+  editor.gotoLine(1, 0);
+  editor.focus();
 });
 
 const autoComplete = (prop) => {
@@ -225,7 +231,6 @@ defineExpose({
 <style scoped>
 #editor {
   position: relative;
-  grid-column: 1;
   font-size: 14px;
 }
 </style>

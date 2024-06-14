@@ -8,6 +8,7 @@
     </div>
     <div class="pipeline-container">
       <pipeline 
+        :conn="conn"
         :systems="pipelineStatsQueryResults" 
         :flecsMode="flecsMode"
         :viewMode="viewMode">
@@ -163,7 +164,7 @@ function doPipelineStatsQuery() {
 <style scoped>
 #page-pipeline {
   display: grid;
-  grid-template-columns: 955px auto;
+  grid-template-columns: 900px auto;
   grid-template-rows: 38px auto;
   height: calc(100% - 1rem);
   overflow: auto;

@@ -130,6 +130,8 @@ let components = [
   loadModule('js/components/pages/entities/page.vue', options),
   loadModule('js/components/pages/entities/pane-tree.vue', options),
   loadModule('js/components/pages/entities/pane-inspector.vue', options),
+  loadModule('js/components/pages/entities/pane-scripts.vue', options),
+  loadModule('js/components/pages/entities/flecs-script.vue', options),
 
   // Tree widget
   loadModule('js/components/widgets/tree/entity-tree.vue', options),
@@ -386,6 +388,8 @@ Promise.all(components).then((values) => {
             path: undefined
           },
           pipeline: "All systems",
+          scripts: [],
+          active_script: undefined,
           refresh: "auto"
         },
         conn: undefined,

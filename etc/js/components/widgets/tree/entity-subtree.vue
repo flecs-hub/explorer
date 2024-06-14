@@ -58,7 +58,9 @@ function updateQuery() {
 
   let filter = props.nameFilter;
   if (filter === undefined || !filter.length) {
-    filter = `(flecs.core.ChildOf, ${props.path})`;
+    let path = props.path;
+    path = path.replaceAll(" ", "\\ ");
+    filter = `(flecs.core.ChildOf, ${path})`;
   } else {
     filter = `$this ~= "${filter}"`;
   }

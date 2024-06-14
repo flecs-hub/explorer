@@ -39,7 +39,8 @@
         </div>
       </template>
       
-      <span class="entity-inspector-horizontal-line"></span>
+      <hr/>
+
       <div class="entity-inspector-modules">
         <entity-inspector-module
           :conn="conn"
@@ -50,7 +51,12 @@
         </entity-inspector-module>
       </div>
 
-      <div class="entity-inspector-add-button">
+      <div class="entity-inspector-actions">
+        <template v-if="isScript">
+          <button class="entity-inspector-button" @click="onOpenScript">
+            Open Script
+          </button>
+        </template>
         <entity-inspector-add-component
           @submit="addComponent">
         </entity-inspector-add-component>
@@ -71,7 +77,7 @@ const props = defineProps({
   path: {type: String, required: false}
 });
 
-const emit = defineEmits(["abort"]);
+const emit = defineEmits(["abort", "scriptOpen"]);
 
 const entityQuery = ref();
 const entityQueryResult = ref();
@@ -79,6 +85,7 @@ const entityModules = ref([]);
 const entityLabel = ref();
 const expand = ref(false);
 const isDisabled = ref(false);
+const isScript = ref(false);
 
 function splitPair(id) {
   let moduleName, _;
@@ -158,7 +165,7 @@ function updateQuery() {
 
   if (props.path) {
     entityQuery.value = 
-      props.conn.entity(props.path, 
+      props.conn.entity(props.path,
         {
           try: true, 
           managed: true,
@@ -213,6 +220,10 @@ function updateQuery() {
             }
           }
 
+          // Extract whether entity is a script
+          isScript.value = reply.components && 
+            reply.components.hasOwnProperty("flecs.script.Script");
+
           entityModules.value.length = 0;
           for (let key in moduleMap) {
             entityModules.value.push({name: key, value: moduleMap[key]});
@@ -235,6 +246,10 @@ function toggle() {
 
 function onClose() {
   emit("abort", props.path);
+}
+
+function onOpenScript() {
+  emit("scriptOpen", props);
 }
 
 function onEnable() {
@@ -294,20 +309,13 @@ span.entity-inspector-actual-name {
   margin-top: 0.25em;
 }
 
-span.entity-inspector-horizontal-line {
-  width: 100%;
-  height: 1px;
-  margin-top: 6px;
-  margin-bottom: 6px;
-  background-color: white;
-  opacity: 0.2;
-}
-
 div.entity-inspector-modules {
   padding-top: 4px;
 }
 
-div.entity-inspector-add-button {
+div.entity-inspector-actions {
+  display: flex;
+  flex-direction: column;
   padding-left: 1rem;
   padding-right: 1.5rem;
 }
@@ -338,9 +346,29 @@ div.entity-inspector-icon-expand {
   top: 8px;
   right: 32px;
 }
+
 div.entity-inspector-icon-close {
   position: absolute;
   top: 8px;
   right: 8px;
 }
+
+div.entity-inspector-button, button.entity-inspector-button, input.entity-inspector-button {
+  padding: 6px;
+  text-align: center;
+  border-radius: var(--border-radius-medium);
+  border-style: solid;
+  border-width: 1px;
+  border-color: rgba(0,0,0,0);
+  background-color: var(--bg-content);
+  color: var(--secondary-text);
+  font-size: 1rem;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+
+div.entity-inspector-button:hover, button.entity-inspector-button:hover {
+  background-color: var(--bg-content-alt);
+}
+
 </style>

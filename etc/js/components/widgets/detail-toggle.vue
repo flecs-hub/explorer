@@ -54,7 +54,7 @@ div.detail-toggle {
 div.detail-toggle-header {
   margin: 4px;
   padding: 4px;
-  background-color: var(--bg-button-alt);
+  background-color: var(--bg-button);
   border-radius: var(--border-radius-small);
   color: var(--secondary-text);
   font-size: 0.9rem;

@@ -78,7 +78,7 @@ import { defineProps, computed, defineEmits } from 'vue';
 
 const props = defineProps({
   value: {required: false},
-  type: {type: Object, required: false},
+  type: {required: false},
   targets: {required: false},
   expand: {type: Boolean, required: true},
   readonly: {type: Boolean, required: true},

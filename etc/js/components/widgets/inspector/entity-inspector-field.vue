@@ -53,7 +53,7 @@ const css = computed(() => {
 });
 
 const formattedValue = computed(() => {
-  if (props.type[0] === "float") {
+  if (props.type[0] === "float" && typeof props.value == "number") {
     return props.value.toFixed(2);
   } else {
     return props.value;
@@ -158,7 +158,7 @@ div.value-float, input.value-float {
 }
 
 div.value-text, input.value-text {
-  color: #B5894B;
+  color: var(--orange);
 }
 
 div.value-entity, div.value-entity {

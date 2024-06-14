@@ -3,7 +3,8 @@
     <entity-inspector
       :conn="conn"
       :path="path"
-      @abort="onAbort">
+      @abort="onAbort"
+      @scriptOpen="onScriptOpen">
     </entity-inspector>
   </div>
 </template>
@@ -15,7 +16,7 @@ export default { name: "pane-inspector" }
 <script setup>
 import { defineProps, defineEmits, computed } from 'vue';
 
-const emit = defineEmits(["abort"]);
+const emit = defineEmits(["abort", "scriptOpen"]);
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -32,6 +33,10 @@ const path = computed(() => {
 
 function onAbort(evt) {
   emit("abort", evt)
+}
+
+function onScriptOpen(evt) {
+  emit("scriptOpen", evt)
 }
 
 </script>

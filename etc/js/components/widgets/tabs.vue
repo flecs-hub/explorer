@@ -10,7 +10,7 @@
       </div>
     </div>
     <ul :class="class">
-      <template v-for="label in labels">
+      <template v-for="label in labels" :key="label">
         <li :class="tabContentCss(label)">
           <slot :name="slotLabel(label)"></slot>
         </li>

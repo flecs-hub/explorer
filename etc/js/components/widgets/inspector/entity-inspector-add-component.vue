@@ -23,7 +23,7 @@ const mode = ref("default");
 const searchBox = ref(null);
 
 const buttonCss = computed(() => {
-  let classes = ["add-button", "noselect"];
+  let classes = ["entity-inspector-button", "noselect"];
   if (mode.value !== "default") {
     classes.push("add-button-hidden");
   }
@@ -31,7 +31,7 @@ const buttonCss = computed(() => {
 });
 
 const searchCss = computed(() => {
-  let classes = ["search-input", "noselect"];
+  let classes = ["search-input", "entity-inspector-button", "noselect"];
   if (mode.value === "default") {
     classes.push("search-input-hidden");
   }
@@ -59,29 +59,12 @@ function onCancel() {
 
 <style scoped>
 
-div.add-button, input.search-input {
-  width: 100%;
-  padding: 6px;
-  text-align: center;
-  border-radius: var(--border-radius-medium);
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(0,0,0,0);
-  background-color: var(--bg-content);
-  color: var(--secondary-text);
-  cursor: pointer;
-}
-
 input.search-input {
   display: block;
   box-sizing: border-box;
   border-color: var(--green);
   width: 100%;
   text-align: left;
-}
-
-div.add-button:hover {
-  background-color: var(--bg-content-alt);
 }
 
 div.add-button-hidden, input.search-input-hidden {

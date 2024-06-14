@@ -24,7 +24,7 @@
     </template>
     <template v-slot:detail>
       <template v-for="(system, i) in systems" :key="i">
-        <pipeline-system :system="system"></pipeline-system>
+        <pipeline-system :conn="conn" :system="system"></pipeline-system>
       </template>
     </template>
   </detail-toggle>
@@ -38,6 +38,7 @@ export default { name: "pipeline-segment" };
 import { defineProps, computed } from 'vue';
 
 const props = defineProps({
+  conn: {type: Object, required: true},
   segment: {type: Object, required: true},
   viewMode: {type: String, required: true}
 });
@@ -66,25 +67,4 @@ const systemCount = computed(() => {
 </script>
 
 <style scoped>
-
-div.segment {
-  border-style: solid;
-  border-width: 1px;
-  border-color: var(--border);
-  border-radius: var(--border-radius-medium);
-  margin-bottom: 8px;
-  padding-bottom: 4px;
-  /* background-color: var(--bg-content-alt); */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-div.segment-header {
-  margin: 4px;
-  padding: 4px;
-  background-color: var(--bg-button-alt);
-  border-radius: var(--border-radius-small);
-  color: var(--secondary-text);
-  font-size: 0.9rem;
-}
-
 </style>

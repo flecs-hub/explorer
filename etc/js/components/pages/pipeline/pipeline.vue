@@ -1,7 +1,7 @@
 <template>
   <div class="pipeline">
     <template v-for="segment in segments">
-      <pipeline-segment :segment="segment" :viewMode="viewMode">
+      <pipeline-segment :conn="conn" :segment="segment" :viewMode="viewMode">
       </pipeline-segment>
     </template>
   </div>
@@ -15,6 +15,7 @@ export default { name: "pipeline" };
 import { defineProps, computed } from 'vue';
 
 const props = defineProps({
+  conn: {type: Object, required: true},
   systems: {type: Array, required: true},
   viewMode: {type: String, required: true},
   flecsMode: {type: String, required: true}
@@ -106,4 +107,7 @@ const segments = computed(() => {
 </script>
 
 <style scoped>
+div.pipeline div.detail-toggle {
+  width: 885px;
+}
 </style>

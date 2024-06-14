@@ -62,7 +62,7 @@ div.dropdown {
   position: relative;
   border-radius: var(--border-radius-medium);
   color: var(--secondary-text);
-  background-color: var(--bg-button-alt);
+  background-color: var(--bg-button);
   transition: background-color 0.05s ease-in;
   cursor: pointer;
   font-size: 0.9rem;

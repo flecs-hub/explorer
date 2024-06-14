@@ -115,7 +115,7 @@ const props = defineProps({
   fullName: {type: String, required: true},
   icon_src: {type: String, required: true},
   value: {type: Object, required: false},
-  type: {type: Object, required: false},
+  type: {required: false},
   targets: {required: false},
   base: {type: String, required: false}
 });

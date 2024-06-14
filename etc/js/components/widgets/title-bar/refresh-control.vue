@@ -73,12 +73,6 @@ function refreshButtonCss() {
 
 <style scoped>
 
-button {
-  background-color: var(--bg-button-alt);
-  font-weight: normal;
-  color: var(--primary-text);
-}
-
 div.refresh-control {
   display: grid;
   grid-template-columns: 125px 40px;

@@ -1,9 +1,11 @@
 <template>
   <div class="system">
     <div class="system-impact" :style="systemImpactStyle()"></div>
-    <div class="name" v-if="system.name">
+    <div :class="systemNameCss()" v-if="system.name">
       <div><entity-parent :path="system.name"></entity-parent></div>
-      <div><entity-name :path="system.name"></entity-name></div>
+      <div class="noselect system-label"><entity-name :path="system.name"></entity-name>
+        <span class="disabled-text" v-if="system.disabled">&nbsp;(disabled)</span>
+      </div>
     </div>
     <div class="sync-icon" v-if="!system.name">
       <icon src="merge" 
@@ -45,6 +47,10 @@
       </stat-chart>
       <div class="chart-label">Tables matched</div>
     </div>
+    <div class="disable-button" v-if="system.name" @click="toggleDisable">
+      <button v-if="!system.disabled">Disable</button>
+      <button v-if="system.disabled">Enable</button>
+    </div>
   </div>
 </template>
 
@@ -56,6 +62,7 @@ export default { name: "pipeline-system" };
 import { ref, defineProps, computed } from 'vue';
 
 const props = defineProps({
+  conn: {type: Object, required: true},
   system: {type: Object, required: true}
 });
 
@@ -86,13 +93,29 @@ function systemImpactStyle() {
   return `background-color: ${percentageToRGBA(pct * 3)}`;
 }
 
+function toggleDisable() {
+  if (props.system.disabled) {
+    props.conn.enable(props.system.name);
+  } else {
+    props.conn.disable(props.system.name);
+  }
+}
+
+function systemNameCss() {
+  let classes = ["system-name"];
+  if (props.system.disabled) {
+    classes.push("system-name-disabled");
+  }
+  return classes;
+}
+
 </script>
 
 <style scoped>
 
 div.system {
   display: grid;
-  grid-template-columns: 18px 300px 300px 300px;
+  grid-template-columns: 18px 284px 284px 284px;
   grid-template-rows: auto auto;
   padding: 8px;
   padding-top: 4px;
@@ -108,9 +131,18 @@ div.system-impact {
   height: 100%;
 }
 
-div.name {
+div.system-name {
   grid-column: 2 / 4;
   grid-row: 1;
+}
+
+div.system-name-disabled div.system-label {
+  color: var(--secondary-text);
+  font-style: italic;
+}
+
+span.disabled-text {
+  font-size: 0.9rem;
 }
 
 div.chart-time-spent {
@@ -131,14 +163,20 @@ div.chart-tables {
 div.sync-icon {
   grid-column: 4;
   grid-row: 2;
-  text-align: center;
   padding-top: 16px;
+  text-align: center;
 }
 
 div.chart-label {
   font-size: 0.8rem;
   color: var(--secondary-text);
   text-align: center;
+}
+
+div.disable-button {
+  grid-column: 4;
+  grid-row: 1;
+  text-align: right;
 }
 
 </style>

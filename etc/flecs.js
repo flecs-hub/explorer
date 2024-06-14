@@ -202,7 +202,7 @@ const flecs = {
   
         // Request entity
         entity: function(path, params, recv, err, abort) {
-          path = path.replace(/\./g, "/");
+          path = this._.escapePath(path);
           return this._.request(this, "GET", "entity/" + path, params, 
             (msg) => {
               if (msg[0] == '{' || msg[0] == '[') {
@@ -249,45 +249,75 @@ const flecs = {
 
         // Set component
         set: function(path, component, data) {
-          path = path.replaceAll(".", "/");
+          path = this._.escapePath(path);
           if (typeof data == "object") {
             data = JSON.stringify(data);
             data = encodeURIComponent(data);
           }
-          return this._.request(this, "PUT", "set/" + path, 
+          return this._.request(this, "PUT", "component/" + path, 
             {component: component, data: data});
+        },
+
+        // Get component
+        get: function(path, component, recv, err) {
+          path = this._.escapePath(path);
+          if (typeof data == "object") {
+            data = JSON.stringify(data);
+            data = encodeURIComponent(data);
+          }
+          return this._.request(this, "GET", "component/" + path, 
+            {component: component}, (msg) => {
+              recv(JSON.parse(msg));
+            }, err);
         },
 
         // Add component
         add: function(path, component) {
-          path = path.replaceAll(".", "/");
+          path = this._.escapePath(path);
           return this._.request(this, "PUT", "add/" + path, 
             {component: component});
         },
 
         // Remove component
         remove: function(path, component) {
-          path = path.replaceAll(".", "/");
+          path = this._.escapePath(path);
           return this._.request(this, "PUT", "remove/" + path, 
             {component: component});
         },
 
         // Enable entity
         enable: function(path) {
-          path = path.replaceAll(".", "/");
+          path = this._.escapePath(path);
           return this._.request(this, "PUT", "enable/" + path, {});
         },
 
         // Disable entity
         disable: function(path) {
-          path = path.replaceAll(".", "/");
+          path = this._.escapePath(path);
           return this._.request(this, "PUT", "disable/" + path, {});
         },
 
         // Delete entity
         delete: function(path) {
-          path = path.replaceAll(".", "/");
+          path = this._.escapePath(path);
           return this._.request(this, "PUT", "delete/" + path, {});
+        },
+
+        // Update script code
+        scriptUpdate: function(path, code, params, recv, err) {
+          if (!params) params = {};
+          params.code = encodeURIComponent(code);
+          path = this._.escapePath(path);
+          return this._.request(this, "PUT", "script/" + path, params, 
+            (msg) => { 
+              if (!msg) { msg = "{}"; }
+              recv(JSON.parse(msg))
+            }, 
+            (msg) => { 
+              if (!msg) { msg = "{}"; }
+              err(JSON.parse(msg))
+            }
+          );
         },
 
         // Other REST endpoints
@@ -320,6 +350,14 @@ const flecs = {
                 pub.params.on_status(status);
               }
             }
+          },
+
+          // Escape entity path
+          escapePath(path) {
+            path = path.replaceAll("\\.", "@@");
+            path = path.replaceAll(".", "/");
+            path = path.replaceAll("@@", ".");
+            return path;
           },
   
           // Do HTTP request.

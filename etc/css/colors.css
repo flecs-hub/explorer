@@ -26,7 +26,8 @@
   --purple: rgb(188, 137, 189);
   --yellow: #b9a542;
   --red: #B5494B;
-  --orange: #c38521;;
+  --orange: #B5894B;
+
   --bright-green: #A2D8B4;
   --bright-blue: rgb(86, 168, 248);
   --bright-red: #EF8784;
@@ -46,7 +47,7 @@
   --bg-content-hover: hsl(210, 12%, 20%);
   --bg-content-select: hsl(210, 12%, 10%);
 
-  --bg-button-alt: hsl(210, 12%, 22%);
+  --bg-button: hsl(210, 12%, 22%);
   --bg-button-hover: hsl(210, 12%, 30%);
 
   --bg-auto-complete: rgb(25, 28, 31, 1.0);
@@ -62,8 +63,9 @@
   --secondary-color: var(--blue);
   --tertiary-color: var(--yellow);
 
-  --primary-text: #d2dbde;
-  --secondary-text: #859399;
+  --primary-text: hsl(195, 15%, 85%);
+  --secondary-text: hsl(198, 9%, 56%);
+  --tertiary-text: hsl(198, 9%, 42%);
 
   --tab-separator-color: rgba(255,255,255,0.07);
 

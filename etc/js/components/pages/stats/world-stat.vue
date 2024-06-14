@@ -6,7 +6,7 @@
     <div>
       <stat-chart 
         :values="values"
-        :width="440"
+        :width="400"
         :widthScale="true" 
         :widthMargin="10 + 5 + 2"
         :disabled="!valid"
