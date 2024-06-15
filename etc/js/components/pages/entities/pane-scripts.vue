@@ -3,6 +3,7 @@
     <template v-if="scriptLabels.length">
       <div class="script-editor-container pane">
         <div class="script-editor-tabs">
+          <div class="script-editor-tabs-line"></div>
           <div 
               :class="scriptButtonCss(script)" 
               @click="selectScript(script)"
@@ -184,6 +185,19 @@ div.script-editor-tabs {
   grid-row: 1;
 }
 
+div.script-editor-tabs-line {
+  position: absolute;
+  top: 0px;
+  left: 0px;
+  width: 100%;
+  height: calc(100% - 1px);
+  border-style: solid;
+  border-width: 0px;
+  border-top-width: 0px;
+  border-bottom-width: 1px;
+  border-color: var(--border);
+}
+
 div.flecs-script-button {
   display: inline-block;
   position: relative;
@@ -205,8 +219,10 @@ div.flecs-script-button {
 
 div.flecs-script-button-active {
   background-color: var(--bg-pane);
-  border-color: rgba(0, 0, 0, 0);
+  border-bottom-color: rgba(0, 0, 0, 0);
   border-top-color: var(--dark-green);
+  border-right-width: 1px;
+  border-left-width: 1px;
 }
 
 div.flecs-script-button:hover {
