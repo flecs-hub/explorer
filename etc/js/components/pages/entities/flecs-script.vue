@@ -56,8 +56,8 @@ function onScriptChange(editorObj) {
 
 onMounted(() => {
   editorObj = ace.edit("editor");
-  editorObj.setTheme("ace/theme/flecs-script");
   editorObj.setOption("highlightActiveLine", false);
+  editorObj.setTheme("ace/theme/flecs-script");
   editorObj.session.setMode("ace/mode/flecs-script");
 
   editorObj.session.on('change', function(e) {

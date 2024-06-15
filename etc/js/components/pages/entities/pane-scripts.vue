@@ -45,15 +45,24 @@ export default { name: "pane-scripts" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, computed, onMounted, ref } from 'vue';
+import { defineProps, defineModel, computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}
 })
 
-const activeScript = defineModel("active_script");
+const activeScriptLabel = defineModel("active_script");
+const activeScript = ref();
 const scripts = defineModel("scripts");
 const scriptError = ref();
+
+watch(() => [activeScript.value], () => {
+  if (activeScript.value) {
+    activeScriptLabel.value = activeScript.value.label;
+  } else {
+    activeScriptLabel.value = undefined;
+  }
+});
 
 const scriptLabels = computed(() => {
   let results = [];
@@ -64,8 +73,17 @@ const scriptLabels = computed(() => {
 });
 
 onMounted(() => {
-  if (!activeScript.value && scriptLabels.value.length) {
-    activeScript.value = scriptLabels.value[0];
+  if (scriptLabels.value.length) {
+    if (!activeScriptLabel.value) {
+      activeScript.value = scriptLabels.value[0];
+    } else {
+      for (let s of scriptLabels.value) {
+        if (s.label == activeScriptLabel.value) {
+          activeScript.value = s;
+          break;
+        }
+      }      
+    }
   }
 });
 

@@ -1,8 +1,8 @@
-ace.define("ace/mode/flecs-script", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/mode/flecs-script-highlight_rules"], 
+ace.define("ace/mode/flecs-query", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text", "ace/mode/flecs-query-highlight_rules"], 
     function(require, exports, module) {
         var oop = require("ace/lib/oop");
         var TextMode = require("ace/mode/text").Mode;
-        var HighlightRules = require("ace/mode/flecs-script-highlight_rules").HighlightRules;
+        var HighlightRules = require("ace/mode/flecs-query-highlight_rules").HighlightRules;
 
         const Mode = function() {
             this.HighlightRules = HighlightRules;
@@ -10,13 +10,13 @@ ace.define("ace/mode/flecs-script", ["require", "exports", "module", "ace/lib/oo
         oop.inherits(Mode, TextMode);
 
         (function() {
-            this.$id = "ace/mode/flecs_script";
+            this.$id = "ace/mode/flecs_query";
         }).call(Mode.prototype);
 
         exports.Mode = Mode;
     });
 
-ace.define("ace/mode/flecs-script-highlight_rules", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"], 
+ace.define("ace/mode/flecs-query-highlight_rules", ["require", "exports", "module", "ace/lib/oop", "ace/mode/text_highlight_rules"], 
     function(require, exports, module) {
         var oop = require("ace/lib/oop");
         var TextHighlightRules = require("ace/mode/text_highlight_rules").TextHighlightRules;
@@ -29,28 +29,20 @@ ace.define("ace/mode/flecs-script-highlight_rules", ["require", "exports", "modu
                         regex: "//.*$"
                     },
                     {
-                        token: "comment.documentation",
-                        regex: "@.*$"
-                    },
-                    {
                         token: "string",           // single line
                         regex: '".*?"'
                     },
                     {
                         token: "keyword",
-                        regex: "\\b(?:if|else|module|using|const|prop|with|template)\\b"
+                        regex: "\\b(self|up|cascade|desc)\\b"
                     },
                     {
                         token: "keyword.operator",
-                        regex: "(\\.|{|}|\\[|\\]|:|\\(|\\)|=|[?]|[!]|[,]|[|])"
+                        regex: "(\\.|{|}|\\[|\\]|:|\\(|\\)|=|[?]|[!]|[,]|[|]|[\\\\])"
                     },
                     {
                         token: "constant.numeric",
                         regex: "\\b([0-9e]+)\\b"
-                    },
-                    {
-                        token: "storage.type",
-                        regex: "\\b(struct|enum|bitmask|primitive|array|vector|opaque|bool|byte|char|i8|i16|i32|i64|iptr|u8|u16|u32|u64|uptr|f32|f64|string|entity)\\b"
                     },
                     {
                         token: "variable",

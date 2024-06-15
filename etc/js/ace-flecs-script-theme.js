@@ -9,14 +9,14 @@ function(require, exports, module) {
         }
         .ace-flecs-script .ace_print-margin {
             width: 1px;
-            background: #555651;
+            background: var(--border);
         }
         .ace-flecs-script {
             background: var(--bg-pane);
             color: var(--primary-text);
         }
         .ace-flecs-script .ace_cursor {
-            color: #f8f8f0;
+            color: var(--green);
         }
         .ace-flecs-script .ace_marker-layer .ace_selection {
             background: var(--dark-blue);
@@ -91,7 +91,10 @@ function(require, exports, module) {
             color: #a6e22e;
         }
         .ace-flecs-script .ace_indent-guide {
-            background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==) right repeat-y;
+            border-style: solid;
+            border-width: 0px;
+            border-right-width: 1px;
+            border-color: var(--border);
         }
     `;
     var dom = require("../lib/dom");

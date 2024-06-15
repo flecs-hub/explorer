@@ -6,6 +6,7 @@
     </pane-tree>
     <pane-scripts
       :conn="conn"
+      v-model:active_script="appParams.active_script"
       v-model:scripts="appParams.scripts"
       ref="pane_scripts">
     </pane-scripts>

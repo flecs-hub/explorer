@@ -176,9 +176,10 @@ onMounted(() => {
   editor = ace.edit("editor");
   editor.setValue(value.value);
   editor.setOption("highlightActiveLine", false);
+  editor.setTheme("ace/theme/flecs-script");
+  editor.session.setMode("ace/mode/flecs-query");
 
   cursor = editor.selection.getCursor();
-  editor.setTheme("ace/theme/github_dark");
 
   editor.session.on('change', function(e) {
     onTextChange(editor);
