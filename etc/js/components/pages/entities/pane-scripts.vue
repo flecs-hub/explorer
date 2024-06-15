@@ -49,18 +49,18 @@ import { defineProps, defineModel, computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}
-})
+});
 
-const activeScriptLabel = defineModel("active_script");
+const activeScriptPath = defineModel("active_script");
 const activeScript = ref();
 const scripts = defineModel("scripts");
 const scriptError = ref();
 
 watch(() => [activeScript.value], () => {
   if (activeScript.value) {
-    activeScriptLabel.value = activeScript.value.label;
+    activeScriptPath.value = activeScript.value.path;
   } else {
-    activeScriptLabel.value = undefined;
+    activeScriptPath.value = undefined;
   }
 });
 
@@ -74,11 +74,11 @@ const scriptLabels = computed(() => {
 
 onMounted(() => {
   if (scriptLabels.value.length) {
-    if (!activeScriptLabel.value) {
+    if (!activeScriptPath.value) {
       activeScript.value = scriptLabels.value[0];
     } else {
       for (let s of scriptLabels.value) {
-        if (s.label == activeScriptLabel.value) {
+        if (s.path == activeScriptPath.value) {
           activeScript.value = s;
           break;
         }
@@ -112,16 +112,20 @@ function onClose(script) {
     } else if (scripts.value.length) {
       activeScript.value = 
         scriptLabels.value[scriptLabels.value.length - 1];
+    } else {
+      activeScript.value = undefined;
     }
   }
 }
 
-function openScript(obj) {
-  if (scripts.value.indexOf(obj.path) == -1) {
-    scripts.value.push(obj.path);
+function openScript(path) {
+  let index = scripts.value.indexOf(path);
+  if (index == -1) {
+    scripts.value.push(path);
+    index = scripts.value.length - 1;
   }
   
-  activeScript.value = scriptLabels.value[scripts.value.length - 1];
+  activeScript.value = scriptLabels.value[index];
 }
 
 defineExpose({openScript});

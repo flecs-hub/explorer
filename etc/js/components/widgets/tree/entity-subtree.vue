@@ -27,7 +27,8 @@ const props = defineProps({
   selectedItem: {type: Object, required: false},
   path: {type: String, required: false, default: "0"},
   depth: {type: Number, required: false, default: 0},
-  nameFilter: {type: String, required: false}
+  nameFilter: {type: String, required: false},
+  queryFilter: {type: String, required: false}
 });
 
 const emit = defineEmits(['select']);
@@ -47,7 +48,7 @@ onMounted(() => {
   updateQuery();
 });
 
-watch(() => props.nameFilter, () => {
+watch(() => [props.nameFilter, props.queryFilter], () => {
   updateQuery();
 });
 
@@ -56,30 +57,39 @@ function updateQuery() {
     treeQuery.value.abort();
   }
 
-  let filter = props.nameFilter;
-  if (filter === undefined || !filter.length) {
-    let path = props.path;
-    path = path.replaceAll(" ", "\\ ");
-    filter = `(flecs.core.ChildOf, ${path})`;
-  } else {
-    filter = `$this ~= "${filter}"`;
-  }
-
-  const q = `
-    ${filter},
-    ?flecs.core.Module, 
-    ?flecs.core.Component,
-    ?flecs.core.Relationship,
-    ?flecs.core.Trait,
-    ?flecs.core.Target,
-    ?flecs.core.Query,
-    ?flecs.core.Prefab, 
-    ?flecs.core.Disabled, 
-    ?flecs.core.ChildOf(_, $this), 
-    ?flecs.core.IsA($this, $base|self),
+  let q = `
+    [none] ?flecs.core.Module, 
+    [none] ?flecs.core.Component,
+    [none] ?flecs.core.Relationship,
+    [none] ?flecs.core.Trait,
+    [none] ?flecs.core.Target,
+    [none] ?flecs.core.Query,
+    [none] ?flecs.core.Prefab, 
+    [none] ?flecs.core.Disabled, 
+    [none] ?flecs.core.ChildOf(_, $this), 
+    [none] ?flecs.core.IsA($this, $base|self),
     ?flecs.doc.Description($this, flecs.core.Name),
     ?flecs.doc.Description($this, flecs.doc.Color)`
     ;
+
+  let nf = props.nameFilter ? props.nameFilter : undefined;
+  let qf = props.queryFilter ? props.queryFilter : undefined;
+
+  if (!nf && !qf) {
+    let path = props.path;
+    if (path) {
+      path = path.replaceAll(" ", "\\ ");
+      q += `, (flecs.core.ChildOf, ${path})`;
+    }
+  }
+
+  if (qf) {
+    q += `, ${qf}`
+  }
+
+  if (nf) {
+    q += `, $this ~= "${nf}"`;
+  }
 
   treeQuery.value = 
     props.conn.query(q, {
@@ -112,22 +122,22 @@ function updateQuery() {
         Object.assign(treeItem, item);
 
         treeItem.path = path;
-        treeItem.isModule = item.is_set[1];
-        treeItem.isComponent = item.is_set[2] || item.is_set[3] || item.is_set[4];
-        treeItem.isTarget = item.is_set[5];
-        treeItem.isQuery = item.is_set[6];
-        treeItem.isPrefab = item.is_set[7];
-        treeItem.isDisabled = item.is_set[8];
-        treeItem.isParent = item.is_set[9];
-        treeItem.baseEntity = item.is_set[10] ? item.vars["base"] : undefined;
+        treeItem.isModule = item.is_set[0];
+        treeItem.isComponent = item.is_set[1] || item.is_set[2] || item.is_set[3];
+        treeItem.isTarget = item.is_set[4];
+        treeItem.isQuery = item.is_set[5];
+        treeItem.isPrefab = item.is_set[6];
+        treeItem.isDisabled = item.is_set[7];
+        treeItem.isParent = item.is_set[8];
+        treeItem.baseEntity = item.is_set[9] ? item.vars["base"] : undefined;
 
-        if (item.is_set[11]) {
+        if (item.is_set[10]) {
           treeItem.label = item.components["(Description,Name)"].value;
         } else {
           treeItem.label = undefined;
         }
 
-        if (item.is_set[12]) {
+        if (item.is_set[11]) {
           treeItem.color = item.components["(Description,Color)"].value;
         } else {
           treeItem.color = undefined;

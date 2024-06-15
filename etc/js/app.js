@@ -387,6 +387,7 @@ Promise.all(components).then((values) => {
           entity: {
             path: undefined
           },
+          tree_mode: undefined,
           pipeline: "All systems",
           scripts: [],
           active_script: undefined,

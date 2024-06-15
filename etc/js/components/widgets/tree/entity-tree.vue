@@ -4,7 +4,8 @@
       :conn="conn"
       :selectedItem="selectedItem"
       @select="selectItem"
-      :nameFilter="nameFilter">
+      :nameFilter="nameFilter"
+      :queryFilter="queryFilter">
     </entity-subtree>
   </div>
 </template>
@@ -18,7 +19,8 @@ import { defineProps, defineEmits, ref } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
-  nameFilter: {type: String, required: false}
+  nameFilter: {type: String, required: false},
+  queryFilter: {type: String, required: false}
 });
 
 const selectedItem = ref();

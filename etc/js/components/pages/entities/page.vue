@@ -2,7 +2,8 @@
   <div id="page-entities" :class="pageCss()">
     <pane-tree 
       :conn="conn"
-      v-model:app_params="appParams">
+      v-model:app_params="appParams"
+      @scriptOpen="onScriptOpen">
     </pane-tree>
     <pane-scripts
       :conn="conn"
@@ -24,7 +25,7 @@ export default { name: "page-entities" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, ref } from 'vue';
+import { defineProps, defineModel, ref, watch } from 'vue';
 
 const pane_scripts = ref(null);
 
@@ -39,8 +40,8 @@ function onAbort(evt) {
   appParams.value.entity.path = undefined;
 }
 
-function onScriptOpen(evt) {
-  pane_scripts.value.openScript(evt);
+function onScriptOpen(path) {
+  pane_scripts.value.openScript(path);
 }
 
 function pageCss() {

@@ -36,7 +36,7 @@ div.search-box {
 div.search-box input {
   background-color: var(--bg-content);
   border-radius: var(--border-radius-medium);
-  width: calc(100% - 0.5rem - 16px);
+  width: calc(100% - 0.5rem - 10px);
 }
 
 </style>

@@ -36,7 +36,7 @@ function onAbort(evt) {
 }
 
 function onScriptOpen(evt) {
-  emit("scriptOpen", evt)
+  emit("scriptOpen", evt ? evt.path : undefined);
 }
 
 </script>

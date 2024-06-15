@@ -36,7 +36,7 @@ function(require, exports, module) {
             background: #202020;
         }
         .ace-flecs-script .ace_gutter-active-line {
-            background-color: #272727;
+            color: var(--primary-text);
         }
         .ace-flecs-script .ace_marker-layer .ace_selected-word {
             border: 1px solid #49483e;
