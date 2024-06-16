@@ -117,9 +117,7 @@ div.system {
   display: grid;
   grid-template-columns: 18px 284px 284px 284px;
   grid-template-rows: auto auto;
-  padding: 8px;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding: 4px;
   color: var(--primary-text);
 }
 

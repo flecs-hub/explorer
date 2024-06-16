@@ -38,29 +38,45 @@
           </button>
         </div>
       </template>
-      
+
       <hr/>
 
-      <div class="entity-inspector-modules">
-        <entity-inspector-module
-          :conn="conn"
-          :entity="path"
-          :type_info="entityQueryResult.type_info"
-          :item="m" v-for="m in entityModules"
-          :key="m.name">
-        </entity-inspector-module>
-      </div>
+      <dropdown 
+        :items="['Components', 'Matched by', 'Referenced by', 'Alerts']"
+        v-model:active_item="inspectorMode">
+      </dropdown>
 
-      <div class="entity-inspector-actions">
-        <template v-if="isScript">
-          <button class="entity-inspector-button" @click="onOpenScript">
-            Open Script
-          </button>
-        </template>
-        <entity-inspector-add-component
-          @submit="addComponent">
-        </entity-inspector-add-component>
-      </div>
+      <template v-if="inspectorMode == 'Components'">
+        <entity-inspector-components
+          :conn="conn"
+          :path="path"
+          :entityQueryResult="entityQueryResult"
+          :isScript="isScript"
+          :entityModules="entityModules"
+          @scriptOpen="onOpenScript">
+        </entity-inspector-components>
+      </template>
+      <template v-else-if="inspectorMode == 'Matched by'">
+        <entity-inspector-matched-by
+          :conn="conn"
+          :path="path"
+          :entityQueryResult="entityQueryResult">
+        </entity-inspector-matched-by>
+      </template>
+      <template v-else-if="inspectorMode == 'Referenced by'">
+        <entity-inspector-refs
+          :conn="conn"
+          :path="path"
+          :entityQueryResult="entityQueryResult">
+        </entity-inspector-refs>
+      </template>
+      <template v-else-if="inspectorMode == 'Alerts'">
+        <entity-inspector-alerts
+          :conn="conn"
+          :path="path"
+          :entityQueryResult="entityQueryResult">
+        </entity-inspector-alerts>
+      </template>
     </template>
   </div>
 </template>
@@ -86,6 +102,7 @@ const entityLabel = ref();
 const expand = ref(false);
 const isDisabled = ref(false);
 const isScript = ref(false);
+const inspectorMode = defineModel("inspector_mode");
 
 function splitPair(id) {
   let moduleName, _;
@@ -150,10 +167,6 @@ function loadTypeFromReply(moduleMap, reply, base) {
   }
 }
 
-function addComponent(component) {
-  props.conn.add(props.path, component);
-}
-
 function updateQuery() {
   const lastQuery = entityQuery.value;
   entityQuery.value = undefined;
@@ -169,11 +182,14 @@ function updateQuery() {
         {
           try: true, 
           managed: true,
-          values: true, 
+          values: inspectorMode.value == "Components",
           full_paths: true, 
           type_info: true,
           private: true,
-          inherited: true
+          inherited: true,
+          matches: inspectorMode.value == "Matched by",
+          refs: inspectorMode.value == "Referenced by" ? "*" : undefined,
+          alerts: inspectorMode.value == "Alerts"
         }, 
         (reply) => {
           entityQueryResult.value = reply;
@@ -248,10 +264,6 @@ function onClose() {
   emit("abort", props.path);
 }
 
-function onOpenScript() {
-  emit("scriptOpen", props);
-}
-
 function onEnable() {
   props.conn.enable(props.path);
 }
@@ -268,7 +280,7 @@ function onDelete() {
   props.conn.delete(props.path);
 }
 
-watch(() => props.path, () => {
+watch(() => [props.path, inspectorMode.value], () => {
   updateQuery();
 });
 
@@ -285,6 +297,10 @@ onUnmounted(() => {
     q.abort();
   }
 });
+
+function onOpenScript() {
+  emit("scriptOpen", props);
+}
 
 </script>
 
@@ -360,15 +376,19 @@ div.entity-inspector-button, button.entity-inspector-button, input.entity-inspec
   border-style: solid;
   border-width: 1px;
   border-color: rgba(0,0,0,0);
-  background-color: var(--bg-content);
+  background-color: var(--bg-button);
   color: var(--secondary-text);
   font-size: 1rem;
   margin-bottom: 10px;
   cursor: pointer;
 }
 
+button.entity-inspector-button {
+  width: 100%;
+}
+
 div.entity-inspector-button:hover, button.entity-inspector-button:hover {
-  background-color: var(--bg-content-alt);
+  background-color: var(--bg-button-hover);
 }
 
 </style>

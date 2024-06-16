@@ -3,6 +3,7 @@
     <entity-inspector
       :conn="conn"
       :path="path"
+      v-model:inspector_mode="appParams.inspector_mode"
       @abort="onAbort"
       @scriptOpen="onScriptOpen">
     </entity-inspector>
@@ -14,18 +15,19 @@ export default { name: "pane-inspector" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, computed } from 'vue';
+import { defineProps, defineEmits, defineModel, computed } from 'vue';
 
 const emit = defineEmits(["abort", "scriptOpen"]);
 
 const props = defineProps({
-  conn: {type: Object, required: true},
-  app_params: {type: Object, required: true}
+  conn: {type: Object, required: true}
 });
 
+const appParams = defineModel("app_params");
+
 const path = computed(() => {
-  if (props.app_params.entity) {
-    return props.app_params.entity.path;
+  if (appParams.value.entity) {
+    return appParams.value.entity.path;
   } else {
     return undefined;
   }

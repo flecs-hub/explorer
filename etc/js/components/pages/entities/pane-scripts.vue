@@ -1,5 +1,5 @@
 <template>
-  <div class="pane-scripts">
+  <div :class="paneScriptsCss()">
     <template v-if="scriptLabels.length">
       <div class="script-editor-container pane">
         <div class="script-editor-tabs">
@@ -129,6 +129,14 @@ function openScript(path) {
   activeScript.value = scriptLabels.value[index];
 }
 
+function paneScriptsCss() {
+  let classes = ["pane-scripts"];
+  if (!scriptLabels.value.length) {
+    classes.push("pane-scripts-empty");
+  }
+  return classes;
+}
+
 defineExpose({openScript});
 
 </script>
@@ -142,6 +150,10 @@ div.pane-scripts {
   gap: var(--gap);
   border-radius: var(--border-radius-medium);
   background-color: var(--bg-content);
+}
+
+div.pane-scripts-empty {
+  background-color: var(--bg-pane);
 }
 
 div.script-editor-container {

@@ -2,17 +2,17 @@
   <div class="tabs">
     <div class="tabs-overview-container">
       <div class="tabs-overview">
-        <template v-for="label in labels">
-          <button :class="tabCss(label)" v-on:click="tabSelect(label)">
-            <span class="noselect tab-title" :title="label">{{ label }}</span>
+        <template v-for="item in items">
+          <button :class="tabCss(item)" v-on:click="tabSelect(item)">
+            <span class="noselect tab-title" :title="item">{{ item }}</span>
           </button>
         </template>
       </div>
     </div>
     <ul :class="class">
-      <template v-for="label in labels" :key="label">
-        <li :class="tabContentCss(label)">
-          <slot :name="slotLabel(label)"></slot>
+      <template v-for="item in items" :key="item">
+        <li :class="tabContentCss(item)">
+          <slot :name="slotLabel(item)"></slot>
         </li>
       </template>
     </ul>
@@ -29,7 +29,7 @@ export default {
 import { defineProps, defineModel, onMounted, defineEmits } from 'vue';
 
 const props = defineProps({
-  labels: {type: Array, required: true},
+  items: {type: Array, required: true},
   class: {type: String, required: false},
 });
 
@@ -39,33 +39,33 @@ const active = defineModel("active_tab");
 
 onMounted(() => {
   if (active.value === undefined) {
-    active.value = props.labels[0];
+    active.value = props.items[0];
   }
 });
 
-function tabSelect(label) {
-  active.value = label;
-  emit('changed', {tab: label});
+function tabSelect(item) {
+  active.value = item;
+  emit('changed', {tab: item});
 }
 
-function tabCss(label) {
-  if (label == active.value) {
+function tabCss(item) {
+  if (item == active.value) {
     return "tab-button active";
   } else {
     return "tab-button";
   }
 }
 
-function tabContentCss(label) {
-  if (label == active.value) {
+function tabContentCss(item) {
+  if (item == active.value) {
     return "tabs-tab selected";
   } else {
     return "tabs-tab";
   }
 }
 
-function slotLabel(label) {
-  return label.replaceAll(" ", "-");
+function slotLabel(item) {
+  return item.replaceAll(" ", "-");
 }
 
 </script>

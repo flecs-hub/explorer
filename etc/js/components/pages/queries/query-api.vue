@@ -1,6 +1,6 @@
 <template>
   <div id="query-api">
-    <tabs :labels="['c', 'c++', 'js', 'rest']" class="query-api-body">
+    <tabs :items="['c', 'c++', 'js', 'rest']" class="query-api-body">
       <template v-slot:c>
         <template v-if="has_query">
           <query-c :result="result"></query-c>

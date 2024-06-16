@@ -47,7 +47,6 @@ div.detail-toggle {
   border-color: var(--border);
   border-radius: var(--border-radius-medium);
   margin-bottom: 8px;
-  /* padding-bottom: 4px; */
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -69,6 +68,7 @@ div.detail-toggle-button {
 
 div.detail-toggle-detail {
   margin-bottom: 8px;
+  padding: 4px;
 }
 
 </style>

@@ -182,9 +182,8 @@
 // #define FLECS_C          /**< C API convenience macros, always enabled */
 #define FLECS_CPP           /**< C++ API */
 #define FLECS_MODULE        /**< Module support */
-#define FLECS_SCRIPT         /**< ECS data definition format */
-#define FLECS_STATS         /**< Access runtime statistics */
-#define FLECS_MONITOR       /**< Track runtime statistics periodically */
+#define FLECS_SCRIPT        /**< ECS data definition format */
+#define FLECS_STATS         /**< Track runtime statistics */
 #define FLECS_METRICS       /**< Expose component data as statistics */
 #define FLECS_ALERTS        /**< Monitor conditions for errors */
 #define FLECS_SYSTEM        /**< System support */
@@ -9969,9 +9968,6 @@ int ecs_value_move_ctor(
 #ifdef FLECS_NO_SCRIPT
 #undef FLECS_SCRIPT
 #endif
-#ifdef FLECS_NO_MONITOR
-#undef FLECS_MONITOR
-#endif
 #ifdef FLECS_NO_STATS
 #undef FLECS_STATS
 #endif
@@ -10671,12 +10667,9 @@ int ecs_log_last_error(void);
 
 
 /* Handle addon dependencies that need declarations to be visible in header */
-#ifdef FLECS_MONITOR
-#ifndef FLECS_STATS
-#define FLECS_STATS
-#endif
-#ifndef FLECS_SYSTEM
-#define FLECS_SYSTEM
+#ifdef FLECS_STATS
+#ifndef FLECS_PIPELINE
+#define FLECS_PIPELINE
 #endif
 #ifndef FLECS_TIMER
 #define FLECS_TIMER
@@ -12072,8 +12065,14 @@ void FlecsSystemImport(
  * @file addons/stats.h
  * @brief Statistics addon.
  *
- * The statistics addon enables an application to obtain detailed metrics about
- * the storage, systems and operations of a world.
+ * The stats addon tracks high resolution statistics for the world, systems and
+ * pipelines. The addon can be used as an API where an application calls
+ * functions to obtain statistics directly and as a module where statistics are
+ * automatically tracked. The latter is required for statistics tracking in the
+ * explorer.
+ * 
+ * When the addon is imported as module, statistics are tracked for each frame,
+ * second, minute, hour, day and week with 60 datapoints per tier.
  */
 
 #ifdef FLECS_STATS
@@ -12088,6 +12087,14 @@ void FlecsSystemImport(
 
 #ifndef FLECS_STATS_H
 #define FLECS_STATS_H
+
+#ifndef FLECS_MODULE
+#define FLECS_MODULE
+#endif
+
+#ifndef FLECS_PIPELINE
+#define FLECS_PIPELINE
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -12227,9 +12234,7 @@ typedef struct ecs_query_stats_t {
     int64_t first_;
     ecs_metric_t result_count;              /**< Number of query results */
     ecs_metric_t matched_table_count;       /**< Number of matched tables */
-    ecs_metric_t matched_empty_table_count; /**< Number of matched empty tables */
     ecs_metric_t matched_entity_count;      /**< Number of matched entities */
-    ecs_metric_t eval_count;                /**< Number of times query is evaluated */
     int64_t last_;
 
     /** Current position in ringbuffer */
@@ -12270,10 +12275,6 @@ typedef struct ecs_pipeline_stats_t {
 
     /** Vector with sync point stats */
     ecs_vec_t sync_points;
-
-    /** Map with system statistics. For each system in the systems vector, an
-     * entry in the map exists of type ecs_system_stats_t. */
-    ecs_map_t system_stats;
 
     /** Current position in ring buffer */
     int32_t t;
@@ -12359,7 +12360,6 @@ void ecs_query_cache_stats_copy_last(
     ecs_query_stats_t *dst,
     const ecs_query_stats_t *src);
 
-#ifdef FLECS_SYSTEM
 /** Get system statistics.
  * Obtain statistics for the provided system.
  *
@@ -12397,9 +12397,7 @@ FLECS_API
 void ecs_system_stats_copy_last(
     ecs_system_stats_t *dst,
     const ecs_system_stats_t *src);
-#endif
 
-#ifdef FLECS_PIPELINE
 /** Get pipeline statistics.
  * Obtain statistics for the provided pipeline.
  *
@@ -12452,8 +12450,6 @@ void ecs_pipeline_stats_copy_last(
     ecs_pipeline_stats_t *dst,
     const ecs_pipeline_stats_t *src);
 
-#endif
-
 /** Reduce all measurements from a window into a single measurement. */
 FLECS_API
 void ecs_metric_reduce(
@@ -12475,6 +12471,76 @@ void ecs_metric_copy(
     ecs_metric_t *m,
     int32_t dst,
     int32_t src);
+
+FLECS_API extern ECS_COMPONENT_DECLARE(FlecsStats);        /**< Flecs stats module. */
+FLECS_API extern ECS_COMPONENT_DECLARE(EcsWorldStats);     /**< Component id for EcsWorldStats. */
+FLECS_API extern ECS_COMPONENT_DECLARE(EcsWorldSummary);   /**< Component id for EcsWorldSummary. */
+FLECS_API extern ECS_COMPONENT_DECLARE(EcsSystemStats);    /**< Component id for EcsSystemStats. */
+FLECS_API extern ECS_COMPONENT_DECLARE(EcsPipelineStats);  /**< Component id for EcsPipelineStats. */
+
+FLECS_API extern ecs_entity_t EcsPeriod1s;                 /**< Tag used for metrics collected in last second. */
+FLECS_API extern ecs_entity_t EcsPeriod1m;                 /**< Tag used for metrics collected in last minute. */
+FLECS_API extern ecs_entity_t EcsPeriod1h;                 /**< Tag used for metrics collected in last hour. */
+FLECS_API extern ecs_entity_t EcsPeriod1d;                 /**< Tag used for metrics collected in last day. */
+FLECS_API extern ecs_entity_t EcsPeriod1w;                 /**< Tag used for metrics collected in last week. */
+
+/** Common data for statistics. */
+typedef struct {
+    ecs_ftime_t elapsed;
+    int32_t reduce_count;
+} EcsStatsHeader;
+
+/** Component that stores world statistics. */
+typedef struct {
+    EcsStatsHeader hdr;
+    ecs_world_stats_t stats;
+} EcsWorldStats;
+
+/** Component that stores system statistics. */
+typedef struct {
+    EcsStatsHeader hdr;
+    ecs_map_t stats;
+} EcsSystemStats;
+
+/** Component that stores pipeline statistics. */
+typedef struct {
+    EcsStatsHeader hdr;
+    ecs_map_t stats;
+} EcsPipelineStats;
+
+/** Component that stores a summary of world statistics. */
+typedef struct {
+    /* Target FPS */
+    double target_fps;          /**< Target FPS */
+
+    /* Total time */
+    double frame_time_total;    /**< Total time spent processing a frame */
+    double system_time_total;   /**< Total time spent in systems */
+    double merge_time_total;    /**< Total time spent in merges */
+
+    /* Last frame time */
+    double frame_time_last;     /**< Time spent processing a frame */
+    double system_time_last;    /**< Time spent in systems */
+    double merge_time_last;     /**< Time spent in merges */
+
+    int64_t frame_count;        /**< Number of frames processed */
+    int64_t command_count;      /**< Number of commands processed */
+
+    /* Build info */
+    ecs_build_info_t build_info; /**< Build info */
+} EcsWorldSummary;
+
+/** Stats module import function.
+ * Usage:
+ * @code
+ * ECS_IMPORT(world, FlecsStats)
+ * @endcode
+ * 
+ * @param world The world.
+ */
+FLECS_API
+void FlecsStatsImport(
+    ecs_world_t *world);
 
 #ifdef __cplusplus
 }
@@ -12897,118 +12963,6 @@ ecs_entity_t ecs_get_alert(
  */
 FLECS_API
 void FlecsAlertsImport(
-    ecs_world_t *world);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
-/** @} */
-
-#endif
-
-#endif
-
-#ifdef FLECS_MONITOR
-#ifdef FLECS_NO_MONITOR
-#error "FLECS_NO_MONITOR failed: MONITOR is required by other addons"
-#endif
-/**
- * @file addons/monitor.h
- * @brief Doc module.
- *
- * The monitor module automatically tracks statistics from the stats addon and
- * stores them in components.
- */
-
-#ifdef FLECS_MONITOR
-
-/**
- * @defgroup c_addons_monitor Monitor
- * @ingroup c_addons
- * The monitor addon periodically tracks statistics for the world and systems.
- *
- * @{
- */
-
-#ifndef FLECS_MONITOR_H
-#define FLECS_MONITOR_H
-
-#ifndef FLECS_MODULE
-#define FLECS_MODULE
-#endif
-
-#ifndef FLECS_STATS
-#define FLECS_STATS
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-FLECS_API extern ECS_COMPONENT_DECLARE(FlecsStats);      /**< Flecs monitor module. */
-FLECS_API extern ECS_COMPONENT_DECLARE(EcsWorldStats);     /**< Component id for EcsWorldStats. */
-FLECS_API extern ECS_COMPONENT_DECLARE(EcsWorldSummary);   /**< Component id for EcsWorldSummary. */
-FLECS_API extern ECS_COMPONENT_DECLARE(EcsPipelineStats);  /**< Component id for EcsPipelineStats. */
-
-FLECS_API extern ecs_entity_t EcsPeriod1s;                 /**< Tag used for metrics collected in last second. */
-FLECS_API extern ecs_entity_t EcsPeriod1m;                 /**< Tag used for metrics collected in last minute. */
-FLECS_API extern ecs_entity_t EcsPeriod1h;                 /**< Tag used for metrics collected in last hour. */
-FLECS_API extern ecs_entity_t EcsPeriod1d;                 /**< Tag used for metrics collected in last day. */
-FLECS_API extern ecs_entity_t EcsPeriod1w;                 /**< Tag used for metrics collected in last week. */
-
-/** Common data for statistics. */
-typedef struct {
-    ecs_ftime_t elapsed;
-    int32_t reduce_count;
-} EcsStatsHeader;
-
-/** Component that stores world statistics. */
-typedef struct {
-    EcsStatsHeader hdr;
-    ecs_world_stats_t stats;
-} EcsWorldStats;
-
-/** Component that stores pipeline statistics. */
-typedef struct {
-    EcsStatsHeader hdr;
-    ecs_pipeline_stats_t stats;
-} EcsPipelineStats;
-
-/** Component that stores a summary of world statistics. */
-typedef struct {
-    /* Target FPS */
-    double target_fps;          /**< Target FPS */
-
-    /* Total time */
-    double frame_time_total;    /**< Total time spent processing a frame */
-    double system_time_total;   /**< Total time spent in systems */
-    double merge_time_total;    /**< Total time spent in merges */
-
-    /* Last frame time */
-    double frame_time_last;     /**< Time spent processing a frame */
-    double system_time_last;    /**< Time spent in systems */
-    double merge_time_last;     /**< Time spent in merges */
-
-    int64_t frame_count;        /**< Number of frames processed */
-    int64_t command_count;      /**< Number of commands processed */
-
-    /* Build info */
-    ecs_build_info_t build_info; /**< Build info */
-} EcsWorldSummary;
-
-/** Monitor module import function.
- * Usage:
- * @code
- * ECS_IMPORT(world, FlecsStats)
- * @endcode
- * 
- * @param world The world.
- */
-FLECS_API
-void FlecsStatsImport(
     ecs_world_t *world);
 
 #ifdef __cplusplus
@@ -13836,7 +13790,6 @@ extern "C" {
 FLECS_API
 extern ECS_COMPONENT_DECLARE(EcsScript);
 
-typedef struct ecs_script_t ecs_script_t;
 typedef struct ecs_script_template_t ecs_script_template_t;
 
 /** Script variable. */
@@ -13857,6 +13810,13 @@ typedef struct ecs_script_vars_t {
     ecs_stack_cursor_t *cursor;
     ecs_allocator_t *allocator;
 } ecs_script_vars_t;
+
+/** Script object. */
+typedef struct ecs_script_t {
+    ecs_world_t *world;
+    const char *name;
+    const char *code;
+} ecs_script_t;
 
 /** Script component. 
  * This component is added to the entities of managed scripts and templates.
@@ -19041,10 +19001,10 @@ units(flecs::world& world);
 }
 
 #endif
-#ifdef FLECS_MONITOR
+#ifdef FLECS_STATS
 /**
- * @file addons/cpp/mixins/monitor/decl.hpp
- * @brief Monitor module declarations.
+ * @file addons/cpp/mixins/stats/decl.hpp
+ * @brief Stats module declarations.
  */
 
 #pragma once
@@ -19052,9 +19012,9 @@ units(flecs::world& world);
 namespace flecs {
 
 /**
- * @defgroup cpp_addons_monitor Monitor
+ * @defgroup cpp_addons_stats Stats
  * @ingroup cpp_addons
- * The monitor addon periodically tracks statistics for the world and systems.
+ * The stats addon tracks statistics for the world and systems.
  *
  * @{
  */
@@ -19068,8 +19028,8 @@ using PipelineStats = EcsPipelineStats;
 /** Component with world summary stats */
 using WorldSummary = EcsWorldSummary;
 
-struct monitor {
-    monitor(flecs::world& world);
+struct stats {
+    stats(flecs::world& world);
 };
 
 /** @} */
@@ -31086,7 +31046,7 @@ inline units::units(flecs::world& world) {
 }
 
 #endif
-#ifdef FLECS_MONITOR
+#ifdef FLECS_STATS
 /**
  * @file addons/cpp/mixins/monitor/impl.hpp
  * @brief Monitor module implementation.
@@ -31096,7 +31056,7 @@ inline units::units(flecs::world& world) {
 
 namespace flecs {
 
-inline monitor::monitor(flecs::world& world) {
+inline stats::stats(flecs::world& world) {
     /* Import C module  */
     FlecsStatsImport(world);
 

@@ -1,6 +1,6 @@
 <template>
   <div id="pane-query" class="queries-left-pane pane">
-    <tabs :labels="['editor', 'browse']"
+    <tabs :items="['editor', 'browse']"
         v-model:active_tab="app_params.query.query_tab"
         class="explorer-tab-content"
         v-on:changed="onTab">

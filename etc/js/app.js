@@ -142,6 +142,10 @@ let components = [
   // Inspector widget
   loadModule('js/components/widgets/inspector/entity-inspector.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-module.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-components.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-matched-by.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-refs.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-alerts.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-component.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-value.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-kv.vue', options),
@@ -387,6 +391,7 @@ Promise.all(components).then((values) => {
           entity: {
             path: undefined
           },
+          inspector_mode: undefined,
           tree_mode: undefined,
           pipeline: "All systems",
           scripts: [],

@@ -217,7 +217,7 @@ div.component-header {
   gap: 4px;
   min-height: 28px;
   padding: 4px;
-  padding-left: 8px;
+  padding-left: 0px;
   padding-right: 0px;
   cursor: pointer;
   border-radius: var(--border-radius-medium);
