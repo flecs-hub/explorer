@@ -89,6 +89,9 @@ const doObserverQuery = () => {
   props.conn.query(q, 
     {rows: true, limit: 1000}, 
     (reply) => {
+      for (let r of reply.results) {
+        r.observer = true
+      }
       observers.value.results = reply.results;
     },
     (reply) => {
@@ -103,6 +106,7 @@ const doQuery = () => {
 
 const results = computed(() => {
   if (queries.value.results) {
+
     return queries.value.results.concat(observers.value.results);
   } else {
     return [];
@@ -133,7 +137,7 @@ const css = computed(() => {
 });
 
 const itemIcon = (item) => {
-  if (item.tags[0] == "Observer") {
+  if (item.observer) {
     return "bell";
   } else if (item.is_set[1]) {
     return "code";
@@ -143,8 +147,7 @@ const itemIcon = (item) => {
 }
 
 const queryKind = (item) => {
-  let isObserver = item.tags[0] == "Observer";
-  if (isObserver) {
+  if (item.observer) {
     return "observer";
   } else {
     let isSystem = item.is_set[1];

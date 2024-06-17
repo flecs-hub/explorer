@@ -2651,7 +2651,7 @@ void flecs_iter_free(
 
 /* Initialize poly */
 void* flecs_poly_init_(
-    flecs_poly_t *object,
+    ecs_poly_t *object,
     int32_t kind,
     ecs_size_t size,
     ecs_mixins_t *mixins);
@@ -2661,7 +2661,7 @@ void* flecs_poly_init_(
 
 /* Deinitialize object for specified type */
 void flecs_poly_fini_(
-    flecs_poly_t *object,
+    ecs_poly_t *object,
     int32_t kind);
 
 #define flecs_poly_fini(object, type)\
@@ -2701,7 +2701,7 @@ const EcsPoly* flecs_poly_bind_get_(
 #define flecs_poly_bind_get(world, entity, T) \
     flecs_poly_bind_get_(world, entity, T##_tag)
 
-flecs_poly_t* flecs_poly_get_(
+ecs_poly_t* flecs_poly_get_(
     const ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag);
@@ -2724,10 +2724,10 @@ flecs_poly_t* flecs_poly_get_(
 #endif
 
 ecs_observable_t* ecs_get_observable(
-    const flecs_poly_t *object);
+    const ecs_poly_t *object);
 
 flecs_poly_dtor_t* ecs_get_dtor(
-    const flecs_poly_t *poly);
+    const ecs_poly_t *poly);
 
 #endif
 
@@ -15552,7 +15552,7 @@ ecs_mixins_t ecs_observer_t_mixins = {
 
 static
 void* assert_mixin(
-    const flecs_poly_t *poly,
+    const ecs_poly_t *poly,
     ecs_mixin_kind_t kind)
 {
     ecs_assert(poly != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -15577,7 +15577,7 @@ void* assert_mixin(
 }
 
 void* flecs_poly_init_(
-    flecs_poly_t *poly,
+    ecs_poly_t *poly,
     int32_t type,
     ecs_size_t size,
     ecs_mixins_t *mixins)
@@ -15596,7 +15596,7 @@ void* flecs_poly_init_(
 }
 
 void flecs_poly_fini_(
-    flecs_poly_t *poly,
+    ecs_poly_t *poly,
     int32_t type)
 {
     ecs_assert(poly != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -15613,7 +15613,7 @@ void flecs_poly_fini_(
 }
 
 int32_t flecs_poly_claim_(
-    flecs_poly_t *poly)
+    ecs_poly_t *poly)
 {
     ecs_assert(poly != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_header_t *hdr = poly;
@@ -15627,7 +15627,7 @@ int32_t flecs_poly_claim_(
 }
 
 int32_t flecs_poly_release_(
-    flecs_poly_t *poly)
+    ecs_poly_t *poly)
 {
     ecs_assert(poly != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_header_t *hdr = poly;
@@ -15641,7 +15641,7 @@ int32_t flecs_poly_release_(
 }
 
 int32_t flecs_poly_refcount(
-    flecs_poly_t *poly)
+    ecs_poly_t *poly)
 {
     ecs_assert(poly != NULL, ECS_INVALID_PARAMETER, NULL);
     ecs_header_t *hdr = poly;
@@ -15695,7 +15695,7 @@ const EcsPoly* flecs_poly_bind_get_(
     return ecs_get_pair(world, entity, EcsPoly, tag);
 }
 
-flecs_poly_t* flecs_poly_get_(
+ecs_poly_t* flecs_poly_get_(
     const ecs_world_t *world,
     ecs_entity_t entity,
     ecs_entity_t tag)
@@ -15708,7 +15708,7 @@ flecs_poly_t* flecs_poly_get_(
 }
 
 bool flecs_poly_is_(
-    const flecs_poly_t *poly,
+    const ecs_poly_t *poly,
     int32_t type)
 {
     ecs_assert(poly != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -15720,13 +15720,13 @@ bool flecs_poly_is_(
 }
 
 ecs_observable_t* ecs_get_observable(
-    const flecs_poly_t *poly)
+    const ecs_poly_t *poly)
 {
     return (ecs_observable_t*)assert_mixin(poly, EcsMixinObservable);
 }
 
 const ecs_world_t* ecs_get_world(
-    const flecs_poly_t *poly)
+    const ecs_poly_t *poly)
 {
     if (((const ecs_header_t*)poly)->type == ecs_world_t_magic) {
         return poly;
@@ -15735,13 +15735,13 @@ const ecs_world_t* ecs_get_world(
 }
 
 ecs_entity_t ecs_get_entity(
-    const flecs_poly_t *poly)
+    const ecs_poly_t *poly)
 {
     return *(ecs_entity_t*)assert_mixin(poly, EcsMixinEntity);
 }
 
 flecs_poly_dtor_t* ecs_get_dtor(
-    const flecs_poly_t *poly)
+    const ecs_poly_t *poly)
 {
     return (flecs_poly_dtor_t*)assert_mixin(poly, EcsMixinDtor);
 }
@@ -25399,7 +25399,7 @@ static
 void flecs_rest_iter_to_reply(
     const ecs_http_request_t* req,
     ecs_http_reply_t *reply,
-    flecs_poly_t *query,
+    ecs_poly_t *query,
     ecs_iter_t *it)
 {
     ecs_iter_to_json_desc_t desc = {0};
@@ -39525,7 +39525,7 @@ bool flecs_json_serialize_get_field_ctx(
     ecs_json_ser_ctx_t *ser_ctx,
     const ecs_iter_to_json_desc_t *desc);
 
-int flecs_json_serialize_iter_result_rows(
+int flecs_json_serialize_iter_result(
     const ecs_world_t *world,
     const ecs_iter_t *it,
     ecs_strbuf_t *buf,
@@ -42629,7 +42629,7 @@ int flecs_json_serialize_matches(
                 int32_t i, count = ecs_table_count(table);
                 ecs_entity_t *entities = ecs_vec_first(&table->data.entities);
                 for (i = 0; i < count; i ++) {
-                    flecs_poly_t *q = queries[i].poly;
+                    ecs_poly_t *q = queries[i].poly;
                     if (!q) {
                         continue;
                     }
@@ -43688,7 +43688,7 @@ int flecs_json_serialize_iter_result(
     ecs_json_ser_ctx_t *ser_ctx) 
 {    
     if (desc && desc->serialize_rows) {
-        if (flecs_json_serialize_iter_result_rows(world, it, buf, desc, ser_ctx)) {
+        if (flecs_json_serialize_iter_result(world, it, buf, desc, ser_ctx)) {
             return -1;
         }
     } else {
@@ -44024,7 +44024,7 @@ int ecs_entity_to_json_buf(
         .field_count = 0
     };
 
-    if (flecs_json_serialize_iter_result_rows(
+    if (flecs_json_serialize_iter_result(
         world, &it, buf, &iter_desc, &ser_ctx))
     {
         return -1;
@@ -44860,7 +44860,7 @@ typedef struct ecs_json_this_data_t {
 } ecs_json_this_data_t;
 
 static
-void flecs_json_serialize_iter_this_row(
+void flecs_json_serialize_iter_this(
     const ecs_iter_t *it,
     const char *parent_path,
     const ecs_json_this_data_t *this_data,
@@ -44933,7 +44933,7 @@ int flecs_json_serialize_iter_result_query_rows(
         flecs_json_object_push(buf);
 
         if (has_this) {
-            flecs_json_serialize_iter_this_row(
+            flecs_json_serialize_iter_this(
                 it, parent_path, this_data, i, buf, desc);
         }
 
@@ -45006,7 +45006,7 @@ int flecs_json_serialize_iter_result_table_rows(
         if (has_this) {
             ecs_json_this_data_t this_data_cpy = *this_data;
 
-            flecs_json_serialize_iter_this_row(
+            flecs_json_serialize_iter_this(
                 it, parent_path, &this_data_cpy, i - it->offset, buf, desc);
         }
 
@@ -45034,7 +45034,7 @@ int flecs_json_serialize_iter_result_table_rows(
     return result;
 }
 
-int flecs_json_serialize_iter_result_rows(
+int flecs_json_serialize_iter_result(
     const ecs_world_t *world, 
     const ecs_iter_t *it, 
     ecs_strbuf_t *buf,

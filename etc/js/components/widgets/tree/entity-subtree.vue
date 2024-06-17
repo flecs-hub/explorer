@@ -9,7 +9,7 @@
       @select="selectItem"
       :key="item.name">
     </entity-tree-item>
-    <template v-if="path !== '0'">
+    <template v-if="path !== '#0'">
       <div class="entity-tree-vertical-line" :style="lineIndent"></div>
     </template>
   </div>
@@ -25,7 +25,7 @@ import { onMounted, onUnmounted, ref, defineProps, defineEmits, computed, watch 
 const props = defineProps({
   conn: {type: Object, required: true},
   selectedItem: {type: Object, required: false},
-  path: {type: String, required: false, default: "0"},
+  path: {type: String, required: false, default: "#0"},
   depth: {type: Number, required: false, default: 0},
   nameFilter: {type: String, required: false},
   queryFilter: {type: String, required: false}
@@ -67,9 +67,7 @@ function updateQuery() {
     [none] ?flecs.core.Prefab, 
     [none] ?flecs.core.Disabled, 
     [none] ?flecs.core.ChildOf(_, $this), 
-    [none] ?flecs.core.IsA($this, $base|self),
-    ?flecs.doc.Description($this, flecs.core.Name),
-    ?flecs.doc.Description($this, flecs.doc.Color)`
+    [none] ?flecs.core.IsA($this, $base|self)`
     ;
 
   let nf = props.nameFilter ? props.nameFilter : undefined;
@@ -96,6 +94,7 @@ function updateQuery() {
       try: true, 
       rows: true, 
       limit: 1000, 
+      doc: true,
       managed: true,
       persist: props.path === "0" // persist root query across reconnects
     },
@@ -131,16 +130,13 @@ function updateQuery() {
         treeItem.isParent = item.is_set[8];
         treeItem.baseEntity = item.is_set[9] ? item.vars["base"] : undefined;
 
-        if (item.is_set[10]) {
-          treeItem.label = item.components["(Description,Name)"].value;
+        if (item.doc) {
+          treeItem.label = item.doc.label;
+          treeItem.color = item.doc.color;
         } else {
           treeItem.label = undefined;
-        }
-
-        if (item.is_set[11]) {
-          treeItem.color = item.components["(Description,Color)"].value;
-        } else {
           treeItem.color = undefined;
+
         }
 
         sortedItems.push(treeItem);

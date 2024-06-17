@@ -237,7 +237,7 @@ function updateQuery() {
           }
 
           // Extract whether entity is a script
-          isScript.value = reply.components && 
+          isScript.value = (reply.components != undefined) && 
             reply.components.hasOwnProperty("flecs.script.Script");
 
           entityModules.value.length = 0;

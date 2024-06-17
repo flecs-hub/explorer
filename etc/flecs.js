@@ -357,6 +357,7 @@ const flecs = {
             path = path.replaceAll("\\.", "@@");
             path = path.replaceAll(".", "/");
             path = path.replaceAll("@@", ".");
+            path = path.replaceAll("#", "%23");
             return path;
           },
   
