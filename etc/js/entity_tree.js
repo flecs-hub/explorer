@@ -297,8 +297,6 @@ Vue.component('entity-tree', {
               path = elem.parent + "." + name_esc
             }
 
-            console.log(path);
-
             let label;
             let color;
             if (elem.entity_labels) {
