@@ -79,9 +79,6 @@ const flecs = {
   // Create a new connection to a Flecs application
   connect(params) {
     let conn = this._.createConnection(params);
-
-    console.log("CONNECT v4");
-
     conn.connect(params.host);
     return conn;
   },

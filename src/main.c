@@ -20,9 +20,8 @@ int main(void) {
     ECS_IMPORT(world, FlecsMeta);
     ECS_IMPORT(world, FlecsUnits);
     ECS_IMPORT(world, FlecsDoc);
-    ECS_IMPORT(world, FlecsCoreDoc);
     ECS_IMPORT(world, FlecsRest);
-    ECS_IMPORT(world, FlecsMonitor);
+    ECS_IMPORT(world, FlecsStats);
     ECS_IMPORT(world, FlecsAlerts);
 
     // Load script for editor
