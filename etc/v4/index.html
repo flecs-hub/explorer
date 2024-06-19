@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Flecs Explorer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono&display=swap" rel="stylesheet">
+    <link rel="icon" href="img/flecs_logo.png" />
+  </head>
+  <body spellcheck="false">
+    <div id="app">
+      <menu-bar
+        :items="['entities', 'queries', 'stats', 'pipeline', 'commands', 'info']">
+        <template v-slot:entities>
+          <menu-button 
+            name="entities" 
+            img="list-tree"
+            v-model:page="app_params.page">
+          </menu-button>
+        </template>
+        <template v-slot:queries>
+          <menu-button 
+            name="queries" 
+            img="search"
+            v-model:page="app_params.page">
+          </menu-button>
+        </template>
+        <template v-slot:stats>
+          <menu-button 
+            name="stats" 
+            img="graph-line"
+            v-model:page="app_params.page">
+          </menu-button>
+        </template>
+        <template v-slot:pipeline>
+          <menu-button 
+            name="pipeline" 
+            img="server"
+            v-model:page="app_params.page">
+          </menu-button>
+        </template>
+        <template v-slot:commands>
+          <menu-button 
+            name="commands" 
+            img="megaphone"
+            v-model:page="app_params.page">
+          </menu-button>
+        </template>
+        <template v-slot:info>
+          <menu-button 
+            name="info" 
+            img="info"
+            v-model:page="app_params.page">
+          </menu-button>
+        </template>
+      </menu-bar>
+
+      <template v-if="app_params.page == 'entities'">
+        <page-entities 
+          :conn="conn"
+          v-model:app_params="app_params"
+          :app_state="app_state">
+        </page-entities>
+      </template>
+
+      <template v-if="app_params.page == 'queries'">
+        <page-queries 
+          :conn="conn"
+          v-model:app_params="app_params"
+          :app_state="app_state">
+        </page-queries>
+      </template>
+
+      <template v-if="app_params.page == 'stats'">
+        <page-stats 
+          :conn="conn"
+          v-model:app_params="app_params"
+          :app_state="app_state">
+        </page-stats>
+      </template>
+
+      <template v-if="app_params.page == 'pipeline'">
+        <page-pipeline 
+          :conn="conn"
+          v-model:app_params="app_params">
+        </page-pipeline>
+      </template>
+
+      <template v-if="app_params.page == 'commands'">
+        <page-commands 
+          :conn="conn"
+          v-model:app_params="app_params"
+          :app_state="app_state">
+        </page-commands>
+      </template>
+
+      <template v-if="app_params.page == 'info'">
+        <page-info 
+          v-model:app_params="app_params"  
+          :app_state="app_state">
+        </page-info>
+      </template>
+
+      <title-bar
+        :conn="conn"
+        v-model:app_params="app_params"
+        :app_state="app_state">
+      </title-bar>
+
+      <info-bar
+        v-model:app_params="app_params"  
+        :app_state="app_state">
+      </info-bar>
+    </div>
+
+    <!-- Vue3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js">
+      Vue.config.devtools = true;
+    </script>
+
+    <!-- Vue SFC support without webpack -->
+    <script src="https://cdn.jsdelivr.net/npm/vue3-sfc-loader/dist/vue3-sfc-loader.js"></script>
+
+    <!-- Code editor -->
+    <script src="deps/ace/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="deps/ace/theme-github_dark.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/ace-flecs-script.js"></script>
+    <script src="js/ace-flecs-query.js"></script>
+    <script src="js/ace-flecs-script-theme.js"></script>
+
+    <!-- Flecs client -->
+    <script src="../flecs.js" type="text/javascript" charset="utf-8"></script>
+
+    <!-- Application source -->
+    <script src="js/module_loader.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
