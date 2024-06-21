@@ -139,7 +139,7 @@ const css = computed(() => {
 const itemIcon = (item) => {
   if (item.observer) {
     return "bell";
-  } else if (item.is_set[1]) {
+  } else if (!item.fields.is_set || item.fields.is_set[1]) {
     return "code";
   } else {
     return "search";
@@ -150,7 +150,7 @@ const queryKind = (item) => {
   if (item.observer) {
     return "observer";
   } else {
-    let isSystem = item.is_set[1];
+    let isSystem = !item.fields.is_set || item.fields.is_set[1];
     if (isSystem) {
       return "system";
     }

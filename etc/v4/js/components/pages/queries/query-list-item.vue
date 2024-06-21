@@ -46,19 +46,19 @@ const docKey = "(Description,Brief)";
 //  (ChildOf, scope), $this ~= expr, ...
 
 const isScopedQuery = computed(() => {
-  return props.prop.is_set.length == 6;
+  return props.prop.fields.is_set.length == 6;
 })
 
 const isComponent = computed(() => {
-  return isScopedQuery.value ? props.prop.is_set[3] : props.prop.is_set[2];
+  return isScopedQuery.value ? props.prop.fields.is_set[3] : props.prop.fields.is_set[2];
 });
 
 const isRelationship = computed(() => {
-  return isScopedQuery.value ? props.prop.is_set[4] : props.prop.is_set[3];
+  return isScopedQuery.value ? props.prop.fields.is_set[4] : props.prop.fields.is_set[3];
 });
 
 const isModule = computed(() => {
-  return isScopedQuery.value ? props.prop.is_set[5] : props.prop.is_set[4];
+  return isScopedQuery.value ? props.prop.fields.is_set[5] : props.prop.fields.is_set[4];
 });
 
 const description = computed(() => {

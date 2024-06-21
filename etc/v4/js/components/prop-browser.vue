@@ -43,9 +43,9 @@ watch(() => props.first, () => {
     props.conn.query(query, {try: true, rows: true, limit: 1}, (reply) => {
       if (reply.results) {
         let result = reply.results[0];
-        if (result.is_set && result.is_set[1]) {
+        if (!result.fields.is_set || result.fields.is_set[1]) {
           oneof.value = result.vars.parent;
-        } else if (result.is_set[0]) {
+        } else if (!result.fields.is_set || result.fields.is_set[0]) {
           oneof.value = props.first;
         }
       } else {

@@ -124,8 +124,8 @@ const tableHeaders = computed(() => {
         schema: field.schema,
         index: index++,
         get: (result) => {
-          if (!result.is_set || result.is_set[i]) {
-            return result.fields[i].data;
+          if (!result.fields.is_set || result.fields.is_set[i]) {
+            return result.fields.values[i];
           } else {
             return undefined;
           }

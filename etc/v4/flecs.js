@@ -235,7 +235,7 @@ const flecs = {
           query = flecs.trimQuery(query);
           query = query.replaceAll(", ", ",");
   
-          params.q = encodeURIComponent(query);
+          params.expr = encodeURIComponent(query);
           return this._.requestQuery(
             this, params, recv, err, abort, params.poll_interval_ms);
         },
@@ -248,14 +248,14 @@ const flecs = {
         },
 
         // Set component
-        set: function(path, component, data) {
+        set: function(path, component, value) {
           path = this._.escapePath(path);
-          if (typeof data == "object") {
-            data = JSON.stringify(data);
-            data = encodeURIComponent(data);
+          if (typeof value == "object") {
+            value = JSON.stringify(value);
+            value = encodeURIComponent(value);
           }
           return this._.request(this, "PUT", "component/" + path, 
-            {component: component, data: data});
+            {component: component, value: value});
         },
 
         // Get component
@@ -274,33 +274,38 @@ const flecs = {
         // Add component
         add: function(path, component) {
           path = this._.escapePath(path);
-          return this._.request(this, "PUT", "add/" + path, 
+          return this._.request(this, "PUT", "component/" + path, 
             {component: component});
         },
 
         // Remove component
         remove: function(path, component) {
           path = this._.escapePath(path);
-          return this._.request(this, "PUT", "remove/" + path, 
+          return this._.request(this, "DELETE", "component/" + path,
             {component: component});
         },
 
-        // Enable entity
-        enable: function(path) {
+        // Enable entity/component
+        enable: function(path, component) {
           path = this._.escapePath(path);
-          return this._.request(this, "PUT", "enable/" + path, {});
+          return this._.request(this, "PUT", "toggle/" + path, {
+            enable: true, component: component
+
+          });
         },
 
-        // Disable entity
-        disable: function(path) {
+        // Disable entity/component
+        disable: function(path, component) {
           path = this._.escapePath(path);
-          return this._.request(this, "PUT", "disable/" + path, {});
+          return this._.request(this, "PUT", "toggle/" + path, {
+            enable: false, component: component
+          });
         },
 
         // Delete entity
         delete: function(path) {
           path = this._.escapePath(path);
-          return this._.request(this, "PUT", "delete/" + path, {});
+          return this._.request(this, "DELETE", "entity/" + path, {});
         },
 
         // Update script code

@@ -57,6 +57,8 @@ function onScriptChange(editorObj) {
 onMounted(() => {
   editorObj = ace.edit("editor");
   editorObj.setOption("highlightActiveLine", false);
+  editorObj.setOption("tabSize", 2);
+  editorObj.setBehavioursEnabled(true);
   editorObj.setTheme("ace/theme/flecs-script");
   editorObj.session.setMode("ace/mode/flecs-script");
 

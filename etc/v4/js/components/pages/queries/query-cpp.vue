@@ -40,7 +40,7 @@ const defaultSrc = (term) => {
 }
 
 const isTemplateArg = (term) => {
-  if (!term.has_data) {
+  if (!term.has_value) {
     return false;
   }
   if (!term.first) {

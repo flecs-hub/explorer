@@ -121,14 +121,14 @@ function updateQuery() {
         Object.assign(treeItem, item);
 
         treeItem.path = path;
-        treeItem.isModule = item.is_set[0];
-        treeItem.isComponent = item.is_set[1] || item.is_set[2] || item.is_set[3];
-        treeItem.isTarget = item.is_set[4];
-        treeItem.isQuery = item.is_set[5];
-        treeItem.isPrefab = item.is_set[6];
-        treeItem.isDisabled = item.is_set[7];
-        treeItem.isParent = item.is_set[8];
-        treeItem.baseEntity = item.is_set[9] ? item.vars["base"] : undefined;
+        treeItem.isModule = item.fields.is_set[0];
+        treeItem.isComponent = item.fields.is_set[1] || item.fields.is_set[2] || item.fields.is_set[3];
+        treeItem.isTarget = item.fields.is_set[4];
+        treeItem.isQuery = item.fields.is_set[5];
+        treeItem.isPrefab = item.fields.is_set[6];
+        treeItem.isDisabled = item.fields.is_set[7];
+        treeItem.isParent = item.fields.is_set[8];
+        treeItem.baseEntity = item.fields.is_set[9] ? item.vars["base"] : undefined;
 
         if (item.doc) {
           treeItem.label = item.doc.label;
