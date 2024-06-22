@@ -86,7 +86,11 @@ function updateQuery() {
   }
 
   if (nf) {
-    q += `, $this ~= "${nf}"`;
+    if (nf[0] == '#') {
+      q += `, $this == "${nf}"`;
+    } else {
+      q += `, $this ~= "${nf}"`;
+    }
   }
 
   treeQuery.value = 

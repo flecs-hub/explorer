@@ -27,7 +27,7 @@ export default { name: "pane-tree" }
 </script>
 
 <script setup>
-import { computed, defineProps, defineModel, emits, ref } from 'vue';
+import { computed, defineProps, defineModel, ref } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},

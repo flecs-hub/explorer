@@ -16,13 +16,17 @@
       </div>
       <entity-path :path="entityQueryResult.parent"></entity-path>
       <template v-if="entityLabel">
-        <span class="entity-inspector-name">{{ entityLabel }}</span>
+        <span class="entity-inspector-name">{{ entityLabel }}
+          <span class="entity-inspector-id">{{ entityId }}</span>
+        </span>
         <template v-if="expand">
           <span class="entity-inspector-actual-name">{{ entityQueryResult.name }}</span>
         </template>
       </template>
       <template v-else>
-        <span class="entity-inspector-name">{{ entityQueryResult.name }}</span>
+        <span class="entity-inspector-name">{{ entityQueryResult.name }}
+          <span class="entity-inspector-id">{{ entityId }}</span>
+        </span>
       </template>
 
       <template v-if="expand">
@@ -99,6 +103,7 @@ const entityQuery = ref();
 const entityQueryResult = ref();
 const entityModules = ref([]);
 const entityLabel = ref();
+const entityId = ref();
 const expand = ref(false);
 const isDisabled = ref(false);
 const isScript = ref(false);
@@ -183,6 +188,7 @@ function updateQuery() {
           try: true, 
           managed: true,
           values: inspectorMode.value == "Components",
+          entity_id: true,
           full_paths: true, 
           type_info: true,
           private: true,
@@ -215,6 +221,8 @@ function updateQuery() {
           }
 
           loadTypeFromReply(moduleMap, reply);
+
+          entityId.value = '#' + reply.id;
 
           // Extract entity label
           entityLabel.value = undefined;
@@ -309,6 +317,11 @@ div.entity-inspector {
   position: relative;
   display: grid;
   padding: 8px;
+}
+
+span.entity-inspector-id {
+  font-size: 0.9rem;
+  color: var(--secondary-text);
 }
 
 span.entity-inspector-name {
