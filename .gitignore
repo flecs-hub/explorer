@@ -3,3 +3,5 @@
 .vscode
 gcov
 bin
+explorer_bevy/node_modules/
+explorer_bevy/dist/
