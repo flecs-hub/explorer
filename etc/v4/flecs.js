@@ -555,7 +555,7 @@ const flecs = {
                 
                   if (pub.poll_interval_ms) {
                     // When this is a polling request don't bother with retrying
-                    const errMsg = `request to ${pub.conn.host} failed`;
+                    const errMsg = `request to ${pub.conn.params.host} failed`;
                     if (pub.err) pub.err(`{"error": \"${errMsg}\"}`);
                     return;
                   }

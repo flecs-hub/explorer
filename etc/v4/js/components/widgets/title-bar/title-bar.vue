@@ -7,6 +7,13 @@
         target="_blank">
       </a>
     </div>
+    <div class="title-bar-controls">
+      <play-control
+        :conn="conn"
+        :app_state="app_state">
+
+      </play-control>
+    </div>
     <url-bar
       :app_state="app_state"
       v-model:app_params="app_params">
@@ -49,6 +56,12 @@ div.title-bar-logo a {
   grid-column: 1;
 }
 
+div.title-bar-controls {
+  grid-column: 2;
+  text-align: center;
+  padding: 4px;
+}
+
 div.title-bar-logo {
   display: grid;
   grid-template-columns: 1fr;
@@ -59,10 +72,6 @@ div.title-bar-logo {
 div.title-info {
   display: flex;
   align-items: center;
-}
-
-div.title-info-left {
-  grid-column: 2;
 }
 
 div.title-info-right {

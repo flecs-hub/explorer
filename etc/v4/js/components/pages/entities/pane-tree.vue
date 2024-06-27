@@ -67,10 +67,16 @@ const queryFilter = computed(() => {
 
 function selectItem(item) {
   if (item) {
+    let path = item.path;
+    const idStart = path.indexOf("#");
+    if (idStart != -1) {
+      path = path.slice(idStart, path.length);
+    }
+
     if (appParams.value.tree_mode === "Scripts") {
-      emit("scriptOpen", item.path);
+      emit("scriptOpen", path);
     } else {
-      appParams.value.entity.path = item.path;
+      appParams.value.entity.path = path;
     }
   } else {
     if (appParams.value.tree_mode === "Scripts") {

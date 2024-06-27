@@ -100,6 +100,7 @@ let components = [
   // Common components
   loadModule('js/components/widgets/title-bar/title-bar.vue', options),
   loadModule('js/components/widgets/title-bar/refresh-control.vue', options),
+  loadModule('js/components/widgets/title-bar/play-control.vue', options),
   loadModule('js/components/widgets/title-bar/url-bar.vue', options),
   loadModule('js/components/widgets/info-bar/info-bar.vue', options),
   loadModule('js/components/widgets/info-bar/info-connected.vue', options),
