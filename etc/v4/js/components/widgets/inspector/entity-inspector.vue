@@ -46,7 +46,7 @@
       <hr/>
 
       <dropdown 
-        :items="['Components', 'Matched by', 'Referenced by', 'Alerts']"
+        :items="inspectorModes"
         v-model:active_item="inspectorMode">
       </dropdown>
 
@@ -81,6 +81,12 @@
           :entityQueryResult="entityQueryResult">
         </entity-inspector-alerts>
       </template>
+      <template v-else-if="inspectorMode == 'Script AST'">
+        <entity-inspector-script-ast
+          :conn="conn"
+          :path="path">
+        </entity-inspector-script-ast>
+      </template>
     </template>
   </div>
 </template>
@@ -90,7 +96,7 @@ export default { name: "entity-inspector" }
 </script>
 
 <script setup>
-import { watch, onMounted, onUnmounted, ref, defineProps, defineEmits } from 'vue';
+import { watch, onMounted, onUnmounted, ref, defineProps, defineEmits, computed } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -108,6 +114,14 @@ const expand = ref(false);
 const isDisabled = ref(false);
 const isScript = ref(false);
 const inspectorMode = defineModel("inspector_mode");
+
+const inspectorModes = computed(() => {
+  let modes = ['Components', 'Matched by', 'Referenced by', 'Alerts'];
+  if (isScript.value) {
+    modes.push("Script AST");
+  }
+  return modes;
+})
 
 function splitPair(id) {
   let moduleName, _;

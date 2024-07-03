@@ -68,7 +68,10 @@ watch(() => [activeScript.value], () => {
 const scriptLabels = computed(() => {
   let results = [];
   for (let s of scripts.value) {
-    results.push({path: s, label: s.replaceAll("\\.", ".")});
+    let label = s.replaceAll("\\.", "@@@");
+    label = label.replaceAll(".", "/");
+    label = label.replaceAll("@@@", ".");
+    results.push({path: s, label: label});
   }
   return results;
 });
@@ -150,6 +153,7 @@ div.pane-scripts {
   gap: var(--gap);
   border-radius: var(--border-radius-medium);
   background-color: var(--bg-content);
+  height: 100%;
 }
 
 div.pane-scripts-empty {

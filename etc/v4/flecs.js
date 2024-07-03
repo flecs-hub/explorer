@@ -259,14 +259,14 @@ const flecs = {
         },
 
         // Get component
-        get: function(path, component, recv, err) {
+        get: function(path, params, recv, err) {
           path = this._.escapePath(path);
           if (typeof data == "object") {
             data = JSON.stringify(data);
             data = encodeURIComponent(data);
           }
           return this._.request(this, "GET", "component/" + path, 
-            {component: component}, (msg) => {
+            params, (msg) => {
               recv(JSON.parse(msg));
             }, err);
         },
@@ -683,10 +683,11 @@ const flecs = {
             wasm_module = Function(`return ` + name + `;`)();
             wasm_module().then(function(Module) {
               let nativeRequest = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string']);
-              // capture_keyboard_events = Module.sokol_capture_keyboard_events;
-              // if (capture_keyboard_events) {
-              //   Module.sokol_capture_keyboard_events(false);
-              // }
+              flecs.captureKeyboardEvents = Module.sokol_capture_keyboard_events;
+              if (flecs.captureKeyboardEvents) {
+                Module.sokol_capture_keyboard_events(false);
+                flecs.has3DCanvas = true;
+              }
 
               conn_priv.FlecsHttpRequest = function() {
                 return {

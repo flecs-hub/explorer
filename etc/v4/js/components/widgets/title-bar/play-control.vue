@@ -26,7 +26,7 @@ const isPaused = computed(() => {
 });
 
 const playIcon = computed(() => {
-  if (isPaused.value) {
+  if (!isPaused.value) {
     return "debug-pause";
   } else {
     return "play";
@@ -44,5 +44,5 @@ function toggle() {
 </script>
 
 <style scoped>
-
 </style>
+

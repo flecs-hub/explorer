@@ -1,5 +1,8 @@
 <template>
   <div class="top-bar title-bar">
+    <connecting-indicator
+      :app_state="app_state">
+    </connecting-indicator>
     <div class="title-bar-logo">
       <a
         class="flecs-logo" 
@@ -11,7 +14,6 @@
       <play-control
         :conn="conn"
         :app_state="app_state">
-
       </play-control>
     </div>
     <url-bar

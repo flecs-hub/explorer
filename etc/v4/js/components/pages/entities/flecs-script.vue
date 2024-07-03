@@ -28,7 +28,7 @@ const code = ref("");
 function loadScript() {
   isLoading = true;
   editorObj.setValue("");
-  props.conn.get(props.script.path, "flecs.script.Script", (reply) => {
+  props.conn.get(props.script.path, {component: "flecs.script.Script"}, (reply) => {
     code.value = reply.code;
     editorObj.setValue(code.value);
     editorObj.clearSelection();

@@ -102,6 +102,7 @@ let components = [
   loadModule('js/components/widgets/title-bar/refresh-control.vue', options),
   loadModule('js/components/widgets/title-bar/play-control.vue', options),
   loadModule('js/components/widgets/title-bar/url-bar.vue', options),
+  loadModule('js/components/widgets/title-bar/connecting-indicator.vue', options),
   loadModule('js/components/widgets/info-bar/info-bar.vue', options),
   loadModule('js/components/widgets/info-bar/info-connected.vue', options),
   loadModule('js/components/widgets/info-bar/info-build-version.vue', options),
@@ -111,6 +112,8 @@ let components = [
   loadModule('js/components/widgets/stat-chart.vue', options),
   loadModule('js/components/widgets/dropdown.vue', options),
   loadModule('js/components/widgets/detail-toggle.vue', options),
+  loadModule('js/components/widgets/scene-canvas.vue', options),
+  loadModule('js/components/widgets/terminal-color-pre.vue', options),
   loadModule('js/components/icon.vue', options),
   loadModule('js/components/toggle.vue', options),
   loadModule('js/components/search-box.vue', options),
@@ -153,6 +156,7 @@ let components = [
   loadModule('js/components/widgets/inspector/entity-inspector-field.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-preview.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-add-component.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-script-ast.vue', options),
 
   // Table widget
   loadModule('js/components/widgets/table/entity-table.vue', options),
@@ -238,6 +242,7 @@ Promise.all(components).then((values) => {
           this.app_state.requests.sent = this.conn.requests.sent;
           this.app_state.requests.error = this.conn.requests.error;
           this.app_state.bytes.received = this.conn.bytes.received;
+          this.app_state.has3DCanvas = flecs.has3DCanvas;
 
           if (msg.components && msg.components.WorldSummary) {
             this.app_state.world_info = msg.components.WorldSummary;
@@ -347,14 +352,20 @@ Promise.all(components).then((values) => {
     watch: {
       app_params: {
         handler(value) {
+          let reload = false;
           if (!this.conn || value.host != this.conn.params.host) {
             this.conn.connect(value.host);
+            reload = true;
           }
           
           history.pushState({}, document.title,
               window.location.origin + 
               window.location.pathname +
               this.toUrlParams(this.app_params));
+
+          if (reload) {
+            location.reload();
+          }
         },
         deep: true
       }

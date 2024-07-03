@@ -38,7 +38,7 @@ ace.define("ace/mode/flecs-script-highlight_rules", ["require", "exports", "modu
                     },
                     {
                         token: "keyword",
-                        regex: "\\b(?:if|else|module|using|const|prop|with|template)\\b"
+                        regex: "\\b(?:if|else|module|using|const|prop|with|template|prefab|slot)\\b"
                     },
                     {
                         token: "keyword.operator",
