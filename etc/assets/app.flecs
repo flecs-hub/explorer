@@ -21,7 +21,7 @@ camera {
     fov: 20
     up: [0, 1, 0]
     near_: 0.2
-    far_: 100
+    far_: 300
   }
 }
 
@@ -36,7 +36,7 @@ canvas {
     ambient_light_ground: {0.8, 0.7, 0.2}
     directional_light: light
     camera: camera
-    fog_density: 2
+    fog_density: 3.0
     shadow_far: 20
   }
 }
