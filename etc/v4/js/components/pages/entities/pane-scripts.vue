@@ -132,6 +132,12 @@ function openScript(path) {
   activeScript.value = scriptLabels.value[index];
 }
 
+function closeScripts() {
+  activeScript.value = undefined;
+  activeScriptPath.value = undefined;
+  scripts.value.length = 0;
+}
+
 function paneScriptsCss() {
   let classes = ["pane-scripts"];
   if (!scriptLabels.value.length) {
@@ -140,7 +146,7 @@ function paneScriptsCss() {
   return classes;
 }
 
-defineExpose({openScript});
+defineExpose({openScript, closeScripts});
 
 </script>
 

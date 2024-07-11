@@ -33,7 +33,7 @@ const props = defineProps({
   conn: {type: Object, required: true},
 });
 
-const emit = defineEmits(["scriptOpen"]);
+const emit = defineEmits(["scriptOpen", "entityOpen"]);
 const appParams = defineModel("app_params");
 const nameFilter = ref();
 
@@ -76,6 +76,7 @@ function selectItem(item) {
     if (appParams.value.tree_mode === "Scripts") {
       emit("scriptOpen", path);
     } else {
+      emit("entityOpen", path);
       appParams.value.entity.path = path;
     }
   } else {

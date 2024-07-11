@@ -3,7 +3,8 @@
     <pane-tree 
       :conn="conn"
       v-model:app_params="appParams"
-      @scriptOpen="onScriptOpen">
+      @scriptOpen="onScriptOpen"
+      @entityOpen="onEntityOpen">
     </pane-tree>
     <div :class="canvasCss()">
       <scene-canvas></scene-canvas>
@@ -85,6 +86,12 @@ function onScriptOpen(path) {
     appParams.value.entity.path = undefined;
     appParams.value.scripts.length = 0;
     pane_scripts.value.openScript(path);
+  }
+}
+
+function onEntityOpen(path) {
+  if (props.app_state.has3DCanvas) {
+    pane_scripts.value.closeScripts();
   }
 }
 
