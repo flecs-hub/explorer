@@ -391,7 +391,6 @@ extern "C" {
 #define EcsIdHasOnAdd                  (1u << 16) /* Same values as table flags */
 #define EcsIdHasOnRemove               (1u << 17) 
 #define EcsIdHasOnSet                  (1u << 18)
-#define EcsIdHasUnSet                  (1u << 19)
 #define EcsIdHasOnTableFill            (1u << 20)
 #define EcsIdHasOnTableEmpty           (1u << 21)
 #define EcsIdHasOnTableCreate          (1u << 22)
@@ -399,7 +398,7 @@ extern "C" {
 #define EcsIdIsSparse                  (1u << 24)
 #define EcsIdIsUnion                   (1u << 25)
 #define EcsIdEventMask\
-    (EcsIdHasOnAdd|EcsIdHasOnRemove|EcsIdHasOnSet|EcsIdHasUnSet|\
+    (EcsIdHasOnAdd|EcsIdHasOnRemove|EcsIdHasOnSet|\
         EcsIdHasOnTableFill|EcsIdHasOnTableEmpty|EcsIdHasOnTableCreate|\
             EcsIdHasOnTableDelete|EcsIdIsSparse|EcsIdIsUnion)
 
@@ -451,7 +450,7 @@ extern "C" {
 ////////////////////////////////////////////////////////////////////////////////
 
 #define EcsEventTableOnly              (1u << 18u) /* Table event (no data, same as iter flags) */
-#define EcsEventNoOnSet                (1u << 16u) /* Don't emit OnSet/UnSet for inherited ids */
+#define EcsEventNoOnSet                (1u << 16u) /* Don't emit OnSet for inherited ids */
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -531,7 +530,6 @@ extern "C" {
 #define EcsTableHasOnAdd               (1u << 16u) /* Same values as id flags */
 #define EcsTableHasOnRemove            (1u << 17u)
 #define EcsTableHasOnSet               (1u << 18u)
-#define EcsTableHasUnSet               (1u << 19u)
 #define EcsTableHasOnTableFill         (1u << 20u)
 #define EcsTableHasOnTableEmpty        (1u << 21u)
 #define EcsTableHasOnTableCreate       (1u << 22u)
@@ -546,7 +544,7 @@ extern "C" {
 #define EcsTableHasLifecycle        (EcsTableHasCtors | EcsTableHasDtors)
 #define EcsTableIsComplex           (EcsTableHasLifecycle | EcsTableHasToggle | EcsTableHasSparse)
 #define EcsTableHasAddActions       (EcsTableHasIsA | EcsTableHasCtors | EcsTableHasOnAdd | EcsTableHasOnSet)
-#define EcsTableHasRemoveActions    (EcsTableHasIsA | EcsTableHasDtors | EcsTableHasOnRemove | EcsTableHasUnSet)
+#define EcsTableHasRemoveActions    (EcsTableHasIsA | EcsTableHasDtors | EcsTableHasOnRemove)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3227,7 +3225,7 @@ typedef void (*flecs_poly_dtor_t)(
 typedef enum ecs_inout_kind_t {
     EcsInOutDefault,  /**< InOut for regular terms, In for shared terms */
     EcsInOutNone,     /**< Term is neither read nor written */
-    EcsInOutFilter,   /**< Same as InOutNOne + prevents term from triggering observers */
+    EcsInOutFilter,   /**< Same as InOutNone + prevents term from triggering observers */
     EcsInOut,         /**< Term is both read and written */
     EcsIn,            /**< Term is only read */
     EcsOut,           /**< Term is only written */
@@ -3383,8 +3381,8 @@ struct ecs_query_t {
     void *binding_ctx;          /**< Context to be used for language bindings */
 
     ecs_entity_t entity;        /**< Entity associated with query (optional) */
-    ecs_world_t *world;         /**< World mixin */
-    ecs_stage_t *stage;         /**< Stage the query was created with */
+    ecs_world_t *real_world;    /**< Actual world. */
+    ecs_world_t *world;         /**< World or stage query was created with. */
 
     int32_t eval_count;         /**< Number of times query is evaluated */
 };
@@ -3405,8 +3403,8 @@ struct ecs_observer_t {
     ecs_run_action_t run;       /**< See ecs_observer_desc_t::run */
 
     void *ctx;                  /**< Observer context */
-    void *callback_ctx;         /**< Callback language binfding context */
-    void *run_ctx;              /**< Run language binfding context */
+    void *callback_ctx;         /**< Callback language binding context */
+    void *run_ctx;              /**< Run language binding context */
 
     ecs_ctx_free_t ctx_free;    /**< Callback to free ctx */
     ecs_ctx_free_t callback_ctx_free; /**< Callback to free callback_ctx */
@@ -3525,7 +3523,6 @@ struct ecs_observable_t {
     ecs_event_record_t on_add;
     ecs_event_record_t on_remove;
     ecs_event_record_t on_set;
-    ecs_event_record_t un_set;
     ecs_event_record_t on_wildcard;
     ecs_sparse_t events;  /* sparse<event, ecs_event_record_t> */
 };
@@ -4373,7 +4370,7 @@ typedef struct ecs_observer_desc_t {
     /** Query for observer */
     ecs_query_desc_t query;
 
-    /** Events to observe (OnAdd, OnRemove, OnSet, UnSet) */
+    /** Events to observe (OnAdd, OnRemove, OnSet) */
     ecs_entity_t events[FLECS_EVENT_DESC_MAX];
 
     /** When observer is created, generate events from existing data. For example,
@@ -4863,9 +4860,6 @@ FLECS_API extern const ecs_entity_t EcsOnRemove;
 
 /** Event that triggers when a component is set for an entity */
 FLECS_API extern const ecs_entity_t EcsOnSet;
-
-/** Event that triggers when a component is unset for an entity */
-FLECS_API extern const ecs_entity_t EcsUnSet;
 
 /** Event that triggers observer when an entity starts/stops matching a query */
 FLECS_API extern const ecs_entity_t EcsMonitor;
@@ -6598,7 +6592,7 @@ bool ecs_exists(
  * @param entity Entity for which to set the generation with the new generation.
  */
 FLECS_API
-void ecs_set_generation(
+void ecs_set_version(
     ecs_world_t *world,
     ecs_entity_t entity);
 
@@ -6660,7 +6654,7 @@ char* ecs_table_str(
 
 /** Convert entity to string.
  * Same as combining:
- * - ecs_get_fullpath(world, entity)
+ * - ecs_get_path(world, entity)
  * - ecs_type_str(world, ecs_get_type(world, entity))
  *
  * The result of this operation must be freed with ecs_os_free().
@@ -7199,7 +7193,7 @@ void ecs_set_hooks_id(
  */
 FLECS_API
 const ecs_type_hooks_t* ecs_get_hooks_id(
-    ecs_world_t *world,
+    const ecs_world_t *world,
     ecs_entity_t id);
 
 /** @} */
@@ -7252,7 +7246,7 @@ bool ecs_id_in_use(
  * EcsComponent value with size 0, the operation will return 0.
  *
  * For a pair id the operation will return the type associated with the pair, by
- * applying the following querys in order:
+ * applying the following queries in order:
  * - The first pair element is returned if it is a component
  * - 0 is returned if the relationship entity has the Tag property
  * - The second pair element is returned if it is a component
@@ -7330,7 +7324,7 @@ ecs_flags32_t ecs_id_get_flags(
     ecs_id_t id);
 
 /** Convert id flag to string.
- * This operation converts a id flag to a string.
+ * This operation converts an id flag to a string.
  *
  * @param id_flags The id flag.
  * @return The id flag string, or NULL if no valid id is provided.
@@ -7832,7 +7826,7 @@ const char* ecs_query_args_parse(
  * (EcsInOutNone) term has changed, when a term is not matched with the
  * current table (This subject) or for tag terms.
  *
- * The changed state of a table is reset after it is iterated. If a iterator was
+ * The changed state of a table is reset after it is iterated. If an iterator was
  * not iterated until completion, tables may still be marked as changed.
  *
  * If no iterator is provided the operation will return the changed state of the
@@ -8077,8 +8071,8 @@ int32_t ecs_iter_count(
 
 /** Test if iterator is true.
  * This operation will return true if the iterator returns at least one result.
- * This is especially useful in combination with fact-checking querys (see the
- * querys addon).
+ * This is especially useful in combination with fact-checking queries (see the
+ * queries addon).
  *
  * The operation requires a valid iterator. After the operation is invoked, the
  * application should no longer invoke next on the iterator and should treat it
@@ -9653,16 +9647,16 @@ int ecs_value_move_ctor(
  * @{
  */
 
-#define ecs_lookup_path(world, parent, path)\
+#define ecs_lookup_from(world, parent, path)\
     ecs_lookup_path_w_sep(world, parent, path, ".", NULL, true)
 
-#define ecs_get_path(world, parent, child)\
+#define ecs_get_path_from(world, parent, child)\
     ecs_get_path_w_sep(world, parent, child, ".", NULL)
 
-#define ecs_get_fullpath(world, child)\
+#define ecs_get_path(world, child)\
     ecs_get_path_w_sep(world, 0, child, ".", NULL)
 
-#define ecs_get_fullpath_buf(world, child, buf)\
+#define ecs_get_path_buf(world, child, buf)\
     ecs_get_path_w_sep_buf(world, 0, child, ".", NULL, buf)
 
 #define ecs_new_from_path(world, parent, path)\
@@ -11088,7 +11082,7 @@ const char* ecs_http_get_param(
  * A small REST API that uses the HTTP server and JSON serializer to provide
  * access to application data for remote applications.
  *
- * A description of the API can be found in docs/RestApi.md
+ * A description of the API can be found in docs/FlecsRemoteApi.md
  */
 
 #ifdef FLECS_REST
@@ -13011,7 +13005,7 @@ void FlecsAlertsImport(
  * Parse expression strings into component values. Entity identifiers,
  * enumerations and bitmasks are encoded as strings.
  *
- * See docs/JsonFormat.md for a description of the JSON format.
+ * See docs/FlecsRemoteApi.md for a description of the JSON format.
  */
 
 #ifdef FLECS_JSON
@@ -14128,7 +14122,7 @@ ecs_script_var_t* ecs_script_vars_define_id(
  * 
  * @param vars The variable scope.
  * @param name The variable name.
- * @return The variable, or NULL if a one with the provided name does not exist.
+ * @return The variable, or NULL if one with the provided name does not exist.
  */
 FLECS_API
 ecs_script_var_t* ecs_script_vars_lookup(
@@ -16412,7 +16406,6 @@ static const flecs::entity_t Phase = EcsPhase;
 static const flecs::entity_t OnAdd = EcsOnAdd;
 static const flecs::entity_t OnRemove = EcsOnRemove;
 static const flecs::entity_t OnSet = EcsOnSet;
-static const flecs::entity_t UnSet = EcsUnSet;
 static const flecs::entity_t OnTableCreate = EcsOnTableCreate;
 static const flecs::entity_t OnTableDelete = EcsOnTableDelete;
 
@@ -17873,6 +17866,13 @@ struct event_builder_base {
      */
     Base& id(entity_t first, entity_t second) {
         return id(ecs_pair(first, second));
+    }
+
+    template <typename Enum, if_t<is_enum<Enum>::value> = 0>
+    Base& id(Enum value) {
+        const auto& et = enum_type<Enum>(this->world_);
+        flecs::entity_t target = et.entity(value);
+        return id(et.entity(), target);
     }
 
     /** Add (component) id to emit for */
@@ -20657,7 +20657,7 @@ struct world {
      *
      * @param enabled True if range check should be enabled, false if not.
      */
-    void enable_range_check(bool enabled) const {
+    void enable_range_check(bool enabled = true) const {
         ecs_enable_range_check(world_, enabled);
     }
 
@@ -22056,7 +22056,9 @@ protected:
     bool is_shared_;
 };
 
-}
+} // namespace flecs
+
+/** @} */
 
 /**
  * @file addons/cpp/iter.hpp
@@ -25483,7 +25485,7 @@ private:
         ecs_assert(iter->count > 0, ECS_INVALID_OPERATION,
             "no entities returned, use each() without flecs::entity argument");
 
-        return func(flecs::entity(iter->world, iter->entities[i]),
+        func(flecs::entity(iter->world, iter->entities[i]),
             (ColumnType< remove_reference_t<Components> >(comps, i)
                 .get_row())...);
     }
@@ -25829,16 +25831,22 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
     }
 
     static 
-    bool get_ptrs(world_t *world, const ecs_record_t *r, ecs_table_t *table,
+    bool get_ptrs(world_t *world, flecs::entity_t e, const ecs_record_t *r, ecs_table_t *table,
         ArrayType& ptrs) 
     {
         ecs_assert(table != NULL, ECS_INTERNAL_ERROR, NULL);
-        if (!ecs_table_column_count(table)) {
+        if (!ecs_table_column_count(table) && 
+            !ecs_table_has_flags(table, EcsTableHasSparse)) 
+        {
             return false;
         }
 
         /* table_index_of needs real world */
         const flecs::world_t *real_world = ecs_get_world(world);
+
+        IdArray ids ({
+            _::type<Args>().id(world)...
+        });
 
         /* Get column indices for components */
         ColumnArray columns ({
@@ -25850,7 +25858,14 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
         size_t i = 0;
         for (int32_t column : columns) {
             if (column == -1) {
-                return false;
+                /* Component could be sparse */
+                void *ptr = ecs_get_mut_id(world, e, ids[i]);
+                if (!ptr) {
+                    return false;
+                }
+
+                ptrs[i ++] = ptr;
+                continue;
             }
 
             ptrs[i ++] = ecs_record_get_by_column(r, column, 0);
@@ -25883,7 +25898,7 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
         }
 
         ArrayType ptrs;
-        bool has_components = get_ptrs(world, r, table, ptrs);
+        bool has_components = get_ptrs(world, e, r, table, ptrs);
         if (has_components) {
             invoke_callback(func, 0, ptrs);
         }
@@ -25906,7 +25921,7 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
         }
 
         ArrayType ptrs;
-        bool has_components = get_ptrs(world, r, table, ptrs);
+        bool has_components = get_ptrs(world, e, r, table, ptrs);
         if (has_components) {
             invoke_callback(func, 0, ptrs);
         }
@@ -25983,7 +25998,7 @@ struct entity_with_delegate_impl<arg_list<Args ...>> {
                 table = next;
             }
 
-            if (!get_ptrs(w, r, table, ptrs)) {
+            if (!get_ptrs(w, id, r, table, ptrs)) {
                 ecs_abort(ECS_INTERNAL_ERROR, NULL);
             }
 
@@ -28131,7 +28146,7 @@ namespace _ {
                         ecs_assert(
                             !ti->size || !ecs_has_id(world_, id, flecs::Union),
                             ECS_INVALID_PARAMETER,
-                            "use withs() method to add union relationship");
+                            "use with() method to add union relationship");
                     }
                 }
 
@@ -28219,7 +28234,7 @@ protected:
 
     void assert_term_ref() {
         ecs_assert(term_ref_ != NULL, ECS_INVALID_PARAMETER, 
-            "no active term (call .term() first)");
+            "no active term (call .with() first)");
     }
 
 private:
@@ -28567,7 +28582,7 @@ protected:
 private:
     void assert_term() {
         ecs_assert(term_ != NULL, ECS_INVALID_PARAMETER, 
-            "no active term (call .term() first)");
+            "no active term (call .with() first)");
     }
 
     operator Base&() {
@@ -31187,7 +31202,7 @@ inline units::units(flecs::world& world) {
 #endif
 #ifdef FLECS_STATS
 /**
- * @file addons/cpp/mixins/monitor/impl.hpp
+ * @file addons/cpp/mixins/stats/impl.hpp
  * @brief Monitor module implementation.
  */
 

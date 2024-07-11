@@ -19,17 +19,49 @@
         "${os linux}": {
             "lib": [
                 "rt",
-                "pthread"
+                "pthread",
+                "m",
+                "GL",
+                "X11",
+                "Xi",
+                "Xcursor",
+                "dl"
             ]
         },
         "${os windows}": {
             "lib": [
                 "ws2_32"
+            ],
+            "defines": [
+                "_WINDOWS",
+                "_USRDLL",
+                "CGLM_EXPORTS",
+                "CGLM_DLL"
             ]
         },
         "${cfg sanitize}": {
             "defines": [
                 "FLECS_SANITIZE"
+            ]
+        },
+        "${os darwin}": {
+            "ldflags": [
+                "-framework Cocoa",
+                "-framework QuartzCore",
+                "-framework OpenGL"
+            ]
+        },
+        "${target em}": {
+            "ldflags": [
+                "-s USE_WEBGL2=1"
+            ],
+            "${cfg debug}": {
+                "ldflags": [
+                    "-s GL_DEBUG=1"
+                ]
+            },
+            "embed": [
+                "etc\/sokol\/shaders"
             ]
         }
     }

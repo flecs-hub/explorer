@@ -1,0 +1,48 @@
+using flecs.components.*
+using flecs.game
+
+light {
+  Sun
+  Rotation3:{y: 0.1}
+}
+
+$ { 
+  TimeOfDay: {
+    t: 0.3
+    speed: 0.0
+  }
+}
+
+camera {
+  CameraController
+  Position3: {-2.68, 2.63, -10.9}
+  Rotation3: {0.0, 0.2, 0}
+  Camera: {
+    fov: 20
+    up: [0, 1, 0]
+    near_: 0.2
+    far_: 100
+  }
+}
+
+canvas {
+  Atmosphere
+  Canvas: {
+    title: "Flecs City"
+    width: 1200
+    height: 900
+    background_color: {0.3, 0.6, 0.9}
+    ambient_light: {0.03, 0.06, 0.09}
+    ambient_light_ground: {0.8, 0.7, 0.2}
+    directional_light: light
+    camera: camera
+    fog_density: 2
+    shadow_far: 20
+  }
+}
+
+ground_plane {
+  Position3: {0, -0.5, 0}
+  Box: {5000, 1.0, 5000}
+  Rgb: {0.11, 0.15, 0.1}
+}

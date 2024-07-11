@@ -1,0 +1,190 @@
+// A flecs script example that creates a template for a house and 
+// populates a small town with it.
+//
+// For C/C++ examples, go to:
+//  https://github.com/SanderMertens/flecs
+
+using flecs.components.*
+const PI = 3.1415926
+
+// Materials used in the scene
+materials {
+  prefab Stone {
+    Rgb: {0.4, 0.4, 0.4}
+  }
+
+  prefab DarkStone {
+    Rgb: {0.1, 0.1, 0.1}
+  }
+
+  prefab Wood {
+    Rgb: {0.15, 0.1, 0.05}
+  }
+
+  prefab Metal {
+    Rgb: {0.02, 0.02, 0.02}
+    Specular: {0.01, 5.0}
+  }
+
+  prefab Light {
+    Rgb: {0.8, 0.7, 0.2}
+    Emissive: {2.5}
+    PointLight: {
+      color: [0.8, 0.7, 0.2]
+      distance: 0.5
+      intensity: 0.4
+    }
+  }
+
+  prefab Smoke {
+    Rgb: {0.3, 0.3, 0.3}
+    auto_override | Box: {0.15, 0.15, 0.15}
+    Velocity3: {0.1, 0.5, 0}
+    Emissive: {0.7}
+  }
+}
+
+// Lantern template
+template Lantern {
+  Mount : materials.Wood {
+    Position3: {0, 0, 0}
+    Box: {0.2, 0.2, 0.2}
+  }
+
+  Hanger : materials.Wood {
+    Position3: {0, 0, -0.25}
+    Box: {0.1, 0.1, 0.5}
+  }
+
+  LanternLight : materials.Light {
+    Position3: {0, -0.1, -0.4}
+    Box: {0.2, 0.2, 0.2}
+  }
+}
+
+// House template
+template House {
+  prop width = f32: 3
+  prop height = f32: 3
+  
+  Walls : materials.Stone {
+    Position3: {0, $height / 2, 0}
+    Box: {$width, $height, $width}
+  }
+
+  Floor : materials.DarkStone {
+    Position3: {0, 0, 0}
+    Box: {$width + 0.3, 0.2, $width + 0.3}
+  }
+
+  Attic : materials.Wood {
+    const w_half_pow = 0.5 * ($width * $width)
+    const attic_height = $w_half_pow.sqrt()
+    Position3: {0, $height, 0}
+    Rotation3: {0, 0, $PI / 4}
+    Box: {$attic_height, $attic_height, $width * 0.9}
+  }
+
+  Roof {
+    const overshoot = 0.5
+    const w_roof_half = ($overshoot + $width) / 2
+    const w_quart = ($overshoot + $width) / 4
+    const w_roof_sqr = $w_roof_half * $w_roof_half + $w_roof_half * $w_roof_half
+    const roof_length = $w_roof_sqr.sqrt()
+
+    Left : materials.Wood {
+      Position3: {-$w_quart, $w_quart + $height - 0.5 * $overshoot, 0}
+      Rotation3: {0, 0, $PI / 4}
+      Box: {$roof_length, 0.25, $width + $overshoot}
+    }
+
+    Right : materials.Wood {
+      Position3: {$w_quart, $w_quart + $height - 0.5 * $overshoot, 0}
+      Rotation3: {0, 0, -$PI / 4}
+      Box: {$roof_length, 0.25, $width + $overshoot}
+    }
+  }
+
+  // Vertical bars at the corner of the house
+  with (IsA, materials.Wood) {
+    with Box(0.3, $height, 0.3) {
+      Position3 (-$width / 2, $height / 2, -$width / 2)
+      Position3 ($width / 2, $height / 2, -$width / 2)
+      Position3 ($width / 2, $height / 2, $width / 2)
+      Position3 (-$width / 2, $height / 2, $width / 2)
+    }
+
+    // Horizontal bars at the top
+    with Box(0.2, $width, 0.2) {
+      with Rotation3(0, 0, $PI / 2) {
+        Position3 (0, $height, -$width / 2)
+        Position3 (0, $height, $width / 2)
+
+        // If it's a tall house, add more horizontal bars
+        if $height > 3.5 {
+          Position3 (0, 3.0, -$width / 2)
+          Position3 (0, 3.0, $width / 2)
+        }
+      }
+    }
+  }
+
+  // Chimney with a smoke particle emitter
+  Chimney : materials.DarkStone {
+    const chimney_height = $height + 1.5
+    Position3: {1.0, $chimney_height / 2, 0}
+    Box: {0.4, $chimney_height, 0.4}
+
+    smoke {
+      // Location of emitter
+      Position3: {0.0, $chimney_height / 2, 0}
+      // Box volume from which particles will be emitted
+      Box: {0.2, 0.2, 0.2}
+      // Emitter properties
+      ParticleEmitter: {
+        particle: materials.Smoke
+        spawn_interval: 0.05
+        size_decay: 0.5
+      }
+    }
+  }
+
+  // Door and lantern
+  Door : materials.Wood {
+    const door_width = 0.75
+    const door_height = 1.5
+    Position3: {0, $door_height / 2, -$width / 2}
+    Box: {$door_width, $door_height, 0.2}
+
+    with Box(0.5, 0.1, 0.3) {
+      Hinge1 : materials.Metal {
+        Position3: {-$door_width / 2 + 0.2, $door_height / 2 - 0.3, 0}
+      }
+      Hinge3 : materials.Metal {
+        Position3: {-$door_width / 2 + 0.2, -$door_height / 2 + 0.3, 0}
+      }
+    }
+  }
+
+  Lantern() { Position3: {0.75, 1.5, -$width / 2} }
+}
+
+// Populate the scene with houses
+town {
+  House(height: 2.5)
+  House(height: 3.0) { Position3: {-5.0, 0, -2.0};  Rotation3: {y: -0.7} }
+  House(height: 2.0) { Position3: { 5.0, 0, -2.5};  Rotation3: {y: 1.0} }
+
+  House(height: 3.5) { Position3: {-10.0, 0, 5.0};  Rotation3: {y: -0.1} }
+  House(height: 4.0) { Position3: {-5.0,  0, 5.0};  Rotation3: {y: -0.7} }
+  House(height: 5.0) { Position3: { 0.0,  0, 7.0};  Rotation3: {y: 0.9} }
+  House(height: 3.5) { Position3: { 5.0,  0, 5.0};  Rotation3: {y: -0.4} }
+  House(height: 3.0) { Position3: { 10.0, 0, 2.0};  Rotation3: {y: 2.2} }
+
+  House(height: 6.0) { Position3: {-10.0, 0, 13.0}; Rotation3: {y: -0.7} }
+  House(height: 6.5) { Position3: {-5.0,  0, 12.0}; Rotation3: {y: 0.8} }
+  House(height: 8.0) { Position3: { 0.0,  0, 13.0}; Rotation3: {y: 1.0} }
+  House(height: 7.0) { Position3: { 5.0,  0, 11.0}; Rotation3: {y: -0.3} }
+  House(height: 6.5) { Position3: { 11.0, 0, 11.0}; Rotation3: {y: 0.7} }
+  House(height: 5.5) { Position3: { 15.0, 0, 7.0};  Rotation3: {y: 0.5} }
+}

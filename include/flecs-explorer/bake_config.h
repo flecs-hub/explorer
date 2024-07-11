@@ -19,6 +19,15 @@
 
 /* Headers of public dependencies */
 #include "../../deps/flecs.h"
+#include "../../deps/flecs_components_transform.h"
+#include "../../deps/flecs_components_graphics.h"
+#include "../../deps/flecs_components_geometry.h"
+#include "../../deps/flecs_components_physics.h"
+#include "../../deps/flecs_components_gui.h"
+#include "../../deps/flecs_systems_physics.h"
+#include "../../deps/flecs_systems_transform.h"
+#include "../../deps/flecs_systems_sokol.h"
+#include "../../deps/flecs_game.h"
 
 #endif
 
