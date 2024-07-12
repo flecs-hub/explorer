@@ -73,7 +73,7 @@ function onChange() {
   -moz-appearance: none;
   outline: none;
   position: relative;
-  grid-column: 3;
+  grid-column: 4;
   border-style: solid;
   border-width: 1px;
   border-radius: var(--border-radius-large);

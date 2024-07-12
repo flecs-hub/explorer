@@ -290,7 +290,6 @@ const flecs = {
           path = this._.escapePath(path);
           return this._.request(this, "PUT", "toggle/" + path, {
             enable: true, component: component
-
           });
         },
 
@@ -302,10 +301,21 @@ const flecs = {
           });
         },
 
+        // Create entity
+        create: function(path) {
+          path = this._.escapePath(path);
+          return this._.request(this, "PUT", "entity/" + path, {});
+        },
+
         // Delete entity
         delete: function(path) {
           path = this._.escapePath(path);
           return this._.request(this, "DELETE", "entity/" + path, {});
+        },
+
+        // Get all entities in world
+        world: function(reply, err) {
+          return this._.request(this, "GET", "world", {}, reply, err);
         },
 
         // Update script code

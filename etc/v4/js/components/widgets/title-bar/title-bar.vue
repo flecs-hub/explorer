@@ -10,6 +10,11 @@
         target="_blank">
       </a>
     </div>
+    <div class="title-bar-v3">
+      <a href="v3">
+        <button>v3 explorer</button>
+      </a>
+    </div>
     <div class="title-bar-controls">
       <play-control
         :conn="conn"
@@ -54,7 +59,7 @@ const app_params = defineModel("app_params");
 
 div.title-bar {
   display: grid;
-  grid-template-columns: 2.5rem 1fr 30rem 1fr auto auto 0.0rem;
+  grid-template-columns: 2.5rem auto 1fr 30rem 1fr auto auto 0.0rem;
   gap: var(--gap);
   font-size: 0.9rem;
 }
@@ -63,16 +68,26 @@ div.title-bar-logo a {
   grid-column: 1;
 }
 
-div.title-bar-controls {
+div.title-bar-v3 {
   grid-column: 2;
+}
+
+div.title-bar-v3 button {
+  background-color: var(--orange);
+  color: black;
+  font-weight: bold;
+}
+
+div.title-bar-controls {
+  grid-column: 3;
   text-align: center;
   padding: 4px;
 }
 
 div.title-bar-logo {
+  grid-column: 1;
   display: grid;
   grid-template-columns: 1fr;
-  grid-column: 1;
   padding: 2px;
 }
 
@@ -82,17 +97,11 @@ div.title-info {
 }
 
 div.title-info-right-1 {
-  grid-column: 5;
-  /* position: absolute; */
-  /* right: calc(var(--gap) + 1.0rem); */
-  /* height: var(--header-height); */
+  grid-column: 6;
 }
 
 div.title-info-right-2 {
-  grid-column: 6;
-  /* position: absolute; */
-  /* right: var(--gap); */
-  /* height: var(--header-height); */
+  grid-column: 7;
 }
 
 @media screen and (max-width: 800px) {
