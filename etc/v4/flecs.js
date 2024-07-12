@@ -343,7 +343,6 @@ const flecs = {
   
         // Private methods
         _: {
-          foobar: "Hello",
           FlecsHttpRequest: undefined,
           requests: [],
 

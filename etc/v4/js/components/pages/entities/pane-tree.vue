@@ -38,7 +38,7 @@ const appParams = defineModel("app_params");
 const nameFilter = ref();
 
 const treeModeItems = computed(() => {
-  if (appParams.value.active_script) {
+  if (appParams.value.script) {
     return ['Entities', 'Scripts', 'Outline'];
   } else {
     return ['Entities', 'Scripts'];
@@ -49,7 +49,7 @@ const queryFilter = computed(() => {
   let result = "";
 
   if (appParams.value.tree_mode === "Outline") {
-    let activeScript = appParams.value.active_script;
+    let activeScript = appParams.value.script;
     if (activeScript) {
       result = `[none] (flecs.script.Script, ${activeScript})`;
       if (!nameFilter.value) {
@@ -59,7 +59,7 @@ const queryFilter = computed(() => {
       result = `!_`; // match nothing
     }
   } else if (appParams.value.tree_mode === "Scripts") {
-    result = `[none] flecs.script.Script`;
+    result = `[none] flecs.script.Script, !flecs.core.Component`;
   }
 
   return result;
@@ -81,7 +81,7 @@ function selectItem(item) {
     }
   } else {
     if (appParams.value.tree_mode === "Scripts") {
-      appParams.value.active_script = undefined;
+      appParams.value.script = undefined;
     } else {
       appParams.value.entity.path = undefined;
     }

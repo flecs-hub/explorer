@@ -100,6 +100,7 @@ let components = [
   // Common components
   loadModule('js/components/widgets/title-bar/title-bar.vue', options),
   loadModule('js/components/widgets/title-bar/refresh-control.vue', options),
+  loadModule('js/components/widgets/title-bar/layout-control.vue', options),
   loadModule('js/components/widgets/title-bar/play-control.vue', options),
   loadModule('js/components/widgets/title-bar/url-bar.vue', options),
   loadModule('js/components/widgets/title-bar/connecting-indicator.vue', options),
@@ -403,11 +404,12 @@ Promise.all(components).then((values) => {
           entity: {
             path: undefined
           },
+          sidebar: true,
           inspector_mode: undefined,
           tree_mode: undefined,
           pipeline: "All systems",
           scripts: [],
-          active_script: undefined,
+          script: undefined,
           refresh: "auto"
         },
         conn: undefined,

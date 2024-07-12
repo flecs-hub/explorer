@@ -52,9 +52,9 @@ const props = defineProps({
   conn: {type: Object, required: true}
 });
 
-const activeScriptPath = defineModel("active_script");
-const activeScript = ref();
+const activeScriptPath = defineModel("script");
 const scripts = defineModel("scripts");
+const activeScript = ref();
 const scriptError = ref();
 
 watch(() => [activeScript.value], () => {

@@ -20,11 +20,16 @@
       :app_state="app_state"
       v-model:app_params="app_params">
     </url-bar>
-    <div class="title-info-right">
+    <div class="title-info-right-1">
       <refresh-control 
         :conn="conn" 
         v-model:app_params="app_params">
       </refresh-control>
+    </div>
+    <div class="title-info-right-2">
+      <layout-control 
+        v-model:app_params="app_params">
+      </layout-control>
     </div>
   </div>
 </template>
@@ -49,7 +54,7 @@ const app_params = defineModel("app_params");
 
 div.title-bar {
   display: grid;
-  grid-template-columns: 2.5rem 1fr 30rem 1fr 2.5rem;
+  grid-template-columns: 2.5rem 1fr 30rem 1fr auto auto 0.0rem;
   gap: var(--gap);
   font-size: 0.9rem;
 }
@@ -76,11 +81,18 @@ div.title-info {
   align-items: center;
 }
 
-div.title-info-right {
-  grid-column: 4;
-  position: absolute;
-  right: var(--gap);
-  height: var(--header-height);
+div.title-info-right-1 {
+  grid-column: 5;
+  /* position: absolute; */
+  /* right: calc(var(--gap) + 1.0rem); */
+  /* height: var(--header-height); */
+}
+
+div.title-info-right-2 {
+  grid-column: 6;
+  /* position: absolute; */
+  /* right: var(--gap); */
+  /* height: var(--header-height); */
 }
 
 @media screen and (max-width: 800px) {

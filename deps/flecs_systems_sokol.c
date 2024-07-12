@@ -32578,7 +32578,6 @@ void SokolPopulateGeometry(
 static
 void CreateGeometryQueries(ecs_iter_t *it) {
     ecs_world_t *world = it->world;
-    // SokolGeometry *g = ecs_field(it, SokolGeometry, 0);
     SokolGeometryQuery *gq = ecs_field(it, SokolGeometryQuery, 1);
 
     int i;
@@ -32616,6 +32615,13 @@ void CreateGeometryQueries(ecs_iter_t *it) {
         };
 
         /* Query for solid, non-emissive objects */
+        desc.entity = ecs_entity(world, {
+            .name = ecs_get_name(world, gq[i].component),
+            .parent = ecs_entity(world, {
+                .name = "#0.flecs.systems.sokol.geometry_queries.solid"
+            })
+        });
+
         gq[i].solid = ecs_query_init(world, &desc);
         if (!gq[i].solid) {
             char *component_str = ecs_id_str(world, gq[i].component);
@@ -32625,6 +32631,13 @@ void CreateGeometryQueries(ecs_iter_t *it) {
         }
 
         /* Query for solid, emissive objects */
+        desc.entity = ecs_entity(world, {
+            .name = ecs_get_name(world, gq[i].component),
+            .parent = ecs_entity(world, {
+                .name = "#0.flecs.systems.sokol.geometry_queries.emissive"
+            })
+        });
+
         desc.terms[4].oper = 0; /* Remove Not operator */
         gq[i].emissive = ecs_query_init(world, &desc);
         if (!gq[i].emissive) {
@@ -32783,6 +32796,9 @@ void FlecsSystemsSokolMaterialsImport(
     /* Set material query for InitMaterials system */
     ecs_set_pair(world, SokolInitMaterials, SokolQuery, ecs_id(SokolMaterials),{
         ecs_query(world, { 
+            .entity = ecs_entity(world, {
+                .name = "#0.flecs.systems.sokol.materials.query"
+            }),
             .expr = material_query,
             .cache_kind = EcsQueryCacheAuto
         })

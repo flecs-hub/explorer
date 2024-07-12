@@ -1,23 +1,25 @@
 <template>
-  <div id="page-entities" :class="pageCss()">
+  <div id="page-entities" :class="pageCss">
     <pane-tree 
       :conn="conn"
       v-model:app_params="appParams"
       @scriptOpen="onScriptOpen"
-      @entityOpen="onEntityOpen">
+      @entityOpen="onEntityOpen"
+      v-if="app_params.sidebar">
     </pane-tree>
-    <div :class="canvasCss()">
+    <div :class="canvasCss" :style="`grid-column: ${canvasColumn}`">
       <scene-canvas></scene-canvas>
     </div>
-    <div :class="scriptCss()">
+    <div :class="scriptCss" :style="`grid-column: ${scriptColumn}`">
       <pane-scripts
         :conn="conn"
-        v-model:active_script="appParams.active_script"
+        v-model:script="appParams.script"
         v-model:scripts="appParams.scripts"
         ref="pane_scripts">
       </pane-scripts>
     </div>
-    <div class="page-entities-inspector" v-if="showInspector">
+    <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`"
+      v-if="showInspector">
       <pane-inspector
         :conn="conn"
         :app_params="appParams"
@@ -47,7 +49,7 @@ const appParams = defineModel("app_params");
 const showScript = computed(() => {
   if (!props.app_state.has3DCanvas) {
     return false;
-  } else if (!appParams.value.active_script) {
+  } else if (!appParams.value.script) {
     return false;
   } else if (appParams.value.entity.path) {
     return false;
@@ -67,7 +69,7 @@ const showInspector = computed(() => {
   return true;
 });
 
-watch(() => [showCanvas.value, showInspector.value, showScript.value], () => {
+watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.value.sidebar], () => {
   nextTick(() => {
     var resizeEvent = new Event('resize');
     window.dispatchEvent(resizeEvent);
@@ -95,29 +97,56 @@ function onEntityOpen(path) {
   }
 }
 
-function pageCss() {
+const pageCss = computed(() => {
   let classes = ["page-content"];
   if (appParams.value.entity.path || showScript.value) {
     classes.push("page-entities-show-inspector");
   }
-  return classes;
-}
-
-function scriptCss() {
-  let classes = ["page-entities-script"];
-  if (showCanvas.value) {
-    classes.push("page-entities-script-side");
+  if (appParams.value.sidebar == true) {
+    classes.push("page-entities-show-sidebar");
   }
   return classes;
-}
+});
 
-function canvasCss() {
+const scriptCss = computed(() => {
+  let classes = ["page-entities-script"];
+  return classes;
+})
+
+const canvasCss = computed(() => {
   let classes = ["page-entities-canvas"];
   if (!showCanvas.value) {
     classes.push("page-entities-canvas-hide")
   }
   return classes;
-}
+});
+
+const canvasColumn = computed(() => {
+  let result = 2;
+  if (!appParams.value.sidebar) {
+    result --;
+  }
+  return result;
+});
+
+const scriptColumn = computed(() => {
+  let result = 2;
+  if (showCanvas.value) {
+    result = 3;
+  }
+  if (!appParams.value.sidebar) {
+    result --;
+  }
+  return result;
+});
+
+const inspectorColumn = computed(() => {
+  let result = 3;
+  if (!appParams.value.sidebar) {
+    result --;
+  }
+  return result;
+});
 
 </script>
 
@@ -130,12 +159,19 @@ function canvasCss() {
   height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
 }
 
-div.page-entities-show-inspector {
+#page-entities:not(.page-entities-show-inspector):not(.page-entities-show-sidebar) {
+  grid-template-columns: calc(100%);
+}
+
+#page-entities.page-entities-show-sidebar.page-entities-show-inspector {
   grid-template-columns: 300px calc(100% - 300px - 450px - 2 * var(--gap)) 450px !important;
 }
 
+#page-entities:not(.page-entities-show-sidebar).page-entities-show-inspector {
+  grid-template-columns: calc(100% - 760px - 1 * var(--gap)) 760px !important;
+}
+
 div.page-entities-canvas {
-  grid-column: 2;
   grid-row: 1;
   border-radius: var(--border-radius-medium);
   overflow: hidden;
@@ -146,17 +182,11 @@ div.page-entities-canvas-hide {
 }
 
 div.page-entities-script {
-  grid-column: 2;
   grid-row: 1;
   height: 100%;
 }
 
-div.page-entities-script-side {
-  grid-column: 3;
-}
-
 div.page-entities-inspector {
-  grid-column: 3;
   grid-row: 1;
   overflow-x: auto;
 }

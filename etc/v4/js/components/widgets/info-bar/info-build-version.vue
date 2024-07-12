@@ -16,7 +16,7 @@ const props = defineProps({
 const version = computed(() => {
   const wi = props.app_state.world_info;
   if (!wi) {
-    return {};
+    return "?.?.?";
   }
 
   const bi = wi.build_info;

@@ -8,14 +8,16 @@ export default { name: "scene-canvas" };
 </script>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 const focus = ref(false);
 
 function onFocus() {
   focus.value = !focus.value;
   flecs.captureKeyboardEvents(focus.value);
-  document.activeElement.blur();
+  if (focus.value) {
+    document.activeElement.blur();
+  }
 }
 
 function css() {
@@ -24,6 +26,21 @@ function css() {
   }
   return "";
 }
+
+function onOtherFocus() {
+  if (focus.value) {
+    onFocus();
+  }
+}
+
+onMounted(() => {
+  document.addEventListener("focus", onOtherFocus, true);
+});
+
+onUnmounted(() => {
+  document.removeEventListener("focus", onOtherFocus, true);
+});
+
 </script>
 
 <style scoped>
@@ -33,12 +50,12 @@ function css() {
   border-style: solid;
   border-radius: var(--border-radius-medium);
   border-width: 2px;
-  border-color: rgba(0,0,0,0);
+  border-color: var(--bg-pane);
   cursor: pointer;
 }
 
 canvas.canvas-focus {
-  border-color: var(--green) !important;
+  border-color: var(--less-dark-blue) !important;
 }
 
 </style>
