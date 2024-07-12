@@ -128,6 +128,8 @@ int main(void) {
     ECS_IMPORT(world, FlecsSystemsTransform);
     ECS_IMPORT(world, FlecsSystemsSokol);
     ECS_IMPORT(world, FlecsGame);
+
+    ecs_doc_set_name(world, EcsWorld, "Playground");
     
     ECS_COMPONENT_DEFINE(world, ParticleEmitter);
     ECS_COMPONENT_DEFINE(world, Particle);
@@ -162,10 +164,12 @@ int main(void) {
         ?flecs.components.physics.Velocity3(self));
 
     // Load scripts
-    ecs_script(world, {
-        .filename = "etc/assets/app.flecs"
-    });
 
+    // Don't load as managed script, as we don't want people to modify the 
+    // contents of this file in the explorer.
+    ecs_script_run_file(world, "etc/assets/app.flecs");
+
+    // Load as managed script, so it can be modified at runtime.
     ecs_script(world, {
         .filename = "etc/assets/scene.flecs"
     });

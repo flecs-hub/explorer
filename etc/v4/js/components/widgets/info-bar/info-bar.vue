@@ -39,7 +39,7 @@ div.build-connected {
   position: absolute;
   top: 0px;
   left: 0px;
-  width: 40px;
+  width: 100px;
 }
 
 div.build-config {

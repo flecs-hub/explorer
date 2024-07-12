@@ -15,7 +15,7 @@ $ {
 
 camera {
   CameraController
-  Position3: {-2.68, 2.63, -10.9}
+  Position3: {-2.68, 2.63, -15.37}
   Rotation3: {0.0, 0.2, 0}
   Camera: {
     fov: 20

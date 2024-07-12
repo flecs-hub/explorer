@@ -99,6 +99,8 @@ const flecs = {
         if (params.poll_interval_ms !== undefined) connParams.poll_interval_ms = params.poll_interval_ms;
         if (params.retry_interval_ms) connParams.retry_interval_ms = params.retry_interval_ms;
         if (params.max_retry_count) connParams.max_retry_count = params.max_retry_count;
+        if (params.fallback_host) connParams.fallback_host = params.fallback_host;
+        if (params.on_fallback) connParams.on_fallback = params.on_fallback;
         connParams.on_status = params.on_status;
         connParams.on_host = params.on_host;
         connParams.on_heartbeat = params.on_heartbeat;
@@ -670,6 +672,15 @@ const flecs = {
                   pub.params.on_heartbeat(msg);
                 }
               }, (err) => {
+                if (pub.status == flecs.ConnectionStatus.Initializing) {
+                  if (pub.params.on_fallback) {
+                    pub.disconnect();
+                    if (pub.params.on_fallback) {
+                      pub.params.on_fallback();
+                    }
+                  }
+                }
+
                 if (pub.status == flecs.ConnectionStatus.Connected) {
                   this.setStatus(pub, flecs.ConnectionStatus.RetryConnecting);
                 }

@@ -214,18 +214,24 @@ Promise.all(components).then((values) => {
       // Load URL parameters
       this.fromUrlParams();
 
+      let explicitHost = true;
       if (!this.app_params.host) {
         this.app_params.host = "localhost";
+        explicitHost = false;
       }
 
       this.conn = flecs.connect({
         host: this.app_params.host,
-
         poll_interval_ms: this.app_params.refresh === "auto" ? 1000 : 0,
 
         // Copy host to reactive property
         on_host: function(host) {
           this.app_params.host = host;
+        }.bind(this),
+
+        // If connection fails, fallback to playground
+        on_fallback: explicitHost ? undefined : function() {
+          this.app_params.runPlayground();
         }.bind(this),
         
         // Copy connection status to reactive property
@@ -236,9 +242,15 @@ Promise.all(components).then((values) => {
 
         // Copy heartbeat to reactive properties
         on_heartbeat: function(msg) {
+          if (msg.components) {
+            let lbl = msg.components["(Description,Name)"];
+            if (lbl) {
+              this.app_state.app_name = lbl.value;
+            }
+          }
+
           this.app_state.heartbeat = msg;
           this.app_state.heartbeats_received ++;
-          this.app_state.app_name = msg.label;
           this.app_state.requests.received = this.conn.requests.received;
           this.app_state.requests.sent = this.conn.requests.sent;
           this.app_state.requests.error = this.conn.requests.error;
@@ -298,6 +310,10 @@ Promise.all(components).then((values) => {
         let result = "";
         let first = true;
         for (let key in obj) {
+          if (key == "runPlayground") {
+            continue;
+          }
+
           const value = obj[key];
           if (typeof value === "object") {
             for (let value_key in value) { // max 1 lvl of nesting
@@ -410,7 +426,12 @@ Promise.all(components).then((values) => {
           pipeline: "All systems",
           scripts: [],
           script: undefined,
-          refresh: "auto"
+          refresh: "auto",
+          runPlayground: function() { 
+            this.scripts = ["etc.assets.scene\\.flecs"];
+            this.script = "etc.assets.scene\\.flecs";
+            this.host = "flecs_explorer.wasm";
+          }
         },
         conn: undefined,
         lastWord: "",

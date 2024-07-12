@@ -1,11 +1,19 @@
 <template>
-  <input id="url-bar" type="text" class="pane"
-    v-on:focus="setFocus(true)"
-    v-on:blur="setFocus(false)"
-    ref="urlBox"
-    :value="value"
-    @keydown.enter="onChange">
-  </input>
+  <div class="url-bar-container">
+    <input id="url-bar" type="text" class="pane"
+      v-on:focus="setFocus(true)"
+      v-on:blur="setFocus(false)"
+      ref="urlBox"
+      :value="value"
+      @keydown.enter="onChange">
+    </input>
+    <div class="url-bar-connect">
+      <icon-button
+        :src="connectIcon"
+        @click="onConnect">
+      </icon-button>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -40,7 +48,7 @@ const value = computed(() => {
   } else {
     let status = props.app_state.status;
     if (status == flecs.ConnectionStatus.Initializing) {
-      return "[ initializing ]";
+      return "[ connecting ]";
     } else if (status == flecs.ConnectionStatus.RetryConnecting) {
       return "[ reconnecting ]";
     } else if (status == flecs.ConnectionStatus.Disconnected) {
@@ -56,24 +64,57 @@ const value = computed(() => {
   }
 });
 
+const connectIcon = computed(() => {
+  if (props.app_state.mode == flecs.ConnectionMode.Wasm) {
+    return "remote-explorer";
+  } else {
+    return "debug-disconnect";
+  }
+});
+
 const setFocus = (value) => {
   hasFocus.value = value;
 }
 
 function onChange() {
+  app_params.value.script = undefined;
+  app_params.value.scripts = [];
   app_params.value.host = urlBox.value.value;
   urlBox.value.blur();
+}
+
+function onConnect() {
+  if (props.app_state.mode == flecs.ConnectionMode.Wasm) {
+    app_params.value.script = undefined;
+    app_params.value.scripts = [];
+    app_params.value.host = "localhost";
+  } else {
+    app_params.value.runPlayground();
+  }
 }
 
 </script>
 
 <style scoped>
+div.url-bar-container {
+  position: relative;
+  grid-column: 4;
+}
+
+div.url-bar-connect {
+  position: absolute;
+  top: 6px;
+  right: -4px;
+}
+
 #url-bar {
   -webkit-appearance: none; 
   -moz-appearance: none;
   outline: none;
-  position: relative;
-  grid-column: 4;
+
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+
   border-style: solid;
   border-width: 1px;
   border-radius: var(--border-radius-large);
