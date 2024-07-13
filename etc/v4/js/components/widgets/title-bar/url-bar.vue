@@ -32,14 +32,7 @@ const hasFocus = ref();
 const urlBox = ref(null);
 
 const appName = computed(() => {
-  let str = props.app_state.app_name;
-  if (str) {
-    str = str.replaceAll("_", " ");
-    str = str.charAt(0).toUpperCase() + str.slice(1);
-    return str;
-  } else {
-    return "Explorer";
-  }
+  return props.app_state.pretty_app_name();
 });
 
 const value = computed(() => {
@@ -89,7 +82,7 @@ function onConnect() {
     app_params.value.scripts = [];
     app_params.value.host = "localhost";
   } else {
-    app_params.value.runPlayground();
+    app_params.value.run_playground();
   }
 }
 
@@ -103,7 +96,7 @@ div.url-bar-container {
 
 div.url-bar-connect {
   position: absolute;
-  top: 6px;
+  top: 7px;
   right: -4px;
 }
 

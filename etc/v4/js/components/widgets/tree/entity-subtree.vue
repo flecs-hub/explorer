@@ -148,16 +148,20 @@ function updateQuery() {
 
       sortedItems.sort((a, b) => {
         if (a.isModule == b.isModule) {
-          if (a.isParent == b.isParent) {
-            if (a.label) {
-              return a.label.localeCompare(b.label);
+          if (a.isComponent == b.isComponent) {
+            if (a.isParent == b.isParent) {
+              if (a.label) {
+                return a.label.localeCompare(b.label);
+              } else {
+                return a.name.localeCompare(b.name);
+              }
+            } else if (a.isParent) {
+              return -1;
             } else {
-              return a.name.localeCompare(b.name);
+              return 1;
             }
-          } else if (a.isParent) {
+          } else if (a.isComponent) {
             return -1;
-          } else {
-            return 1;
           }
         } else if (a.isModule) {
           return -1;

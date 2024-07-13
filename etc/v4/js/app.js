@@ -231,7 +231,7 @@ Promise.all(components).then((values) => {
 
         // If connection fails, fallback to playground
         on_fallback: explicitHost ? undefined : function() {
-          this.app_params.runPlayground();
+          this.app_params.run_playground();
         }.bind(this),
         
         // Copy connection status to reactive property
@@ -310,7 +310,7 @@ Promise.all(components).then((values) => {
         let result = "";
         let first = true;
         for (let key in obj) {
-          if (key == "runPlayground") {
+          if (key == "run_playground") {
             continue;
           }
 
@@ -385,13 +385,29 @@ Promise.all(components).then((values) => {
           }
         },
         deep: true
+      },
+      app_state: {
+        handler(value) {
+          document.title = value.pretty_app_name();
+        },
+        deep: true
       }
     },
 
     data() {
       return {
         app_state: { // Populated by code
-          app_name: "Flecs app",
+          app_name: undefined,
+          pretty_app_name: function() {
+            let str = this.app_name;
+            if (str) {
+              str = str.replaceAll("_", " ");
+              str = str.charAt(0).toUpperCase() + str.slice(1);
+              return str;
+            } else {
+              return "Flecs Explorer";
+            }
+          },
           status: undefined,
           heartbeat: undefined,
           heartbeats_received: 0,
@@ -427,7 +443,7 @@ Promise.all(components).then((values) => {
           scripts: [],
           script: undefined,
           refresh: "auto",
-          runPlayground: function() { 
+          run_playground: function() { 
             this.scripts = ["etc.assets.scene\\.flecs"];
             this.script = "etc.assets.scene\\.flecs";
             this.host = "flecs_explorer.wasm";

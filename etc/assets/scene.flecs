@@ -1,10 +1,11 @@
-// A flecs script example that creates a template for a house and 
-// populates a small town with it.
+// Script that creates a house template
+// and populates a small town with it.
 //
-// For C/C++ examples, go to:
+// For C/C++ examples and docs go to:
 //  https://github.com/SanderMertens/flecs
 
 using flecs.components.*
+using flecs.game
 const PI = 3.1415926
 
 materials {
@@ -119,9 +120,9 @@ template House {
 
   Roof {
     const overshoot = 0.5
-    const w_roof_half = ($overshoot + $width) / 2
+    const w_half = ($overshoot + $width) / 2
     const w_quart = ($overshoot + $width) / 4
-    const w_roof_sqr = $w_roof_half * $w_roof_half + $w_roof_half * $w_roof_half
+    const w_roof_sqr = $w_half * $w_half + $w_half * $w_half
     const roof_length = $w_roof_sqr.sqrt()
 
     Left : materials.Wood {
@@ -161,7 +162,6 @@ template House {
     }
   }
 
-  // Door, lantern and chimney
   Door()    { Position3: {0,   0.75, -$width / 2} }
   Lantern() { Position3: {0.75, 1.5, -$width / 2} }
   Chimney(height: $height + 1.5) { 
@@ -169,7 +169,6 @@ template House {
   }
 }
 
-// Populate the scene with houses
 town {
   House(height: 2.5)
   House(height: 3.0) { Position3: {-5.0, 0, -2.0};  Rotation3: {y: -0.7} }
