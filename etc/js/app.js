@@ -1,48 +1,4 @@
 
-// Track state of connection to remote app
-const ConnectionState = {
-  Initializing:     Symbol('Initializing'),
-  Local:            Symbol('Local'),
-  Connecting:       Symbol('Connecting'),
-  RetryConnecting:  Symbol('RetryConnecting'),
-  Remote:           Symbol('Remote'),
-  ConnectionFailed: Symbol('ConnectionFailed')
-};
-
-// Short initial timeout to detect remote app. Should be long enough for
-// an app to respond, but not too long to delay page load time.
-const INITIAL_REQUEST_TIMEOUT = 300;
-
-// Longer interval when we're sure the app is in remote mode.
-const INITIAL_REMOTE_REQUEST_TIMEOUT = 1000;
-
-// App will only retry connection when in explicit remote mode.
-const INITIAL_REQUEST_RETRY_INTERVAL = 200;
-
-// Interval at which the UI will poll the remote app.
-const REFRESH_INTERVAL = 1000;
-
-// Default port for the REST interface
-const DEFAULT_PORT = "27750";
-const DEFAULT_HOST = "127.0.0.1:" + DEFAULT_PORT;
-
-// Example content for local demo
-const DEFAULT_PARAM_QUERY = "CelestialBody, Mass, ?(ChildOf, $Orbits)"
-
-// Default max number of rows to show in query results
-const QUERY_DEFAULT_LIMIT = 25;
-
-const COLORS = [
-  "#40805B",
-  "#296065",
-  "#26537F",
-  "#273C7F",
-  "#3C3366",
-  "#482967",
-  "#653365",
-  "#AA4462"
-];
-
 function getParameterByName(name, url = window.location.href) {
   name = name.replace(/[\[\]]/g, '\\$&');
   var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
@@ -52,910 +8,458 @@ function getParameterByName(name, url = window.location.href) {
   return decodeURIComponent(results[2].replace(/\+/g, ' '));
 }
 
-function paramStr(params) {
-  let url_params = "";
-  if (params) {
-    for (var k in params) {
-      if (params[k] !== undefined) {
-        url_params += "&" + k + "=" + params[k];
-      }
-    }
-  }
-  return url_params;
-}
-
 // Webasm module loading
 let native_request;
 let capture_keyboard_events;
 
-function wasmModuleLoaded(wasm_url, onReady) {
-  const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
-
-  wasm_module = Function(`return ` + name + `;`)();
-
-  wasm_module().then(function(Module) {
-    native_request = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string']);
-    capture_keyboard_events = Module.sokol_capture_keyboard_events;
-    if (capture_keyboard_events) {
-      Module.sokol_capture_keyboard_events(false);
-    }
-    onReady();
-  });
-}
-
-function loadWasmModule(wasm_url, onReady) {
-  const oldEl = document.getElementById("wasm-module");
-  if (oldEl) {
-    oldEl.remove();
+function nameQueryFromExpr(expr, oneof) {
+  if (!expr) {
+    return {
+      parent: undefined,
+      expr: undefined,
+      query: undefined
+    };
   }
 
-  const scriptEl = document.createElement("script");
-  scriptEl.id = "wasm-module";
-  scriptEl.onload = () => {
-    wasmModuleLoaded(wasm_url, onReady);
-  };
-  scriptEl.onerror = () => {
-    console.error("failed to load wasm module " + wasm_url);
-  };
-  scriptEl.src = wasm_url;
-
-  document.head.appendChild(scriptEl);
-}
-
-// Vue application
-let app;
-
-// Called after all components are loaded
-function create_app() {
-  return new Vue({
-    el: '#app',
-
-    mounted: function() {
-      this.wasm_url = getParameterByName("wasm");
-
-      if (getParameterByName("remote") || getParameterByName("host")) {
-        if (this.wasm_url) {
-          console.error("invalid wasm url for remote app");
-          this.wasm_url = undefined;
-        }
-
-        // Don't load module when connected to remote app
-        this.ready();
-      } else if (!this.wasm_url) {
-        // Load default explorer module
-        this.wasm_url = window.location.protocol + "//" + window.location.host;
-        if (window.location.pathname && window.location.pathname.length > 1) {
-          this.wasm_url += window.location.pathname.slice(
-            0, window.location.pathname.lastIndexOf("/"));
-        }
-        this.wasm_url += "/flecs_explorer.js";
-      } else {
-        // External module was loaded
-        this.wasm = true;
-      }
-
-      if (this.wasm_url) {
-        this.$nextTick(() => {
-          loadWasmModule(this.wasm_url, () => {
-            this.ready();
-          });
-        });
-      }
-    },
-
-    methods: {
-      is_local() {
-        return this.connection == ConnectionState.Local;
-      },
-      is_remote() {
-        return this.connection == ConnectionState.Remote;
-      },
-
-      // Utility for sending HTTP requests
-      http_request(method, host, path, recv, err, timeout, retry_interval) {
-        const Request = new XMLHttpRequest();
-        const url = "http://" + host + "/" + path;
-
-        Request.open(method, url);
-      
-        if (timeout) {
-          Request.timeout = timeout;
-        } else {
-          Request.timeout = REFRESH_INTERVAL;
-        }
-
-        Request.request_aborted = false;
-
-        Request.onreadystatechange = (reply) => {
-          if (Request.readyState == 4) {
-            if (Request.status == 0) {
-              this.retry_count ++;
-
-              // Retry if the server did not respond to request
-              if (retry_interval) {
-                retry_interval *= 1.3;
-                if (retry_interval > 1000) {
-                  retry_interval = 1000;
-                }
-
-                // No point in timing out sooner than retry interval
-                if (timeout < retry_interval) {
-                  timeout = retry_interval;
-                }
-
-                console.error("request to " + host + " failed, " +
-                  "ensure app is running and REST is enabled " +
-                  "(retried " + this.retry_count + " times)");
-
-                window.setTimeout(() => {
-                  this.http_request(method, host, path, recv, err, 
-                    timeout, retry_interval);
-                }, retry_interval);
-              } else {
-                if (err) err(Request.responseText);
-
-                // If error callback did not set the connection state back to
-                // local, treat this as a loss of connection event.
-                if (this.connection != ConnectionState.Local) {
-                  if (!Request.request_aborted) {
-                    this.connect();
-                  }
-                }
-              }
-            } else {
-              this.retry_count = 0;
-
-              if (Request.status < 200 || Request.status >= 300) {
-                if (err) {
-                  err(Request.responseText);
-                }
-              } else {
-                if (recv) {
-                  recv(Request.responseText, url);
-                }
-              }
-            }
-          }
-        }
-
-        Request.send();
-        Request.url = url;
-
-        return Request;
-      },
-
-      // Utility for sending HTTP requests that have a JSON reply
-      json_request(method, host, path, recv, err, timeout, retry_interval) {
-        return this.http_request(method, host, path, (r, url) => {
-          if (recv) {
-            if (r) {
-              const reply = JSON.parse(r);
-              recv(reply, url);
-            } else {
-              recv(url);
-            }
-          }
-        }, (r) => {
-          if (err) {
-            if (r != undefined && r.length) {
-              const reply = JSON.parse(r);
-              err(reply);
-            } else {
-              err();
-            }
-          }
-        }, timeout, retry_interval);
-      },
-
-      // Abort request
-      request_abort(id) {
-        let r = this.requests[id];
-        if (r) {
-          r.request_aborted = true;
-          r.abort();
-        }
-        this.requests[id] = undefined;
-      },
-
-      // Utility for sending HTTP requests to a remote app
-      request(id, method, path, recv, err) {
-        let existing = this.requests[id];
-        if (existing) {
-          if (existing.readyState == 4) {
-            this.requests[id] = undefined;
-          } else {
-            // Request is still in progress
-            return;
-          }
-        }
-
-        this.requests[id] = this.json_request(
-          method, this.host, path, recv, err);
-
-        return this.requests[id].url;
-      },
-
-      request_get(id, path, recv, err) {
-        if (this.is_local()) {
-          const r = native_request("GET", "/" + path);
-          const reply = JSON.parse(r);
-          recv(reply);
-        } else if (this.is_remote()) {
-          return this.request(id, "GET", path, recv, err);
-        } else if (err) {
-          err({error: "no connection"});
-        }
-      },
-
-      request_put(id, path, recv, err) {
-        if (this.is_local()) {
-          const r = native_request("PUT", "/" + path);
-          let reply;
-          if (r) {
-            reply = JSON.parse(r);
-          }
-          recv(reply);
-        } else if (this.is_remote()) {
-          this.request(id, "PUT", path, recv, err);
-        } else if (err) {
-          err({error: "no connection"});
-        }
-      },
-
-      request_entity: function(id, path, recv, err, params) {
-        let entity = path;
-        if (typeof entity !== 'number') {
-          entity = entity.replaceAll('.', '/');
-        }
-        const request = "entity/" + entity + paramStr(params);
-        return this.request_get(id, request, recv, err);
-      },
-
-      request_world: function(host, recv, err, timeout, retry_interval) {
-        if (host) {
-          this.json_request("GET", host, "entity/flecs/core/World?label=true&values=true", 
-            recv, err, timeout, retry_interval);
-        } else {
-          return this.request_entity("world", "flecs.core.World", recv, err, {
-            label: true,
-            values: true
-          });
-        }
-      },
-
-      request_query: function(id, q, recv, err, params) {
-        let request;
-        if (q.slice(0, 2) == "?-") {
-          let query_name = q.slice(2).trim();
-
-          const args_start = query_name.indexOf("(");
-          if (args_start != -1) {
-            const args_end = query_name.indexOf(")");
-            if (args_end != -1) {
-              vars = query_name.slice(args_start, args_end + 1);
-            } else {
-              vars = query_name.slice(args_start);
-            }
-            query_name = query_name.slice(0, args_start);
-            params.vars = vars;
-          }
-
-          request = "query?name=" + encodeURIComponent(query_name) + paramStr(params);
-        } else {
-          request = "query?q=" + encodeURIComponent(q) + paramStr(params);
-        }
-
-        return this.request_get(id, request, recv, err);
-      },
-
-      request_stats: function(id, category, recv, err, params) {
-        this.request_get(id, "stats/" + category + paramStr(params), recv, err);
-      },
-
-      enable_entity(path) {
-        this.request_put("enable", "enable/" + path.replaceAll('.', '/'), () => {
-          this.refresh_entity();
-          this.refresh_tree();
-        });
-      },
-
-      disable_entity(path) {
-        this.request_put("disable", "disable/" + path.replaceAll('.', '/'), () => {
-          this.refresh_entity();
-          this.refresh_tree();
-        });
-      },
-
-      delete_entity(path) {
-        this.request_put("delete", "delete/" + path.replaceAll('.', '/'), () => {
-          this.$refs.inspector.close();
-          this.refresh_tree();
-        });
-      },
-
-      set_components(path, data) {
-        this.request_put("set", "set/" + path.replaceAll('.', '/') +
-          "?data=" + encodeURIComponent(JSON.stringify(data)), 
-          () => {
-            this.refresh_entity();
-          });
-      },
-
-      run_code: function(code, recv) {
-        this.request_put("script", "script/?data=" + encodeURIComponent(code), (msg) => {
-          this.refresh_entity();
-          this.refresh_tree();
-          this.refresh_query();
-          recv(msg);
-        }, (msg) => {
-          recv(msg)
-        });
-      },
-
-      get_query_from_params() {
-        const q_string = getParameterByName("query");
-        const q_name = getParameterByName("query_name");
-
-        if (q_string) {
-          return decodeURIComponent(q_string);
-        } else if (q_name) {
-          return "?- " + decodeURIComponent(q_name);
-        }
-
-        return undefined;
-      },
-
-      init_from_url(remote) {
-        this.$nextTick(() => {
-          // Load parameters from URL
-          let param_show = getParameterByName("show");
-          let param_entity = getParameterByName("entity");
-          let param_query = this.get_query_from_params();
-          let param_script = getParameterByName("script");
-
-          // If no parameters are provided and we're in local mode, show the
-          // demo app
-          if (!remote) {
-            if (!param_show && !param_query && !this.wasm) {
-              param_show = "tree,query,plecs"
-              if (param_script === undefined) {
-                // Only set default query when no script is provided. If a
-                // script is provided as parameter, the data that the default
-                // query matches on won't be available.
-                param_query = DEFAULT_PARAM_QUERY;
-              }
-            }
-          }
-
-          if (!param_show && this.wasm) {
-            param_show = "tree,explorer_canvas,query,plecs";
-          }
-
-          // Determine which panels to show
-          let show;
-          if (param_show) {
-            show = param_show.split(",");
-          } else {
-            show = ["tree", "query"];
-          }
-
-          // Open the configured panels
-          this.$refs.panel_menu.close_all();
-          for (let i = 0; i < show.length; i++) {
-            this.$refs[show[i]].open();
-          }
-
-          // Set the inspector to the selected entity
-          if (param_entity) {
-            this.set_entity(param_entity);
-          }
-
-          // Set the query editor to the selected query
-          if (param_query) {
-            const offset = getParameterByName("offset");
-            const limit = getParameterByName("limit");
-            this.$refs.query.set_query(param_query, offset, limit);
-          }
-
-          if (param_script) {
-            this.$refs.plecs.set_code(param_script);
-            this.$refs.plecs.run();
-          } else {
-            this.request_entity("scripts.main", "scripts.main", (msg) => {
-              if (msg.values && msg.values[0]) {
-                const script = msg.values[0].script;
-                if (script) {
-                  this.$refs.plecs.set_code(script);
-                  this.$refs.plecs.run();
-                }
-              }
-            }, undefined, {
-              values: true,
-              private: true
-            });
-          }
-        });
-      },
-
-      start_periodic_refresh() {
-        this.parse_interval = 150;
-
-        this.refresh_world();
-        this.refresh_query();
-        this.refresh_entity();
-        this.refresh_tree();
-        this.refresh_stats();
-        this.refresh_alerts();
-
-        // Refresh UI periodically
-        this.refresh_timer = window.setInterval(() => {
-          this.refresh_world();
-          this.refresh_query();
-          this.refresh_entity();
-          this.refresh_tree();
-          this.refresh_stats();
-          this.refresh_alerts();
-        }, REFRESH_INTERVAL);
-
-        this.evt_panel_update();
-      },
-
-      ready_remote(reply) {
-        // Get application name from reply
-        if (reply.label && reply.label != "World") {
-          this.app_name = reply.label;
-          this.title = this.app_name;
-        }
-
-        this.start_periodic_refresh();
-      },
-
-      ready_local() {
-        this.init_from_url(false);
-        this.start_periodic_refresh();
-      },
-
-      // Connect to a remote host
-      connect() {
-        if (this.connection == ConnectionState.Remote) {
-          this.connection = ConnectionState.RetryConnecting;
-        } else if (this.connection != ConnectionState.Connecting &&
-            this.connection != ConnectionState.RetryConnecting) {
-          this.connection = ConnectionState.Connecting;
-        } else {
-          // Already connecting
-          return;
-        }
-
-        // Reset application connection status
-        this.retry_count = 0;
-
-        if (this.refresh_timer) {
-          window.clearInterval(this.refresh_timer);
-        }
-
-        // Retry interval (only when forcing remote mode)
-        let retry_interval = 0;
-
-        // Optional parameters for selecting host & port.
-        let host = getParameterByName("host");
-        let port = getParameterByName("port");
-
-        // If remote param is provided, don't go to local mode
-        let remote = getParameterByName("remote");
-
-        // remote_self is the same as remote, but will always connect to the URL
-        // of the explorer, instead of defaulting to localhost
-        let remote_self = getParameterByName("remote_self");
-
-        // If local param is provided, don't connect to remote
-        let local = getParameterByName("local");
-
-        // If a code snippet is provided, run in local mode
-        if (getParameterByName("p")) {
-          local = true;
-        }
-
-        // Store URL parameters so they can be added to shared URL
-        this.params.host = host;
-        this.params.port = port;
-        this.params.remote = remote;
-        this.params.remote_self = remote_self;
-        this.params.local = local;
-
-        // Make sure that if both remote_self and host are specified they match
-        if (remote_self) {
-          if (host != undefined && host != window.location.hostname) {
-            console.error("remote_self conflicts with value of host param, starting in local mode");
-            this.ready_local();
-          }
-          remote = true;
-          host = window.location.hostname;
-        }
-
-        // Can't set both local and remote
-        if ((remote && local) || (host && local)) {
-          console.error("invalid combination of URL params, starting in local mode");
-          this.ready_local();
-        }
-
-        // If we are reconnecting, use same parameters. This also ensures that
-        // once connected, the UI stays in remote mode.
-        if (this.connection == ConnectionState.RetryConnecting) {
-          host = this.host;
-          remote = true;
-        }
-
-        // Check if a host is provided as parameter
-        if (!local) {
-          if (!host) {
-            host = DEFAULT_HOST;
-          } else {
-            remote = true;
-          }
-        } else {
-          remote = false;
-        }
-        
-        if (this.wasm) {
-          host = undefined;
-          remote = false;
-        }
-
-        if (host) {
-          if (host.indexOf(':') == -1) {
-            if (!port) {
-              port = DEFAULT_PORT;
-            }
-            host += ":" + port;
-          }
-
-          if (remote) {
-            retry_interval = INITIAL_REQUEST_RETRY_INTERVAL;
-          }
-
-          let timeout = INITIAL_REQUEST_TIMEOUT;
-          if (remote) {
-            /* Tolerate a larger timeout when we're guaranteed in remote mode */
-            timeout = INITIAL_REMOTE_REQUEST_TIMEOUT;
-          }
-
-          this.request_world(host, (reply) => {
-            if (this.connection != ConnectionState.RetryConnecting) {
-              /* When not reconnecting initialize app from URL arguments */
-              this.init_from_url(true);
-            }
-
-            this.host = host;
-            this.connection = ConnectionState.Remote;
-            this.ready_remote(reply);
-          }, () => {
-            if (!remote) {
-              this.connection = ConnectionState.Local;
-              this.ready_local();
-            } else {
-              console.warn("remote connection failed, running explorer in local mode");
-              this.connection = ConnectionState.ConnectionFailed;
-            }
-          }, timeout, retry_interval);
-        } else {
-          this.connection = ConnectionState.Local;
-          this.ready_local();
-        }
-      },
-
-      ready() {
-        this.connect();
-      },
-
-      // Set subtitle for browser tab
-      set_subtitle(subtitle) {
-        this.subtitle = subtitle;
-      },
-
-      // Set inspector to entity by pathname
-      set_entity(path) {
-        this.$refs.inspector.set_entity(path);
-        this.$refs.tree.set_selected_entity(path);
-      },
-
-      set_entity_by_tree_item(item) {
-        if (item) {
-          this.set_entity(item.path);
-        } else {
-          this.set_entity();
-        }
-      },
-
-      refresh_world() {
-        this.request_world(undefined, (reply) => {
-          if (!reply.ids) {
-            return;
-          }
-
-          let i;
-          for (i = 0; i < reply.ids.length; i ++) {
-            const id = reply.ids[i];
-            if (id[0] === 'flecs.monitor.WorldSummary') {
-              break;
-            }
-          }
-
-          const summary = reply.values[i];
-          if (summary) {
-            this.target_fps = summary.target_fps;
-            this.frame_time = summary.frame_time_last;
-            if (!this.target_fps) {
-              this.target_fps = 60;
-            }
-          }
-        }, () => {}, 0, REFRESH_INTERVAL);
-      },
-
-      refresh_query() {
-        if (this.$refs.query) {
-          this.$refs.query.refresh();
-        }
-      },
-
-      refresh_entity() {
-        if (this.$refs.inspector) {
-          this.$refs.inspector.refresh();
-        }
-      },
-
-      refresh_tree() {
-        if (this.$refs.tree) {
-          this.$refs.tree.update_expanded();
-        }
-      },
-
-      refresh_stats() {
-        if (this.$refs.stats_world) {
-          this.$refs.stats_world.refresh();
-        }
-        if (this.$refs.stats_pipeline) {
-          this.$refs.stats_pipeline.refresh();
-        }
-      },
-
-      refresh_alerts() {
-        if (this.$refs.alerts) {
-          this.$refs.alerts.refresh();
-        }
-      },
-
-      // Entity selected
-      evt_entity_changed(e) {
-        this.set_entity_by_tree_item(e);
-      },
-
-      // Follow entity reference
-      evt_follow_ref(entity) {
-        this.set_entity(entity);
-      },
-
-      evt_tree_navigate(entity) {
-        if (this.$refs.tree) {
-          this.$refs.tree.select(entity);
-          this.$refs.tree.open();
-        }
-      },
-
-      evt_select_query(query) {
-        if (this.$refs.query) {
-          this.$refs.query.set_query(query);
-          this.$refs.query.open();
-        }
-      },
-
-      evt_append_query(query) {
-        let q = this.$refs.query.get_query();
-        if (q.slice(0, 2) === "?-") {
-          q = "";
-        }
-        if (q.length) {
-          q += ", " + query;
-        } else {
-          q = query;
-        }
-        this.$refs.query.set_query(q);
-        this.$refs.query.open();
-      },
-
-      evt_panel_update() {
-        this.$nextTick(() => {
-          if (this.$refs.panes) {
-            this.$refs.panes.resize();
-          }
-          if (this.$refs.panel_menu) {
-            this.$refs.panel_menu.refresh();
-          }
-        });
-      },
-
-      evt_request_plecs_focus() {
-        if (this.$refs.explorer_canvas) {
-          this.$refs.explorer_canvas.blur();
-        }
-      },
-
-      show_url_modal() {
-        const query_params = this.$refs.query.get_query_params();
-
-        let plecs;
-        let plecs_encoded;
-        if (!this.remote_mode) {
-          plecs = this.$refs.plecs.get_code();
-          if (plecs && plecs.length) {
-            plecs_encoded = encodeURIComponent(plecs);
-          }
-        }
-
-        let entity = this.$refs.inspector.get_entity();
-        let sep = "?";
-      
-        this.url = window.location.protocol + '//' + 
-                  window.location.host + 
-                  window.location.pathname;
-
-        this.url += "?show=";
-        const refs = ['query', 'tree', 'plecs', 'stats', 'alerts', 'inspector', 
-          'explorer_canvas', 'stats_world', 'stats_pipeline'];
-        let active_refs = [];
-
-        for (let k in refs) {
-          const el = this.$refs[refs[k]];
-          if (el && el.$el && !el.$el.classList.contains("disable")) {
-            active_refs.push(refs[k]);
-          }
-        }
-        this.url += active_refs.join(",");
-        sep = "&";
-
-        if (this.params.host) {
-          this.url += sep + "host=" + this.params.host;
-        }
-
-        if (this.params.port) {
-          this.url += sep + "port=" + this.params.port;
-        }
-
-        if (this.params.remote) {
-          this.url += sep + "remote=true";
-        }
-
-        if (this.params.remote_self) {
-          this.url += sep + "remote_self=true";
-        }
-
-        if (this.params.local) {
-          this.url += sep + "local=true";
-        }
-
-        if (this.wasm) {
-          this.url += sep + "wasm=" + this.wasm_url;
-        }
-
-        if (query_params) {
-          this.url += sep + query_params;
-        }
-
-        if (plecs_encoded) {
-          this.url += sep + "script=" + plecs_encoded;
-        }
-
-        if (entity) {
-          this.url += sep + "entity=" + entity;
-        }
-
-        window.history.pushState({}, "", this.url);
-      },
-
-      rest_world_link() {
-        window.open("http://" + this.host + "/world", '_blank');
-      },
-
-      get_load() {
-        return this.frame_time / (1.0 / this.target_fps);
-      }
-    },
-
-    computed: {
-      valid: function() {
-        return !this.code_error &&
-          (this.connection == ConnectionState.Local ||
-            this.connection == ConnectionState.Remote ||
-              this.retry_count < 10);
-      },
-      remote_mode: function() {
-        return (this.connection == ConnectionState.Remote) || 
-          (this.connection == ConnectionState.RetryConnecting) ||
-          this.params.remote || this.params.remote_self || this.params.host;
-      }
-    },
-
-    data: {
-      app_name: "Flecs",
-      subtitle: "Flecs",
-      query_error: undefined,
-      code_error: undefined,
-      query_result: undefined,
-      selected_tree_item: undefined,
-      url: undefined,
-      wasm_url: undefined,
-      wasm: false,
-      params: {},
-
-      frame_time: 0,
-      target_fps: 0,
-
-      connection: ConnectionState.Initializing,
-      host: undefined,
-      retry_count: 0,
-      request_count: 0,
-
-      requests: {},
-      refresh_timer: undefined,
-      parse_timer: undefined,
-      parse_interval: 0
-    }
-  });
-}
-
-// Create tooltip directive
-Vue.directive('tooltip', {
-  bind: function (el, binding, vnode) {
-    el.addEventListener("mouseenter", () => {
-      app.$refs.tooltip.element = el;
-      app.$refs.tooltip.label = binding.value;
-      app.$refs.tooltip.show();
-    })
-
-    // Dismiss tooltip after mouse leave or interaction
-    el.addEventListener("mouseleave", () => {
-      app.$refs.tooltip.hide();
-    })
-    el.addEventListener("click", () => {
-      app.$refs.tooltip.hide();
-    })
+  let parent;
+  let last_sep = expr.lastIndexOf(".");
+  if (last_sep != -1) {
+    parent = expr.slice(0, last_sep);
+    expr = expr.slice(last_sep + 1, expr.length);
+  } else {
+    parent = oneof;
   }
-});
 
-// Load vue components
+  let query;
+  if (parent) {
+    query = `(ChildOf, ${parent})`
+    if (expr.length) {
+      query += `, $this ~= "${expr}"`;
+    }
+  } else {
+    query = `$this ~= "${expr}"`;
+  }
+
+  return {
+    parent: parent,
+    expr: expr,
+    query: query
+  };
+}
+
+function fmtDuration(seconds) {
+  let result = "";
+
+  if (seconds === 0) {
+    return "0s";
+  }
+
+  let days = Math.floor(seconds / (24 * 60 * 60));
+  seconds -= days * (24 * 60 * 60);
+
+  let hours = Math.floor(seconds / (60 * 60));
+  seconds -= hours * (60 * 60);
+
+  let minutes = Math.floor(seconds / 60);
+  seconds -= minutes * 60;
+  
+  if (days) {
+    result += days + "d\xa0";
+  }
+  if (hours || (result.length && minutes && seconds)) {
+    result += hours + "h\xa0";
+  }
+  if (minutes || (result.length && seconds)) {
+    result += minutes + "min\xa0";
+  }
+  if (seconds) {
+    if (seconds < 1.0 && (!days && !hours && !minutes)) {
+      // Small duration, multiply until we have something that's > 1
+      let multiplied = 0;
+      if (seconds > 0) {
+        do {
+          multiplied ++;
+          seconds *= 1000;
+        } while (seconds < 1.0);
+      }
+
+      result += seconds.toFixed(2);
+      result += ['s', 'ms', 'us', 'ns', 'ps'][multiplied];
+    } else {
+      // don't bother with decimals of seconds when the duration is longer than
+      // a minute.
+      result += Math.round(seconds);
+      result += "s";
+    }
+  }
+
+  return result;
+}
+
 let components = [
-  httpVueLoader('js/overlays/popovers/url-popover.vue')(),
-  httpVueLoader('js/components/panel_menu.vue')(),
-  httpVueLoader('js/components/panel_button.vue')(),
-  httpVueLoader('js/components/toggle_button.vue')(),
-  httpVueLoader('js/components/tabs.vue')(),
-  httpVueLoader('js/components/content_container.vue')(),
-  httpVueLoader('js/components/editor_textarea.vue')(),
-  httpVueLoader('js/components/editor.vue')(),
-  httpVueLoader('js/components/query_footer.vue')(),
-  httpVueLoader('js/components/query_graph.vue')(),
-  httpVueLoader('js/components/query_results_table.vue')(),
-  httpVueLoader('js/components/query_results.vue')(),
-  httpVueLoader('js/components/query_editor.vue')(),
-  httpVueLoader('js/components/query.vue')(),
-  httpVueLoader('js/components/module_filter.vue')(),
-  httpVueLoader('js/components/stat.vue')(),
-  httpVueLoader('js/components/stats_period.vue')(),
-  httpVueLoader('js/components/stat_chart.vue')(),
-  httpVueLoader('js/components/stats_world.vue')(),
-  httpVueLoader('js/components/stats_pipeline.vue')(),
-  httpVueLoader('js/components/alerts.vue')(),
-  httpVueLoader('js/components/inspector_refs.vue')(),
-  httpVueLoader('js/components/inspector_alerts.vue')(),
-  httpVueLoader('js/components/tooltip.vue')(),
-  httpVueLoader('js/components/popover.vue')(),
-  httpVueLoader('js/components/load.vue')()
+  // Common components
+  loadModule('js/components/widgets/title-bar/title-bar.vue', options),
+  loadModule('js/components/widgets/title-bar/refresh-control.vue', options),
+  loadModule('js/components/widgets/title-bar/layout-control.vue', options),
+  loadModule('js/components/widgets/title-bar/play-control.vue', options),
+  loadModule('js/components/widgets/title-bar/url-bar.vue', options),
+  loadModule('js/components/widgets/title-bar/connecting-indicator.vue', options),
+  loadModule('js/components/widgets/info-bar/info-bar.vue', options),
+  loadModule('js/components/widgets/info-bar/info-connected.vue', options),
+  loadModule('js/components/widgets/info-bar/info-build-version.vue', options),
+  loadModule('js/components/widgets/info-bar/info-build-config.vue', options),
+  loadModule('js/components/widgets/menu-bar/menu-bar.vue', options),
+  loadModule('js/components/widgets/menu-bar/menu-button.vue', options),
+  loadModule('js/components/widgets/stat-chart.vue', options),
+  loadModule('js/components/widgets/dropdown.vue', options),
+  loadModule('js/components/widgets/detail-toggle.vue', options),
+  loadModule('js/components/widgets/scene-canvas.vue', options),
+  loadModule('js/components/widgets/terminal-color-pre.vue', options),
+  loadModule('js/components/icon.vue', options),
+  loadModule('js/components/toggle.vue', options),
+  loadModule('js/components/search-box.vue', options),
+  loadModule('js/components/widgets/tabs.vue', options),
+  loadModule('js/components/app-menu.vue', options),
+  loadModule('js/components/code-editor.vue', options),
+  loadModule('js/components/prop-browser.vue', options),
+  loadModule('js/components/entity-path.vue', options),
+  loadModule('js/components/entity-parent.vue', options),
+  loadModule('js/components/entity-name.vue', options),
+  loadModule('js/components/color-preview.vue', options),
+
+  // Widgets
+  loadModule('js/components/widgets/icon-button.vue', options),
+  loadModule('js/components/widgets/expand-button.vue', options),
+
+  // Entities page
+  loadModule('js/components/pages/entities/page.vue', options),
+  loadModule('js/components/pages/entities/pane-tree.vue', options),
+  loadModule('js/components/pages/entities/pane-inspector.vue', options),
+  loadModule('js/components/pages/entities/pane-scripts.vue', options),
+  loadModule('js/components/pages/entities/flecs-script.vue', options),
+
+  // Tree widget
+  loadModule('js/components/widgets/tree/entity-tree.vue', options),
+  loadModule('js/components/widgets/tree/entity-subtree.vue', options),
+  loadModule('js/components/widgets/tree/entity-tree-item.vue', options),
+  loadModule('js/components/widgets/tree/entity-tree-icon.vue', options),
+
+  // Inspector widget
+  loadModule('js/components/widgets/inspector/entity-inspector.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-module.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-components.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-matched-by.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-refs.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-alerts.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-component.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-value.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-kv.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-field.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-preview.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-add-component.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-script-ast.vue', options),
+
+  // Table widget
+  loadModule('js/components/widgets/table/entity-table.vue', options),
+
+  // Queries page
+  loadModule('js/components/pages/queries/page.vue', options),
+  loadModule('js/components/pages/queries/pane-query.vue', options),
+  loadModule('js/components/pages/queries/pane-inspect.vue', options),
+  loadModule('js/components/pages/queries/query-editor.vue', options),
+  loadModule('js/components/pages/queries/query-browser.vue', options),
+  loadModule('js/components/pages/queries/query-json.vue', options),
+  loadModule('js/components/pages/queries/query-status.vue', options),
+  loadModule('js/components/pages/queries/query-plan.vue', options),
+  loadModule('js/components/pages/queries/query-profile.vue', options),
+  loadModule('js/components/pages/queries/query-expr.vue', options),
+  loadModule('js/components/pages/queries/query-schema.vue', options),
+  loadModule('js/components/pages/queries/query-inspect.vue', options),
+  loadModule('js/components/pages/queries/query-c.vue', options),
+  loadModule('js/components/pages/queries/query-cpp.vue', options),
+  loadModule('js/components/pages/queries/query-js.vue', options),
+  loadModule('js/components/pages/queries/query-rest.vue', options),
+  loadModule('js/components/pages/queries/query-api.vue', options),
+  loadModule('js/components/pages/queries/query-error.vue', options),
+  loadModule('js/components/pages/queries/query-list-item.vue', options),
+
+  // Stats page
+  loadModule('js/components/pages/stats/page.vue', options),
+  loadModule('js/components/pages/stats/world-stats.vue', options),
+  loadModule('js/components/pages/stats/world-stat.vue', options),
+
+  // Pipeline page
+  loadModule('js/components/pages/pipeline/page.vue', options),
+  loadModule('js/components/pages/pipeline/pipeline.vue', options),
+  loadModule('js/components/pages/pipeline/pipeline-system.vue', options),
+  loadModule('js/components/pages/pipeline/pipeline-segment.vue', options),
+
+  // Commands page
+  loadModule('js/components/pages/commands/page.vue', options),
+  loadModule('js/components/pages/commands/pane-header.vue', options),
+  loadModule('js/components/pages/commands/pane-inspect.vue', options),
+  loadModule('js/components/pages/commands/inspect-sync.vue', options),
+  loadModule('js/components/pages/commands/inspect-cmd-header.vue', options),
+  loadModule('js/components/pages/commands/inspect-cmd-history.vue', options),
+  loadModule('js/components/pages/commands/inspect-cmd.vue', options),
+
+  // Info page
+  loadModule('js/components/pages/info/page.vue', options),
+  loadModule('js/components/pages/info/pane-info.vue', options),
 ];
 
 Promise.all(components).then((values) => {
-  for (let c of values) {
-    Vue.component(c.name, c);
-  }
+  let app = Vue.createApp({
+    created() {
+      // Load URL parameters
+      this.fromUrlParams();
 
-  app = create_app();
+      let explicitHost = true;
+      if (!this.app_params.host) {
+        this.app_params.host = "localhost";
+        explicitHost = false;
+      }
+
+      this.conn = flecs.connect({
+        host: this.app_params.host,
+        poll_interval_ms: this.app_params.refresh === "auto" ? 1000 : 0,
+
+        // Copy host to reactive property
+        on_host: function(host) {
+          this.app_params.host = host;
+        }.bind(this),
+
+        // If connection fails, fallback to playground
+        on_fallback: explicitHost ? undefined : function() {
+          this.app_params.run_playground();
+        }.bind(this),
+        
+        // Copy connection status to reactive property
+        on_status: function(status) {
+          this.app_state.mode = this.conn.mode;
+          this.app_state.status = status;
+        }.bind(this),
+
+        // Copy heartbeat to reactive properties
+        on_heartbeat: function(msg) {
+          if (msg.components) {
+            let lbl = msg.components["(Description,Name)"];
+            if (lbl) {
+              this.app_state.app_name = lbl.value;
+            }
+          }
+
+          this.app_state.heartbeat = msg;
+          this.app_state.heartbeats_received ++;
+          this.app_state.requests.received = this.conn.requests.received;
+          this.app_state.requests.sent = this.conn.requests.sent;
+          this.app_state.requests.error = this.conn.requests.error;
+          this.app_state.bytes.received = this.conn.bytes.received;
+          this.app_state.has3DCanvas = flecs.has3DCanvas;
+
+          if (msg.components && msg.components.WorldSummary) {
+            this.app_state.world_info = msg.components.WorldSummary;
+            this.app_state.build_info = msg.components.WorldSummary.build_info;
+          }
+        }.bind(this)
+      });
+
+      // Start timer to track command counts. Run timer separately from 
+      // heartbeats so we still populate the array even if the connection is
+      // gone.
+      setInterval(function() {
+        if (this.app_state.world_info && 
+            this.app_state.status == flecs.ConnectionStatus.Connected) 
+        {
+          if (this.prev_command_count == -1) {
+            // First received heartbeat. To ensure we don't insert a very large
+            // value, just set the prev count. 
+          } else {
+            this.app_state.command_counts.unshift(
+              this.app_state.world_info.command_count - this.prev_command_count);
+          }
+          this.prev_command_count = this.app_state.world_info.command_count;
+        } else {
+          this.app_state.command_counts.unshift(-1);
+          this.prev_command_count = -1;
+        }
+        if (this.app_state.command_counts.length > 120) {
+          this.app_state.command_counts.pop();
+        }
+      }.bind(this), 1000);
+    },
+
+    methods: {
+      convertTo(type, value) {
+        if (type === "undefined") {
+          return value;
+        }
+
+        switch(type) {
+          case 'string':
+            return String(value);
+          case 'number':
+            return Number(value);
+          case 'boolean':
+            return value === "true" ? true : false;
+          default:
+            console.error(`unsupported type: ${type}`);
+        }
+      },
+      toUrlParams(obj) {
+        let result = "";
+        let first = true;
+        for (let key in obj) {
+          if (key == "run_playground") {
+            continue;
+          }
+
+          const value = obj[key];
+          if (typeof value === "object") {
+            for (let value_key in value) { // max 1 lvl of nesting
+              const nested = value[value_key];
+              if (nested !== undefined) {
+                result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
+                first = false;
+              }
+            }
+          } else if (value !== undefined) {
+            result += `${first ? "?" : "&"}${key}=${encodeURIComponent(value)}`;
+            first = false;
+          }
+        }
+        return result;
+      },
+      fromUrlParams(url = window.location.search) {
+        if (window.location.search === undefined) {
+          return;
+        }
+
+        let first = true;
+        let paramNamePos = -1;
+        while ((paramNamePos = url.indexOf(first ? "?" : "&", paramNamePos + 1)) !== -1) {
+          let paramValuePos = url.indexOf("=", paramNamePos);
+          let paramValueEnd = url.indexOf("&", paramValuePos);
+          const key = url.slice(paramNamePos + 1, paramValuePos).split(".");
+          let value;
+          if (paramValueEnd !== -1) {
+            value = url.slice(paramValuePos + 1, paramValueEnd);
+          } else {
+            value = url.slice(paramValuePos + 1);
+          }
+
+          if (key.length == 1) {
+            const type = typeof this.app_params[key[0]];
+            this.app_params[key[0]] = 
+              this.convertTo(type, decodeURIComponent(value));
+          } else if (key.length == 2) {
+            let type = 'string';
+            if (this.app_params[key[0]]) {
+              type = typeof this.app_params[key[0]][key[1]];
+            }
+            this.app_params[key[0]][key[1]] = 
+              this.convertTo(type, decodeURIComponent(value));
+          }
+          
+          first = false;
+        }
+      }
+    },
+
+    watch: {
+      app_params: {
+        handler(value) {
+          let reload = false;
+          if (!this.conn || value.host != this.conn.params.host) {
+            this.conn.connect(value.host);
+            reload = true;
+          }
+          
+          history.pushState({}, document.title,
+              window.location.origin + 
+              window.location.pathname +
+              this.toUrlParams(this.app_params));
+
+          if (reload) {
+            location.reload();
+          }
+        },
+        deep: true
+      },
+      app_state: {
+        handler(value) {
+          document.title = value.pretty_app_name();
+        },
+        deep: true
+      }
+    },
+
+    data() {
+      return {
+        app_state: { // Populated by code
+          app_name: undefined,
+          pretty_app_name: function() {
+            let str = this.app_name;
+            if (str) {
+              str = str.replaceAll("_", " ");
+              str = str.charAt(0).toUpperCase() + str.slice(1);
+              return str;
+            } else {
+              return "Flecs Explorer";
+            }
+          },
+          status: undefined,
+          heartbeat: undefined,
+          heartbeats_received: 0,
+          requests: {
+            sent: 0,
+            received: 0,
+            error: 0
+          },
+          bytes: {
+            received: 0
+          },
+          world_info: undefined,
+          build_info: undefined,
+          command_counts: new Array(120).fill(0),
+        },
+        app_params: { // Populated by user
+          page: "entities",
+          host: undefined,
+          query: {
+            expr: "(ChildOf, flecs)",
+            name: undefined,
+            use_name: false,
+            query_tab: "editor",
+            inspect_tab: "table"
+          },
+          entity: {
+            path: undefined
+          },
+          sidebar: true,
+          inspector_mode: undefined,
+          tree_mode: undefined,
+          pipeline: "All systems",
+          scripts: [],
+          script: undefined,
+          refresh: "auto",
+          run_playground: function() { 
+            this.scripts = ["etc.assets.scene\\.flecs"];
+            this.script = "etc.assets.scene\\.flecs";
+            this.host = "flecs_explorer.wasm";
+          }
+        },
+        conn: undefined,
+        lastWord: "",
+        prev_command_count: -1,
+        prev_heartbeats_received: -1
+      };
+    }
+  });
+
+  for (let c of values) {
+    app.component(c.name, c);
+  }
+  
+  app.mount("#app");
 });

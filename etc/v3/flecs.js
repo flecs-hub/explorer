@@ -5,6 +5,8 @@
 //   Flecs repository: https://github.com/SanderMertens/flecs
 //   API manual: https://www.flecs.dev/flecs/md_docs_RestApi.html
 //
+// For a backwards-compatible version of the API, use /v1/flecs.js
+//
 
 // If the environment is Node.js import XMLHttpRequest
 if (typeof process === "object" && typeof require === "function") {
@@ -30,25 +32,6 @@ const flecs = {
         return "Disconnected";
       } else {
         return "UnknownConnectionStatus";
-      }
-    }
-  },
-
-  // Whether explorer is connected to remote app or wasm image
-  ConnectionMode: {
-    Unknown:          Symbol('Unknown'),
-    Remote:           Symbol('Remote'),
-    Wasm:             Symbol('Wasm'),
-
-    toString(value) {
-      if (value == this.Unknown) {
-        return "Unknown";
-      } else if (value == this.Remote) {
-        return "Remote";
-      } else if (value == this.Wasm) {
-        return "Wasm";
-      } else {
-        return "UnknownConnectionMode";
       }
     }
   },
@@ -89,18 +72,14 @@ const flecs = {
       let connParams = {
         host: undefined,
         timeout_ms: 1000,
-        poll_interval_ms: 1000, // For managed queries
         retry_interval_ms: 200,
         max_retry_count: 5
       };
   
       if (params) {
         if (params.timeout_ms) connParams.timeout_ms = params.timeout_ms;
-        if (params.poll_interval_ms !== undefined) connParams.poll_interval_ms = params.poll_interval_ms;
         if (params.retry_interval_ms) connParams.retry_interval_ms = params.retry_interval_ms;
         if (params.max_retry_count) connParams.max_retry_count = params.max_retry_count;
-        if (params.fallback_host) connParams.fallback_host = params.fallback_host;
-        if (params.on_fallback) connParams.on_fallback = params.on_fallback;
         connParams.on_status = params.on_status;
         connParams.on_host = params.on_host;
         connParams.on_heartbeat = params.on_heartbeat;
@@ -108,11 +87,8 @@ const flecs = {
   
       return {
         status: flecs.ConnectionStatus.Initializing,
-        mode: flecs.ConnectionMode.Unknown,
         params: connParams,
         worldInfo: undefined,
-
-        managedRequests: [],
 
         requests: {
           sent: 0,
@@ -151,14 +127,8 @@ const flecs = {
           }
   
           // If already connected to another host, disconnect first
-          this.disconnect();
-
-          if (host.length > 5 && (host.slice(host.length - 5, host.length) === ".wasm")) {
-            this._.loadWasmModule(host);
-            this.mode = flecs.ConnectionMode.Wasm;
-          } else {
-            this._.FlecsHttpRequest = () => new XMLHttpRequest();
-            this.mode = flecs.ConnectionMode.Remote;
+          if (this.status != flecs.ConnectionStatus.Initializing) {
+            this.disconnect();
           }
   
           // Connect to host, start connection manager
@@ -168,43 +138,12 @@ const flecs = {
   
         // Disconnect from host
         disconnect() {
-          for (let r of this.managedRequests) {
-            r.abort(true /* keep persistent requests */);
-          }
           this._.stopConnMgr(this);
-        },
-
-        // Set params for managed requests. Supported params:
-        //  - poll_interval_ms
-        set_managed_params(params) {
-          if (params.poll_interval_ms !== undefined) {
-            this.params.poll_interval_ms = params.poll_interval_ms;
-
-            for (let r of this.managedRequests) {
-              const old_interval = r.poll_interval_ms;
-              r.poll_interval_ms = params.poll_interval_ms;
-
-              if (!old_interval) {
-                r.resume();
-              } else if (params.poll_interval_ms === 0) {
-                r.cancel();
-              }
-            }
-          }
-        },
-
-        // Request managed requests
-        request_managed() {
-          for (let r of this.managedRequests) {
-            if (!r.poll_interval_ms) {
-              r.resume();
-            }
-          }
         },
   
         // Request entity
-        entity: function(path, params, recv, err, abort) {
-          path = this._.escapePath(path);
+        entity: function(path, params, recv, err) {
+          path = path.replace(/\./g, "/");
           return this._.request(this, "GET", "entity/" + path, params, 
             (msg) => {
               if (msg[0] == '{' || msg[0] == '[') {
@@ -223,11 +162,11 @@ const flecs = {
                   err({error: msg});
                 }
               }
-            }, abort, params.poll_interval_ms);
+            }, params.poll_interval);
         },
   
         // Request query
-        query: function(query, params, recv, err, abort) {
+        query: function(query, params, recv, err) {
           if (query === undefined) {
             console.error("flecs.query: invalid query parameter");
             return;
@@ -237,108 +176,20 @@ const flecs = {
           query = flecs.trimQuery(query);
           query = query.replaceAll(", ", ",");
   
-          params.expr = encodeURIComponent(query);
+          params.q = encodeURIComponent(query);
           return this._.requestQuery(
-            this, params, recv, err, abort, params.poll_interval_ms);
+            this, params, recv, err, params.poll_interval);
         },
   
         // Request named query
-        queryName: function(query, params, recv, err, abort) {
+        queryName: function(query, params, recv, err) {
           params.name = encodeURIComponent(query);
           return this._.requestQuery(
-            this, params, recv, err, abort, params.poll_interval_ms);
-        },
-
-        // Set component
-        set: function(path, component, value) {
-          path = this._.escapePath(path);
-          if (typeof value == "object") {
-            value = JSON.stringify(value);
-            value = encodeURIComponent(value);
-          }
-          return this._.request(this, "PUT", "component/" + path, 
-            {component: component, value: value});
-        },
-
-        // Get component
-        get: function(path, params, recv, err) {
-          path = this._.escapePath(path);
-          if (typeof data == "object") {
-            data = JSON.stringify(data);
-            data = encodeURIComponent(data);
-          }
-          return this._.request(this, "GET", "component/" + path, 
-            params, (msg) => {
-              recv(JSON.parse(msg));
-            }, err);
-        },
-
-        // Add component
-        add: function(path, component) {
-          path = this._.escapePath(path);
-          return this._.request(this, "PUT", "component/" + path, 
-            {component: component});
-        },
-
-        // Remove component
-        remove: function(path, component) {
-          path = this._.escapePath(path);
-          return this._.request(this, "DELETE", "component/" + path,
-            {component: component});
-        },
-
-        // Enable entity/component
-        enable: function(path, component) {
-          path = this._.escapePath(path);
-          return this._.request(this, "PUT", "toggle/" + path, {
-            enable: true, component: component
-          });
-        },
-
-        // Disable entity/component
-        disable: function(path, component) {
-          path = this._.escapePath(path);
-          return this._.request(this, "PUT", "toggle/" + path, {
-            enable: false, component: component
-          });
-        },
-
-        // Create entity
-        create: function(path) {
-          path = this._.escapePath(path);
-          return this._.request(this, "PUT", "entity/" + path, {});
-        },
-
-        // Delete entity
-        delete: function(path) {
-          path = this._.escapePath(path);
-          return this._.request(this, "DELETE", "entity/" + path, {});
-        },
-
-        // Get all entities in world
-        world: function(reply, err) {
-          return this._.request(this, "GET", "world", {}, reply, err);
-        },
-
-        // Update script code
-        scriptUpdate: function(path, code, params, recv, err) {
-          if (!params) params = {};
-          params.code = encodeURIComponent(code);
-          path = this._.escapePath(path);
-          return this._.request(this, "PUT", "script/" + path, params, 
-            (msg) => { 
-              if (!msg) { msg = "{}"; }
-              recv(JSON.parse(msg))
-            }, 
-            (msg) => { 
-              if (!msg) { msg = "{}"; }
-              err(JSON.parse(msg))
-            }
-          );
+            this, params, recv, err, params.poll_interval);
         },
 
         // Other REST endpoints
-        request: function(path, params, recv, err, abort) {
+        request: function(path, params, recv, err) {
           return this._.request(this, "GET", path, params, 
             (msg) => {
               if (recv) {
@@ -349,36 +200,25 @@ const flecs = {
                 err(JSON.parse(msg))
               }
             },
-            abort,
-            params.poll_interval_ms);
+            params.poll_interval);
         },
   
         // Private methods
         _: {
-          FlecsHttpRequest: undefined,
           requests: [],
 
           // Set status of connection
           setStatus(pub, status) {
             if (status != pub.status) {
-              pub.status = status;
+              this.status = status;
               if (pub.params.on_status) {
                 pub.params.on_status(status);
               }
             }
           },
-
-          // Escape entity path
-          escapePath(path) {
-            path = path.replaceAll("\\.", "@@");
-            path = path.replaceAll(".", "/");
-            path = path.replaceAll("@@", ".");
-            path = path.replaceAll("#", "%23");
-            return path;
-          },
   
           // Do HTTP request.
-          request: function(conn, method, path, params, recv, err, on_abort, poll_interval_ms) {
+          request: function(conn, method, path, params, recv, err, poll_interval) {
             // If this is a dryrun we're only returning the URL. Don't include the
             // dryrun parameter in the returned URL.
             let dryrun = false;
@@ -386,10 +226,6 @@ const flecs = {
             if (params.dryrun) {
               dryrun = true;
               delete params.dryrun;
-            }
-
-            if (params.managed) {
-              poll_interval_ms = conn.params.poll_interval_ms;
             }
         
             // Create the request object
@@ -400,51 +236,18 @@ const flecs = {
               conn: conn,
               request: undefined,
               method: method,
-              // relative URL so we can persist requests across connections
-              url: path + flecs._.paramStr(params), 
+              url: conn.params.host + "/" + path + flecs._.paramStr(params),
               recv: recv,
               err: err,
-              on_abort: on_abort,
-              poll_interval_ms: poll_interval_ms,
+              poll_interval: poll_interval,
               retry_interval_ms: conn.retry_interval_ms,
-              managed: params.managed,
-              persist: params.persist,
               retry_count: 0,
               aborted: false,
   
               // Do request
-              do() {
-                if (dryrun) {
-                  return;
-                }
-
-                if (!conn._.FlecsHttpRequest) {
-                  setTimeout(() => {
-                    this.do();
-                  }, 1000);
-                  return;
-                }
-
-                let url;
-                if (conn.mode == flecs.ConnectionMode.Remote) {
-                  url = conn.params.host;
-                  if (url.slice(0, 4) !== "http") {
-                    url = "http://" + url;
-                  }
-
-                  let portIndex = url.indexOf(":"); // first is protocol
-                  portIndex = url.indexOf(portIndex + 1, ":");
-                  if (portIndex == -1) {
-                    url += ":27750";
-                  }
-
-                  url += "/" + this.url;
-                } else {
-                  url = "/" + this.url;
-                }
-
-                this.request = conn._.FlecsHttpRequest();
-                this.request.open(this.method, url);
+              do(redo = false) {
+                this.request = new XMLHttpRequest();
+                this.request.open(this.method, this.url);
                 this.request.onreadystatechange = (reply) => {
                   if (this.request.readyState == 4) {
                     let requestOk = false;
@@ -466,15 +269,15 @@ const flecs = {
   
                       if (this.request.status < 200 || this.request.status >= 300) {
                         // Error status
-                        if (this.err && !this.aborted) {
+                        if (this.err) {
                           this.err(this.request.responseText);
                         }
                       } else {
                         requestOk = true;
 
                         // Request OK
-                        if (this.recv && !this.aborted) {
-                          this.recv(this.request.responseText, url);
+                        if (this.recv) {
+                          this.recv(this.request.responseText, this.url);
                         }
                       }
                     }
@@ -485,8 +288,6 @@ const flecs = {
   
                     // Poll if necessary
                     this._.poll(this);
-
-                    this.aborted = false;
                   }
                 };
   
@@ -498,20 +299,12 @@ const flecs = {
   
               // Redo the request
               redo() {
-                if (!this.aborted) {
-                  this.retry_interval_ms = this.conn.retry_interval_ms;
-                  this.do(true);
-                }
+                this.retry_interval_ms = this.conn.retry_interval_ms;
+                this.do(true);
               },
-
-              // Resume cancelled request
-              resume() {
-                this.aborted = false;
-                this.do();
-              },
-
-              // Cancel request
-              cancel() {
+  
+              // Abort request
+              abort() {
                 if (this.request) {
                   this.status = flecs.RequestStatus.Aborting;
                   this.request.abort();
@@ -519,31 +312,11 @@ const flecs = {
                 }
               },
   
-              // Abort request
-              abort(keepPersist = false) {
-                if (this.request) {
-                  this.cancel();
-
-                  if (this.managed) {
-                    if (!this.persist || !keepPersist) {
-                      this.conn.managedRequests = 
-                        this.conn.managedRequests.filter(item => item !== this);
-                    }
-                  }
-
-                  if (this.on_abort) {
-                    this.on_abort(this);
-                  }
-
-                  this.request = undefined;
-                }
-              },
-  
               // Private methods
               _: {
                 // Do polling if request has poll interval
                 poll(pub) {
-                  if (pub.poll_interval_ms && !pub.aborted) {
+                  if (pub.poll_interval && !pub.aborted) {
                     if (pub.status == flecs.RequestStatus.Done) {
                       // If this is a polling request and valid data was received,
                       // the request is alive.
@@ -553,20 +326,15 @@ const flecs = {
                     setTimeout(() => {
                       this.retry_count = 0;
                       pub.redo();
-                    }, pub.poll_interval_ms);
+                    }, pub.poll_interval);
                   }
                 },
   
                 // Handle request error
                 onError(pub) {
-                  if (pub.aborted) {
-                    this.status = flecs.RequestStatus.Aborted;
-                    return;
-                  }
-                
-                  if (pub.poll_interval_ms) {
+                  if (pub.poll_interval) {
                     // When this is a polling request don't bother with retrying
-                    const errMsg = `request to ${pub.conn.params.host} failed`;
+                    const errMsg = `request to ${pub.conn.host} failed`;
                     if (pub.err) pub.err(`{"error": \"${errMsg}\"}`);
                     return;
                   }
@@ -578,6 +346,12 @@ const flecs = {
                     console.error(errMsg);
                     if (pub.err) pub.err(`{"error": \"${errMsg}\"}`);
                     pub.retry_count = 0;
+                    return;
+                  }
+  
+                  if (pub.aborted) {
+                    this.status = flecs.RequestStatus.Aborted;
+                    console.log(`request to ${pub.conn.host} aborted`);
                     return;
                   }
   
@@ -606,11 +380,7 @@ const flecs = {
                 }
               }
             };
-
-            if (params.managed) {
-              conn.managedRequests.push(result);
-            }
-
+  
             // Do request
             result.do();
   
@@ -619,7 +389,7 @@ const flecs = {
           },
   
           // Do query request
-          requestQuery: function(conn, params, recv, err, on_abort, poll_interval_ms) {
+          requestQuery: function(conn, params, recv, err, poll_interval) {
             let endpoint = "query";
             let on_recv, on_err;
             if (recv) {
@@ -648,7 +418,7 @@ const flecs = {
             }
   
             return this.request(conn, "GET", endpoint, params, on_recv, on_err, 
-              on_abort, poll_interval_ms);
+              poll_interval);
           },
   
           // Start heartbeat request that monitors connection liveliness
@@ -656,15 +426,9 @@ const flecs = {
             this.setStatus(pub, flecs.ConnectionStatus.Initializing);
   
             this.connMgrRequest = pub.entity("flecs.core.World", 
-              {values: true, label: true, poll_interval_ms: 1000}, 
+              {values: true, label: true, poll_interval: 1000}, 
               (msg) => {
                 pub.worldInfo = msg;
-
-                if (pub.status !== flecs.ConnectionStatus.Connected) {
-                  for (let r of pub.managedRequests) {
-                    r.resume();
-                  }
-                }
 
                 this.setStatus(pub, flecs.ConnectionStatus.Connected);
 
@@ -672,98 +436,15 @@ const flecs = {
                   pub.params.on_heartbeat(msg);
                 }
               }, (err) => {
-                if (pub.status == flecs.ConnectionStatus.Initializing) {
-                  if (pub.params.on_fallback) {
-                    pub.disconnect();
-                    if (pub.params.on_fallback) {
-                      pub.params.on_fallback();
-                    }
-                  }
-                }
-
-                if (pub.status == flecs.ConnectionStatus.Connected) {
-                  this.setStatus(pub, flecs.ConnectionStatus.RetryConnecting);
-                }
+                this.setStatus(pub, flecs.ConnectionStatus.RetryConnecting);
               });
           },
 
           // Stop monitoring heartbeats
           stopConnMgr(pub) {
-            if (this.connMgrRequest) {
-              this.connMgrRequest.abort();
-              this.setStatus(pub, flecs.ConnectionStatus.Disconnected);
-              this.connMgrRequest = undefined;
-              pub.worldInfo = undefined;
-            }
-          },
-
-          wasmModuleLoaded(wasm_url) {
-            const conn_priv = this;
-            const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
-            wasm_module = Function(`return ` + name + `;`)();
-            wasm_module().then(function(Module) {
-              let nativeRequest = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string']);
-              flecs.captureKeyboardEvents = Module.sokol_capture_keyboard_events;
-              if (flecs.captureKeyboardEvents) {
-                Module.sokol_capture_keyboard_events(false);
-                flecs.has3DCanvas = true;
-              }
-
-              conn_priv.FlecsHttpRequest = function() {
-                return {
-                  method: undefined,
-                  url: undefined,
-                  handler: undefined,
-                  status: 200,
-                  readyState: 4,
-                  onreadystatechange: undefined,
-
-                  open(method, url) {
-                    this.method = method;
-                    this.url = url;
-                  },
-
-                  send() {
-                    const reply = nativeRequest(this.method, this.url);
-                    this.responseText = reply;
-
-                    // Check for errors, in which case we must set the status
-                    if (reply) {
-                      const replyObj = JSON.parse(reply);
-                      if (replyObj.error) {
-                        this.status = replyObj.status;
-                      }
-                    }
-
-                    if (this.onreadystatechange) {
-                      this.onreadystatechange(reply);
-                    }
-                  },
-
-                  abort() {}
-                };
-              };
-            });
-          },
-
-          loadWasmModule(wasm_url, onReady) {
-            let js_url = wasm_url.slice(0, wasm_url.length - 5) + ".js";
-            const oldEl = document.getElementById("wasm-module");
-            if (oldEl) {
-              oldEl.remove();
-            }
-            
-            const scriptEl = document.createElement("script");
-            scriptEl.id = "wasm-module";
-            scriptEl.onload = () => {
-              this.wasmModuleLoaded(js_url, onReady);
-            };
-            scriptEl.onerror = () => {
-              console.error(`failed to load wasm module ${wasm_url}`);
-            };
-            scriptEl.src = js_url;
-          
-            document.head.appendChild(scriptEl);
+            this.connMgrRequest.abort();
+            this.setStatus(pub, flecs.ConnectionStatus.Disconnected);
+            pub.worldInfo = undefined;
           }
         }
       };
@@ -776,7 +457,7 @@ const flecs = {
       if (params) {
         for (var k in params) {
           // Ignore client-side only parameters
-          if (k === "poll_interval_ms" || k === "host" || k === "managed" || k === "persist") {
+          if (k === "raw" || k === "full_paths" || k === "poll_interval" || k === "host") {
             continue;
           }
           if (params[k] !== undefined) {
@@ -791,6 +472,6 @@ const flecs = {
         }
       }
       return url_params;
-    }
+    },
   },
 };
