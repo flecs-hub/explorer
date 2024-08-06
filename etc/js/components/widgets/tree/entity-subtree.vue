@@ -41,6 +41,7 @@ const lineIndent = computed(() => {
 });
 
 function selectItem(evt) {
+  console.log(evt);
   emit('select', evt);
 }
 
@@ -113,7 +114,7 @@ function updateQuery() {
         const name = item.name + "";
         const name_esc = name.replaceAll(".", "\\.");
         let path = name_esc;
-        if (item.parent) {
+        if (item.parent && name[0] != '#') {
           path = item.parent + "." + name_esc
         }
 
