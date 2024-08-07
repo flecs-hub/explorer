@@ -206,10 +206,6 @@ void FlecsSystemsPhysicsImport(
     ECS_SYSTEM(world, EcsUpdateSpatialQuery, EcsPreUpdate, 
         SpatialQuery(self, *), ?Prefab);
 
-    ecs_system(world, { .entity = EcsMove2,   .query.flags = EcsQueryIsInstanced });
-    ecs_system(world, { .entity = EcsMove3,   .query.flags = EcsQueryIsInstanced });
-    ecs_system(world, { .entity = EcsRotate3, .query.flags = EcsQueryIsInstanced });
-
     ecs_add_pair(world, ecs_id(EcsVelocity2), 
         EcsWith, ecs_id(EcsPosition2));
     ecs_add_pair(world, ecs_id(EcsVelocity3), 
@@ -709,7 +705,6 @@ ecs_squery_t* ecs_squery_new(
             { ecs_id(EcsBox) },
             { filter, .inout = EcsIn }
         },
-        .flags = EcsQueryIsInstanced,
         .cache_kind = EcsQueryCacheAuto
     });
 

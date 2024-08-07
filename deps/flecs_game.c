@@ -209,15 +209,15 @@ void ParticleEmit(ecs_iter_t *it) {
     EcsBox *box = ecs_field(it, EcsBox, 1);
 
     for (int i = 0; i < it->count; i ++) {
-        e[i].t += it->delta_time;
-        if (e[i].t > e[i].spawn_interval) {
-            e[i].t -= e[i].spawn_interval;
+        e->t += it->delta_time;
+        if (e->t > e->spawn_interval) {
+            e->t -= e->spawn_interval;
 
             ecs_entity_t p = ecs_insert(it->world, 
                 {ecs_childof(it->entities[i])},
-                {ecs_isa(e[i].particle)},
+                {ecs_isa(e->particle)},
                 ecs_value(EcsParticle, {
-                    .t = e[i].lifespan
+                    .t = e->lifespan
                 }));
 
             if (box) {
@@ -250,9 +250,9 @@ void ParticleProgress(ecs_iter_t *it) {
 
     if (box) {
         for (int i = 0; i < it->count; i ++) {
-            box[i].width *= pow(e[i].size_decay, it->delta_time);
-            box[i].height *= pow(e[i].size_decay, it->delta_time);
-            box[i].depth *= pow(e[i].size_decay, it->delta_time);
+            box[i].width *= pow(e->size_decay, it->delta_time);
+            box[i].height *= pow(e->size_decay, it->delta_time);
+            box[i].depth *= pow(e->size_decay, it->delta_time);
 
             if ((box[i].width + box[i].height + box[i].depth) < 0.1) {
                 ecs_delete(it->world, it->entities[i]);
@@ -261,16 +261,16 @@ void ParticleProgress(ecs_iter_t *it) {
     }
     if (color) {
         for (int i = 0; i < it->count; i ++) {
-            color[i].r *= pow(e[i].color_decay, it->delta_time);
-            color[i].g *= pow(e[i].color_decay, it->delta_time);
-            color[i].b *= pow(e[i].color_decay, it->delta_time);
+            color[i].r *= pow(e->color_decay, it->delta_time);
+            color[i].g *= pow(e->color_decay, it->delta_time);
+            color[i].b *= pow(e->color_decay, it->delta_time);
         } 
     }
     if (vel) {
         for (int i = 0; i < it->count; i ++) {
-            vel[i].x *= pow(e[i].velocity_decay, it->delta_time);
-            vel[i].y *= pow(e[i].velocity_decay, it->delta_time);
-            vel[i].z *= pow(e[i].velocity_decay, it->delta_time);
+            vel[i].x *= pow(e->velocity_decay, it->delta_time);
+            vel[i].y *= pow(e->velocity_decay, it->delta_time);
+            vel[i].z *= pow(e->velocity_decay, it->delta_time);
         }
     }
 }

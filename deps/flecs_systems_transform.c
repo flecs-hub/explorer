@@ -96,8 +96,7 @@ void FlecsSystemsTransformImport(
                 .id = ecs_id(EcsScale3),
                 .inout = EcsIn,
                 .oper = EcsOptional
-            }},
-            .flags = EcsQueryIsInstanced
+            }}
         },
         .run = EcsApplyTransform3
     });
