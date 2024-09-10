@@ -41,7 +41,6 @@ const lineIndent = computed(() => {
 });
 
 function selectItem(evt) {
-  console.log(evt);
   emit('select', evt);
 }
 
