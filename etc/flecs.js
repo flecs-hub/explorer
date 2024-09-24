@@ -370,6 +370,7 @@ const flecs = {
 
           // Escape entity path
           escapePath(path) {
+            path = path.replaceAll("/", "%5C%2F");
             path = path.replaceAll("\\.", "@@");
             path = path.replaceAll(".", "/");
             path = path.replaceAll("@@", ".");
