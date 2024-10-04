@@ -208,7 +208,12 @@ const autoComplete = (prop) => {
         i ++;
       }
       lines[row] = line.slice(0, i);
-      lines[row] += prop.name;
+      
+      let propName = prop.name;
+      if (prop.parent && prop.parent !== "flecs.core") {
+        propName = prop.parent + "." + prop.name;
+      }
+      lines[row] += propName;
       break;
     }
   }
