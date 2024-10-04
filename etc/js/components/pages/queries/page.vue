@@ -2,7 +2,8 @@
   <div id="page-queries" class="page-content">
     <pane-query
       v-model:app_params="app_params"
-      :conn="conn">
+      :conn="conn"
+      v-if="app_params.sidebar">
     </pane-query>
 
     <pane-inspect
@@ -56,7 +57,6 @@ div.queries-left-pane {
 }
 
 div.queries-right-pane {
-  grid-column: 2;
   grid-row: 1;
   height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
 }

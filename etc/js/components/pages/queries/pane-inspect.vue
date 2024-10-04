@@ -1,5 +1,5 @@
 <template>
-  <div id="pane-inspect" class="queries-right-pane pane">
+  <div id="pane-inspect" :class="`queries-right-pane pane ${gridColumnClass}`">
     <tabs :items="['table', 'json', 'api', 'inspect']" 
         v-model:active_tab="app_params.query.inspect_tab"
         class="inspect-tab-content">
@@ -58,6 +58,14 @@ const request = ref(undefined);
 
 const query = computed(() => {
   return props.app_params.query;
+});
+
+const gridColumnClass = computed(() => {
+  if (props.app_params.sidebar) {
+    return "pane-normal";
+  } else {
+    return "pane-maximized";
+  }
 });
 
 const doRequest = () => {
@@ -134,6 +142,24 @@ div.pane-inspect {
 
 div.pane-inspect-hide {
   display: none;
+}
+
+div.pane-normal {
+  grid-column: 2;
+}
+
+div.pane-maximized {
+  grid-column: 1 / 3;
+}
+
+@media screen and (max-width: 800px) {
+  div.pane-normal {
+    grid-column: 1;
+  }
+
+  div.pane-maximized {
+    grid-column: 1;
+  }
 }
 </style>
 
