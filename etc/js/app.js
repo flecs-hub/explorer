@@ -114,6 +114,7 @@ let components = [
   loadModule('js/components/widgets/dropdown.vue', options),
   loadModule('js/components/widgets/detail-toggle.vue', options),
   loadModule('js/components/widgets/scene-canvas.vue', options),
+  loadModule('js/components/widgets/canvas-container.vue', options),
   loadModule('js/components/widgets/terminal-color-pre.vue', options),
   loadModule('js/components/icon.vue', options),
   loadModule('js/components/toggle.vue', options),

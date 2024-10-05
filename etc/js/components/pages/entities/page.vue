@@ -7,8 +7,7 @@
       @entityOpen="onEntityOpen"
       v-if="app_params.sidebar">
     </pane-tree>
-    <div :class="canvasCss" :style="`grid-column: ${canvasColumn}`">
-      <scene-canvas></scene-canvas>
+    <div id="canvasPlaceholder" :class="canvasCss" :style="`grid-column: ${canvasColumn}`">
     </div>
     <div :class="scriptCss" :style="`grid-column: ${scriptColumn}`">
       <pane-scripts
