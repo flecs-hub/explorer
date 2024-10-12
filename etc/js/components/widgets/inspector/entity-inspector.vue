@@ -30,6 +30,9 @@
       </template>
 
       <template v-if="expand">
+        <div class="entity-inspector-brief" v-if="entityBrief">
+          <span>{{ entityBrief }}</span>
+        </div>
         <div class="entity-inspector-buttons">
           <button @click="onDisable" v-if="!isDisabled" class="enable-button">
             Disable
@@ -109,6 +112,7 @@ const entityQuery = ref();
 const entityQueryResult = ref();
 const entityModules = ref([]);
 const entityLabel = ref();
+const entityBrief = ref();
 const entityId = ref();
 const expand = ref(false);
 const isDisabled = ref(false);
@@ -248,6 +252,16 @@ function updateQuery() {
             }
           }
 
+          // Extract entity brief
+          entityBrief.value = undefined;
+          if (reply.components) {
+            let docBrief = reply.components[
+              "(flecs.doc.Description,flecs.doc.Brief)"];
+            if (docBrief) {
+              entityBrief.value = docBrief.value;
+            }
+          }
+
           // Extract whether entity is disabled
           isDisabled.value = false;
           if (reply.tags) {
@@ -350,6 +364,11 @@ span.entity-inspector-actual-name {
   font-weight: 300;
   color: var(--secondary-text);
   margin-top: 0.25em;
+}
+
+div.entity-inspector-brief {
+  padding-top: 4px;
+  color: var(--secondary-text);
 }
 
 div.entity-inspector-modules {
