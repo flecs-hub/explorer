@@ -163,7 +163,7 @@ const inspectorColumn = computed(() => {
 }
 
 #page-entities.page-entities-show-sidebar.page-entities-show-inspector {
-  grid-template-columns: 300px calc(100% - 300px - 450px - 2 * var(--gap)) 450px !important;
+  grid-template-columns: 300px calc(100% - 300px - 500px - 2 * var(--gap)) 500px !important;
 }
 
 #page-entities:not(.page-entities-show-sidebar).page-entities-show-inspector {
