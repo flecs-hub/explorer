@@ -26,7 +26,7 @@
             {{ name }}&nbsp;<icon src="arrow-right" 
               :opacity="0.5" 
               :size="16">
-            </icon>&nbsp;{{ shortenEntity(targets) }}
+            </icon>&nbsp;<span>{{ shortenEntity(targets) }}</span>
           </template>
           <template v-else>
             {{ name }}
@@ -177,7 +177,10 @@ const nameIsPair = computed(() => {
 });
 
 function shortenEntity(entity) {
-  return entity.split(".").pop();
+  let escaped = entity.replaceAll("\\.", "@@");
+  escaped = escaped.split(".").pop();
+  escaped = escaped.replaceAll("@@", ".");
+  return escaped;
 }
 
 function removeComponent() {
