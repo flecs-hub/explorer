@@ -46,10 +46,10 @@
 
         <template v-if="base">
           <template v-if="!value">
-            <span class="component-base-name">{{ base }}</span>
+            <span class="component-base-name">{{ shortenEntity( base ) }}</span>
           </template>
           <template v-else-if="expand">
-            <span class="component-base-name">{{ base }}</span>
+            <span class="component-base-name">{{ shortenEntity( base ) }}</span>
           </template>
         </template>
       </div>
