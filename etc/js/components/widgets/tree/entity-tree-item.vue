@@ -11,7 +11,7 @@
       </div>
       <div class="entity-tree-item-name noselect">
         <span>
-          {{ itemName }}<template v-if="item.baseEntity"><span class="entity-tree-item-base">&nbsp;:&nbsp;{{ item.baseEntity }}</span></template>
+          {{ itemName }}<template v-if="item.baseEntity"><span class="entity-tree-item-base">&nbsp;:&nbsp;{{ shortenEntity(item.baseEntity) }}</span></template>
         </span>
       </div>
     </div>
@@ -99,6 +99,10 @@ const chevronRotation = computed(() => {
     return 0;
   }
 });
+
+function shortenEntity(entity) {
+  return explorer.shortenEntity(entity);
+}
 
 </script>
 

@@ -177,10 +177,7 @@ const nameIsPair = computed(() => {
 });
 
 function shortenEntity(entity) {
-  let escaped = entity.replaceAll("\\.", "@@");
-  escaped = escaped.split(".").pop();
-  escaped = escaped.replaceAll("@@", ".");
-  return escaped;
+  return explorer.shortenEntity(entity);
 }
 
 function removeComponent() {
