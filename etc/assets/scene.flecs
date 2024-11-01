@@ -73,7 +73,7 @@ template Lantern {
   }
 
   LanternLight : materials.Light {
-    Position3: {0, -0.1, -0.4}
+    Position3: {0, -0.1, -0.45}
     Box: {0.2, 0.2, 0.2}
   }
 }
