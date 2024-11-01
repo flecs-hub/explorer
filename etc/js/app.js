@@ -244,7 +244,7 @@ Promise.all(components).then((values) => {
         // Copy heartbeat to reactive properties
         on_heartbeat: function(msg) {
           if (msg.components) {
-            let lbl = msg.components["(Description,Name)"];
+            let lbl = msg.components["(flecs.doc.Description,flecs.core.Name)"];
             if (lbl) {
               this.app_state.app_name = lbl.value;
             }
