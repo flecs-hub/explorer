@@ -50,8 +50,4 @@ function onOpenScript() {
 
 <style scoped>
 
-div.entity-inspector-components {
-  padding-top: 8px;
-}
-
 </style>

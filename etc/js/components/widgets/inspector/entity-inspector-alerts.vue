@@ -48,6 +48,7 @@ div.entity-inspector-alerts {
 
 div.entity-inspector-alert {
   padding: 8px;
+  padding-top: 0px;
   border-radius: var(--border-radius-medium);
   border-style: solid;
   border-width: 1px;

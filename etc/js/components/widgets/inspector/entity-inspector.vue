@@ -53,43 +53,45 @@
         v-model:active_item="inspectorMode">
       </dropdown>
 
-      <template v-if="inspectorMode == 'Components'">
-        <entity-inspector-components
-          :conn="conn"
-          :path="path"
-          :entityQueryResult="entityQueryResult"
-          :isScript="isScript"
-          :entityModules="entityModules"
-          @scriptOpen="onOpenScript">
-        </entity-inspector-components>
-      </template>
-      <template v-else-if="inspectorMode == 'Matched by'">
-        <entity-inspector-matched-by
-          :conn="conn"
-          :path="path"
-          :entityQueryResult="entityQueryResult">
-        </entity-inspector-matched-by>
-      </template>
-      <template v-else-if="inspectorMode == 'Referenced by'">
-        <entity-inspector-refs
-          :conn="conn"
-          :path="path"
-          :entityQueryResult="entityQueryResult">
-        </entity-inspector-refs>
-      </template>
-      <template v-else-if="inspectorMode == 'Alerts'">
-        <entity-inspector-alerts
-          :conn="conn"
-          :path="path"
-          :entityQueryResult="entityQueryResult">
-        </entity-inspector-alerts>
-      </template>
-      <template v-else-if="inspectorMode == 'Script AST'">
-        <entity-inspector-script-ast
-          :conn="conn"
-          :path="path">
-        </entity-inspector-script-ast>
-      </template>
+      <div class="entity-inspector-content">
+        <template v-if="inspectorMode == 'Components'">
+          <entity-inspector-components
+            :conn="conn"
+            :path="path"
+            :entityQueryResult="entityQueryResult"
+            :isScript="isScript"
+            :entityModules="entityModules"
+            @scriptOpen="onOpenScript">
+          </entity-inspector-components>
+        </template>
+        <template v-else-if="inspectorMode == 'Matched by'">
+          <entity-inspector-matched-by
+            :conn="conn"
+            :path="path"
+            :entityQueryResult="entityQueryResult">
+          </entity-inspector-matched-by>
+        </template>
+        <template v-else-if="inspectorMode == 'Referenced by'">
+          <entity-inspector-refs
+            :conn="conn"
+            :path="path"
+            :entityQueryResult="entityQueryResult">
+          </entity-inspector-refs>
+        </template>
+        <template v-else-if="inspectorMode == 'Alerts'">
+          <entity-inspector-alerts
+            :conn="conn"
+            :path="path"
+            :entityQueryResult="entityQueryResult">
+          </entity-inspector-alerts>
+        </template>
+        <template v-else-if="inspectorMode == 'Script AST'">
+          <entity-inspector-script-ast
+            :conn="conn"
+            :path="path">
+          </entity-inspector-script-ast>
+        </template>
+      </div>
     </template>
   </div>
 </template>
@@ -344,7 +346,9 @@ function onOpenScript() {
 div.entity-inspector {
   position: relative;
   display: grid;
+  grid-template-rows: 1rem 2rem 1rem 2rem calc(100% - 6rem);
   padding: 8px;
+  height: calc(100% - 1.0rem);
 }
 
 span.entity-inspector-id {
@@ -435,6 +439,12 @@ button.entity-inspector-button {
 
 div.entity-inspector-button:hover, button.entity-inspector-button:hover {
   background-color: var(--bg-button-hover);
+}
+
+div.entity-inspector-content {
+  height: calc(100% - 1rem);
+  overflow-y: auto;
+  margin-top: 8px;
 }
 
 </style>

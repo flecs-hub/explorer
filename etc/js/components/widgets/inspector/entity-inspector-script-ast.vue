@@ -39,4 +39,8 @@ onMounted(() => {
 
 <style scoped>
 
+div.entity-inspector-script-ast {
+  overflow-x: auto;
+}
+
 </style>

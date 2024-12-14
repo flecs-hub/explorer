@@ -34,10 +34,6 @@ const props = defineProps({
 
 <style scoped>
 
-div.entity-inspector-refs {
-  padding-top: 8px;
-}
-
 div.entity-inspector-ref {
   padding-left: 4px;
   padding-bottom: 8px;

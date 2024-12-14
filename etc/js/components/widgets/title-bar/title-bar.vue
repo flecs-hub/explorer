@@ -59,7 +59,7 @@ const app_params = defineModel("app_params");
 
 div.title-bar {
   display: grid;
-  grid-template-columns: 2.5rem auto 1fr 30rem 1fr auto auto 0.0rem;
+  grid-template-columns: 2.5rem auto 1fr 35rem 1fr auto auto 0.0rem;
   gap: var(--gap);
   font-size: 0.9rem;
 }
@@ -104,13 +104,26 @@ div.title-info-right-2 {
   grid-column: 7;
 }
 
+@media screen and (max-width: 1024px) {
+  div.title-bar {
+    grid-template-columns: 2.5rem auto 1fr 22rem 1fr auto auto 0.0rem;
+  }
+}
+
 @media screen and (max-width: 800px) {
   div.title-bar {
-    display: grid;
-    grid-template-columns: 2.5rem 0px 1fr 0px;
+    grid-template-columns: 2.5rem 0rem 0rem 1fr 0rem 1.5rem auto 0.0rem;
   }
 
-  div.title-info-right {
+  div.title-info-right-1 {
+    display: none;
+  }
+
+  div.title-bar-v3 {
+    display: none;
+  }
+
+  div.title-bar-controls {
     display: none;
   }
 }

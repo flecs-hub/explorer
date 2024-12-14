@@ -29,6 +29,7 @@ const props = defineProps({
 
 div.entity-inspector-matched-by {
   padding: 8px;
+  padding-top: 0px;
 }
 
 div.entity-inspector-match {

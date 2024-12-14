@@ -4,9 +4,9 @@
 // For C/C++ examples and docs go to:
 //  https://github.com/SanderMertens/flecs
 
+using flecs.script.*
 using flecs.components.*
 using flecs.game
-const PI = 3.1415926
 
 materials {
   prefab Stone {
@@ -112,7 +112,7 @@ template House {
 
   Attic : materials.Wood {
     const w_half_pow = 0.5 * ($width * $width)
-    const attic_height = $w_half_pow.sqrt()
+    const attic_height = sqrt($w_half_pow)
     Position3: {0, $height, 0}
     Rotation3: {0, 0, $PI / 4}
     Box: {$attic_height, $attic_height, $width * 0.9}
@@ -123,7 +123,7 @@ template House {
     const w_half = ($overshoot + $width) / 2
     const w_quart = ($overshoot + $width) / 4
     const w_roof_sqr = $w_half * $w_half + $w_half * $w_half
-    const roof_length = $w_roof_sqr.sqrt()
+    const roof_length = sqrt($w_roof_sqr)
 
     Left : materials.Wood {
       Position3: {-$w_quart, $w_quart + $height - 0.5 * $overshoot, 0}

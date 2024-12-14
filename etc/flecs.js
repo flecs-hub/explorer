@@ -332,7 +332,9 @@ const flecs = {
             }, 
             (msg) => { 
               if (!msg) { msg = "{}"; }
-              err(JSON.parse(msg))
+              if (err) {
+                err(JSON.parse(msg))
+              }
             }
           );
         },
