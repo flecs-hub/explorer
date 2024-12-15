@@ -29125,7 +29125,7 @@ SOKOL_API_IMPL sg_context_desc sapp_sgcontext(void) {
 #define SOKOL_MAX_FX_OUTPUTS (8)
 #define SOKOL_MAX_FX_PASS (8)
 #define SOKOL_MAX_FX_PARAMS (32)
-#define SOKOL_SHADOW_MAP_SIZE (2048)
+#define SOKOL_SHADOW_MAP_SIZE (8192)
 #define SOKOL_DEFAULT_DEPTH_NEAR (2.0)
 #define SOKOL_DEFAULT_DEPTH_FAR (2500.0)
 #define SOKOL_MAX_LIGHTS (32)
@@ -32751,15 +32751,33 @@ static
 void SokolRegisterMaterial(ecs_iter_t *it) {
     static uint16_t next_material = 1; /* 0 is the default material */
 
+    ecs_vec_t *material_free_list = it->ctx;
+
     int i;
     for (i = 0; i < it->count; i ++) {
-        ecs_set(it->world, it->entities[i], SokolMaterialId, {
-            next_material ++ /* Assign material id */
-        });
+        uint16_t material_id;
+        if (ecs_vec_count(material_free_list)) {
+            material_id = ecs_vec_get_t(material_free_list, uint16_t, 0)[0];
+        } else {
+            material_id = next_material ++;
+        }
+        
+        ecs_set(it->world, it->entities[i], SokolMaterialId, { material_id });
     }
 
     ecs_assert(next_material < SOKOL_MAX_MATERIALS, 
         ECS_INVALID_PARAMETER, NULL);
+}
+
+static
+void SokolOnMaterialRemove(ecs_iter_t *it) {
+    SokolMaterialId *m = ecs_field(it, SokolMaterialId, 0);
+
+    ecs_vec_t *material_free_list = it->ctx;
+
+    for (int i = 0; i < it->count; i ++) {
+        ecs_vec_append_t(NULL, material_free_list, uint16_t)[0] = m[i].value;
+    }
 }
 
 void FlecsSystemsSokolMaterialsImport(
@@ -32809,6 +32827,23 @@ void FlecsSystemsSokolMaterialsImport(
         [in]   flecs.components.graphics.Specular(self) || 
                flecs.components.graphics.Emissive(self),
                ?Prefab);
+
+    /* Vector used to track free material ids */
+    ecs_vec_t *material_free_list = ecs_os_calloc_t(ecs_vec_t);
+    ecs_vec_init_t(NULL, material_free_list, uint16_t, 0);
+
+    ecs_system(world, {
+        .entity = ecs_id(SokolRegisterMaterial),
+        .ctx = material_free_list
+    });
+
+    ECS_OBSERVER(world, SokolOnMaterialRemove, EcsOnRemove,
+        flecs.systems.sokol.MaterialId);
+
+    ecs_observer(world, {
+        .entity = ecs_id(SokolOnMaterialRemove),
+        .ctx = material_free_list
+    });
 }
 
 #include "math.h"
@@ -33233,6 +33268,17 @@ void SokolRender(ecs_iter_t *it) {
     if (canvas->camera) {
         state.camera = ecs_get(world, canvas->camera, EcsCamera);
         r->camera = canvas->camera;
+
+        float camera_y_offset = state.camera->position[1] - state.uniforms.shadow_far / 2;
+        if (camera_y_offset < 0) {
+            camera_y_offset = 0;
+        }
+
+        /* Increase shadow distance with camera height */
+        state.uniforms.shadow_far = glm_max(
+            state.uniforms.shadow_far, pow(camera_y_offset, 1.4));
+        state.uniforms.shadow_far = glm_min(state.uniforms.shadow_far,
+            state.camera->far_);
     }
 
     /* Get atmosphere settings */

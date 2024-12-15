@@ -10,6 +10,8 @@ ECS_MOVE(EcsSpatialQuery, dst, src, {
         ecs_squery_free(dst->query);
     }
 
+    ecs_os_memcpy_t(dst->center, src->center, vec3);
+    dst->size = src->size;
     dst->query = src->query;
     src->query = NULL;
 })

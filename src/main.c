@@ -26,6 +26,7 @@ int main(void) {
 
     ECS_IMPORT(world, FlecsUnits);
     ECS_IMPORT(world, FlecsScript);
+    ECS_IMPORT(world, FlecsScriptMath);
     ECS_IMPORT(world, FlecsComponentsTransform);
     ECS_IMPORT(world, FlecsComponentsGeometry);
     ECS_IMPORT(world, FlecsComponentsGui);

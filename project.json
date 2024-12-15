@@ -17,6 +17,7 @@
         "standalone": true
     },
     "lang.c": {
+        "defines": ["FLECS_SCRIPT_MATH"],
         "${os linux}": {
             "lib": ["rt", "pthread", "m"]
         },

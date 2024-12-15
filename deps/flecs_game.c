@@ -59,6 +59,7 @@ ecs_entity_t get_prefab(
     ecs_entity_t result = prefab;
     if (ecs_has(world, prefab, EcsScript) && ecs_has(world, prefab, EcsComponent)) {
         result = ecs_new(world);
+        ecs_add_pair(world, result, EcsChildOf, parent);
         ecs_add_id(world, result, EcsPrefab);
         ecs_add_id(world, result, prefab);
     }
@@ -69,6 +70,7 @@ ecs_entity_t get_prefab(
 static
 ecs_entity_t generate_tile(
     ecs_world_t *world,
+    ecs_entity_t parent,
     const EcsGrid *grid,
     float xc,
     float yc,
@@ -98,8 +100,9 @@ ecs_entity_t generate_tile(
             }
         }
     }
-
-    ecs_entity_t inst = ecs_new_w_pair(world, EcsIsA, slot);
+    
+    ecs_entity_t inst = ecs_new_w_pair(world, EcsChildOf, parent);
+    ecs_add_pair(world, inst, EcsIsA, slot);
     ecs_set(world, inst, EcsPosition3, {xc, yc, zc});
     return inst;
 }
@@ -136,8 +139,6 @@ void generate_grid(
     params.y_var = grid->y.variation;
     params.z_var = grid->z.variation;
 
-    ecs_entity_t old_scope = ecs_set_scope(world, parent);
-
     ecs_entity_t prefab = grid->prefab;
     params.variations_total = 0;
     params.variations_count = 0;
@@ -166,7 +167,7 @@ void generate_grid(
                     float xc = (float)x * params.x_spacing - params.x_half;
                     float yc = (float)y * params.y_spacing - params.y_half;
                     float zc = (float)z * params.z_spacing - params.z_half;
-                    generate_tile(world, grid, xc, yc, zc, &params);
+                    generate_tile(world, parent, grid, xc, yc, zc, &params);
                 }
             }
         }
@@ -174,22 +175,20 @@ void generate_grid(
         for (int32_t x = 0; x < params.x_count; x ++) {
             float xc = (float)x * params.x_spacing - params.x_half;
             float zc = grid->border.z / 2 + grid->border_offset.z;
-            generate_tile(world, grid, xc, 0, -zc, &params);
-            generate_tile(world, grid, xc, 0, zc, &params);
+            generate_tile(world, parent, grid, xc, 0, -zc, &params);
+            generate_tile(world, parent, grid, xc, 0, zc, &params);
         }
 
         for (int32_t x = 0; x < params.z_count; x ++) {
             float xc = grid->border.x / 2 + grid->border_offset.x;
             float zc = (float)x * params.z_spacing - params.z_half;
             ecs_entity_t inst;
-            inst = generate_tile(world, grid, xc, 0, zc, &params);
+            inst = generate_tile(world, parent, grid, xc, 0, zc, &params);
             ecs_set(world, inst, EcsRotation3, {0, GLM_PI / 2, 0});
-            inst = generate_tile(world, grid, -xc, 0, zc, &params);
+            inst = generate_tile(world, parent, grid, -xc, 0, zc, &params);
             ecs_set(world, inst, EcsRotation3, {0, GLM_PI / 2, 0});
         }
     }
-
-    ecs_set_scope(world, old_scope);
 }
 
 static
@@ -197,7 +196,7 @@ void SetGrid(ecs_iter_t *it) {
     EcsGrid *grid = ecs_field(it, EcsGrid, 0);
 
     for (int i = 0; i < it->count; i ++) {
-        ecs_entity_t g = it->entities[0];
+        ecs_entity_t g = it->entities[i];
         ecs_delete_with(it->world, ecs_pair(EcsChildOf, g));
         generate_grid(it->world, g, &grid[i]);
     }
@@ -669,8 +668,7 @@ void LightControllerTimeOfDay(ecs_iter_t *it) {
             glm_vec3_copy(day, sun_color);
         }
 
-        /* increase just before sunrise/after sunset*/
-        float intensity = t_sin + 0.07;
+        float intensity = t_sin;
         if (intensity < 0) {
             intensity = 0;
         }
