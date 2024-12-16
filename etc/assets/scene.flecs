@@ -8,14 +8,14 @@ using flecs.components.*
 
 template FencePost {
   prop x = f32: 0
-  Position3: {$x, 1}; 
+  Position3: {$x, 1}
   Box: {0.5, 2, 0.5}
 }
 
 template FenceBoard {
   prop width = f32: 10
   prop y = f32: 1
-  Position3: {0, $y}; 
+  Position3: {0, $y}
   Box: {$width, 0.5, 0.2}
 }
 
