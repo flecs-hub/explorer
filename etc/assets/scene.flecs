@@ -21,7 +21,7 @@ template FenceBoard {
 
 template Fence {
   prop width = f32: 10
-  const post_count = i32: $width / 3
+  const post_count = i32: 2 + $width / 5
   const post_spacing = $width / ($post_count - 1)
   
   with Rgb(0.15, 0.1, 0.05) {
