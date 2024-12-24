@@ -3992,8 +3992,28 @@ FLECS_API
 int32_t flecs_poly_refcount(
     ecs_poly_t *poly);
 
+FLECS_API
+int32_t flecs_component_ids_index_get(void);
+
+FLECS_API
+ecs_entity_t flecs_component_ids_get(
+    const ecs_world_t *world, 
+    int32_t index);
+
+FLECS_API
+ecs_entity_t flecs_component_ids_get_alive(
+    const ecs_world_t *stage_world, 
+    int32_t index);
+
+FLECS_API
+void flecs_component_ids_set(
+    ecs_world_t *world, 
+    int32_t index,
+    ecs_entity_t id);
+
 #define flecs_poly_claim(poly) \
     flecs_poly_claim_(ECS_CONST_CAST(void*, reinterpret_cast<const void*>(poly)))
+
 #define flecs_poly_release(poly) \
     flecs_poly_release_(ECS_CONST_CAST(void*, reinterpret_cast<const void*>(poly)))
 
@@ -8135,6 +8155,19 @@ const char* ecs_query_args_parse(
 FLECS_API
 bool ecs_query_changed(
     ecs_query_t *query);
+
+/** Get query object.
+ * Returns the query object. Can be used to access various information about
+ * the query.
+ *
+ * @param world The world.
+ * @param query The query.
+ * @return The query object.
+ */
+FLECS_API
+const ecs_query_t* ecs_query_get(
+    const ecs_world_t *world,
+    ecs_entity_t query);
 
 /** Skip a table while iterating.
  * This operation lets the query iterator know that a table was skipped while
@@ -14242,6 +14275,15 @@ void FlecsUnitsImport(
 extern "C" {
 #endif
 
+FLECS_API
+extern ECS_COMPONENT_DECLARE(EcsScriptRng);
+
+/* Randon number generator */
+typedef struct {
+    uint64_t seed;
+    void *impl;
+} EcsScriptRng;
+
 /** Script math import function.
  * Usage:
  * @code
@@ -14328,12 +14370,15 @@ typedef struct ecs_script_var_t {
     const char *name;
     ecs_value_t value;
     const ecs_type_info_t *type_info;
+    int32_t sp;
     bool is_const;
 } ecs_script_var_t;
 
 /** Script variable scope. */
 typedef struct ecs_script_vars_t {
     struct ecs_script_vars_t *parent;
+    int32_t sp;
+
     ecs_hashmap_t var_index;
     ecs_vec_t vars;
 
@@ -14723,6 +14768,45 @@ FLECS_API
 ecs_script_var_t* ecs_script_vars_lookup(
     const ecs_script_vars_t *vars,
     const char *name);
+
+/** Lookup a variable by stack pointer.
+ * This operation provides a faster way to lookup variables that are always 
+ * declared in the same order in a ecs_script_vars_t scope.
+ * 
+ * The stack pointer of a variable can be obtained from the ecs_script_var_t 
+ * type. The provided frame offset must be valid for the provided variable  
+ * stack. If the frame offset is not valid, this operation will panic.
+ * 
+ * @param vars The variable scope.
+ * @param sp The stack pointer to the variable.
+ * @return The variable.
+ */
+FLECS_API
+ecs_script_var_t* ecs_script_vars_from_sp(
+    const ecs_script_vars_t *vars,
+    int32_t sp);
+
+/** Print variables.
+ * This operation prints all variables in the vars scope and parent scopes.asm
+ * 
+ * @param vars The variable scope.
+ */
+FLECS_API
+void ecs_script_vars_print(
+    const ecs_script_vars_t *vars);
+
+/** Preallocate space for variables.
+ * This operation preallocates space for the specified number of variables. This
+ * is a performance optimization only, and is not necessary before declaring
+ * variables in a scope.
+ * 
+ * @param vars The variable scope.
+ * @param count The number of variables to preallocate space for.
+ */
+FLECS_API
+void ecs_script_vars_set_size(
+    ecs_script_vars_t *vars,
+    int32_t count);
 
 /** Convert iterator to vars
  * This operation converts an iterator to a variable array. This allows for
@@ -15626,7 +15710,10 @@ typedef struct ecs_enum_constant_t {
     const char *name;
 
     /** May be set when used with ecs_enum_desc_t */
-    int32_t value;
+    int64_t value;
+
+    /** For when the underlying type is unsigned */
+    uint64_t value_unsigned;
 
     /** Should not be set by ecs_enum_desc_t */
     ecs_entity_t constant;
@@ -15634,6 +15721,8 @@ typedef struct ecs_enum_constant_t {
 
 /** Component added to enum type entities */
 typedef struct EcsEnum {
+    ecs_entity_t underlying_type;
+
     /** Populated from child entities with Constant component */
     ecs_map_t constants; /**< map<i32_t, ecs_enum_constant_t> */
 } EcsEnum;
@@ -15644,7 +15733,10 @@ typedef struct ecs_bitmask_constant_t {
     const char *name;
 
     /** May be set when used with ecs_bitmask_desc_t */
-    ecs_flags32_t value;
+    ecs_flags64_t value;
+
+    /** Keep layout the same with ecs_enum_constant_t */
+    int64_t _unused;
 
     /** Should not be set by ecs_bitmask_desc_t */
     ecs_entity_t constant;
@@ -16313,6 +16405,7 @@ ecs_entity_t ecs_primitive_init(
 typedef struct ecs_enum_desc_t {
     ecs_entity_t entity;       /**< Existing entity to use for type (optional). */
     ecs_enum_constant_t constants[ECS_MEMBER_DESC_CACHE_SIZE]; /**< Enum constants. */
+    ecs_entity_t underlying_type;
 } ecs_enum_desc_t;
 
 /** Create a new enum type. 
@@ -16979,28 +17072,18 @@ const char* ecs_cpp_trim_module(
     const char *type_name);
 
 FLECS_API
-void ecs_cpp_component_validate(
+ecs_entity_t ecs_cpp_component_find(
     ecs_world_t *world,
     ecs_entity_t id,
     const char *name,
     const char *symbol,
     size_t size,
     size_t alignment,
-    bool implicit_name);
-
-FLECS_API
-ecs_entity_t ecs_cpp_component_register(
-    ecs_world_t *world,
-    ecs_entity_t id,
-    const char *name,
-    const char *symbol,
-    ecs_size_t size,
-    ecs_size_t alignment,
     bool implicit_name,
     bool *existing_out);
 
 FLECS_API
-ecs_entity_t ecs_cpp_component_register_explicit(
+ecs_entity_t ecs_cpp_component_register(
     ecs_world_t *world,
     ecs_entity_t s_id,
     ecs_entity_t id,
@@ -17015,7 +17098,8 @@ ecs_entity_t ecs_cpp_component_register_explicit(
 FLECS_API
 void ecs_cpp_enum_init(
     ecs_world_t *world,
-    ecs_entity_t id);
+    ecs_entity_t id,
+    ecs_entity_t underlying_type);
 
 FLECS_API
 ecs_entity_t ecs_cpp_enum_constant_register(
@@ -17023,13 +17107,9 @@ ecs_entity_t ecs_cpp_enum_constant_register(
     ecs_entity_t parent,
     ecs_entity_t id,
     const char *name,
-    int value);
-
-FLECS_API 
-int32_t ecs_cpp_reset_count_get(void);
-
-FLECS_API
-int32_t ecs_cpp_reset_count_inc(void);
+    void *value,
+    ecs_entity_t value_type,
+    size_t value_size);
 
 #ifdef FLECS_META
 FLECS_API
@@ -17691,7 +17771,9 @@ struct string_view : string {
 #include <string.h>
 #include <limits>
 
-#define FLECS_ENUM_MAX(T) _::to_constant<T, 128>::value
+// 126, so that FLECS_ENUM_MAX_COUNT is 127 which is the largest value 
+// representable by an int8_t.
+#define FLECS_ENUM_MAX(T) _::to_constant<T, 126>::value
 #define FLECS_ENUM_MAX_COUNT (FLECS_ENUM_MAX(int) + 1)
 
 #ifndef FLECS_CPP_ENUM_REFLECTION_SUPPORT
@@ -17855,7 +17937,7 @@ static const char* enum_constant_to_name() {
 /** Enumeration constant data */
 template<typename T>
 struct enum_constant_data {
-    flecs::entity_t id;
+    int32_t index; // Global index used to obtain world local entity id
     T offset;
 };
 
@@ -17966,7 +18048,6 @@ private:
     };
 
 public:
-    flecs::entity_t id;
     int min;
     int max;
     bool has_contiguous;
@@ -18002,7 +18083,7 @@ private:
             // Constant is valid, so fill reflection data.
             auto v = Value;
             const char *name = enum_constant_to_name<E, flecs_enum_cast(E, Value)>();
-            
+
             ++enum_type<E>::data.max; // Increment cursor as we build constants array.
 
             // If the enum was previously contiguous, and continues to be through the current value...
@@ -18018,8 +18099,17 @@ private:
                 "Signed integer enums causes integer overflow when recording offset from high positive to"
                 " low negative. Consider using unsigned integers as underlying type.");
             enum_type<E>::data.constants[enum_type<E>::data.max].offset = v - last_value;
-            enum_type<E>::data.constants[enum_type<E>::data.max].id = ecs_cpp_enum_constant_register(
-                world, enum_type<E>::data.id, 0, name, static_cast<int32_t>(v));
+            if (!enum_type<E>::data.constants[enum_type<E>::data.max].index) {
+                enum_type<E>::data.constants[enum_type<E>::data.max].index = 
+                    flecs_component_ids_index_get();
+            }
+            
+            flecs::entity_t constant = ecs_cpp_enum_constant_register(
+                world, type<E>::id(world), 0, name, &v, type<U>::id(world), sizeof(U));
+            flecs_component_ids_set(world, 
+                enum_type<E>::data.constants[enum_type<E>::data.max].index, 
+                constant);
+
             return v;
         }
     };
@@ -18051,8 +18141,8 @@ public:
         data.contiguous_until = 0;
 
         ecs_log_push();
-        ecs_cpp_enum_init(world, id);
-        data.id = id;
+        ecs_cpp_enum_init(world, id, type<U>::id(world));
+        // data.id = id;
 
         // Generate reflection data
         enum_reflection<E, reflection_init>::template each_enum< static_cast<U>(enum_last<E>::value) >(world);
@@ -18094,7 +18184,7 @@ struct enum_data {
         if (index < 0) {
             return false;
         }
-        return impl_.constants[index].id != 0;
+        return impl_.constants[index].index != 0;
     }
 
     /**
@@ -25114,7 +25204,7 @@ struct entity_builder : entity_view {
      */
     template<typename First>
     const Self& enable(flecs::id_t second) const  {
-        return this->enable(_::type<First>::id(), second);
+        return this->enable(_::type<First>::id(world_), second);
     }
 
     /** Enable a pair.
@@ -25125,7 +25215,7 @@ struct entity_builder : entity_view {
      */
     template<typename First, typename Second>
     const Self& enable() const  {
-        return this->enable<First>(_::type<Second>::id());
+        return this->enable<First>(_::type<Second>::id(world_));
     }
 
     /** Disable an id.
@@ -25148,7 +25238,7 @@ struct entity_builder : entity_view {
      */
     template<typename T>
     const Self& disable() const  {
-        return this->disable(_::type<T>::id());
+        return this->disable(_::type<T>::id(world_));
     }
 
     /** Disable a pair.
@@ -25169,7 +25259,7 @@ struct entity_builder : entity_view {
      */
     template<typename First>
     const Self& disable(flecs::id_t second) const  {
-        return this->disable(_::type<First>::id(), second);
+        return this->disable(_::type<First>::id(world_), second);
     }
 
     /** Disable a pair.
@@ -25180,7 +25270,7 @@ struct entity_builder : entity_view {
      */
     template<typename First, typename Second>
     const Self& disable() const  {
-        return this->disable<First>(_::type<Second>::id());
+        return this->disable<First>(_::type<Second>::id(world_));
     }
 
     const Self& set_ptr(entity_t comp, size_t size, const void *ptr) const  {
@@ -27204,16 +27294,6 @@ void register_lifecycle_actions(
     }
 }
 
-// Class that manages component ids across worlds & binaries.
-// The type class stores the component id for a C++ type in a static global
-// variable that is shared between worlds. Whenever a component is used this
-// class will check if it already has been registered (has the global id been
-// set), and if not, register the component with the world.
-//
-// If the id has been set, the class will ensure it is known by the world. If it
-// is not known the component has been registered by another world and will be
-// registered with the world using the same id. If the id does exist, the class
-// will register it as a component, and verify whether the input is consistent.
 template <typename T>
 struct type_impl {
     static_assert(is_pointer<T>::value == false,
@@ -27221,27 +27301,9 @@ struct type_impl {
 
     // Initialize component identifier
     static void init(
-        entity_t entity,
         bool allow_tag = true)
     {
-        if (s_reset_count != ecs_cpp_reset_count_get()) {
-            reset();
-        }
-
-        // If an identifier was already set, check for consistency
-        if (s_id) {
-            ecs_assert(s_id == entity, ECS_INCONSISTENT_COMPONENT_ID,
-                type_name<T>());
-            ecs_assert(allow_tag == s_allow_tag, ECS_INVALID_PARAMETER, NULL);
-
-            // Component was already registered and data is consistent with new
-            // identifier, so nothing else to be done.
-            return;
-        }
-
-        // Component wasn't registered yet, set the values. Register component
-        // name as the fully qualified flecs path.
-        s_id = entity;
+        s_index = flecs_component_ids_index_get();
         s_allow_tag = allow_tag;
         s_size = sizeof(T);
         s_alignment = alignof(T);
@@ -27249,161 +27311,158 @@ struct type_impl {
             s_size = 0;
             s_alignment = 0;
         }
-
-        s_reset_count = ecs_cpp_reset_count_get();
     }
 
-    // Obtain a component identifier for explicit component registration.
-    static entity_t id_explicit(world_t *world = nullptr,
-        const char *name = nullptr, bool allow_tag = true, flecs::id_t id = 0,
-        bool is_component = true, bool *existing = nullptr)
+    static void init_builtin(
+        flecs::world_t *world,
+        flecs::entity_t id,
+        bool allow_tag = true)
     {
-        if (!s_id) {
-            // If no world was provided the component cannot be registered
-            ecs_assert(world != nullptr, ECS_COMPONENT_NOT_REGISTERED, name);
-        } else {
-            ecs_assert(!id || s_id == id, ECS_INCONSISTENT_COMPONENT_ID, NULL);
+        init(allow_tag);
+        flecs_component_ids_set(world, s_index, id);
+    }
+
+    // Register component id.
+    static entity_t register_id(world_t *world,
+        const char *name = nullptr, bool allow_tag = true, flecs::id_t id = 0,
+        bool is_component = false, bool implicit_name = true, const char *n = nullptr, 
+        flecs::entity_t module = 0)
+    {
+        if (!s_index) {
+            // This is the first time (in this binary image) that this type is
+            // being used. Generate a static index that will identify the type
+            // across worlds.
+            init(allow_tag);
+            ecs_assert(s_index != 0, ECS_INTERNAL_ERROR, NULL);
         }
 
-        // If no id has been registered yet for the component (indicating the
-        // component has not yet been registered, or the component is used
-        // across more than one binary), or if the id does not exists in the
-        // world (indicating a multi-world application), register it.
-        if (!s_id || (world && !ecs_exists(world, s_id))) {
-            init(s_id ? s_id : id, allow_tag);
+        flecs::entity_t c = flecs_component_ids_get(world, s_index);
 
-            ecs_assert(!id || s_id == id, ECS_INTERNAL_ERROR, NULL);
+        if (!c || !ecs_is_alive(world, c)) {
+            // When a component is implicitly registered, ensure that it's not
+            // registered in the current scope of the application/that "with"
+            // components get added to the component entity.
+            ecs_entity_t prev_scope = ecs_set_scope(world, module);
+            ecs_entity_t prev_with = ecs_set_with(world, 0);
+
+            // At this point it is possible that the type was already registered
+            // with the world, just not for this binary. The registration code
+            // uses the type symbol to check if it was already registered. Note
+            // that the symbol is separate from the typename, as an application
+            // can override a component name when registering a type.
+            bool existing = false;
+            c = ecs_cpp_component_find(
+                world, id, n, symbol_name<T>(), size(), alignment(), 
+                implicit_name, &existing);
 
             const char *symbol = nullptr;
-            if (id) {
-                symbol = ecs_get_symbol(world, id);
+            if (c) {
+                symbol = ecs_get_symbol(world, c);
             }
             if (!symbol) {
                 symbol = symbol_name<T>();
             }
 
-            entity_t entity = ecs_cpp_component_register_explicit(
-                    world, s_id, id, name, type_name<T>(), symbol,
-                        s_size, s_alignment, is_component, existing);
+            c = ecs_cpp_component_register(world, c, c, name, type_name<T>(), 
+                symbol, size(), alignment(), is_component, &existing);
 
-            s_id = entity;
-
-            // If component is enum type, register constants
-            #if FLECS_CPP_ENUM_REFLECTION_SUPPORT
-            _::init_enum<T>(world, entity);
-            #endif
-        }
-
-        // By now the identifier must be valid and known with the world.
-        ecs_assert(s_id != 0 && ecs_exists(world, s_id),
-            ECS_INTERNAL_ERROR, NULL);
-
-        return s_id;
-    }
-
-    // Obtain a component identifier for implicit component registration. This
-    // is almost the same as id_explicit, except that this operation
-    // automatically registers lifecycle callbacks.
-    // Additionally, implicit registration temporarily resets the scope & with
-    // state of the world, so that the component is not implicitly created with
-    // the scope/with of the code it happens to be first used by.
-    static id_t id(world_t *world = nullptr, const char *name = nullptr,
-        bool allow_tag = true)
-    {
-        // If no id has been registered yet, do it now.
-#ifndef FLECS_CPP_NO_AUTO_REGISTRATION
-        if (!registered(world)) {
-            ecs_entity_t prev_scope = 0;
-            ecs_id_t prev_with = 0;
-
-            if (world) {
-                prev_scope = ecs_set_scope(world, 0);
-                prev_with = ecs_set_with(world, 0);
-            }
-
-            // This will register a component id, but will not register
-            // lifecycle callbacks.
-            bool existing;
-            id_explicit(world, name, allow_tag, 0, true, &existing);
+            ecs_set_with(world, prev_with);
+            ecs_set_scope(world, prev_scope);
 
             // Register lifecycle callbacks, but only if the component has a
             // size. Components that don't have a size are tags, and tags don't
             // require construction/destruction/copy/move's.
             if (size() && !existing) {
-                register_lifecycle_actions<T>(world, s_id);
+                register_lifecycle_actions<T>(world, c);
             }
 
-            if (prev_with) {
-                ecs_set_with(world, prev_with);
-            }
-            if (prev_scope) {
-                ecs_set_scope(world, prev_scope);
-            }
+            // Set world local component id
+            flecs_component_ids_set(world, s_index, c);
+
+            // If component is enum type, register constants. Make sure to do 
+            // this after setting the component id, because the enum code will
+            // be calling type<T>::id().
+            #if FLECS_CPP_ENUM_REFLECTION_SUPPORT
+            _::init_enum<T>(world, c);
+            #endif
         }
-#else
-        (void)world;
-        (void)name;
-        (void)allow_tag;
 
+        ecs_assert(c != 0, ECS_INTERNAL_ERROR, NULL);
+
+        return c;
+    }
+
+    // Get type (component) id.
+    // If type was not yet registered and automatic registration is allowed,
+    // this function will also register the type.
+    static entity_t id(world_t *world)
+    {
+#ifdef FLECS_CPP_NO_AUTO_REGISTRATION
         ecs_assert(registered(world), ECS_INVALID_OPERATION, 
-            "component '%s' was not registered before use",
+            "component '%s' must be registered before use",
             type_name<T>());
+
+        flecs::entity_t c = flecs_component_ids_get(world, s_index);
+        ecs_assert(c != 0, ECS_INTERNAL_ERROR, NULL);
+        ecs_assert(ecs_is_alive(world, c), ECS_INVALID_OPERATION,
+            "component '%s' was deleted, reregister before using",
+            type_name<T>());
+#else
+        flecs::entity_t c = flecs_component_ids_get_alive(world, s_index);
+        if (!c) {
+            c = register_id(world);
+        }
 #endif
-
-        // By now we should have a valid identifier
-        ecs_assert(s_id != 0, ECS_INTERNAL_ERROR, NULL);
-
-        return s_id;
+        return c;
     }
 
     // Return the size of a component.
     static size_t size() {
-        ecs_assert(s_id != 0, ECS_INTERNAL_ERROR, NULL);
+        ecs_assert(s_index != 0, ECS_INTERNAL_ERROR, NULL);
         return s_size;
     }
 
     // Return the alignment of a component.
     static size_t alignment() {
-        ecs_assert(s_id != 0, ECS_INTERNAL_ERROR, NULL);
+        ecs_assert(s_index != 0, ECS_INTERNAL_ERROR, NULL);
         return s_alignment;
     }
 
     // Was the component already registered.
     static bool registered(flecs::world_t *world) {
-        if (s_reset_count != ecs_cpp_reset_count_get()) {
-            reset();
-        }
-        if (s_id == 0) {
+        ecs_assert(world != nullptr, ECS_INVALID_PARAMETER, NULL);
+
+        if (s_index == 0) {
             return false;
         }
-        if (world && !ecs_exists(world, s_id)) {
+
+        if (!flecs_component_ids_get(world, s_index)) {
             return false;
         }
+
         return true;
     }
 
     // This function is only used to test cross-translation unit features. No
     // code other than test cases should invoke this function.
     static void reset() {
-        s_id = 0;
+        s_index = 0;
         s_size = 0;
         s_alignment = 0;
         s_allow_tag = true;
     }
 
-    static entity_t s_id;
+    static int32_t s_index;
     static size_t s_size;
     static size_t s_alignment;
     static bool s_allow_tag;
-    static int32_t s_reset_count;
 };
 
 // Global templated variables that hold component identifier and other info
-template <typename T> entity_t      type_impl<T>::s_id;
-template <typename T> size_t        type_impl<T>::s_size;
-template <typename T> size_t        type_impl<T>::s_alignment;
-template <typename T> bool          type_impl<T>::s_allow_tag( true );
-template <typename T> int32_t       type_impl<T>::s_reset_count;
+template <typename T> int32_t  type_impl<T>::s_index;
+template <typename T> size_t   type_impl<T>::s_size;
+template <typename T> size_t   type_impl<T>::s_alignment;
+template <typename T> bool     type_impl<T>::s_allow_tag( true );
 
 // Front facing class for implicitly registering a component & obtaining
 // static component data
@@ -27812,62 +27871,42 @@ struct component : untyped_component {
         if (!n) {
             n = _::type_name<T>();
 
-            /* Keep track of whether name was explicitly set. If not, and the
-            * component was already registered, just use the registered name.
-            *
-            * The registered name may differ from the typename as the registered
-            * name includes the flecs scope. This can in theory be different from
-            * the C++ namespace though it is good practice to keep them the same */
+            // Keep track of whether name was explicitly set. If not, and the
+            // component was already registered, just use the registered name.
+            // The registered name may differ from the typename as the registered
+            // name includes the flecs scope. This can in theory be different from
+            // the C++ namespace though it is good practice to keep them the same */
             implicit_name = true;
         }
 
-        if (_::type<T>::registered(world)) {
-            /* Obtain component id. Because the component is already registered,
-             * this operation does nothing besides returning the existing id */
-            id = _::type<T>::id_explicit(world, name, allow_tag, id);
+        // If component is registered by module, ensure it's registered in the
+        // scope of the module.
+        flecs::entity_t module = ecs_get_scope(world);
 
-            ecs_cpp_component_validate(world, id, n, _::symbol_name<T>(),
-                _::type<T>::size(),
-                _::type<T>::alignment(),
-                implicit_name);
-        } else {
-            /* If component is registered from an existing scope, ignore the
-             * namespace in the name of the component. */
-            if (implicit_name && (ecs_get_scope(world) != 0)) {
-                /* If the type is a template type, make sure to ignore ':'
-                 * inside the template parameter list. */
-                const char *start = strchr(n, '<'), *last_elem = NULL;
-                if (start) {
-                    const char *ptr = start;
-                    while (ptr[0] && (ptr[0] != ':') && (ptr > n)) {
-                        ptr --;
-                    }
-                    if (ptr[0] == ':') {
-                        last_elem = ptr;
-                    }
+        // Strip off the namespace part of the component name, unless a name was
+        // explicitly provided by the application.
+        if (module && implicit_name) {
+            // If the type is a template type, make sure to ignore
+            // inside the template parameter list.
+            const char *start = strchr(n, '<'), *last_elem = NULL;
+            if (start) {
+                const char *ptr = start;
+                while (ptr[0] && (ptr[0] != ':') && (ptr > n)) {
+                    ptr --;
                 }
-
-                if (last_elem) {
-                    name = last_elem + 1;
+                if (ptr[0] == ':') {
+                    last_elem = ptr;
                 }
             }
 
-            /* Find or register component */
-            bool existing;
-            id = ecs_cpp_component_register(world, id, n, _::symbol_name<T>(),
-                ECS_SIZEOF(T), ECS_ALIGNOF(T), implicit_name, &existing);
-
-            /* Initialize static component data */
-            id = _::type<T>::id_explicit(world, name, allow_tag, id);
-
-            /* Initialize lifecycle actions (ctor, dtor, copy, move) */
-            if (_::type<T>::size() && !existing) {
-                _::register_lifecycle_actions<T>(world, id);
+            if (last_elem) {
+                name = last_elem + 1;
             }
         }
 
         world_ = world;
-        id_ = id;
+        id_ = _::type<T>::register_id(
+            world, name, allow_tag, id, true, implicit_name, n, module);
     }
 
     /** Register on_add hook. */
@@ -27949,8 +27988,21 @@ flecs::opaque<T, ElemType> opaque(flecs::id_t as_type) {
 
 /** Add constant. */
 component<T>& constant(const char *name, T value) {
-    int32_t v = static_cast<int32_t>(value);
-    untyped_component::constant(name, v);
+    using U = typename std::underlying_type<T>::type;
+
+    ecs_add_id(world_, id_, _::type<flecs::Enum>::id(world_));
+
+    ecs_entity_desc_t desc = {};
+    desc.name = name;
+    desc.parent = id_;
+    ecs_entity_t eid = ecs_entity_init(world_, &desc);
+    ecs_assert(eid != 0, ECS_INTERNAL_ERROR, NULL);
+
+    flecs::id_t pair = ecs_pair(flecs::Constant, _::type<U>::id(world_));
+    U *ptr = static_cast<U*>(ecs_ensure_id(world_, eid, pair));
+    *ptr = static_cast<U>(value);
+    ecs_modified_id(world_, eid, pair);
+
     return *this;
 }
 
@@ -27978,43 +28030,6 @@ private:
         }
     }
 };
-
-/** Get id currently assigned to component. If no world has registered the
- * component yet, this operation will return 0. */
-template <typename T>
-flecs::entity_t type_id() {
-    if (_::type<T>::s_reset_count == ecs_cpp_reset_count_get()) {
-        return _::type<T>::s_id;
-    } else {
-        return 0;
-    }
-}
-
-/** Reset static component ids.
- * When components are registered their component ids are stored in a static
- * type specific variable. This stored id is passed into component registration
- * functions to ensure consistent ids across worlds.
- *
- * In some cases this can be undesirable, like when a process repeatedly creates
- * worlds with different components. A typical example where this can happen is
- * when running multiple tests in a single process, where each test registers
- * its own set of components.
- *
- * This operation can be used to prevent reusing of component ids and force
- * generating a new ids upon registration.
- *
- * Note that this operation should *never* be called while there are still
- * alive worlds in a process. Doing so results in undefined behavior.
- *
- * Also note that this operation does not actually change the static component
- * variables. It only ensures that the next time a component id is requested, a
- * new id will be generated.
- *
- * @ingroup cpp_components
- */
-inline void reset() {
-    ecs_cpp_reset_count_inc();
-}
 
 }
 
@@ -29056,11 +29071,16 @@ const T* entity_view::get() const {
     entity_t c = ecs_get_target(world_, id_, r, 0);
 
     if (c) {
-        // Get constant value from constant entity
-        const T* v = static_cast<const T*>(ecs_get_id(world_, c, r));
-        ecs_assert(v != NULL, ECS_INTERNAL_ERROR, 
-            "missing enum constant value");
+#ifdef FLECS_META
+        using U = typename std::underlying_type<T>::type;
+        const T* v = static_cast<const T*>(
+            ecs_get_id(world_, c, ecs_pair(flecs::Constant, _::type<U>::id(world_))));
+        ecs_assert(v != NULL, ECS_INTERNAL_ERROR, "missing enum constant value");
         return v;
+#else
+        // Fallback if we don't have the reflection addon
+        return static_cast<const T*>(ecs_get_id(world_, id_, r));
+#endif
     } else {
         // If there is no matching pair for (r, *), try just r
         return static_cast<const T*>(ecs_get_id(world_, id_, r));
@@ -29240,8 +29260,7 @@ inline flecs::entity world::entity(E value) const {
 
 template <typename T>
 inline flecs::entity world::entity(const char *name) const {
-    return flecs::entity(world_, 
-        _::type<T>::id_explicit(world_, name, true, 0, false) );
+    return flecs::entity(world_, _::type<T>::register_id(world_, name, true) );
 }
 
 template <typename... Args>
@@ -30734,7 +30753,7 @@ inline void world::each(Func&& func) const {
 
 template <typename T, typename Func>
 inline void world::each(Func&& func) const {
-    ecs_iter_t it = ecs_each_id(world_, _::type<T>::id());
+    ecs_iter_t it = ecs_each_id(world_, _::type<T>::id(world_));
 
     while (ecs_each_next(&it)) {
         _::each_delegate<Func, T>(func).invoke(&it);
@@ -31112,9 +31131,17 @@ namespace flecs {
 
 template <typename E>
 inline E entity_view::to_constant() const {
-    const E* ptr = this->get<E>();
+#ifdef FLECS_META
+    using U = typename std::underlying_type<E>::type;
+    const E* ptr = static_cast<const E*>(ecs_get_id(world_, id_, 
+        ecs_pair(flecs::Constant, _::type<U>::id(world_))));
     ecs_assert(ptr != NULL, ECS_INVALID_PARAMETER, "entity is not a constant");
     return ptr[0];
+#else
+    ecs_assert(false, ECS_UNSUPPORTED,
+        "operation not supported without FLECS_META addon");
+    return E();
+#endif
 }
 
 template <typename E, if_t< is_enum<E>::value >>
@@ -31175,10 +31202,9 @@ flecs::entity import(world& world) {
     ecs_entity_t m = ecs_lookup_symbol(world, symbol, true, false);
 
     if (!_::type<T>::registered(world)) {
-
         /* Module is registered with world, initialize static data */
         if (m) {
-            _::type<T>::init(m, false);
+            _::type<T>::init_builtin(world, m, false);
 
         /* Module is not yet registered, register it now */
         } else {
@@ -31206,7 +31232,7 @@ flecs::entity import(world& world) {
 
 template <typename Module>
 inline flecs::entity world::module(const char *name) const {
-    flecs::entity result = this->entity(_::type<Module>::id(
+    flecs::entity result = this->entity(_::type<Module>::register_id(
         world_, nullptr, false));
 
     if (name) {
@@ -32151,18 +32177,14 @@ inline void init(flecs::world& world) {
     // specific types.
 
     if (!flecs::is_same<i32_t, iptr_t>() && !flecs::is_same<i64_t, iptr_t>()) {
-        flecs::_::type<iptr_t>::init(flecs::Iptr, true);
-        ecs_assert(flecs::type_id<iptr_t>() == flecs::Iptr, 
-            ECS_INTERNAL_ERROR, NULL);
+        flecs::_::type<iptr_t>::init_builtin(world, flecs::Iptr, true);
         // Remove symbol to prevent validation errors, as it doesn't match with 
         // the typename
         ecs_remove_pair(world, flecs::Iptr, ecs_id(EcsIdentifier), EcsSymbol);
     }
 
     if (!flecs::is_same<u32_t, uptr_t>() && !flecs::is_same<u64_t, uptr_t>()) {
-        flecs::_::type<uptr_t>::init(flecs::Uptr, true);
-        ecs_assert(flecs::type_id<uptr_t>() == flecs::Uptr, 
-            ECS_INTERNAL_ERROR, NULL);
+        flecs::_::type<uptr_t>::init_builtin(world, flecs::Uptr, true);
         // Remove symbol to prevent validation errors, as it doesn't match with 
         // the typename
         ecs_remove_pair(world, flecs::Uptr, ecs_id(EcsIdentifier), EcsSymbol);
@@ -33357,14 +33379,16 @@ inline flecs::entity world::make_alive(flecs::entity_t e) const {
 
 template <typename E>
 inline flecs::entity enum_data<E>::entity() const {
-    return flecs::entity(world_, impl_.id);
+    return flecs::entity(world_, _::type<E>::id(world_));
 }
 
 template <typename E>
 inline flecs::entity enum_data<E>::entity(underlying_type_t<E> value) const {
     int index = index_by_value(value);
     if (index >= 0) {
-        return flecs::entity(world_, impl_.constants[index].id);
+        int32_t constant_i = impl_.constants[index].index;
+        flecs::entity_t entity = flecs_component_ids_get(world_, constant_i);
+        return flecs::entity(world_, entity);
     }
 #ifdef FLECS_META
     // Reflection data lookup failed. Try value lookup amongst flecs::Constant relationships
