@@ -357,7 +357,7 @@ for y in 0..$Height {
 
 for i in 0..$Lights {
   for s in 0..4 {
-    const h = $rng.u($i * ($Height / $Lights))
+    const h = $rng.u(1 + $i * ($Height / $Lights))
     const w = ($h - $Height) * 0.6
     const x = $rng.f($w)
     const hv = $h + ($rng.f(0.5) - 0.25)

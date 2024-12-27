@@ -21636,12 +21636,10 @@ int ecs_app_run(
 {
     ecs_app_desc = *desc;
 
+#ifndef ECS_TARGET_EM
     if (ECS_NEQZERO(ecs_app_desc.target_fps)) {
         ecs_set_target_fps(world, ecs_app_desc.target_fps);
     }
-
-    /* Don't set threads if using emscripten */
-#ifndef ECS_TARGET_EM
     if (ecs_app_desc.threads) {
         ecs_set_threads(world, ecs_app_desc.threads);
     }
@@ -55847,7 +55845,7 @@ typedef struct ecs_script_rng_t {
 } ecs_script_rng_t;
 
 static
-ecs_script_rng_t* flecs_script_rng_new() {
+ecs_script_rng_t* flecs_script_rng_new(void) {
     ecs_script_rng_t *result = ecs_os_calloc_t(ecs_script_rng_t);
     result->x = 0;
     result->w = 0;
@@ -55934,7 +55932,7 @@ void flecs_script_rng_get_float(
     double max = *(double*)argv[1].ptr;
     double *r = result->ptr;
 
-    if (!max) {
+    if (ECS_EQZERO(max)) {
         ecs_err("flecs.script.math.Rng.f(): invalid division by zero");
     } else {
         *r = (double)x / ((double)UINT64_MAX / max);
@@ -79858,7 +79856,7 @@ int flecs_expr_identifier_visit_type(
     ecs_expr_value_node_t *result = flecs_expr_value_from(
         script, (ecs_expr_node_t*)node, type);
 
-    if (type == ecs_id(ecs_entity_t)) {
+    if (type == ecs_id(ecs_entity_t) || type == ecs_id(ecs_id_t)) {
         result->storage.entity = desc->lookup_action(
             script->world, node->value, desc->lookup_ctx);
         result->ptr = &result->storage.entity;
