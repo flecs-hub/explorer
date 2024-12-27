@@ -7,17 +7,10 @@
 #define EMSCRIPTEN_KEEPALIVE
 #endif
 
-#define PI 3.1415926
-
-
-float randf(float scale) {
-    return ((float)rand() / (float)RAND_MAX) * scale;
-}
-
-
 EMSCRIPTEN_KEEPALIVE
-int main(void) {
+int main() {
     // ecs_log_set_level(0);
+
     ecs_world_t *world = ecs_init();
     if (!world) {
         ecs_err("failed to create world");
@@ -47,8 +40,6 @@ int main(void) {
     ecs_script(world, {
         .filename = "etc/assets/scene.flecs"
     });
-
-    ecs_set_target_fps(world, 60);
 
     return ecs_app_run(world, &(ecs_app_desc_t){
         .enable_rest = true,

@@ -424,7 +424,7 @@ const flecs = {
                 if (!conn._.FlecsHttpRequest) {
                   setTimeout(() => {
                     this.do();
-                  }, 1000);
+                  }, 100);
                   return;
                 }
 

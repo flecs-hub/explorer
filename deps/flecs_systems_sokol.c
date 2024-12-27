@@ -32757,7 +32757,9 @@ void SokolRegisterMaterial(ecs_iter_t *it) {
     for (i = 0; i < it->count; i ++) {
         uint16_t material_id;
         if (ecs_vec_count(material_free_list)) {
-            material_id = ecs_vec_get_t(material_free_list, uint16_t, 0)[0];
+            material_id = ecs_vec_last_t(material_free_list, uint16_t)[0];
+            ecs_assert(material_id != 0, ECS_INTERNAL_ERROR, NULL);
+            ecs_vec_remove_last(material_free_list);
         } else {
             material_id = next_material ++;
         }
@@ -32792,6 +32794,11 @@ void FlecsSystemsSokolMaterialsImport(
 
     ECS_COMPONENT_DEFINE(world, SokolMaterialId);
     ECS_COMPONENT_DEFINE(world, SokolMaterials);
+
+    ecs_struct(world, {
+        .entity = ecs_id(SokolMaterialId),
+        .members = {{ "value", ecs_id(ecs_u16_t) }}
+    });
 
     ecs_add_pair(world, ecs_id(SokolMaterialId), EcsOnInstantiate, EcsInherit);
 
@@ -32838,7 +32845,8 @@ void FlecsSystemsSokolMaterialsImport(
     });
 
     ECS_OBSERVER(world, SokolOnMaterialRemove, EcsOnRemove,
-        flecs.systems.sokol.MaterialId);
+        flecs.systems.sokol.MaterialId(self),
+        ?Prefab);
 
     ecs_observer(world, {
         .entity = ecs_id(SokolOnMaterialRemove),
