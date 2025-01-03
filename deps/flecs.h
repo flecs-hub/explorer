@@ -5821,6 +5821,24 @@ void ecs_run_aperiodic(
     ecs_world_t *world,
     ecs_flags32_t flags);
 
+/** Used with ecs_delete_empty_tables(). */
+typedef struct ecs_delete_empty_tables_desc_t {
+    /** Optional component filter for the tables to evaluate. */
+    ecs_id_t id;
+
+    /** Free table data when generation > clear_generation. */
+    uint16_t clear_generation;
+
+    /** Delete table when generation > delete_generation. */
+    uint16_t delete_generation;
+
+    /** Minimum number of component ids the table should have. */
+    int32_t min_id_count;
+
+    /** Amount of time operation is allowed to spend. */
+    double time_budget_seconds;
+} ecs_delete_empty_tables_desc_t;
+
 /** Cleanup empty tables.
  * This operation cleans up empty tables that meet certain conditions. Having
  * large amounts of empty tables does not negatively impact performance of the
@@ -5847,21 +5865,13 @@ void ecs_run_aperiodic(
  * The time budget specifies how long the operation should take at most.
  *
  * @param world The world.
- * @param id Optional component filter for the tables to evaluate.
- * @param clear_generation Free table data when generation > clear_generation.
- * @param delete_generation Delete table when generation > delete_generation.
- * @param min_id_count Minimum number of component ids the table should have.
- * @param time_budget_seconds Amount of time operation is allowed to spend.
+ * @param desc Configuration parameters.
  * @return Number of deleted tables.
  */
 FLECS_API
 int32_t ecs_delete_empty_tables(
     ecs_world_t *world,
-    ecs_id_t id,
-    uint16_t clear_generation,
-    uint16_t delete_generation,
-    int32_t min_id_count,
-    double time_budget_seconds);
+    const ecs_delete_empty_tables_desc_t *desc);
 
 /** Get world from poly.
  *
@@ -10727,6 +10737,22 @@ void ecs_parser_errorv_(
     const char *fmt,
     va_list args);
 
+FLECS_API
+void ecs_parser_warning_(
+    const char *name,
+    const char *expr,
+    int64_t column,
+    const char *fmt,
+    ...);
+
+FLECS_API
+void ecs_parser_warningv_(
+    const char *name,
+    const char *expr,
+    int64_t column,
+    const char *fmt,
+    va_list args);
+
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Logging macros
@@ -10971,6 +10997,12 @@ void ecs_parser_errorv_(
 
 #define ecs_parser_errorv(name, expr, column, fmt, args)\
     ecs_parser_errorv_(name, expr, column, fmt, args)
+
+#define ecs_parser_warning(name, expr, column, ...)\
+    ecs_parser_warning_(name, expr, column, __VA_ARGS__)
+
+#define ecs_parser_warningv(name, expr, column, fmt, args)\
+    ecs_parser_warningv_(name, expr, column, fmt, args)
 
 #endif // FLECS_LEGACY
 
@@ -11471,6 +11503,7 @@ int ecs_http_server_request(
     ecs_http_server_t* srv,
     const char *method,
     const char *req,
+    const char *body,
     ecs_http_reply_t *reply_out);
 
 /** Get context provided in ecs_http_server_desc_t */

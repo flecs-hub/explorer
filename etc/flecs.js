@@ -323,7 +323,8 @@ const flecs = {
         // Update script code
         scriptUpdate: function(path, code, params, recv, err) {
           if (!params) params = {};
-          params.code = encodeURIComponent(code);
+          params.pay
+          params.payload = code;
           path = this._.escapePath(path);
           return this._.request(this, "PUT", "script/" + path, params, 
             (msg) => { 
@@ -385,10 +386,16 @@ const flecs = {
             // If this is a dryrun we're only returning the URL. Don't include the
             // dryrun parameter in the returned URL.
             let dryrun = false;
-  
             if (params.dryrun) {
               dryrun = true;
               delete params.dryrun;
+            }
+            
+            let payload = undefined;
+
+            if (params.payload) {
+              payload = params.payload;
+              delete params.payload;
             }
 
             if (params.managed) {
@@ -494,7 +501,7 @@ const flecs = {
                 };
   
                 // Send it
-                this.request.send();
+                this.request.send(payload);
 
                 conn.requests.sent ++;
               },
@@ -705,7 +712,7 @@ const flecs = {
             const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
             wasm_module = Function(`return ` + name + `;`)();
             wasm_module().then(function(Module) {
-              let nativeRequest = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string']);
+              let nativeRequest = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string', 'string']);
               flecs.captureKeyboardEvents = Module.sokol_capture_keyboard_events;
               if (flecs.captureKeyboardEvents) {
                 Module.sokol_capture_keyboard_events(false);
@@ -726,8 +733,8 @@ const flecs = {
                     this.url = url;
                   },
 
-                  send() {
-                    const reply = nativeRequest(this.method, this.url);
+                  send(body) {
+                    const reply = nativeRequest(this.method, this.url, body);
                     this.responseText = reply;
 
                     // Check for errors, in which case we must set the status

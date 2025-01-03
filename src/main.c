@@ -9,7 +9,7 @@
 
 EMSCRIPTEN_KEEPALIVE
 int main() {
-    // ecs_log_set_level(0);
+    ecs_log_set_level(-1);
 
     ecs_world_t *world = ecs_init();
     if (!world) {

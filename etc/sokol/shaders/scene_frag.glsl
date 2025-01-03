@@ -39,7 +39,7 @@ float sampleShadow(sampler2D shadowMap, vec2 uv, float compare, float bias) {
 float sampleShadowPCF(sampler2D shadowMap, vec2 uv, float texel_size, float compare, float n_dot_l, float d) {
   float result = 0.0;
   float cos_theta = clamp(n_dot_l, 0.0, 1.0);
-  float bias = 0.005;
+  float bias = 0.001;
 
   if (uv.x < 0. || uv.x > 1.) {
     return 1.0;

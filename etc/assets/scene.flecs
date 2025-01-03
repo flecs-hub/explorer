@@ -1,449 +1,50 @@
-// Happy holidays!
+// Script that creates a pen
+//
+// For C/C++ examples and docs go to:
+//  https://github.com/SanderMertens/flecs
 
 using flecs.script.*
 using flecs.components.*
 
-// Globals
-const Green = Rgb: {0.02, 0.22, 0.04}
-const Wood = Rgb: {0.15, 0.1, 0.05}
-const DarkWood = Rgb: {0.06, 0.03, 0.01}
-const TrunkWood = Rgb: {0.025, 0.014, 0.002}
-const Wall = Rgb: {0.22, 0.21, 0.2}
-const rng = Rng: {}
-
-// Materials
-prefab LightMaterial {
-  Rgb: {1, 1, 0.3}
-  Emissive: {2}
+template FencePost {
+  prop x: 0.0
+  Position3: {x, 1}
+  Box: {0.5, 2, 0.5}
 }
 
-template Light {
-  Box: {0.05, 0.15, 0.05}
-  (IsA, LightMaterial)
+template FenceBoard {
+  prop width: 10.0
+  prop y: 1.0
+  Position3: {0, y}
+  Box: {width, 0.5, 0.2}
+}
+
+template Fence {
+  prop width: 10.0
+  const post_count = i32: 2 + width / 5
+  const post_spacing: width / (post_count - 1)
   
-  _ {
-    Box: {0.12, 0.1, 0.12}
-    Rgb: {0, 0, 0}
-    Position3: {y: -0.1}
-  }
-}
-
-prefab Flame {
-  Rgb: {1, 0.8, 0.3}
-  Emissive: {2}
-  PointLight: {
-    color: [1, 0.8, 0.3]
-    intensity: 0.3
-    distance: 0.3
-  }
-}
-
-template Gift {
-  prop s = f32: 1
-  const rw = 0.05
-  const srw = $s + $rw
-  _ {
-    Position3: {y: $s/2}
-    Box: {$s, $s, $s}
-    Rgb: {0.25, 0, 0}
-  }
-  _ {
-    Position3: {y: $srw/2}
-    Box: {$srw, $srw, $s/5}
-    Rgb: {0.8, 0.8, 0}
-  }
-  _ {
-    Position3: {y: $srw/2}
-    Box: {$s/5, $srw, $srw}
-    Rgb: {0.8, 0.8, 0}
-  }
-}
-
-template Candle {
-  prop height = f32: 1.2
-  prop base_height = f32: 0.6
-  prop base_width = f32: 0.4
-  _ {
-    Position3: {y: $base_height / 2}
-    Box: {$base_width, $base_height, $base_width}
-    Rgb: {0.03, 0.03, 0.03}
-  }
-  _ {
-    Position3: {y: $base_height + $height / 2}
-    Box: {0.2, $height, 0.2}
-    Rgb: {0.2}
-  }
-  _ : Flame {
-    Position3: {y: $base_height + $height}
-    Box: {0.1, 0.4, 0.1}
-  }
-}
-
-template Sock {
-  _ {
-    Position3: {0, 0, 0}
-    Box: {0.3, 0.5, 0.8}
-    Rgb: {1, 0, 0}
-  }
-  _ {
-    Position3: {0, -0.5, 0}
-    Box: {0.3, 0.5, 0.8}
-    Rgb: {1, 1, 1}
-  }
-  _ {
-    Position3: {0, -1, 0}
-    Box: {0.3, 0.5, 0.8}
-    Rgb: {1, 0, 0}
-  }
-  _ {
-    Position3: {0, -1.5, 0.35}
-    Box: {0.3, 0.5, 1.5}
-    Rgb: {1, 1, 1}
-  }
-}
-
-template FirePlace {
-  const width = 13
-  const depth = 1.8
-  const height = 5
-
-  _ {
-    Position3: {14.5 - $depth / 2, $height / 2, -$width / 2}
-    Box: {$depth, $height, 1.2}
-    $Wall
-  }
-  
-  _ {
-    Position3: {14.5 - $depth / 2, $height / 2, $width / 2}
-    Box: {$depth, $height, 1.2}
-    $Wall
-  }
-  
-  _ {
-    Position3: {14.5 - $depth / 2, $height - 0.6, 0}
-    Box: {$depth, 1.2, $width - 1.2}
-    $Wall
-  }
-
-  _ {
-    Position3: {15, 15, 0}
-    Box: {1.5, 30, $width * 1.4}
-    $Wall
-  }
-
-  _ {
-    Position3: {14.5 - $depth / 2, 0.25, 0}
-    Box: {$depth, 0.5, $width - 1.2}
-    Rgb: {0.025, 0.025, 0.025}
-  }
-  
-  _ {
-    Position3: {14.5 - $depth + $depth, $height / 2 - 1.2, 0}
-    Box: {0.8, $height, $width - 1.2}
-    Rgb: {0.025, 0.025, 0.025}
-  }
-  
-  _ {
-    Position3: {14.5 - $depth / 2, $height / 2 - 0.6, -$width / 2 + 0.6}
-    Box: {$depth, $height - 1.2, 0.2}
-    Rgb: {0.025, 0.025, 0.025}
-  }
-  
-  _ {
-    Position3: {14.5 - $depth / 2, $height / 2 - 0.6, $width / 2 - 0.6}
-    Box: {$depth, $height - 1.2, 0.2}
-    Rgb: {0.025, 0.025, 0.025}
-  }
-}
-
-template Tv {
-  const width = 11
-  const height = 6
-  _ {
-    Position3: {}
-    Box: {0.1, $height, $width}
-    Rgb: {0.01, 0.01, 0.01}
-  }
-  with Rgb(0.1, 0.1, 0.1) {
-    _ {
-      Position3: {z: $width / 2}
-      Box: {0.2, $height, 0.2}
+  with Rgb(0.15, 0.1, 0.05) {
+    for i in 0..post_count {
+      FencePost(i * post_spacing - width / 2)
     }
-    _ {
-      Position3: {z: -$width / 2}
-      Box: {0.2, $height, 0.2}
-    }
-    _ {
-      Position3: {z: -$width / 2}
-      Box: {0.2, $height, 0.2}
-    }
-    _ {
-      Position3: {y: $height / 2}
-      Box: {0.2, 0.2, $width + 0.2}
-    }
-    _ {
-      Position3: {y: -$height / 2}
-      Box: {0.2, 0.2, $width + 0.2}
-    }
-  }
-}
-
-template Book {
-  const h = $rng.f(1) + 1;
-  const w = $rng.f(0.7) +0.3
-  _ {
-    Box: {0.5, $h, $w}
-    Rgb: {$rng.f(0.03),$rng.f(0.03),$rng.f(0.03)}
-    Position3: {y: $h / 2, $w / 2}
-  }
-}
-
-template BookCase {
-  const shelves = i32: 7
-  const width = f32: 10
-  const depth = f32: 3
-  const shelve_height = 2.3
-  const height = $shelves * $shelve_height
-  
-  with $DarkWood {
-    _ {
-      Position3: {-$width / 2, $height / 2, 0}
-      Box: {0.5, $height, $depth}
-    }
-    _ {
-      Position3: {$width / 2, $height / 2, 0}
-      Box: {0.5, $height, $depth}
-    }
-    _ {
-      Position3: {0, $height - 0.25, 0}
-      Box: {$width, 0.5, $depth}
-    }
-    _ {
-      Position3: {0, $height / 2, 0}
-      Box: {$width, $height, 0.1}
-      Rgb: {0.0, 0.0, 0.0}
-    }
-    for i in 0..$shelves {
-      _ {
-        Position3: {0, $i * $shelve_height, -0.25}
-        Box: {$width, 0.25, $depth - 0.5}
-  
-        for b in 0..($width * 2 - 1) {
-          Book() {
-            Position3: {x: (0.5 + $b * 0.5) - $width / 2}
-          }
-        }
-      }
-    }
-  }
-}
-
-template PostCard {
-  prop height = f32: 1
-  prop color = Rgb: {0.2, 0, 0}
-
-  _ {
-    Position3: {y: $height / 2}
-    Box: {0.05, $height, 0.6}
-    $color
-  }
-  _ {
-    Position3: {x: 0.25, y: $height / 2, z: -0.095}
-    Rotation3: {y: 0.8}
-    Box: {0.05, $height, 0.6}
-    $color
-  }
-}
-
-template Plant {
-  prop height = f32: 1
-  prop width = f32: 0.8
-  prop plant_height = f32: 1.8
-  
-  _ {
-    Position3: {y: 0.5 + 0.1}
-    Box: {$width, $height - 0.1, $width}
-    Rgb: {0.2, 0.2, 0.2}
-  }
-
-  with $Wood, Box(0.2, $height, 0.2) {
-    const w = $width - 0.07
-    _ {
-      Position3: {-$w / 2, $height / 2, -$w / 2}
-    }
-    _ {
-      Position3: {$w / 2, $height / 2, -$w / 2}
-    }
-    _ {
-      Position3: {-$w / 2, $height / 2, $w / 2}
-    }
-    _ {
-      Position3: {$w / 2, $height / 2, $w / 2}
-    }
-  }
-  
-  _ {
-    Position3: {y: $plant_height / 2}
-    Box: {0.1, $plant_height, 0.1}
-    $TrunkWood
-  }
-  
-  with Rgb(0.05, 0.14) {
-    _ {
-      Position3: {y: $plant_height - 0.5}
-      Box: {0.2, 0.2, 0.2}
-    }
-    _ {
-      Position3: {y: $plant_height - 0.3}
-      Box: {0.4, 0.2, 0.4}
-    }
-    _ {
-      Position3: {y: $plant_height}
-      Box: {0.3, 0.2, 0.3}
-    }
-  }
-}
-
-scene {
-  Rotation3: {y: 0.2}
-
-// Floor
-for x in 0..30 {
-  _ {
-    Position3: {$x * 1.1 - 15, 0.125, 0}
-    Box: {1, 0.25, 30}
-    $Wood
-  }
-}
-
-_ {
-  Position3: {0, 0, 0}
-  Box: {30, 0.1, 30}
-  $Wood
-}
-
-// Walls
-_ {
-  Position3: {15, 15, 0}
-  Box: {1, 30, 30}
-  $Wall
-}
-
-_ {
-  Position3: {0, 15, -15}
-  Box: {30, 30, 1}
-  $Wall
-}
-
-// Tree
-const Height = 11
-const TrunkHeight = 3.3
-const Lights = 60
-
-_ {
-  Position3: {0, $TrunkHeight / 2, 0}
-  Box: {2, $TrunkHeight, 2}
-  $TrunkWood
-}
-
-for y in 0..$Height {
-  const w = ($y - $Height) * 0.6
-  _ {
-    Position3: {0, $y + $TrunkHeight, 0}
-    Box: {$w, 1, $w}
-    $Green
-  }
-}
-
-for i in 0..$Lights {
-  for s in 0..4 {
-    const h = $rng.u(1 + $i * ($Height / $Lights))
-    const w = ($h - $Height) * 0.6
-    const x = $rng.f($w)
-    const hv = $h + ($rng.f(0.5) - 0.25)
     
-    Light () {
-      if $s == 0 {
-        Position3: {-$w / 2 + 0.05, $hv + $TrunkHeight, $x - $w / 2}
-      }
-      if $s == 1 {
-        Position3: {$w / 2 - 0.05, $hv + $TrunkHeight, $x - $w / 2}
-      }
-      if $s == 2 {
-        Position3: {$x - $w / 2, $hv + $TrunkHeight, $w / 2 - 0.05}
-      }
-      if $s == 3 {
-        Position3: {$x - $w / 2, $hv + $TrunkHeight, -$w / 2 + 0.05}
-      }
-    }
+    FenceBoard(width, 0.5)
+    FenceBoard(width, 1.5)
   }
 }
 
-// Gifts
-Gift(2) {
-  Position3: {-4, 0.4}
-  Rotation3: {y: 0.5}
-}
+template Pen {
+  prop width: 10.0
+  prop depth: 10.0
+  
+  Fence(width) { Position3: {z: 0.5 * -depth} }
+  Fence(width) { Position3: {z: 0.5 * depth} }
 
-Gift(1.3) {
-  Position3: {-4.5, 0.4, 3}
-  Rotation3: {y: 0.1}
-}
-
-Gift(1.7) {
-  Position3: {-2.5, 0.4, 2.6}
-  Rotation3: {y: -0.2}
-}
-
-for i in 0..4 {
-  Sock() {
-    Position3: {12.6, 4, $i * 3 - 4.7}
-    Rotation3: {x: -0.1}
+  with Rotation3(y: PI / 2) {
+    Fence(depth) { Position3: {x: 0.5 * -width} }
+    Fence(depth) { Position3: {x: 0.5 * width} }
   }
 }
 
-// Decoration
-FirePlace()
-
-Tv() {
-  Position3: {14.1, 11, 0}
-}
-
-BookCase() {
-  Position3: {-4, 0.3, -13}
-}
-
-Candle(1.2) {
-  Position3: {13.4, 5, 6.5}
-  Rotation3: {y: -0.6}
-}
-
-Candle(1) {
-  Position3: {13.5, 5, 5.8}
-  Rotation3: {y: 0.5}
-}
-
-PostCard(0.8) {
-  Position3: {13.3, 5}
-  Rotation3: {y: 6.8}
-}
-
-PostCard(1, {0.1, 0.2, 0.1}) {
-  Position3: {13.4, 5, 0.9}
-  Rotation3: {y: 6.9}
-}
-
-PostCard(0.6, {0.4, 0.4, 0.4}) {
-  Position3: {13.5, 5, 1.6}
-  Rotation3: {y: 7.1}
-}
-
-Plant() {
-  Position3: {13.5, 5, -6.2}
-}
-
-} // scene
-
-$ {
-  flecs.game.TimeOfDay: {0.1}
-}
+Pen my_pen(width: 10, depth: 15)
