@@ -443,7 +443,7 @@ const flecs = {
                   }
 
                   let portIndex = url.indexOf(":"); // first is protocol
-                  portIndex = url.indexOf(portIndex + 1, ":");
+                  portIndex = url.indexOf(":", portIndex + 1);
                   if (portIndex == -1) {
                     url += ":27750";
                   }
