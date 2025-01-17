@@ -7,9 +7,16 @@
 #define EMSCRIPTEN_KEEPALIVE
 #endif
 
+void CleanupEmptyTables(ecs_iter_t *it) {
+    ecs_delete_empty_tables(it->world, &(ecs_delete_empty_tables_desc_t) {
+        .delete_generation = 1,
+        .time_budget_seconds = 0.016
+    });
+}
+
 EMSCRIPTEN_KEEPALIVE
 int main() {
-    ecs_log_set_level(-1);
+    // ecs_log_set_level(1);
 
     ecs_world_t *world = ecs_init();
     if (!world) {
@@ -27,6 +34,14 @@ int main() {
     ECS_IMPORT(world, FlecsSystemsTransform);
     ECS_IMPORT(world, FlecsSystemsSokol);
     ECS_IMPORT(world, FlecsGame);
+
+    ECS_SYSTEM(world, CleanupEmptyTables, EcsOnStore, 0);
+
+    ecs_system(world, {
+        .entity = ecs_id(CleanupEmptyTables),
+        .immediate = true,
+        .interval = 1.0
+    });
 
     ecs_doc_set_name(world, EcsWorld, "Playground");
 
