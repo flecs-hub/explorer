@@ -1,5 +1,5 @@
 <template>
-  <div class="dropdown">
+  <div class="dropdown" ref="dropdown">
     <div class="dropdown-container" @click="onClick">
       <div class="dropdown-text noselect">
         <template v-if="activeItem">
@@ -28,7 +28,7 @@ export default { name: "dropdown" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, onMounted, ref } from 'vue';
+import { defineProps, defineModel, onMounted, onBeforeUnmount, ref } from 'vue';
 
 const props = defineProps({
   items: {type: Array, required: true},
@@ -38,14 +38,29 @@ const activeItem = defineModel("active_item");
 
 const showList = ref(false);
 
+const dropdown = ref(null);
+
 onMounted(() => {
   if (!activeItem.value) {
     activeItem.value = props.items[0];
   }
+
+  window.addEventListener('click', onWindowClick)
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('click', onWindowClick)
 });
 
 function onClick() {
   showList.value = true;
+}
+
+function onWindowClick(element) {
+  // Close if the dropdown doesn't contain the clicked element
+  if (!dropdown.value.contains(element.target)) {
+    showList.value = false;
+  }
 }
 
 function onSelect(item) {
