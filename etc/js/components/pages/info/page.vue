@@ -1,6 +1,6 @@
 <template>
   <div id="page-info" class="page-content">
-    <pane-info :app_state="app_state"></pane-info>
+    <pane-info :conn="conn" :app_state="app_state"></pane-info>
   </div>
 </template>
 
@@ -12,6 +12,7 @@ export default { name: "page-info" };
 import { defineProps } from 'vue';
 
 const props = defineProps({
+  conn: {type: Object, required: true},
   app_params: {type: Object, required: true},
   app_state: {type: Object, required: true}
 });

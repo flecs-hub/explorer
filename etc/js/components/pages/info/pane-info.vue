@@ -65,6 +65,11 @@
     <div class="info-addons">
       <div v-for="(addon, i) in addons" :class="css_addon(i)">{{ addon }}</div>
     </div>
+
+    <p>Natvis</p>
+    <div class="info-natvis">
+      <pre>{{ natvisXml }}</pre>
+    </div>
   </div>
 </template>
 
@@ -75,10 +80,43 @@ export default {
 </script>
 
 <script setup>
-import { defineProps, computed } from 'vue';
+import { defineProps, ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
+  conn: {type: Object, required: true},
   app_state: {type: Object, required: true },
+});
+
+const componentQueryResult = ref({results: []});
+
+onMounted(() => {
+  props.conn.query("Component, (Identifier, Symbol), !flecs.meta.primitive", {}, (reply) => {
+    componentQueryResult.value = reply;
+  });
+});
+
+const natvisXml = computed(() => {
+  let xml = "";
+
+  for (const r of componentQueryResult.value.results) {
+    const size = r.fields.values[0].size;
+    if (size === 0) {
+      continue;
+    }
+
+    const name = r.name;
+    let path = name;
+    if (r.parent) {
+      path = r.parent + "." + name;
+    }
+
+    let symbol = r.fields.values[1].value;
+    symbol = symbol.replaceAll(".", "::");
+
+    xml += `<Item Name="${name}" Condition='!strcmp(ComponentName, "${path}")'>*(${symbol}*)Ptr</Item>\n`;
+  }
+
+  return xml;
 });
 
 const css_addon = (i) => {
@@ -228,4 +266,10 @@ div.info-addons {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
 }
+
+div.info-natvis {
+  display: grid;
+  overflow: hidden;
+}
+
 </style>
