@@ -90,7 +90,7 @@ const props = defineProps({
 const componentQueryResult = ref({results: []});
 
 onMounted(() => {
-  props.conn.query("Component, (Identifier, Symbol), !flecs.meta.primitive", {}, (reply) => {
+  props.conn.query("Component, (Identifier, Symbol), !flecs.meta.primitive, !flecs.meta.opaque", {}, (reply) => {
     componentQueryResult.value = reply;
   });
 });
@@ -104,16 +104,10 @@ const natvisXml = computed(() => {
       continue;
     }
 
-    const name = r.name;
-    let path = name;
-    if (r.parent) {
-      path = r.parent + "." + name;
-    }
-
     let symbol = r.fields.values[1].value;
-    symbol = symbol.replaceAll(".", "::");
+    let native_symbol = symbol.replaceAll(".", "::");
 
-    xml += `<Item Name="${name}" Condition='!strcmp(ComponentName, "${path}")'>*(${symbol}*)Ptr</Item>\n`;
+    xml += `<If Condition='!strcmp(Symbol, "${symbol}")'><Item Name="{IdStr,s8b}">*(${native_symbol}*)Ptr</Item><Exec>Found = true</Exec></If>\n`;
   }
 
   return xml;
