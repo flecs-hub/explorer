@@ -107,7 +107,7 @@ const natvisXml = computed(() => {
     let symbol = r.fields.values[1].value;
     let native_symbol = symbol.replaceAll(".", "::");
 
-    xml += `<If Condition='!strcmp(Symbol, "${symbol}")'><Item Name="{IdStr,s8b}">*(${native_symbol}*)Ptr</Item><Exec>Found = true</Exec></If>\n`;
+    xml += `<If Condition='!strcmp(Symbol, "${symbol}")'><Item Name="{IdStr,s8b}">(${native_symbol}*)Ptr</Item><Exec>Found = true</Exec></If>\n`;
   }
 
   return xml;
