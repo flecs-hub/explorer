@@ -1,31 +1,44 @@
 <template>
   <div id="page-entities" :class="pageCss">
-    <pane-tree 
-      :conn="conn"
-      v-model:app_params="appParams"
-      @scriptOpen="onScriptOpen"
-      @entityOpen="onEntityOpen"
-      v-if="app_params.sidebar">
-    </pane-tree>
-    <div id="canvasPlaceholder" :class="canvasCss" :style="`grid-column: ${canvasColumn}`">
-    </div>
-    <div :class="scriptCss" :style="`grid-column: ${scriptColumn}`">
-      <pane-scripts
-        :conn="conn"
-        v-model:script="appParams.script"
-        v-model:scripts="appParams.scripts"
-        ref="pane_scripts">
-      </pane-scripts>
-    </div>
-    <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`"
-      v-if="showInspector">
-      <pane-inspector
-        :conn="conn"
-        :app_params="appParams"
-        @abort="onAbort"
-        @scriptOpen="onScriptOpen">
-      </pane-inspector>
-    </div>
+    <split-pane>
+      <div class="split-pane" v-if="app_params.sidebar" :style="{ width: sidebarWidth + 'px' }">
+        <pane-tree 
+          :conn="conn"
+          v-model:app_params="appParams"
+          @scriptOpen="onScriptOpen"
+          @entityOpen="onEntityOpen">
+        </pane-tree>
+      </div>
+      <div class="handle" v-if="app_params.sidebar" @mousedown="startResize('sidebar')">
+        <div class="handle-grab-box"></div>
+      </div>
+
+      <div class="split-pane" :style="{ width: mainWidth + 'px' }">
+        <div id="canvasPlaceholder" :class="canvasCss" v-if="showCanvas">
+        </div>
+        <div :class="scriptCss" v-if="showScript">
+          <pane-scripts
+            :conn="conn"
+            v-model:script="appParams.script"
+            v-model:scripts="appParams.scripts"
+            ref="pane_scripts">
+          </pane-scripts>
+        </div>
+      </div>
+
+      <div class="handle" v-if="showInspector" @mousedown="startResize('inspector')">
+        <div class="handle-grab-box"></div>
+      </div>
+
+      <div class="split-pane" v-if="showInspector" :style="{ width: inspectorWidth + 'px' }">
+        <pane-inspector
+          :conn="conn"
+          :app_params="appParams"
+          @abort="onAbort"
+          @scriptOpen="onScriptOpen">
+        </pane-inspector>
+      </div>
+    </split-pane>
   </div>
 </template>
 
@@ -34,7 +47,8 @@ export default { name: "page-entities" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, ref, computed, watch, nextTick } from 'vue';
+import { defineProps, defineModel, ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import SplitPane from '../../split-pane.vue';
 
 const pane_scripts = ref(null);
 
@@ -120,58 +134,105 @@ const canvasCss = computed(() => {
   return classes;
 });
 
-const canvasColumn = computed(() => {
-  let result = 2;
-  if (!appParams.value.sidebar) {
-    result --;
+const sidebarWidth = ref(300);
+const inspectorWidth = ref(500);
+const mainWidth = computed(() => {
+  const totalWidth = window.innerWidth;
+  let width = totalWidth;
+  if (appParams.value.sidebar) {
+    width -= sidebarWidth.value + 8; // 8px for gap
   }
-  return result;
+  if (showInspector.value) {
+    width -= inspectorWidth.value + 8;
+  }
+  return width;
 });
 
-const scriptColumn = computed(() => {
-  let result = 2;
-  if (showCanvas.value) {
-    result = 3;
+let isResizing = false;
+let currentHandle = null;
+
+function startResize(handle) {
+  isResizing = true;
+  currentHandle = handle;
+  document.addEventListener('mousemove', handleResize);
+  document.addEventListener('mouseup', stopResize);
+}
+
+function handleResize(e) {
+  if (!isResizing) return;
+
+  if (currentHandle === 'sidebar') {
+    const newWidth = Math.max(200, Math.min(600, e.clientX));
+    sidebarWidth.value = newWidth;
+  } else if (currentHandle === 'inspector') {
+    const totalWidth = window.innerWidth;
+    const maxWidth = totalWidth - (appParams.value.sidebar ? sidebarWidth.value + 400 : 400);
+    const newWidth = Math.max(300, Math.min(maxWidth, totalWidth - e.clientX));
+    inspectorWidth.value = newWidth;
   }
-  if (!appParams.value.sidebar) {
-    result --;
-  }
-  return result;
+
+  window.dispatchEvent(new Event('resize'));
+}
+
+function stopResize() {
+  isResizing = false;
+  currentHandle = null;
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
+}
+
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    const totalWidth = window.innerWidth;
+    if (appParams.value.sidebar && sidebarWidth.value > totalWidth * 0.4) {
+      sidebarWidth.value = Math.min(sidebarWidth.value, totalWidth * 0.4);
+    }
+    if (showInspector.value && inspectorWidth.value > totalWidth * 0.6) {
+      inspectorWidth.value = Math.min(inspectorWidth.value, totalWidth * 0.6);
+    }
+  });
 });
 
-const inspectorColumn = computed(() => {
-  let result = 3;
-  if (!appParams.value.sidebar) {
-    result --;
-  }
-  return result;
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
 });
 
 </script>
 
 <style scoped>
 #page-entities {
-  display: grid;
-  grid-template-columns: 300px calc(100% - 300px - var(--gap)) 0px;
-  grid-template-rows: 100%;
-  gap: var(--gap);
   height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
+  overflow: hidden;
 }
 
-#page-entities:not(.page-entities-show-inspector):not(.page-entities-show-sidebar) {
-  grid-template-columns: calc(100%);
+.split-pane {
+  height: 100%;
+  min-width: 0;
+  overflow: auto;
 }
 
-#page-entities.page-entities-show-sidebar.page-entities-show-inspector {
-  grid-template-columns: 300px calc(100% - 300px - 500px - 2 * var(--gap)) 500px !important;
+.handle {
+  cursor: col-resize;
+  width: 8px;
+  margin: 0 -4px;
+  z-index: 100;
 }
 
-#page-entities:not(.page-entities-show-sidebar).page-entities-show-inspector {
-  grid-template-columns: calc(100% - 760px - 1 * var(--gap)) 760px !important;
+.handle-grab-box {
+  height: 100%;
+  width: 4px;
+  background: var(--color-border);
+  margin: 0 2px;
+  transition: background-color 0.2s;
+}
+
+.handle:hover .handle-grab-box {
+  background: var(--color-primary);
 }
 
 div.page-entities-canvas {
-  grid-row: 1;
+  height: 100%;
   border-radius: var(--border-radius-medium);
   overflow: hidden;
 }
@@ -181,13 +242,11 @@ div.page-entities-canvas-hide {
 }
 
 div.page-entities-script {
-  grid-row: 1;
   height: 100%;
 }
 
 div.page-entities-inspector {
-  grid-row: 1;
+  height: 100%;
   overflow-x: auto;
 }
-
 </style>
