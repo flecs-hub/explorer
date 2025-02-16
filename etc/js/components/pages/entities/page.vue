@@ -13,9 +13,23 @@
         <div class="handle-grab-box"></div>
       </div>
 
-      <div class="split-pane" :style="{ width: mainWidth + 'px' }">
+      <div class="split-pane main-pane" :style="{ width: mainWidth + 'px' }">
         <div id="canvasPlaceholder" :class="canvasCss" v-if="showCanvas">
         </div>
+      </div>
+
+      <div class="handle" v-if="showInspector || showScript" @mousedown="startResize('inspector')">
+        <div class="handle-grab-box"></div>
+      </div>
+
+      <div class="split-pane" v-if="showInspector || showScript" :style="{ width: inspectorWidth + 'px' }">
+        <pane-inspector
+          v-if="showInspector"
+          :conn="conn"
+          :app_params="appParams"
+          @abort="onAbort"
+          @scriptOpen="onScriptOpen">
+        </pane-inspector>
         <div :class="scriptCss" v-if="showScript">
           <pane-scripts
             :conn="conn"
@@ -24,19 +38,6 @@
             ref="pane_scripts">
           </pane-scripts>
         </div>
-      </div>
-
-      <div class="handle" v-if="showInspector" @mousedown="startResize('inspector')">
-        <div class="handle-grab-box"></div>
-      </div>
-
-      <div class="split-pane" v-if="showInspector" :style="{ width: inspectorWidth + 'px' }">
-        <pane-inspector
-          :conn="conn"
-          :app_params="appParams"
-          @abort="onAbort"
-          @scriptOpen="onScriptOpen">
-        </pane-inspector>
       </div>
     </split-pane>
   </div>
@@ -60,15 +61,10 @@ const props = defineProps({
 const appParams = defineModel("app_params");
 
 const showScript = computed(() => {
-  if (!props.app_state.has3DCanvas) {
+  if (!appParams.value.script) {
     return false;
-  } else if (!appParams.value.script) {
-    return false;
-  } else if (appParams.value.entity.path) {
-    return false;
-  } else {
-    return true;
   }
+  return true;
 });
 
 const showCanvas = computed(() => {
@@ -94,18 +90,20 @@ function onAbort(evt) {
 }
 
 function onScriptOpen(path) {
-  if (!props.app_state.has3DCanvas) {
-    pane_scripts.value.openScript(path);
-    appParams.value.entity.path = path;
-  } else {
-    appParams.value.entity.path = undefined;
-    appParams.value.scripts.length = 0;
-    pane_scripts.value.openScript(path);
+  appParams.value.entity.path = undefined;
+  
+  appParams.value.script = path;
+  if (!appParams.value.scripts.includes(path)) {
+    appParams.value.scripts.push(path);
   }
+  
+  pane_scripts.value.openScript(path);
 }
 
 function onEntityOpen(path) {
   if (props.app_state.has3DCanvas) {
+    appParams.value.script = undefined;
+    appParams.value.scripts.length = 0;
     pane_scripts.value.closeScripts();
   }
 }
@@ -140,10 +138,10 @@ const mainWidth = computed(() => {
   const totalWidth = window.innerWidth;
   let width = totalWidth;
   if (appParams.value.sidebar) {
-    width -= sidebarWidth.value + 8; // 8px for gap
+    width -= sidebarWidth.value;
   }
-  if (showInspector.value) {
-    width -= inspectorWidth.value + 8;
+  if (showInspector.value || showScript.value) {
+    width -= inspectorWidth.value;
   }
   return width;
 });
@@ -161,13 +159,16 @@ function startResize(handle) {
 function handleResize(e) {
   if (!isResizing) return;
 
+  const totalWidth = window.innerWidth;
+  
   if (currentHandle === 'sidebar') {
-    const newWidth = Math.max(200, Math.min(600, e.clientX));
-    sidebarWidth.value = newWidth;
+    const minWidth = 200;
+    const maxWidth = totalWidth - 400; // Leave space for main content
+    sidebarWidth.value = Math.max(minWidth, Math.min(maxWidth, e.clientX));
   } else if (currentHandle === 'inspector') {
-    const totalWidth = window.innerWidth;
+    const minWidth = 300;
     const maxWidth = totalWidth - (appParams.value.sidebar ? sidebarWidth.value + 400 : 400);
-    const newWidth = Math.max(300, Math.min(maxWidth, totalWidth - e.clientX));
+    const newWidth = Math.max(minWidth, Math.min(maxWidth, totalWidth - e.clientX));
     inspectorWidth.value = newWidth;
   }
 
@@ -182,13 +183,31 @@ function stopResize() {
 }
 
 onMounted(() => {
-  window.addEventListener('resize', () => {
-    const totalWidth = window.innerWidth;
-    if (appParams.value.sidebar && sidebarWidth.value > totalWidth * 0.4) {
-      sidebarWidth.value = Math.min(sidebarWidth.value, totalWidth * 0.4);
+  const totalWidth = window.innerWidth;
+  
+  nextTick(() => {
+    if (sidebarWidth.value > totalWidth * 0.3) {
+      sidebarWidth.value = Math.floor(totalWidth * 0.3);
     }
-    if (showInspector.value && inspectorWidth.value > totalWidth * 0.6) {
-      inspectorWidth.value = Math.min(inspectorWidth.value, totalWidth * 0.6);
+    
+    if (inspectorWidth.value > totalWidth * 0.4) {
+      inspectorWidth.value = Math.floor(totalWidth * 0.4);
+    }
+    
+    window.dispatchEvent(new Event('resize'));
+  });
+  
+  window.addEventListener('resize', () => {
+    if (!isResizing) {
+      const totalWidth = window.innerWidth;
+      
+      if (appParams.value.sidebar && sidebarWidth.value > totalWidth * 0.3) {
+        sidebarWidth.value = Math.floor(totalWidth * 0.3);
+      }
+      
+      if ((showInspector.value || showScript.value) && inspectorWidth.value > totalWidth * 0.4) {
+        inspectorWidth.value = Math.floor(totalWidth * 0.4);
+      }
     }
   });
 });
@@ -212,23 +231,29 @@ onUnmounted(() => {
   overflow: auto;
 }
 
+.main-pane {
+  display: flex;
+  flex-direction: column;
+}
+
 .handle {
-  cursor: col-resize;
-  width: 8px;
-  margin: 0 -4px;
-  z-index: 100;
+  flex: 0 0 1px;
 }
 
 .handle-grab-box {
-  height: 100%;
-  width: 4px;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
   background: var(--color-border);
-  margin: 0 2px;
   transition: background-color 0.2s;
 }
 
 .handle:hover .handle-grab-box {
   background: var(--color-primary);
+  width: 4px;
 }
 
 div.page-entities-canvas {
@@ -243,6 +268,8 @@ div.page-entities-canvas-hide {
 
 div.page-entities-script {
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 div.page-entities-inspector {
