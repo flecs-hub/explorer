@@ -1,13 +1,6 @@
 <template>
   <div class="entity-inspector">
     <template v-if="entityQueryResult">
-      <div class="entity-inspector-icon-expand">
-        <expand-button 
-          :expand="expand" 
-          :rotation="180"
-          @click="toggle">
-        </expand-button>
-      </div>
       <div class="entity-inspector-icon-close">
         <icon-button
           src="close"
@@ -19,9 +12,7 @@
         <span class="entity-inspector-name">{{ entityLabel }}
           <span class="entity-inspector-id">{{ entityId }}</span>
         </span>
-        <template v-if="expand">
-          <span class="entity-inspector-actual-name">{{ entityQueryResult.name }}</span>
-        </template>
+        <span class="entity-inspector-actual-name">{{ entityQueryResult.name }}</span>
       </template>
       <template v-else>
         <span class="entity-inspector-name">{{ entityQueryResult.name }}
@@ -29,22 +20,20 @@
         </span>
       </template>
 
-      <template v-if="expand">
-        <div class="entity-inspector-brief" v-if="entityBrief">
-          <span>{{ entityBrief }}</span>
-        </div>
-        <div class="entity-inspector-buttons">
-          <button @click="onDisable" v-if="!isDisabled" class="enable-button">
-            Disable
-          </button>
-          <button @click="onEnable" v-if="isDisabled" class="enable-button">
-            Enable
-          </button>
-          <button @click="onDelete">
-            <icon src="trash"></icon>
-          </button>
-        </div>
-      </template>
+      <div class="entity-inspector-brief" v-if="entityBrief">
+        <span>{{ entityBrief }}</span>
+      </div>
+      <div class="entity-inspector-buttons">
+        <button @click="onDisable" v-if="!isDisabled" class="enable-button">
+          Disable
+        </button>
+        <button @click="onEnable" v-if="isDisabled" class="enable-button">
+          Enable
+        </button>
+        <button @click="onDelete">
+          <icon src="trash"></icon>
+        </button>
+      </div>
 
       <hr/>
 
@@ -294,10 +283,6 @@ function updateQuery() {
   }
 }
 
-function toggle() {
-  expand.value = !expand.value;
-}
-
 function onClose() {
   emit("abort", props.path);
 }
@@ -346,9 +331,9 @@ function onOpenScript() {
 div.entity-inspector {
   position: relative;
   display: grid;
-  grid-template-rows: 1rem 2rem 1rem 2rem calc(100% - 6rem);
+  grid-template-rows: 1rem 1.5rem 3rem 1rem 2rem calc(100% - 6rem);
   padding: 8px;
-  height: calc(100% - 1.0rem);
+  height: calc(100% - 3.0rem);
 }
 
 span.entity-inspector-id {
@@ -407,12 +392,6 @@ button.enable-button {
 </style>
 
 <style>
-div.entity-inspector-icon-expand {
-  position: absolute;
-  top: 8px;
-  right: 32px;
-}
-
 div.entity-inspector-icon-close {
   position: absolute;
   top: 8px;
