@@ -9,7 +9,7 @@
           @entityOpen="onEntityOpen">
         </pane-tree>
       </div>
-      <div class="handle" v-if="app_params.sidebar" @mousedown="startResize('sidebar')">
+      <div class="handle" v-if="app_params.sidebar" @mousedown="(e) => startResize('sidebar', e)">
         <div class="handle-grab-box"></div>
       </div>
 
@@ -18,7 +18,7 @@
         </div>
       </div>
 
-      <div class="handle" v-if="showInspector || showScript" @mousedown="startResize('inspector')">
+      <div class="handle" v-if="showInspector || showScript" @mousedown="(e) => startResize('inspector', e)">
         <div class="handle-grab-box"></div>
       </div>
 
@@ -146,30 +146,46 @@ const mainWidth = computed(() => {
   return width;
 });
 
+const sidebarRatio = ref(sidebarWidth.value / window.innerWidth);
+const inspectorRatio = ref(inspectorWidth.value / window.innerWidth);
+
 let isResizing = false;
 let currentHandle = null;
+let initialMouseX = 0;
+let initialSidebarWidth = 0;
+let initialInspectorWidth = 0;
 
-function startResize(handle) {
+function startResize(handle, e) {
   isResizing = true;
   currentHandle = handle;
+  initialMouseX = e.clientX;
+  initialSidebarWidth = sidebarWidth.value;
+  initialInspectorWidth = inspectorWidth.value;
+  
   document.addEventListener('mousemove', handleResize);
   document.addEventListener('mouseup', stopResize);
+  document.body.classList.add('noselect');
+  document.body.style.cursor = 'col-resize';
 }
 
 function handleResize(e) {
   if (!isResizing) return;
 
   const totalWidth = window.innerWidth;
+  const deltaX = e.clientX - initialMouseX;
   
   if (currentHandle === 'sidebar') {
     const minWidth = 200;
-    const maxWidth = totalWidth - 400; // Leave space for main content
-    sidebarWidth.value = Math.max(minWidth, Math.min(maxWidth, e.clientX));
+    const maxWidth = totalWidth - 400;
+    const newWidth = initialSidebarWidth + deltaX;
+    sidebarWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth));
+    sidebarRatio.value = sidebarWidth.value / totalWidth;
   } else if (currentHandle === 'inspector') {
     const minWidth = 300;
     const maxWidth = totalWidth - (appParams.value.sidebar ? sidebarWidth.value + 400 : 400);
-    const newWidth = Math.max(minWidth, Math.min(maxWidth, totalWidth - e.clientX));
-    inspectorWidth.value = newWidth;
+    const newWidth = initialInspectorWidth - deltaX;
+    inspectorWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth));
+    inspectorRatio.value = inspectorWidth.value / totalWidth;
   }
 
   window.dispatchEvent(new Event('resize'));
@@ -180,6 +196,14 @@ function stopResize() {
   currentHandle = null;
   document.removeEventListener('mousemove', handleResize);
   document.removeEventListener('mouseup', stopResize);
+  document.body.classList.remove('noselect');
+  document.body.style.cursor = '';
+  
+  const handles = document.querySelectorAll('.handle-grab-box');
+  handles.forEach(handle => {
+    handle.style.width = '4px';
+    handle.style.backgroundColor = 'var(--color-border)';
+  });
 }
 
 onMounted(() => {
@@ -188,10 +212,12 @@ onMounted(() => {
   nextTick(() => {
     if (sidebarWidth.value > totalWidth * 0.3) {
       sidebarWidth.value = Math.floor(totalWidth * 0.3);
+      sidebarRatio.value = sidebarWidth.value / totalWidth;
     }
     
     if (inspectorWidth.value > totalWidth * 0.4) {
       inspectorWidth.value = Math.floor(totalWidth * 0.4);
+      inspectorRatio.value = inspectorWidth.value / totalWidth;
     }
     
     window.dispatchEvent(new Event('resize'));
@@ -200,13 +226,19 @@ onMounted(() => {
   window.addEventListener('resize', () => {
     if (!isResizing) {
       const totalWidth = window.innerWidth;
+      const prevTotalWidth = window.prevTotalWidth || totalWidth;
+      window.prevTotalWidth = totalWidth;
       
-      if (appParams.value.sidebar && sidebarWidth.value > totalWidth * 0.3) {
-        sidebarWidth.value = Math.floor(totalWidth * 0.3);
-      }
-      
-      if ((showInspector.value || showScript.value) && inspectorWidth.value > totalWidth * 0.4) {
-        inspectorWidth.value = Math.floor(totalWidth * 0.4);
+      if (Math.abs(totalWidth - prevTotalWidth) > 50) {
+        if (appParams.value.sidebar) {
+          const newSidebarWidth = Math.floor(totalWidth * sidebarRatio.value);
+          sidebarWidth.value = Math.max(200, Math.min(totalWidth * 0.6, newSidebarWidth));
+        }
+        
+        if (showInspector.value || showScript.value) {
+          const newInspectorWidth = Math.floor(totalWidth * inspectorRatio.value);
+          inspectorWidth.value = Math.max(300, Math.min(totalWidth * 0.6, newInspectorWidth));
+        }
       }
     }
   });
@@ -237,7 +269,14 @@ onUnmounted(() => {
 }
 
 .handle {
-  flex: 0 0 1px;
+  flex: 0 0 var(--gap);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: col-resize;
+  position: relative;
+  z-index: 10;
 }
 
 .handle-grab-box {
@@ -246,14 +285,19 @@ onUnmounted(() => {
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 2px;
+  width: 4px;
   background: var(--color-border);
-  transition: background-color 0.2s;
+  transition: width 0.2s, background-color 0.2s;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  cursor: col-resize;
 }
 
 .handle:hover .handle-grab-box {
   background: var(--color-primary);
-  width: 4px;
+  width: 6px;
 }
 
 div.page-entities-canvas {
