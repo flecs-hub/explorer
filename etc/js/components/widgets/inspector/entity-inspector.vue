@@ -8,21 +8,26 @@
         </icon-button>
       </div>
       <entity-path :path="entityQueryResult.parent"></entity-path>
-      <template v-if="entityLabel">
-        <span class="entity-inspector-name">{{ entityLabel }}
-          <span class="entity-inspector-id">{{ entityId }}</span>
-        </span>
-        <span class="entity-inspector-actual-name">{{ entityQueryResult.name }}</span>
-      </template>
-      <template v-else>
-        <span class="entity-inspector-name">{{ entityQueryResult.name }}
-          <span class="entity-inspector-id">{{ entityId }}</span>
-        </span>
-      </template>
+      <div>
+        <template v-if="entityLabel">
+          <span class="entity-inspector-name">{{ entityLabel }}
+            <span class="entity-inspector-id">{{ entityId }}</span>
+          </span>
+          <span class="entity-inspector-actual-name">{{ entityQueryResult.name }}</span>
+        </template>
+        <template v-else>
+          <span class="entity-inspector-name">{{ entityQueryResult.name }}
+            <span class="entity-inspector-id">{{ entityId }}</span>
+          </span>
+        </template>
 
-      <div class="entity-inspector-brief" v-if="entityBrief">
-        <span>{{ entityBrief }}</span>
+        <template v-if="entityBrief">
+          <div class="entity-inspector-brief">
+            <span>{{ entityBrief }}</span>
+          </div>
+        </template>
       </div>
+
       <div class="entity-inspector-buttons">
         <button @click="onDisable" v-if="!isDisabled" class="enable-button">
           Disable
@@ -331,7 +336,7 @@ function onOpenScript() {
 div.entity-inspector {
   position: relative;
   display: grid;
-  grid-template-rows: 1rem 1.5rem 3rem 1rem 2rem calc(100% - 6rem);
+  grid-template-rows: 1rem auto 3rem 1rem 2rem calc(100% - 6rem);
   padding: 8px;
   height: calc(100% - 3.0rem);
 }
