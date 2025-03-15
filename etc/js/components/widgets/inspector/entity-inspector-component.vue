@@ -194,7 +194,11 @@ function removeTarget(target) {
 
 function setValue(evt) {
   let payload = {};
-  payload[evt.key] = evt.value;
+  if (evt.key) {
+    payload[evt.key] = evt.value;
+  } else {
+    payload = evt.value;
+  }
   props.conn.set(props.entity, props.fullName, payload);
 }
 
