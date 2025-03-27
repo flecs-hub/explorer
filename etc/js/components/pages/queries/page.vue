@@ -61,11 +61,20 @@ function startResize(e) {
 
 function handleResize(e) {
   if (!isResizing) return;
-  
+
   const deltaX = e.clientX - initialMouseX;
   const totalWidth = window.innerWidth;
-  const minWidth = 200;
-  const maxWidth = totalWidth - 400;
+
+  // Calculate flexible minimum width based on window size
+  let minWidth = 200;
+  if (totalWidth < 600) {
+    minWidth = Math.min(minWidth, totalWidth * 0.2); // 20% of window for very small screens
+  } else if (totalWidth < 1000) {
+    minWidth = Math.min(minWidth, totalWidth * 0.25); // 25% of window for small screens
+  }
+
+  // Ensure we leave at least 30% of the screen for the right pane
+  const maxWidth = totalWidth * 0.7;
   const newWidth = initialLeftPaneWidth + deltaX;
   leftPaneWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth));
   leftPaneRatio.value = leftPaneWidth.value / totalWidth;
@@ -90,15 +99,23 @@ onMounted(() => {
     leftPaneWidth.value = Math.floor(totalWidth * 0.6);
     leftPaneRatio.value = leftPaneWidth.value / totalWidth;
   }
-  
+
   window.addEventListener('resize', () => {
     if (!isResizing) {
       const totalWidth = window.innerWidth;
       const prevTotalWidth = window.prevTotalWidth || totalWidth;
       window.prevTotalWidth = totalWidth;
       if (Math.abs(totalWidth - prevTotalWidth) > 50) {
+        // Calculate flexible minimum width based on window size
+        let minWidth = 200;
+        if (totalWidth < 600) {
+          minWidth = Math.min(minWidth, totalWidth * 0.2); // 20% of window for very small screens
+        } else if (totalWidth < 1000) {
+          minWidth = Math.min(minWidth, totalWidth * 0.25); // 25% of window for small screens
+        }
+
         const newLeftPaneWidth = Math.floor(totalWidth * leftPaneRatio.value);
-        leftPaneWidth.value = Math.max(200, Math.min(totalWidth * 0.6, newLeftPaneWidth));
+        leftPaneWidth.value = Math.max(minWidth, Math.min(totalWidth * 0.6, newLeftPaneWidth));
       }
     }
   });

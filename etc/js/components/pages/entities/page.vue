@@ -2,7 +2,7 @@
   <div id="page-entities" :class="pageCss">
     <split-pane>
       <div class="split-pane" v-if="app_params.sidebar" :style="{ width: sidebarWidth + 'px' }">
-        <pane-tree 
+        <pane-tree
           :conn="conn"
           v-model:app_params="appParams"
           @scriptOpen="onScriptOpen"
@@ -91,12 +91,12 @@ function onAbort(evt) {
 
 function onScriptOpen(path) {
   appParams.value.entity.path = undefined;
-  
+
   appParams.value.script = path;
   if (!appParams.value.scripts.includes(path)) {
     appParams.value.scripts.push(path);
   }
-  
+
   pane_scripts.value.openScript(path);
 }
 
@@ -161,7 +161,7 @@ function startResize(handle, e) {
   initialMouseX = e.clientX;
   initialSidebarWidth = sidebarWidth.value;
   initialInspectorWidth = inspectorWidth.value;
-  
+
   document.addEventListener('mousemove', handleResize);
   document.addEventListener('mouseup', stopResize);
   document.body.classList.add('noselect');
@@ -173,16 +173,25 @@ function handleResize(e) {
 
   const totalWidth = window.innerWidth;
   const deltaX = e.clientX - initialMouseX;
-  
+
+  const getMinWidth = (defaultMin) => {
+    if (totalWidth < 600) {
+      return Math.min(defaultMin, totalWidth * 0.2);
+    } else if (totalWidth < 1000) {
+      return Math.min(defaultMin, totalWidth * 0.25);
+    }
+    return defaultMin;
+  };
+
   if (currentHandle === 'sidebar') {
-    const minWidth = 200;
-    const maxWidth = totalWidth - 400;
+    const minWidth = getMinWidth(200);
+    const maxWidth = totalWidth * 0.7;
     const newWidth = initialSidebarWidth + deltaX;
     sidebarWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth));
     sidebarRatio.value = sidebarWidth.value / totalWidth;
   } else if (currentHandle === 'inspector') {
-    const minWidth = 300;
-    const maxWidth = totalWidth - (appParams.value.sidebar ? sidebarWidth.value + 400 : 400);
+    const minWidth = getMinWidth(300);
+    const maxWidth = totalWidth - (appParams.value.sidebar ? sidebarWidth.value + totalWidth * 0.3 : totalWidth * 0.3);
     const newWidth = initialInspectorWidth - deltaX;
     inspectorWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth));
     inspectorRatio.value = inspectorWidth.value / totalWidth;
@@ -198,7 +207,7 @@ function stopResize() {
   document.removeEventListener('mouseup', stopResize);
   document.body.classList.remove('noselect');
   document.body.style.cursor = '';
-  
+
   const handles = document.querySelectorAll('.handle-grab-box');
   handles.forEach(handle => {
     handle.style.width = '4px';
@@ -208,36 +217,47 @@ function stopResize() {
 
 onMounted(() => {
   const totalWidth = window.innerWidth;
-  
+
   nextTick(() => {
     if (sidebarWidth.value > totalWidth * 0.3) {
       sidebarWidth.value = Math.floor(totalWidth * 0.3);
       sidebarRatio.value = sidebarWidth.value / totalWidth;
     }
-    
+
     if (inspectorWidth.value > totalWidth * 0.4) {
       inspectorWidth.value = Math.floor(totalWidth * 0.4);
       inspectorRatio.value = inspectorWidth.value / totalWidth;
     }
-    
+
     window.dispatchEvent(new Event('resize'));
   });
-  
+
   window.addEventListener('resize', () => {
     if (!isResizing) {
       const totalWidth = window.innerWidth;
       const prevTotalWidth = window.prevTotalWidth || totalWidth;
       window.prevTotalWidth = totalWidth;
-      
+
       if (Math.abs(totalWidth - prevTotalWidth) > 50) {
+        const getMinWidth = (defaultMin) => {
+          if (totalWidth < 600) {
+            return Math.min(defaultMin, totalWidth * 0.2);
+          } else if (totalWidth < 1000) {
+            return Math.min(defaultMin, totalWidth * 0.25);
+          }
+          return defaultMin;
+        };
+
         if (appParams.value.sidebar) {
+          const minSidebarWidth = getMinWidth(200);
           const newSidebarWidth = Math.floor(totalWidth * sidebarRatio.value);
-          sidebarWidth.value = Math.max(200, Math.min(totalWidth * 0.6, newSidebarWidth));
+          sidebarWidth.value = Math.max(minSidebarWidth, Math.min(totalWidth * 0.6, newSidebarWidth));
         }
-        
+
         if (showInspector.value || showScript.value) {
+          const minInspectorWidth = getMinWidth(300);
           const newInspectorWidth = Math.floor(totalWidth * inspectorRatio.value);
-          inspectorWidth.value = Math.max(300, Math.min(totalWidth * 0.6, newInspectorWidth));
+          inspectorWidth.value = Math.max(minInspectorWidth, Math.min(totalWidth * 0.6, newInspectorWidth));
         }
       }
     }
