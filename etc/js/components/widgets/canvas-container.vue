@@ -21,21 +21,15 @@ const canvasContainerStyle = ref();
 
 onMounted(() => {
   window.addEventListener('resize', handleResize);
-  setTimeout(() => {
-    var resizeEvent = new Event('resize');
-    window.dispatchEvent(resizeEvent);
-  }, 5);
+  window.dispatchEvent(new Event('resize'));
 });
 
-watch(() => [props.app_state.has3DCanvas, props.app_params.page, 
+watch(() => [props.app_state.has3DCanvas, props.app_params.page,
              props.app_params.sidebar, props.app_params.entity.path,
-             props.app_params.script], () => 
+             props.app_params.script], () =>
 {
   nextTick(() => {
-    setTimeout(() => {
-        var resizeEvent = new Event('resize');
-        window.dispatchEvent(resizeEvent);
-      }, 5);
+    window.dispatchEvent(new Event('resize'));
   });
 });
 
@@ -43,11 +37,11 @@ const handleResize = () => {
   const el = document.getElementById("canvasPlaceholder");
   if (el) {
     var r = el.getBoundingClientRect();
-    canvasContainerStyle.value = 
-      `position: absolute; 
-       width: ${r.width}px; 
-       height: ${r.height}px; 
-       top: ${r.top}px; 
+    canvasContainerStyle.value =
+      `position: absolute;
+       width: ${r.width}px;
+       height: ${r.height}px;
+       top: ${r.top}px;
        left: ${r.left}px;`;
   } else {
     canvasContainerStyle.value = "display: none;";

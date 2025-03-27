@@ -44,7 +44,6 @@ defineProps({
   -moz-user-select: none;
   -ms-user-select: none;
   z-index: 10;
-  transition: background-color 0.2s;
 }
 
 :deep(.handle-grab-box) {
@@ -59,7 +58,6 @@ defineProps({
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
-  transition: width 0.2s, background-color 0.2s;
 }
 
 :deep(.handle:hover .handle-grab-box) {
@@ -75,8 +73,8 @@ defineProps({
   -moz-user-select: none !important;
   -ms-user-select: none !important;
 }
-.noselect .handle, 
+.noselect .handle,
 .noselect .handle-grab-box {
   cursor: col-resize !important;
 }
-</style> 
+</style>

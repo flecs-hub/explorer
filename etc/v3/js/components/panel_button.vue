@@ -1,7 +1,7 @@
 <template>
   <div :class="css">
     <div :class="dot_css"></div>
-    <icon-button 
+    <icon-button
         :icon="'codicons:' + icon"
         :size="25"
         :active="active"
@@ -27,7 +27,7 @@
         return this.$root.$refs[this.panel];
       },
       evt_select_panel() {
-        const p = this.get_panel(); 
+        const p = this.get_panel();
         if (p) {
           if (this.active) {
             p.close();
@@ -86,7 +86,6 @@ div.panel-button-dot {
   height: 14px;
   width: 4px;
   border-radius: 0px 2px 2px 0px;
-  transition: left 0.1s, height 0.3ms, top 0.3ms;
 }
 
 div.panel-button-dot-active {
