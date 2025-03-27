@@ -5,7 +5,7 @@
         class="explorer-tab-content"
         v-on:changed="onTab">
       <template v-slot:editor>
-        <query-editor 
+        <query-editor
           :conn="conn"
           v-model:query="query.expr">
         </query-editor>
@@ -55,6 +55,9 @@ const onTab = (evt) => {
 <style scoped>
 #pane-query {
   border-radius: var(--border-radius-medium);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 </style>
 
@@ -62,5 +65,8 @@ const onTab = (evt) => {
 .explorer-tab-content {
   padding: 0.5rem !important;
   padding-left: 0px !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 </style>

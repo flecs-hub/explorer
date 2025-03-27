@@ -25,16 +25,18 @@
       </toggle>
     </template>
     <div :class="css">
-      <template v-for="(query, i) in filteredResults">
-        <query-list-item 
-          :prop="query"
-          :img="itemIcon(query)"
-          :expr="nameQuery.expr"
-          :index="i" 
-          :selected="selected"
-          v-on:select="onSelect(i)">
-        </query-list-item>
-      </template>
+      <div class="query-browser-items">
+        <template v-for="(query, i) in filteredResults">
+          <query-list-item
+            :prop="query"
+            :img="itemIcon(query)"
+            :expr="nameQuery.expr"
+            :index="i"
+            :selected="selected"
+            v-on:select="onSelect(i)">
+          </query-list-item>
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -69,8 +71,8 @@ const doQueryQuery = () => {
     q += `, ${nq.query}`
   }
 
-  props.conn.query(q, 
-    {rows: true, limit: 1000}, 
+  props.conn.query(q,
+    {rows: true, limit: 1000},
     (reply) => {
       queries.value.results = reply.results;
     },
@@ -86,8 +88,8 @@ const doObserverQuery = () => {
     q += `, ${nq.query}`
   }
 
-  props.conn.query(q, 
-    {rows: true, limit: 1000}, 
+  props.conn.query(q,
+    {rows: true, limit: 1000},
     (reply) => {
       for (let r of reply.results) {
         r.observer = true
@@ -220,16 +222,27 @@ const onSelect = (index) => {
 #query-browser {
   height: 100%;
   margin-left: 0.5rem;
+  display: flex;
+  flex-direction: column;
 }
 
 div.query-browser-list {
   border-radius: var(--border-radius-medium);
   overflow-y: auto;
-  max-height: calc(100% - 2.8rem);
+  height: calc(100% - 2.8rem);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+div.query-browser-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 div.query-browser-list-show-filter {
-  max-height: calc(100% - 5.6rem);
+  height: calc(100% - 5.6rem);
 }
 
 div.query-browser-search-box {
@@ -239,7 +252,7 @@ div.query-browser-search-box {
 }
 
 div.query-browser-search-input {
-  grid-column: 1; 
+  grid-column: 1;
 }
 
 div.query-browser-search-filter {

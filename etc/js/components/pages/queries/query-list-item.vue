@@ -139,6 +139,7 @@ div.query-list-item {
   color: var(--primary-text);
   overflow-x: auto;
   transition: background-color var(--animation-duration), border-left-width var(--animation-duration);
+  flex-shrink: 0;
 }
 
 div.query-list-item:hover {

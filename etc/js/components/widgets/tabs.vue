@@ -87,7 +87,8 @@ function slotLabel(item) {
 }
 
 .tabs-tab.selected {
-  display: block;
+  display: flex;
+  flex-direction: column;
   height: 100%;
 }
 
