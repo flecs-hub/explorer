@@ -105,18 +105,16 @@ onMounted(() => {
       const totalWidth = window.innerWidth;
       const prevTotalWidth = window.prevTotalWidth || totalWidth;
       window.prevTotalWidth = totalWidth;
-      if (Math.abs(totalWidth - prevTotalWidth) > 50) {
-        // Calculate flexible minimum width based on window size
-        let minWidth = 200;
-        if (totalWidth < 600) {
-          minWidth = Math.min(minWidth, totalWidth * 0.2); // 20% of window for very small screens
-        } else if (totalWidth < 1000) {
-          minWidth = Math.min(minWidth, totalWidth * 0.25); // 25% of window for small screens
-        }
 
-        const newLeftPaneWidth = Math.floor(totalWidth * leftPaneRatio.value);
-        leftPaneWidth.value = Math.max(minWidth, Math.min(totalWidth * 0.6, newLeftPaneWidth));
+      let minWidth = 200;
+      if (totalWidth < 600) {
+        minWidth = Math.min(minWidth, totalWidth * 0.2);
+      } else if (totalWidth < 1000) {
+        minWidth = Math.min(minWidth, totalWidth * 0.25);
       }
+
+      const newLeftPaneWidth = Math.floor(totalWidth * leftPaneRatio.value);
+      leftPaneWidth.value = Math.max(minWidth, Math.min(totalWidth * 0.6, newLeftPaneWidth));
     }
   });
 });

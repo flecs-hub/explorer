@@ -238,27 +238,25 @@ onMounted(() => {
       const prevTotalWidth = window.prevTotalWidth || totalWidth;
       window.prevTotalWidth = totalWidth;
 
-      if (Math.abs(totalWidth - prevTotalWidth) > 50) {
-        const getMinWidth = (defaultMin) => {
-          if (totalWidth < 600) {
-            return Math.min(defaultMin, totalWidth * 0.2);
-          } else if (totalWidth < 1000) {
-            return Math.min(defaultMin, totalWidth * 0.25);
-          }
-          return defaultMin;
-        };
-
-        if (appParams.value.sidebar) {
-          const minSidebarWidth = getMinWidth(200);
-          const newSidebarWidth = Math.floor(totalWidth * sidebarRatio.value);
-          sidebarWidth.value = Math.max(minSidebarWidth, Math.min(totalWidth * 0.6, newSidebarWidth));
+      const getMinWidth = (defaultMin) => {
+        if (totalWidth < 600) {
+          return Math.min(defaultMin, totalWidth * 0.2);
+        } else if (totalWidth < 1000) {
+          return Math.min(defaultMin, totalWidth * 0.25);
         }
+        return defaultMin;
+      };
 
-        if (showInspector.value || showScript.value) {
-          const minInspectorWidth = getMinWidth(300);
-          const newInspectorWidth = Math.floor(totalWidth * inspectorRatio.value);
-          inspectorWidth.value = Math.max(minInspectorWidth, Math.min(totalWidth * 0.6, newInspectorWidth));
-        }
+      if (appParams.value.sidebar) {
+        const minSidebarWidth = getMinWidth(200);
+        const newSidebarWidth = Math.floor(totalWidth * sidebarRatio.value);
+        sidebarWidth.value = Math.max(minSidebarWidth, Math.min(totalWidth * 0.6, newSidebarWidth));
+      }
+
+      if (showInspector.value || showScript.value) {
+        const minInspectorWidth = getMinWidth(300);
+        const newInspectorWidth = Math.floor(totalWidth * inspectorRatio.value);
+        inspectorWidth.value = Math.max(minInspectorWidth, Math.min(totalWidth * 0.6, newInspectorWidth));
       }
     }
   });
