@@ -191,9 +191,10 @@ function handleResize(e) {
     sidebarRatio.value = sidebarWidth.value / totalWidth;
   } else if (currentHandle === 'inspector') {
     const minWidth = getMinWidth(300);
-    const maxWidth = totalWidth - (appParams.value.sidebar ? sidebarWidth.value + totalWidth * 0.3 : totalWidth * 0.3);
+    // Remove the maximum width restriction for the inspector
     const newWidth = initialInspectorWidth - deltaX;
-    inspectorWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth));
+    // Only enforce the minimum width, no maximum limit
+    inspectorWidth.value = Math.max(minWidth, newWidth);
     inspectorRatio.value = inspectorWidth.value / totalWidth;
   }
 
@@ -224,10 +225,9 @@ onMounted(() => {
       sidebarRatio.value = sidebarWidth.value / totalWidth;
     }
 
-    if (inspectorWidth.value > totalWidth * 0.4) {
-      inspectorWidth.value = Math.floor(totalWidth * 0.4);
-      inspectorRatio.value = inspectorWidth.value / totalWidth;
-    }
+    // No maximum width restriction for the inspector
+    // We'll keep a reasonable default but won't enforce a maximum
+    inspectorRatio.value = inspectorWidth.value / totalWidth;
 
     window.dispatchEvent(new Event('resize'));
   });
@@ -256,7 +256,8 @@ onMounted(() => {
       if (showInspector.value || showScript.value) {
         const minInspectorWidth = getMinWidth(300);
         const newInspectorWidth = Math.floor(totalWidth * inspectorRatio.value);
-        inspectorWidth.value = Math.max(minInspectorWidth, Math.min(totalWidth * 0.6, newInspectorWidth));
+        // Only enforce the minimum width, no maximum limit
+        inspectorWidth.value = Math.max(minInspectorWidth, newInspectorWidth);
       }
     }
   });
@@ -320,6 +321,7 @@ onUnmounted(() => {
 
 div.page-entities-canvas {
   height: 100%;
+  width: 100%;
   border-radius: var(--border-radius-medium);
   overflow: hidden;
 }

@@ -62,7 +62,7 @@ function fmtDuration(seconds) {
 
   let minutes = Math.floor(seconds / 60);
   seconds -= minutes * 60;
-  
+
   if (days) {
     result += days + "d\xa0";
   }
@@ -234,7 +234,7 @@ Promise.all(components).then((values) => {
         on_fallback: explicitHost ? undefined : function() {
           this.app_params.run_playground();
         }.bind(this),
-        
+
         // Copy connection status to reactive property
         on_status: function(status) {
           this.app_state.mode = this.conn.mode;
@@ -266,16 +266,16 @@ Promise.all(components).then((values) => {
         }.bind(this)
       });
 
-      // Start timer to track command counts. Run timer separately from 
+      // Start timer to track command counts. Run timer separately from
       // heartbeats so we still populate the array even if the connection is
       // gone.
       setInterval(function() {
-        if (this.app_state.world_info && 
-            this.app_state.status == flecs.ConnectionStatus.Connected) 
+        if (this.app_state.world_info &&
+            this.app_state.status == flecs.ConnectionStatus.Connected)
         {
           if (this.prev_command_count == -1) {
             // First received heartbeat. To ensure we don't insert a very large
-            // value, just set the prev count. 
+            // value, just set the prev count.
           } else {
             this.app_state.command_counts.unshift(
               this.app_state.world_info.command_count - this.prev_command_count);
@@ -352,17 +352,17 @@ Promise.all(components).then((values) => {
 
           if (key.length == 1) {
             const type = typeof this.app_params[key[0]];
-            this.app_params[key[0]] = 
+            this.app_params[key[0]] =
               this.convertTo(type, decodeURIComponent(value));
           } else if (key.length == 2) {
             let type = 'string';
             if (this.app_params[key[0]]) {
               type = typeof this.app_params[key[0]][key[1]];
             }
-            this.app_params[key[0]][key[1]] = 
+            this.app_params[key[0]][key[1]] =
               this.convertTo(type, decodeURIComponent(value));
           }
-          
+
           first = false;
         }
       }
@@ -376,9 +376,9 @@ Promise.all(components).then((values) => {
             this.conn.connect(value.host);
             reload = true;
           }
-          
+
           history.pushState({}, document.title,
-              window.location.origin + 
+              window.location.origin +
               window.location.pathname +
               this.toUrlParams(this.app_params));
 
@@ -413,6 +413,7 @@ Promise.all(components).then((values) => {
           status: undefined,
           heartbeat: undefined,
           heartbeats_received: 0,
+          has3DCanvas: true, // Enable 3D canvas by default
           requests: {
             sent: 0,
             received: 0,
@@ -445,7 +446,7 @@ Promise.all(components).then((values) => {
           scripts: [],
           script: undefined,
           refresh: "auto",
-          run_playground: function() { 
+          run_playground: function() {
             this.scripts = ["etc.assets.scene\\.flecs"];
             this.script = "etc.assets.scene\\.flecs";
             this.host = "flecs_explorer.wasm";
@@ -462,6 +463,6 @@ Promise.all(components).then((values) => {
   for (let c of values) {
     app.component(c.name, c);
   }
-  
+
   app.mount("#app");
 });

@@ -1,7 +1,9 @@
 <template>
-  <div :style="canvasContainerStyle">
-    <scene-canvas>
-    </scene-canvas>
+  <div :style="canvasContainerStyle" class="canvas-container">
+    <div class="canvas-wrapper">
+      <scene-canvas :preserveAspectRatio="true" :aspectRatio="aspectRatio">
+      </scene-canvas>
+    </div>
   </div>
 </template>
 
@@ -15,6 +17,7 @@ import { ref, defineProps, onMounted, nextTick, watch } from 'vue';
 const props = defineProps({
   app_params: {type: Object, required: true},
   app_state: {type: Object, required: true},
+  aspectRatio: {type: Number, default: 16/9} // Default aspect ratio (width/height)
 });
 
 const canvasContainerStyle = ref();
@@ -51,4 +54,16 @@ const handleResize = () => {
 </script>
 
 <style scoped>
+.canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas-wrapper {
+  width: 100%;
+  height: 100%;
+}
 </style>
