@@ -23,7 +23,38 @@ const props = defineProps({
 const canvasContainerStyle = ref();
 
 onMounted(() => {
-  window.addEventListener('resize', handleResize);
+  // Store previous window dimensions to detect significant size changes
+  let prevWidth = window.innerWidth;
+  let prevHeight = window.innerHeight;
+
+  // Enhanced resize handler that detects significant size changes
+  const enhancedResizeHandler = () => {
+    // Check if there's a significant change in window dimensions
+    // This would indicate a change from minimized to maximized or vice versa
+    const widthChange = Math.abs(window.innerWidth - prevWidth);
+    const heightChange = Math.abs(window.innerHeight - prevHeight);
+    const significantChange = widthChange > 200 || heightChange > 200;
+
+    // Update previous dimensions
+    prevWidth = window.innerWidth;
+    prevHeight = window.innerHeight;
+
+    // Call the regular resize handler
+    handleResize();
+
+    // If there's a significant change, trigger additional resize events with delays
+    if (significantChange) {
+      const delays = [100, 300, 500, 1000];
+      delays.forEach(delay => {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('resize'));
+        }, delay);
+      });
+    }
+  };
+
+  // Add the enhanced resize handler
+  window.addEventListener('resize', enhancedResizeHandler);
 
   // Initial resize event
   window.dispatchEvent(new Event('resize'));
