@@ -24,7 +24,18 @@ const canvasContainerStyle = ref();
 
 onMounted(() => {
   window.addEventListener('resize', handleResize);
+
+  // Initial resize event
   window.dispatchEvent(new Event('resize'));
+
+  // Additional resize events with increasing delays to ensure canvas appears
+  // This helps with minimized windows where the initial resize might not have valid dimensions
+  const delays = [100, 300, 500, 1000];
+  delays.forEach(delay => {
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, delay);
+  });
 });
 
 watch(() => [props.app_state.has3DCanvas, props.app_params.page,
@@ -41,12 +52,20 @@ const handleResize = () => {
   const el = document.getElementById("canvasPlaceholder");
   if (el) {
     var r = el.getBoundingClientRect();
-    canvasContainerStyle.value =
-      `position: absolute;
-       width: ${r.width}px;
-       height: ${r.height}px;
-       top: ${r.top}px;
-       left: ${r.left}px;`;
+    // Check if the bounding rectangle has valid dimensions
+    if (r.width > 0 && r.height > 0) {
+      canvasContainerStyle.value =
+        `position: absolute;
+         width: ${r.width}px;
+         height: ${r.height}px;
+         top: ${r.top}px;
+         left: ${r.left}px;`;
+    } else {
+      // If dimensions are invalid, try again after a short delay
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 100);
+    }
   } else {
     canvasContainerStyle.value = "display: none;";
   }
