@@ -31,9 +31,10 @@ watch(() => [props.app_state.has3DCanvas, props.app_params.page,
              props.app_params.sidebar, props.app_params.entity.path,
              props.app_params.script], () =>
 {
-  nextTick(() => {
+  // Use setTimeout to ensure DOM has fully updated before triggering resize
+  setTimeout(() => {
     window.dispatchEvent(new Event('resize'));
-  });
+  }, 50);
 });
 
 const handleResize = () => {

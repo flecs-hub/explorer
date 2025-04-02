@@ -79,10 +79,11 @@ const showInspector = computed(() => {
 });
 
 watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.value.sidebar], () => {
-  nextTick(() => {
+  // Use setTimeout to ensure DOM has fully updated before triggering resize
+  setTimeout(() => {
     var resizeEvent = new Event('resize');
     window.dispatchEvent(resizeEvent);
-  });
+  }, 50);
 });
 
 function onAbort(evt) {
