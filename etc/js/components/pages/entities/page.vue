@@ -14,7 +14,7 @@
       </div>
 
       <div class="split-pane main-pane" :style="{ width: mainWidth + 'px' }">
-        <div id="canvasPlaceholder" :class="canvasCss" v-if="showCanvas">
+        <div id="canvasPlaceholder" :class="canvasCss" v-if="showCanvas" ref="canvasPlaceholderRef">
         </div>
       </div>
 
@@ -60,6 +60,9 @@ const props = defineProps({
 
 const appParams = defineModel("app_params");
 
+const canvasPlaceholderRef = ref(null);
+let resizeObserver = null;
+
 const showScript = computed(() => {
   if (!appParams.value.script) {
     return false;
@@ -78,12 +81,15 @@ const showInspector = computed(() => {
   return true;
 });
 
-watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.value.sidebar], () => {
-  // Use setTimeout to ensure DOM has fully updated before triggering resize
-  setTimeout(() => {
-    var resizeEvent = new Event('resize');
-    window.dispatchEvent(resizeEvent);
-  }, 50);
+watch(() => [showCanvas.value, showInspector.value, showScript.value], () => {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        var resizeEvent = new Event('resize');
+        window.dispatchEvent(resizeEvent);
+      });
+    });
+  });
 });
 
 function onAbort(evt) {
@@ -135,6 +141,20 @@ const canvasCss = computed(() => {
 
 const sidebarWidth = ref(300);
 const inspectorWidth = ref(500);
+
+const getMinWidth = (defaultMin, totalWidth) => {
+  if (totalWidth < 600) {
+    return Math.min(defaultMin, totalWidth * 0.15); // Smaller min % on very small screens
+  } else if (totalWidth < 1000) {
+    return Math.min(defaultMin, totalWidth * 0.20);
+  }
+  return defaultMin;
+};
+
+const minSidebarWidth = computed(() => getMinWidth(200, window.innerWidth));
+const minInspectorWidth = computed(() => getMinWidth(300, window.innerWidth));
+const minMainWidth = computed(() => getMinWidth(200, window.innerWidth)); // Minimum width for the main canvas area
+
 const mainWidth = computed(() => {
   const totalWidth = window.innerWidth;
   let width = totalWidth;
@@ -144,7 +164,7 @@ const mainWidth = computed(() => {
   if (showInspector.value || showScript.value) {
     width -= inspectorWidth.value;
   }
-  return width;
+  return Math.max(minMainWidth.value, width); // Ensure mainWidth respects its minimum
 });
 
 const sidebarRatio = ref(sidebarWidth.value / window.innerWidth);
@@ -173,29 +193,26 @@ function handleResize(e) {
   if (!isResizing) return;
 
   const totalWidth = window.innerWidth;
-  const deltaX = e.clientX - initialMouseX;
-
-  const getMinWidth = (defaultMin) => {
-    if (totalWidth < 600) {
-      return Math.min(defaultMin, totalWidth * 0.2);
-    } else if (totalWidth < 1000) {
-      return Math.min(defaultMin, totalWidth * 0.25);
-    }
-    return defaultMin;
-  };
+  let deltaX = e.clientX - initialMouseX;
 
   if (currentHandle === 'sidebar') {
-    const minWidth = getMinWidth(200);
-    const maxWidth = totalWidth * 0.7;
-    const newWidth = initialSidebarWidth + deltaX;
-    sidebarWidth.value = Math.max(minWidth, Math.min(maxWidth, newWidth));
+    const minWidth = minSidebarWidth.value;
+    const maxSidebarWidth = totalWidth - minMainWidth.value - (showInspector.value || showScript.value ? minInspectorWidth.value : 0);
+    let newWidth = initialSidebarWidth + deltaX;
+
+    newWidth = Math.max(minWidth, Math.min(maxSidebarWidth, newWidth));
+
+    sidebarWidth.value = newWidth;
     sidebarRatio.value = sidebarWidth.value / totalWidth;
+
   } else if (currentHandle === 'inspector') {
-    const minWidth = getMinWidth(300);
-    // Remove the maximum width restriction for the inspector
-    const newWidth = initialInspectorWidth - deltaX;
-    // Only enforce the minimum width, no maximum limit
-    inspectorWidth.value = Math.max(minWidth, newWidth);
+    const minWidth = minInspectorWidth.value;
+    const maxInspectorWidth = totalWidth - minMainWidth.value - (appParams.value.sidebar ? minSidebarWidth.value : 0);
+    let newWidth = initialInspectorWidth - deltaX;
+
+    newWidth = Math.max(minWidth, Math.min(maxInspectorWidth, newWidth));
+
+    inspectorWidth.value = newWidth;
     inspectorRatio.value = inspectorWidth.value / totalWidth;
   }
 
@@ -221,44 +238,88 @@ onMounted(() => {
   const totalWidth = window.innerWidth;
 
   nextTick(() => {
-    if (sidebarWidth.value > totalWidth * 0.3) {
-      sidebarWidth.value = Math.floor(totalWidth * 0.3);
-      sidebarRatio.value = sidebarWidth.value / totalWidth;
+    let initialSidebar = totalWidth * sidebarRatio.value;
+    let initialInspector = totalWidth * inspectorRatio.value;
+
+    sidebarWidth.value = appParams.value.sidebar ? Math.max(minSidebarWidth.value, initialSidebar) : 0;
+    inspectorWidth.value = (showInspector.value || showScript.value) ? Math.max(minInspectorWidth.value, initialInspector) : 0;
+
+    let currentTotal = sidebarWidth.value + inspectorWidth.value + minMainWidth.value;
+    if (currentTotal > totalWidth) {
+        let overage = currentTotal - totalWidth;
+        let sidebarReduction = 0;
+        let inspectorReduction = 0;
+        let sidebarCanReduce = sidebarWidth.value - minSidebarWidth.value;
+        let inspectorCanReduce = inspectorWidth.value - minInspectorWidth.value;
+
+        if (sidebarCanReduce + inspectorCanReduce >= overage) {
+            let totalReducible = sidebarCanReduce + inspectorCanReduce;
+            sidebarReduction = (totalReducible > 0) ? overage * (sidebarCanReduce / totalReducible) : 0;
+            inspectorReduction = (totalReducible > 0) ? overage * (inspectorCanReduce / totalReducible) : 0;
+        } else {
+            sidebarReduction = sidebarCanReduce;
+            inspectorReduction = inspectorCanReduce;
+        }
+
+        sidebarWidth.value -= sidebarReduction;
+        inspectorWidth.value -= inspectorReduction;
     }
 
-    // No maximum width restriction for the inspector
-    // We'll keep a reasonable default but won't enforce a maximum
+    sidebarRatio.value = sidebarWidth.value / totalWidth;
     inspectorRatio.value = inspectorWidth.value / totalWidth;
 
     window.dispatchEvent(new Event('resize'));
   });
 
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(entries => {
+      window.dispatchEvent(new Event('resize'));
+    });
+
+    nextTick(() => {
+      if (canvasPlaceholderRef.value) {
+        resizeObserver.observe(canvasPlaceholderRef.value);
+      }
+    });
+
+    watch(canvasPlaceholderRef, (newValue) => {
+      if (newValue) {
+        resizeObserver.observe(newValue);
+      } else {
+      }
+    });
+  } else {
+    console.warn("ResizeObserver not supported, canvas resizing on sidebar toggle might be imperfect.");
+  }
+
   window.addEventListener('resize', () => {
     if (!isResizing) {
       const totalWidth = window.innerWidth;
-      const prevTotalWidth = window.prevTotalWidth || totalWidth;
-      window.prevTotalWidth = totalWidth;
+      let targetSidebar = totalWidth * sidebarRatio.value;
+      let targetInspector = totalWidth * inspectorRatio.value;
 
-      const getMinWidth = (defaultMin) => {
-        if (totalWidth < 600) {
-          return Math.min(defaultMin, totalWidth * 0.2);
-        } else if (totalWidth < 1000) {
-          return Math.min(defaultMin, totalWidth * 0.25);
-        }
-        return defaultMin;
-      };
+      sidebarWidth.value = appParams.value.sidebar ? Math.max(minSidebarWidth.value, targetSidebar) : 0;
+      inspectorWidth.value = (showInspector.value || showScript.value) ? Math.max(minInspectorWidth.value, targetInspector) : 0;
 
-      if (appParams.value.sidebar) {
-        const minSidebarWidth = getMinWidth(200);
-        const newSidebarWidth = Math.floor(totalWidth * sidebarRatio.value);
-        sidebarWidth.value = Math.max(minSidebarWidth, Math.min(totalWidth * 0.6, newSidebarWidth));
-      }
+      // Recalculate to ensure main pane minimum width is respected after resize
+      let currentTotal = sidebarWidth.value + inspectorWidth.value + minMainWidth.value;
+      if (currentTotal > totalWidth) {
+          let overage = currentTotal - totalWidth;
+          let sidebarReduction = 0;
+          let inspectorReduction = 0;
+          let sidebarCanReduce = sidebarWidth.value - minSidebarWidth.value;
+          let inspectorCanReduce = inspectorWidth.value - minInspectorWidth.value;
 
-      if (showInspector.value || showScript.value) {
-        const minInspectorWidth = getMinWidth(300);
-        const newInspectorWidth = Math.floor(totalWidth * inspectorRatio.value);
-        // Only enforce the minimum width, no maximum limit
-        inspectorWidth.value = Math.max(minInspectorWidth, newInspectorWidth);
+          if (sidebarCanReduce + inspectorCanReduce >= overage) {
+              let totalReducible = sidebarCanReduce + inspectorCanReduce;
+              sidebarReduction = (totalReducible > 0) ? overage * (sidebarCanReduce / totalReducible) : 0;
+              inspectorReduction = (totalReducible > 0) ? overage * (inspectorCanReduce / totalReducible) : 0;
+          } else {
+              sidebarReduction = sidebarCanReduce;
+              inspectorReduction = inspectorCanReduce;
+          }
+          sidebarWidth.value -= sidebarReduction;
+          inspectorWidth.value -= inspectorReduction;
       }
     }
   });
@@ -267,6 +328,9 @@ onMounted(() => {
 onUnmounted(() => {
   document.removeEventListener('mousemove', handleResize);
   document.removeEventListener('mouseup', stopResize);
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
 });
 
 </script>
