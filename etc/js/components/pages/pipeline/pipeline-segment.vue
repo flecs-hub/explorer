@@ -7,7 +7,7 @@
       <template v-else>
         {{ systemCount }} systems
         <template v-if="syncSystem">
-          <span v-if="syncSystem.multithreaded">
+          <span v-if="syncSystem.multi_threaded">
             , multithreaded
           </span>
           <span v-else>
@@ -50,10 +50,12 @@ const systems = computed(() => {
 const syncSystem = computed(() => {
   if (props.viewMode == 'default') {
     let count = systems.value.length;
-    if (systems.value[count - 1].name === undefined) {
-      return syncSystem;
+    let sys = systems.value[count - 1];
+    if (sys.name === undefined) {
+      return sys;
     }
   }
+  return undefined;
 });
 
 const systemCount = computed(() => {

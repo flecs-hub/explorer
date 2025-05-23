@@ -5616,7 +5616,7 @@ flecs_component_ptr_t flecs_get_component_ptr(
         ecs_entity_t entity = ecs_table_entities(table)[row];
         return (flecs_component_ptr_t){
             .ti = idr->type_info,
-            .ptr = flecs_sparse_get_any(idr->sparse, 0, entity)
+            .ptr = flecs_sparse_get(idr->sparse, 0, entity)
         };
     }
 
@@ -5690,7 +5690,7 @@ void* flecs_get_base_component(
                 recur_depth + 1);
         } else {
             if (idr->flags & EcsIdIsSparse) {
-                return flecs_sparse_get_any(idr->sparse, 0, base);
+                return flecs_sparse_get(idr->sparse, 0, base);
             } else {
                 int32_t row = ECS_RECORD_TO_ROW(r->row);
                 return flecs_table_get_component(table, tr->column, row).ptr;
@@ -6175,7 +6175,7 @@ void flecs_sparse_on_remove(
                     flecs_invoke_hook(world, table, tr, count, row, 
                         &entities[row + j], id, ti, EcsOnRemove, on_remove);
                 }
-                void *ptr = flecs_sparse_remove_fast(idr->sparse, 0, e);
+                void *ptr = flecs_sparse_remove(idr->sparse, 0, e);
                 ecs_assert(ptr != NULL, ECS_INTERNAL_ERROR, NULL);
                 if (dtor) {
                     dtor(ptr, 1, ti);
@@ -6818,7 +6818,7 @@ flecs_component_ptr_t flecs_ensure(
                 const ecs_table_record_t *tr = &table->_->records[column_index];
                 idr = (ecs_id_record_t*)tr->hdr.cache;
                 if (idr->flags & EcsIdIsSparse) {
-                    dst.ptr = flecs_sparse_get_any(idr->sparse, 0, entity);
+                    dst.ptr = flecs_sparse_get(idr->sparse, 0, entity);
                     dst.ti = idr->type_info;
                     return dst;
                 }
@@ -8627,7 +8627,7 @@ error:
         const ecs_table_record_t *tr = &table->_->records[column_index];\
         ecs_id_record_t *idr = (ecs_id_record_t*)tr->hdr.cache;\
         if (idr->flags & EcsIdIsSparse) {\
-            return flecs_sparse_get_any(idr->sparse, 0, entity);\
+            return flecs_sparse_get(idr->sparse, 0, entity);\
         }\
     }
 
@@ -8666,7 +8666,7 @@ const void* ecs_get_id(
         return flecs_get_base_component(world, table, id, idr, 0);
     } else {
         if (idr->flags & EcsIdIsSparse) {
-            return flecs_sparse_get_any(idr->sparse, 0, entity);
+            return flecs_sparse_get(idr->sparse, 0, entity);
         }
         ecs_check(tr->column != -1, ECS_NOT_A_COMPONENT, NULL);
     }
@@ -11998,7 +11998,7 @@ void* ecs_field_at_w_size(
         src = ecs_table_entities(it->table)[row + it->offset];
     }
 
-    return flecs_sparse_get_any(idr->sparse, flecs_uto(int32_t, size), src);
+    return flecs_sparse_get(idr->sparse, flecs_uto(int32_t, size), src);
 error:
     return NULL;
 }
@@ -14506,7 +14506,7 @@ repeat_event:
                         /* Base found with component */
                         ecs_table_t *base_table = base_tr->hdr.table;
                         if (idr->flags & EcsIdIsSparse) {
-                            override_ptr = flecs_sparse_get_any(
+                            override_ptr = flecs_sparse_get(
                                 idr->sparse, 0, base);
                         } else {
                             base_column = base_tr->column;
@@ -17250,7 +17250,7 @@ ecs_cmd_t* flecs_cmd_new_batched(
     ecs_entity_t e)
 {
     ecs_vec_t *cmds = &stage->cmd->queue;
-    ecs_cmd_entry_t *entry = flecs_sparse_get_any_t(
+    ecs_cmd_entry_t *entry = flecs_sparse_get_t(
         &stage->cmd->entries, ecs_cmd_entry_t, e);
 
     int32_t cur = ecs_vec_count(cmds);
@@ -17273,7 +17273,7 @@ ecs_cmd_t* flecs_cmd_new_batched(
             }
         }
     } else {
-        cmd->entry = entry = flecs_sparse_ensure_fast_t(
+        cmd->entry = entry = flecs_sparse_ensure_t(
             &stage->cmd->entries, ecs_cmd_entry_t, e);
         entry->first = cur;
     }
@@ -17592,7 +17592,7 @@ void* flecs_defer_set(
                 } else {
                     ecs_assert(idr->flags & EcsIdIsSparse, 
                         ECS_NOT_A_COMPONENT, NULL);
-                    existing = flecs_sparse_get_any(idr->sparse, 0, entity);
+                    existing = flecs_sparse_get(idr->sparse, 0, entity);
                 }
             }
         }
@@ -29417,11 +29417,11 @@ ecs_block_allocator_t* flecs_allocator_get(
     ecs_assert(size <= flecs_allocator_size(size), ECS_INTERNAL_ERROR, NULL);
     size = flecs_allocator_size(size);
     ecs_size_t hash = flecs_allocator_size_hash(size);
-    ecs_block_allocator_t *result = flecs_sparse_get_any_t(&a->sizes, 
+    ecs_block_allocator_t *result = flecs_sparse_get_t(&a->sizes, 
         ecs_block_allocator_t, (uint32_t)hash);
 
     if (!result) {
-        result = flecs_sparse_ensure_fast_t(&a->sizes, 
+        result = flecs_sparse_ensure_t(&a->sizes, 
             ecs_block_allocator_t, (uint32_t)hash);
         flecs_ballocator_init(result, size);
     }
@@ -31444,7 +31444,7 @@ void* flecs_sparse_ensure(
     return DATA(page->data, sparse->size, offset);
 }
 
-void* flecs_sparse_ensure_fast(
+void* flecs_sparse_ensure(
     ecs_sparse_t *sparse,
     ecs_size_t size,
     uint64_t index_long)
@@ -31474,7 +31474,7 @@ void* flecs_sparse_ensure_fast(
     return DATA(page->data, sparse->size, offset);
 }
 
-void* flecs_sparse_remove_fast(
+void* flecs_sparse_remove(
     ecs_sparse_t *sparse,
     ecs_size_t size,
     uint64_t index)
@@ -31663,7 +31663,7 @@ void* flecs_sparse_get(
     return DATA(page->data, sparse->size, offset);
 }
 
-void* flecs_sparse_get_any(
+void* flecs_sparse_get(
     const ecs_sparse_t *sparse,
     ecs_size_t size,
     uint64_t index)
@@ -45088,7 +45088,7 @@ int flecs_json_serialize_table_components(
                 continue;
             }
             ecs_entity_t e = ecs_table_entities(table)[row];
-            ptr = flecs_sparse_get_any(idr->sparse, 0, e);
+            ptr = flecs_sparse_get(idr->sparse, 0, e);
             ti = idr->type_info;
         }
 
