@@ -1,8 +1,8 @@
 <template>
   <div class="entity-subtree">
-    <entity-tree-item 
-      :conn="conn" 
-      :item="item" 
+    <entity-tree-item
+      :conn="conn"
+      :item="item"
       :depth="depth"
       :selectedItem="selectedItem"
       v-for="item in treeQueryResult"
@@ -58,15 +58,15 @@ function updateQuery() {
   }
 
   let q = `
-    [none] ?flecs.core.Module, 
+    [none] ?flecs.core.Module,
     [none] ?flecs.core.Component,
     [none] ?flecs.core.Relationship,
     [none] ?flecs.core.Trait,
     [none] ?flecs.core.Target,
     [none] ?flecs.core.Query,
-    [none] ?flecs.core.Prefab, 
-    [none] ?flecs.core.Disabled, 
-    [none] ?flecs.core.ChildOf(_, $this), 
+    [none] ?flecs.core.Prefab,
+    [none] ?flecs.core.Disabled,
+    [none] ?flecs.core.ChildOf(_, $this),
     [none] ?flecs.core.IsA($this, $base|self)`
     ;
 
@@ -76,8 +76,8 @@ function updateQuery() {
   if (!nf && !qf) {
     let path = props.path;
     if (path) {
-      path = path.replaceAll(" ", "\\ ");
-      q += `, (flecs.core.ChildOf, ${path})`;
+      const escapedPath = path.replace(/([ ():\-])/g, '\\$1');
+      q += `, (flecs.core.ChildOf, ${escapedPath})`;
     }
   }
 
@@ -93,11 +93,11 @@ function updateQuery() {
     }
   }
 
-  treeQuery.value = 
+  treeQuery.value =
     props.conn.query(q, {
-      try: true, 
-      rows: true, 
-      limit: 1000, 
+      try: true,
+      rows: true,
+      limit: 1000,
       doc: true,
       managed: true,
       persist: props.path === "0" // persist root query across reconnects
