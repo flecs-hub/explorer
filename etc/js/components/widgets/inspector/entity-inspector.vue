@@ -13,7 +13,7 @@
           <span class="entity-inspector-name">{{ entityLabel }}
             <span class="entity-inspector-id">{{ entityId }}</span>
           </span>
-          <span class="entity-inspector-actual-name">{{ entityQueryResult.name }}</span>
+          <span class="entity-inspector-actual-name">&nbsp;{{ entityQueryResult.name }}</span>
         </template>
         <template v-else>
           <span class="entity-inspector-name">{{ entityQueryResult.name }}
@@ -338,7 +338,7 @@ div.entity-inspector {
   display: grid;
   grid-template-rows: 1rem auto 3rem 1rem 2rem calc(100% - 6rem);
   padding: 8px;
-  height: calc(100% - 3.0rem);
+  height: calc(100% - 4.0rem);
 }
 
 span.entity-inspector-id {

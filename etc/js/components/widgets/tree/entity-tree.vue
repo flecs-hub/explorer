@@ -15,7 +15,7 @@ export default { name: "entity-tree" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, ref } from 'vue';
+import { defineProps, defineEmits, defineExpose, ref } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -31,6 +31,14 @@ function selectItem(evt) {
   selectedItem.value = evt;
   emit("select", evt);
 }
+
+const unselect = () => {
+  selectedItem.value = undefined;
+}
+
+defineExpose({
+  unselect,
+});
 
 </script>
 

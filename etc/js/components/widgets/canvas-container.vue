@@ -24,7 +24,7 @@ onMounted(() => {
   setTimeout(() => {
     var resizeEvent = new Event('resize');
     window.dispatchEvent(resizeEvent);
-  }, 5);
+  }, 100);
 });
 
 watch(() => [props.app_state.has3DCanvas, props.app_params.page, 
@@ -35,7 +35,7 @@ watch(() => [props.app_state.has3DCanvas, props.app_params.page,
     setTimeout(() => {
         var resizeEvent = new Event('resize');
         window.dispatchEvent(resizeEvent);
-      }, 5);
+      }, 100);
   });
 });
 

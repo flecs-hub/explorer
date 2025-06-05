@@ -59,6 +59,6 @@ int main() {
     return ecs_app_run(world, &(ecs_app_desc_t){
         .enable_rest = true,
         .enable_stats = true,
-        .target_fps = 60
+        .target_fps = 60,
     });
 }

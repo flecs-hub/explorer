@@ -16,7 +16,8 @@
         :conn="conn" 
         :nameFilter="nameFilter"
         :queryFilter="queryFilter"
-        @select="selectItem">
+        @select="selectItem"
+        ref="entity_tree">
       </entity-tree>
     </div>
   </div>
@@ -27,7 +28,7 @@ export default { name: "pane-tree" }
 </script>
 
 <script setup>
-import { computed, defineProps, defineModel, ref } from 'vue';
+import { computed, defineProps, defineModel, defineExpose, ref } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -36,6 +37,7 @@ const props = defineProps({
 const emit = defineEmits(["scriptOpen", "entityOpen"]);
 const appParams = defineModel("app_params");
 const nameFilter = ref();
+const entity_tree = ref(null);
 
 const treeModeItems = computed(() => {
   if (appParams.value.script) {
@@ -87,6 +89,14 @@ function selectItem(item) {
     }
   }
 }
+
+const unselect = () => {
+  entity_tree.value.unselect();
+}
+
+defineExpose({
+  unselect
+});
 
 </script>
 

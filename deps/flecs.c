@@ -4048,7 +4048,7 @@ void flecs_register_on_delete_object(ecs_iter_t *it) {
     ecs_id_t id = ecs_field_id(it, 0);
     flecs_register_id_flag_for_relation(it, EcsOnDeleteTarget, 
         ECS_ID_ON_DELETE_TARGET_FLAG(ECS_PAIR_SECOND(id)),
-        EcsIdOnDeleteObjectMask,
+        EcsIdOnDeleteTargetMask,
         EcsEntityIsId);  
 }
 
@@ -4350,13 +4350,13 @@ ecs_table_t* flecs_bootstrap_component_table(
     /* Before creating table, manually set flags for ChildOf/Identifier, as this
      * can no longer be done after they are in use. */
     ecs_component_record_t *cr = flecs_components_ensure(world, EcsChildOf);
-    cr->flags |= EcsIdOnDeleteObjectDelete | EcsIdOnInstantiateDontInherit |
+    cr->flags |= EcsIdOnDeleteTargetDelete | EcsIdOnInstantiateDontInherit |
         EcsIdTraversable | EcsIdTag;
 
     /* Initialize id records cached on world */
     world->cr_childof_wildcard = flecs_components_ensure(world, 
         ecs_pair(EcsChildOf, EcsWildcard));
-    world->cr_childof_wildcard->flags |= EcsIdOnDeleteObjectDelete | 
+    world->cr_childof_wildcard->flags |= EcsIdOnDeleteTargetDelete | 
         EcsIdOnInstantiateDontInherit | EcsIdTraversable | EcsIdTag | EcsIdExclusive;
     cr = flecs_components_ensure(world, ecs_pair_t(EcsIdentifier, EcsWildcard));
     cr->flags |= EcsIdOnInstantiateDontInherit;
@@ -16673,9 +16673,9 @@ void flecs_on_delete_clear_sparse(
             continue;
         }
 
-        if (cur->flags & EcsIdOnDeleteObjectDelete) {
+        if (cur->flags & EcsIdOnDeleteTargetDelete) {
             flecs_component_delete_sparse(world, cur);
-        } else if (cur->flags & EcsIdOnDeleteObjectPanic) {
+        } else if (cur->flags & EcsIdOnDeleteTargetPanic) {
             char *id_str = ecs_id_str(world, cur->id);
             ecs_err("(OnDelete, Panic) constraint violated while "
                 "deleting %s", id_str);
@@ -18840,18 +18840,14 @@ void ecs_set_hooks_id(
     }
 
     /* Set default copy ctor, move ctor and merge */
-    if (!h->copy_ctor) {
-        if(flags & ECS_TYPE_HOOK_COPY_ILLEGAL || flags & ECS_TYPE_HOOK_CTOR_ILLEGAL) {
-            flags |= ECS_TYPE_HOOK_COPY_CTOR_ILLEGAL;
-        } else if(h->copy) {
+    if (!h->copy_ctor && !(flags & ECS_TYPE_HOOK_COPY_CTOR_ILLEGAL)) {
+        if (h->copy) {
             ti->hooks.copy_ctor = flecs_default_copy_ctor;
         }
     }
 
-    if (!h->move_ctor) {
-        if(flags & ECS_TYPE_HOOK_MOVE_ILLEGAL || flags & ECS_TYPE_HOOK_CTOR_ILLEGAL) {
-            flags |= ECS_TYPE_HOOK_MOVE_CTOR_ILLEGAL;
-        } else if (h->move) {
+    if (!h->move_ctor && !(flags & ECS_TYPE_HOOK_MOVE_CTOR_ILLEGAL)) {
+        if (h->move) {
             ti->hooks.move_ctor = flecs_default_move_ctor;
         }
     }
@@ -28592,7 +28588,7 @@ void ecs_system_activate(
     const ecs_system_t *system_data);
 
 /* Internal function to run a system */
-ecs_entity_t flecs_run_intern(
+ecs_entity_t flecs_run_system(
     ecs_world_t *world,
     ecs_stage_t *stage,
     ecs_entity_t system,
@@ -58166,7 +58162,6 @@ ecs_ftime_t flecs_insert_sleep(
     /* Pick a sleep interval that is 4 times smaller than the time one frame
      * should take. */
     ecs_ftime_t sleep_time = sleep / (ecs_ftime_t)4.0;
-
     do {
         /* Only call sleep when sleep_time is not 0. On some platforms, even
          * a sleep with a timeout of 0 can cause stutter. */
@@ -58179,9 +58174,10 @@ ecs_ftime_t flecs_insert_sleep(
     } while ((target_delta_time - delta_time) >
         (sleep_time / (ecs_ftime_t)2.0));
 
+    *stop = now;
+
     ecs_os_perf_trace_pop("flecs.insert_sleep");
 
-    *stop = now;
     return delta_time;
 }
 
@@ -58882,7 +58878,7 @@ int32_t flecs_run_pipeline_ops(
             s = stage;
         }
 
-        flecs_run_intern(world, s, system, sys, stage_index,
+        flecs_run_system(world, s, system, sys, stage_index,
             stage_count, delta_time, NULL);
 
         ecs_os_linc(&world->info.systems_ran_frame);
@@ -69180,7 +69176,7 @@ ecs_mixins_t ecs_system_t_mixins = {
 
 /* -- Public API -- */
 
-ecs_entity_t flecs_run_intern(
+ecs_entity_t flecs_run_system(
     ecs_world_t *world,
     ecs_stage_t *stage,
     ecs_entity_t system,
@@ -69321,7 +69317,7 @@ ecs_entity_t ecs_run_worker(
     ecs_system_t *system_data = flecs_poly_get(world, system, ecs_system_t);
     ecs_assert(system_data != NULL, ECS_INVALID_PARAMETER, NULL);
 
-    return flecs_run_intern(
+    return flecs_run_system(
         world, stage, system, system_data, stage_index, stage_count, 
         delta_time, param);
 }
@@ -69335,7 +69331,7 @@ ecs_entity_t ecs_run(
     ecs_stage_t *stage = flecs_stage_from_world(&world);
     ecs_system_t *system_data = flecs_poly_get(world, system, ecs_system_t);
     ecs_assert(system_data != NULL, ECS_INVALID_PARAMETER, NULL);
-    return flecs_run_intern(
+    return flecs_run_system(
         world, stage, system, system_data, 0, 0, delta_time, param);
 }
 

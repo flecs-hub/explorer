@@ -63,7 +63,7 @@ function selectChild(evt) {
 }
 
 const itemClass = computed(() => {
-  let result = ["entity-tree-item"];
+  let result = ["entity-tree-item", "noselect"];
 
   if (isSelected.value) {
     result.push("entity-tree-item-selected");

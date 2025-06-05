@@ -5,7 +5,8 @@
       v-model:app_params="appParams"
       @scriptOpen="onScriptOpen"
       @entityOpen="onEntityOpen"
-      v-if="app_params.sidebar">
+      v-if="app_params.sidebar"
+      ref="pane_tree">
     </pane-tree>
     <div id="canvasPlaceholder" :class="canvasCss" :style="`grid-column: ${canvasColumn}`">
     </div>
@@ -36,6 +37,7 @@ export default { name: "page-entities" };
 <script setup>
 import { defineProps, defineModel, ref, computed, watch, nextTick } from 'vue';
 
+const pane_tree = ref(null);
 const pane_scripts = ref(null);
 
 const props = defineProps({
@@ -77,6 +79,7 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
 
 function onAbort(evt) {
   appParams.value.entity.path = undefined;
+  pane_tree.value.unselect();
 }
 
 function onScriptOpen(path) {
