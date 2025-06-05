@@ -1,7 +1,6 @@
 #include "flecs_systems_transform.h"
 
 void EcsApplyTransform3(ecs_iter_t *it) {
-    // printf("---\n");
     while (ecs_query_next(it)) {
         EcsTransform3 *m = ecs_field(it, EcsTransform3, 0);
         EcsTransform3 *m_parent = ecs_field(it, EcsTransform3, 1);
@@ -9,9 +8,6 @@ void EcsApplyTransform3(ecs_iter_t *it) {
         EcsRotation3 *r = ecs_field(it, EcsRotation3, 3);
         EcsScale3 *s = ecs_field(it, EcsScale3, 4);
         int i;
-
-
-        // printf("%llu\n", it->priv_.iter.query.node);
 
         if (!m_parent) {
             if (ecs_field_is_self(it, 3)) {

@@ -29171,6 +29171,7 @@ typedef struct sokol_global_uniforms_t {
 
     vec3 sun_direction;
     vec3 sun_color;
+    vec3 night_color;
     vec3 sun_screen_pos;
     float sun_intensity;
 
@@ -30128,9 +30129,10 @@ void sokol_run_atmos_pass(
     glm_mat4_copy(state->uniforms.inv_mat_v, fs_u.inv_mat_vp);
     glm_vec3_copy(state->uniforms.eye_pos, fs_u.eye_pos);
     glm_vec3_copy(state->uniforms.sun_direction, fs_u.light_pos);
-    fs_u.night_color[0] = 0.001 / 8.0;
-    fs_u.night_color[1] = 0.008 / 8.0;
-    fs_u.night_color[2] = 0.016 / 8.0;
+    glm_vec3_copy((float*)&state->atmosphere->night_color, fs_u.night_color);
+    // fs_u.night_color[0] = 0.001 / 8.0;
+    // fs_u.night_color[1] = 0.008 / 8.0;
+    // fs_u.night_color[2] = 0.016 / 8.0;
     fs_u.aspect = state->uniforms.aspect;
     fs_u.offset = 0.05;
 

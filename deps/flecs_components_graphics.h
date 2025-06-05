@@ -128,6 +128,7 @@ ECS_STRUCT(EcsAtmosphere, {
     float rayleigh_scale_height;
     float mie_scale_height;
     float mie_scatter_dir;
+    EcsRgb night_color;
 });
 
 FLECS_COMPONENTS_GRAPHICS_API

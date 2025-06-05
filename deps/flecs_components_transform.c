@@ -35,5 +35,9 @@ void FlecsComponentsTransformImport(
     ecs_set_hooks(world, EcsTransform3, {
         .ctor = flecs_default_ctor
     });
+
+    ecs_add_pair(world, ecs_id(EcsPosition3), EcsWith, ecs_id(EcsTransform3));
+    ecs_add_pair(world, ecs_id(EcsRotation3), EcsWith, ecs_id(EcsTransform3));
+    ecs_add_pair(world, ecs_id(EcsScale3),    EcsWith, ecs_id(EcsTransform3));
 }
 

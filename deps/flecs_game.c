@@ -631,7 +631,7 @@ void LightControllerSyncIntensity(ecs_iter_t *it) {
 static
 void TimeOfDayUpdate(ecs_iter_t *it) {
     EcsTimeOfDay *tod = ecs_field(it, EcsTimeOfDay, 0);
-    tod->t += it->delta_time * tod->speed;
+    tod->t += it->delta_system_time * tod->speed;
 }
 
 static
@@ -742,5 +742,10 @@ void FlecsGameLightControllerImport(ecs_world_t *world) {
     ecs_add_pair(world, EcsSun, EcsWith, ecs_id(EcsDirectionalLight));
     ecs_add_pair(world, EcsSun, EcsWith, ecs_id(EcsRgb));
     ecs_add_pair(world, EcsSun, EcsWith, ecs_id(EcsLightIntensity));
+
+    ecs_system(world, {
+        .entity = ecs_id(TimeOfDayUpdate),
+        .interval = 1.0
+    });
 }
 
