@@ -65,6 +65,18 @@
         </color-preview>
       </div>
     </template>
+    <template v-else-if="previewTypeKind === 'object'">
+        <div :class="objectClass()">
+          <entity-inspector-field 
+            :value="objectToField(value)"
+            :type="{}"
+            :readonly="true"
+            :class="fieldClass"
+            :compact="true"
+            :shrink_to_content="compact">
+          </entity-inspector-field>
+        </div>
+    </template>
   </div>
 </template>
 
@@ -134,7 +146,11 @@ const previewTypeKind = computed(() => {
 
     if (isVector) {
       return "vector";
+    } else {
+      return "object";
     }
+  } else {
+    return "object";
   }
 
   return undefined;
@@ -183,6 +199,29 @@ function colorClass() {
     classes.push("component-preview-compact");
   }
   return classes;
+}
+
+function objectClass() {
+  let classes = ["component-preview-object"];
+  if (props.compact) {
+    classes.push("component-preview-compact");
+  }
+  return classes;
+}
+
+function objectToField(value) {
+  let result = [];
+  for (var k in value) {
+    const v = value[k];
+    if (typeof v === "number") {
+      result.push(v.toFixed(2));
+    } else if (typeof v === "object") {
+      result.push("{..}");
+    } else {
+      result.push(v);
+    }
+  }
+  return result.join(", ");
 }
 
 </script>

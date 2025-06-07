@@ -271,8 +271,9 @@ div.component-name-pending-delete {
 }
 
 div.component-value {
-  padding-left: 42px;
+  padding-left: 20px;
   padding-right: 16px;
+  overflow-x: auto;
 }
 
 div.component-base {
