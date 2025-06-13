@@ -1,5 +1,5 @@
 <template>
-  <div id="page-queries" class="page-content">
+  <div id="page-queries" :class="css">
     <pane-query
       v-model:app_params="app_params"
       :conn="conn"
@@ -18,7 +18,7 @@ export default { name: "page-queries" };
 </script>
 
 <script setup>
-import { defineProps, defineModel } from 'vue';
+import { defineProps, defineModel, computed } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -26,6 +26,15 @@ const props = defineProps({
 });
 
 const app_params = defineModel("app_params");
+
+const css = computed(() => {
+  let result = ["page-content"];
+  if (!app_params.value.sidebar) {
+    result.push("page-queries-no-sidebar");
+  }
+  return result;
+});
+
 </script>
 
 <style scoped>
@@ -47,6 +56,15 @@ const app_params = defineModel("app_params");
     grid-template-rows: calc(40vh - var(--header-height) - var(--gap)) calc(60vh - var(--footer-height) - var(--gap));
   }
 }
+
+@media screen and (max-width: 800px) {
+  div.page-queries-no-sidebar div.queries-right-pane {
+    grid-column: 1;
+    grid-row: 1;
+    height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
+  }
+}
+
 </style>
 
 <style>

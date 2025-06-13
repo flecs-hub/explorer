@@ -50,7 +50,7 @@ import { ref, defineProps, computed, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
   app_params: {type: Object, required: true },
-  conn: {type: Object, required: true },
+  conn: {type: Object, required: true }
 });
 
 const result = ref({reply: []});
