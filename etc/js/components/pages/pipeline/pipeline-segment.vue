@@ -59,12 +59,8 @@ const syncSystem = computed(() => {
 });
 
 const systemCount = computed(() => {
-  let count = systems.value.length;
-  if (syncSystem.value) {
-    count --;
-  }
-  return count;
-})
+  return props.segment.count;
+});
 
 </script>
 

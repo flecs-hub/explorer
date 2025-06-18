@@ -4,7 +4,7 @@
       <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
       <dropdown :items="pipelines" v-model:active_item="app_params.pipeline"></dropdown>&nbsp;
       <dropdown :items="flecsModeItems" v-model:active_item="flecsModeItem"></dropdown>&nbsp;
-      by <dropdown :items="viewModeItems" v-model:active_item="viewModeItem"></dropdown>
+      by&nbsp; <dropdown :items="viewModeItems" v-model:active_item="viewModeItem"></dropdown>
     </div>
     <div class="pipeline-container">
       <pipeline 

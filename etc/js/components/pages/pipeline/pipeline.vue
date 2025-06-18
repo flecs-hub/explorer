@@ -27,7 +27,9 @@ function systemFilter(system) {
       return true;
     }
 
-    if (system.name.slice(0, 6) == "flecs.") {
+    if ((system.name.slice(0, 12) == "flecs.timer.") ||
+        (system.name.slice(0, 12) == "flecs.stats.") ||
+        (system.name.slice(0, 11) == "flecs.rest.")) {
       return false;
     }
   }
@@ -37,17 +39,20 @@ function systemFilter(system) {
 
 const segments = computed(() => {
   let segments = [];
-  let curSegment = {systems: []};
+  let curSegment = {systems: [], count: 0};
 
   /* Default mode: visualize scheduler segments */
   if (props.viewMode == "default") {
     for (let system of props.systems) {
+      curSegment.count ++;
+
       if (!systemFilter(system)) continue;
 
       curSegment.systems.push(system);
       if (!system.name) {
+        curSegment.count --; // Don't count merges
         segments.push(curSegment);
-        curSegment = {systems: []};
+        curSegment = {systems: [], count: 0};
       }
     }
 
@@ -58,6 +63,8 @@ const segments = computed(() => {
   /* Single list ordered by (avg) time spent */
   } else if (props.viewMode == "by_time") {
     for (let system of props.systems) {
+      curSegment.count ++;
+
       if (!systemFilter(system)) continue;
       curSegment.systems.push(system);
     }
@@ -72,8 +79,10 @@ const segments = computed(() => {
   /* Segment per module */
   } else if (props.viewMode == "by_module") {
     let modules = {};
+
     for (let system of props.systems) {
       if (!systemFilter(system)) continue;
+
       if (!system.name) {
         continue;
       }
