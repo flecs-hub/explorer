@@ -34,8 +34,8 @@
 
 /* Flecs version macros */
 #define FLECS_VERSION_MAJOR 4  /**< Flecs major version. */
-#define FLECS_VERSION_MINOR 0  /**< Flecs minor version. */
-#define FLECS_VERSION_PATCH 5  /**< Flecs patch version. */
+#define FLECS_VERSION_MINOR 1  /**< Flecs minor version. */
+#define FLECS_VERSION_PATCH 0  /**< Flecs patch version. */
 
 /** Flecs version. */
 #define FLECS_VERSION FLECS_VERSION_IMPL(\
@@ -441,11 +441,10 @@ extern "C" {
 #define EcsIdIsSparse                  (1u << 23)
 #define EcsIdDontFragment              (1u << 24)
 #define EcsIdMatchDontFragment         (1u << 25) /* For (*, T) wildcards */
-#define EcsIdIsUnion                   (1u << 26)
 #define EcsIdOrderedChildren           (1u << 28)
 #define EcsIdEventMask\
     (EcsIdHasOnAdd|EcsIdHasOnRemove|EcsIdHasOnSet|\
-        EcsIdHasOnTableCreate|EcsIdHasOnTableDelete|EcsIdIsSparse|EcsIdIsUnion|\
+        EcsIdHasOnTableCreate|EcsIdHasOnTableDelete|EcsIdIsSparse|\
         EcsIdOrderedChildren)
 
 #define EcsIdMarkedForDelete           (1u << 30)
@@ -463,6 +462,15 @@ extern "C" {
     ((ecs_entity_t[]){EcsOverride, EcsOverride, EcsInherit, 0, EcsDontInherit}\
         [(((flags) & EcsIdOnInstantiateMask) >> 6)])
 #define ECS_ID_ON_INSTANTIATE_FLAG(id) (1u << (6 + ((id) - EcsOverride)))
+
+
+////////////////////////////////////////////////////////////////////////////////
+//// Bits set in world->non_trivial array
+////////////////////////////////////////////////////////////////////////////////
+
+#define EcsNonTrivialIdSparse          (1u << 0)
+#define EcsNonTrivialIdNonFragmenting  (1u << 1)
+#define EcsNonTrivialIdInherit         (1u << 2)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -540,9 +548,8 @@ extern "C" {
 #define EcsTermIsToggle               (1u << 10)
 #define EcsTermKeepAlive              (1u << 11)
 #define EcsTermIsSparse               (1u << 12)
-#define EcsTermIsUnion                (1u << 13)
-#define EcsTermIsOr                   (1u << 14)
-#define EcsTermDontFragment           (1u << 15)
+#define EcsTermIsOr                   (1u << 13)
+#define EcsTermDontFragment           (1u << 14)
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -558,7 +565,7 @@ extern "C" {
 #define EcsObserverBypassQuery         (1u << 7u)  /* Don't evaluate query for multi-component observer*/
 #define EcsObserverYieldOnCreate       (1u << 8u)  /* Yield matching entities when creating observer */
 #define EcsObserverYieldOnDelete       (1u << 9u)  /* Yield matching entities when deleting observer */
-
+#define EcsObserverKeepAlive           (1u << 11u) /* Observer keeps component alive (same value as EcsTermKeepAlive) */
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Table flags (used by ecs_table_t::flags)
@@ -590,7 +597,6 @@ extern "C" {
 #define EcsTableHasSparse              (1u << 23u)
 #define EcsTableHasDontFragment        (1u << 24u)
 #define EcsTableOverrideDontFragment   (1u << 25u)
-#define EcsTableHasUnion               (1u << 26u)
 
 #define EcsTableHasTraversable         (1u << 27u)
 #define EcsTableHasOrderedChildren     (1u << 28u)
@@ -602,9 +608,9 @@ extern "C" {
 #define EcsTableIsComplex        (EcsTableHasLifecycle | EcsTableHasToggle | EcsTableHasSparse)
 #define EcsTableHasAddActions    (EcsTableHasIsA | EcsTableHasCtors | EcsTableHasOnAdd | EcsTableHasOnSet)
 #define EcsTableHasRemoveActions (EcsTableHasIsA | EcsTableHasDtors | EcsTableHasOnRemove)
-#define EcsTableEdgeFlags        (EcsTableHasOnAdd | EcsTableHasOnRemove | EcsTableHasSparse | EcsTableHasUnion)
-#define EcsTableAddEdgeFlags     (EcsTableHasOnAdd | EcsTableHasSparse | EcsTableHasUnion)
-#define EcsTableRemoveEdgeFlags  (EcsTableHasOnRemove | EcsTableHasSparse | EcsTableHasUnion | EcsTableHasOrderedChildren)
+#define EcsTableEdgeFlags        (EcsTableHasOnAdd | EcsTableHasOnRemove | EcsTableHasSparse)
+#define EcsTableAddEdgeFlags     (EcsTableHasOnAdd | EcsTableHasSparse)
+#define EcsTableRemoveEdgeFlags  (EcsTableHasOnRemove | EcsTableHasSparse | EcsTableHasOrderedChildren)
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Aperiodic action flags (used by ecs_run_aperiodic)
@@ -1490,7 +1496,7 @@ void* flecs_sparse_get(
 #define flecs_sparse_get_t(sparse, T, index)\
     ECS_CAST(T*, flecs_sparse_get(sparse, ECS_SIZEOF(T), index))
 
-/** Get or create element by (sparse) id. */
+/** Create element by (sparse) id. */
 FLECS_DBG_API
 void* flecs_sparse_insert(
     ecs_sparse_t *sparse,
@@ -1499,6 +1505,17 @@ void* flecs_sparse_insert(
 
 #define flecs_sparse_insert_t(sparse, T, index)\
     ECS_CAST(T*, flecs_sparse_insert(sparse, ECS_SIZEOF(T), index))
+
+/** Get or create element by (sparse) id. */
+FLECS_DBG_API
+void* flecs_sparse_ensure(
+    ecs_sparse_t *sparse,
+    ecs_size_t elem_size,
+    uint64_t id,
+    bool *is_new);
+
+#define flecs_sparse_ensure_t(sparse, T, index, is_new)\
+    ECS_CAST(T*, flecs_sparse_ensure(sparse, ECS_SIZEOF(T), index, is_new))
 
 /** Fast version of ensure, no liveliness checking */
 FLECS_DBG_API
@@ -1963,87 +1980,6 @@ void ecs_map_copy(
 #define ecs_map_value(it) ((it)->res[1])
 #define ecs_map_ptr(it) ECS_PTR_CAST(void*, ECS_CAST(uintptr_t, ecs_map_value(it)))
 #define ecs_map_ref(it, T) (ECS_CAST(T**, &((it)->res[1])))
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-
-/**
- * @file switch_list.h
- * @brief Interleaved linked list for storing mutually exclusive values.
- */
-
-#ifndef FLECS_SWITCH_LIST_H
-#define FLECS_SWITCH_LIST_H
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef struct ecs_switch_node_t {
-    uint32_t next;      /* Next node in list */
-    uint32_t prev;      /* Prev node in list */
-} ecs_switch_node_t;
-
-typedef struct ecs_switch_page_t {
-    ecs_vec_t nodes;    /* vec<ecs_switch_node_t> */
-    ecs_vec_t values;   /* vec<uint64_t> */
-} ecs_switch_page_t;
-
-typedef struct ecs_switch_t {
-    ecs_map_t hdrs;     /* map<uint64_t, uint32_t> */
-    ecs_vec_t pages;    /* vec<ecs_switch_page_t> */
-} ecs_switch_t;
-
-/** Init new switch. */
-FLECS_DBG_API
-void flecs_switch_init(
-    ecs_switch_t* sw,
-    ecs_allocator_t *allocator);
-
-/** Fini switch. */
-FLECS_DBG_API
-void flecs_switch_fini(
-    ecs_switch_t *sw);
-
-/** Set value of element. */
-FLECS_DBG_API
-bool flecs_switch_set(
-    ecs_switch_t *sw,
-    uint32_t element,
-    uint64_t value);
-
-/** Reset value of element. */
-FLECS_DBG_API
-bool flecs_switch_reset(
-    ecs_switch_t *sw,
-    uint32_t element);
-
-/** Get value for element. */
-FLECS_DBG_API
-uint64_t flecs_switch_get(
-    const ecs_switch_t *sw,
-    uint32_t element);
-
-/** Get first element for value. */
-FLECS_DBG_API
-uint32_t flecs_switch_first(
-    const ecs_switch_t *sw,
-    uint64_t value);
-
-/** Get next element. */
-FLECS_DBG_API
-uint32_t flecs_switch_next(
-    const ecs_switch_t *sw,
-    uint32_t previous);
-
-/** Get target iterator. */
-FLECS_DBG_API
-ecs_map_iter_t flecs_switch_targets(
-    const ecs_switch_t *sw);
 
 #ifdef __cplusplus
 }
@@ -5680,9 +5616,6 @@ FLECS_API extern const ecs_entity_t EcsSparse;
 /** Mark component as non-fragmenting */
 FLECS_API extern const ecs_entity_t EcsDontFragment;
 
-/** Mark relationship as union */
-FLECS_API extern const ecs_entity_t EcsUnion;
-
 /** Marker used to indicate `$var == ...` matching in queries. */
 FLECS_API extern const ecs_entity_t EcsPredEq;
 
@@ -6821,6 +6754,20 @@ void ecs_set_child_order(
     const ecs_entity_t *children,
     int32_t child_count);
 
+/** Get ordered children.
+ * If a parent has the OrderedChildren trait, this operation can be used to
+ * obtain the array with child entities. If this operation is used on a parent
+ * that does not have the OrderedChildren trait, it will fail.asm
+ * 
+ * @param world The world.
+ * @param parent The parent.
+ * @return The array with child entities.
+ */
+FLECS_API
+ecs_entities_t ecs_get_ordered_children(
+    const ecs_world_t *world,
+    ecs_entity_t parent);
+
 /** @} */
 
 /**
@@ -7102,6 +7049,23 @@ void* ecs_ensure_id(
  */
 FLECS_API
 void* ecs_ensure_modified_id(
+    ecs_world_t *world,
+    ecs_entity_t entity,
+    ecs_id_t id);
+
+/** Combines get_mut + modified in single operation.
+ * This operation is a more efficient alternative to calling ecs_get_mut_id() and
+ * ecs_modified_id() separately. This operation is only valid when the world is in
+ * deferred mode, which ensures that the Modified event is not emitted before
+ * the modification takes place.
+ *
+ * @param world The world.
+ * @param entity The entity.
+ * @param id The id of the component to obtain.
+ * @return The component pointer.
+ */
+FLECS_API
+void* ecs_get_mut_modified_id(
     ecs_world_t *world,
     ecs_entity_t entity,
     ecs_id_t id);
@@ -8798,8 +8762,9 @@ const ecs_query_group_info_t* ecs_query_get_group_info(
 typedef struct ecs_query_count_t {
     int32_t results;      /**< Number of results returned by query. */
     int32_t entities;     /**< Number of entities returned by query. */
-    int32_t tables;       /**< Number of tables returned by query. */
-    int32_t empty_tables; /**< Number of empty tables returned by query. */
+    int32_t tables;       /**< Number of tables returned by query. Only set for
+                             * queries for which the table count can be reliably
+                             * determined. */
 } ecs_query_count_t;
 
 /** Returns number of entities and results the query matches with.
@@ -9177,7 +9142,7 @@ bool ecs_iter_var_is_constrained(
  */
 FLECS_API
 uint64_t ecs_iter_get_group(
-    ecs_iter_t *it);
+    const ecs_iter_t *it);
 
 /** Returns whether current iterator result has changed.
  * This operation must be used in combination with a query that supports change
@@ -17930,7 +17895,6 @@ static const flecs::entity_t Symbol = EcsSymbol;
 /* Storage */
 static const flecs::entity_t Sparse = EcsSparse;
 static const flecs::entity_t DontFragment = EcsDontFragment;
-static const flecs::entity_t Union = EcsUnion;
 
 /* Builtin predicates for comparing entity ids in queries. */
 static const flecs::entity_t PredEq = EcsPredEq;
@@ -21237,7 +21201,7 @@ using base_arg_type_t = typename base_arg_type<T>::type;
 template <typename T>
 struct is_actual {
     static constexpr bool value =
-        std::is_same<T, actual_type_t<T> >::value && !is_enum<T>::value;
+        std::is_same<T, actual_type_t<T> >::value;
 };
 
 } // flecs
@@ -21758,42 +21722,8 @@ namespace flecs
 
 /* Static helper functions to assign a component value */
 
-// set(T&&), T = constructible
-template <typename T, if_t< is_flecs_constructible<T>::value > = 0>
-inline void set(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t id) {
-    ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
-            "operation invalid for empty type");
-
-    if (!ecs_is_deferred(world)) {
-        T& dst = *static_cast<T*>(ecs_ensure_id(world, entity, id));
-        dst = FLECS_MOV(value);
-
-        ecs_modified_id(world, entity, id);
-    } else {
-        T& dst = *static_cast<T*>(ecs_ensure_modified_id(world, entity, id));
-        dst = FLECS_MOV(value);
-    }
-}
-
-// set(const T&), T = constructible
-template <typename T, if_t< is_flecs_constructible<T>::value > = 0>
-inline void set(world_t *world, flecs::entity_t entity, const T& value, flecs::id_t id) {
-    ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
-            "operation invalid for empty type");
-
-    if (!ecs_is_deferred(world)) {
-        T& dst = *static_cast<T*>(ecs_ensure_id(world, entity, id));
-        dst = FLECS_MOV(value);
-
-        ecs_modified_id(world, entity, id);
-    } else {
-        T& dst = *static_cast<T*>(ecs_ensure_modified_id(world, entity, id));
-        dst = FLECS_MOV(value);
-    }
-}
-
 // set(T&&), T = not constructible
-template <typename T, if_not_t< is_flecs_constructible<T>::value > = 0>
+template <typename T>
 inline void set(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t id) {
     ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
             "operation invalid for empty type");
@@ -21810,7 +21740,7 @@ inline void set(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t i
 }
 
 // set(const T&), T = not constructible
-template <typename T, if_not_t< is_flecs_constructible<T>::value > = 0>
+template <typename T>
 inline void set(world_t *world, flecs::entity_t entity, const T& value, flecs::id_t id) {
     ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
             "operation invalid for empty type");
@@ -21826,20 +21756,6 @@ inline void set(world_t *world, flecs::entity_t entity, const T& value, flecs::i
     }
 }
 
-// emplace for T(Args...)
-template <typename T, typename ... Args, if_t<
-    std::is_constructible<actual_type_t<T>, Args...>::value ||
-    std::is_default_constructible<actual_type_t<T>>::value > = 0>
-inline void emplace(world_t *world, flecs::entity_t entity, flecs::id_t id, Args&&... args) {
-    ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
-            "operation invalid for empty type");
-    T& dst = *static_cast<T*>(ecs_emplace_id(world, entity, id, nullptr));
-
-    FLECS_PLACEMENT_NEW(&dst, T{FLECS_FWD(args)...});
-
-    ecs_modified_id(world, entity, id);
-}
-
 // set(T&&)
 template <typename T, typename A>
 inline void set(world_t *world, entity_t entity, A&& value) {
@@ -21852,6 +21768,89 @@ template <typename T, typename A>
 inline void set(world_t *world, entity_t entity, const A& value) {
     id_t id = _::type<T>::id(world);
     flecs::set(world, entity, value, id);
+}
+
+// set(T&&), T = not constructible
+template <typename T>
+inline void assign(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t id) {
+    using ActualType = remove_reference_t<T>;
+
+    ecs_assert(_::type<ActualType>::size() != 0, ECS_INVALID_PARAMETER,
+            "operation invalid for empty type");
+
+    if (!ecs_is_deferred(world)) {
+        ActualType *dst_ptr = static_cast<ActualType*>(ecs_get_mut_id(world, entity, id));
+        ecs_assert(dst_ptr != nullptr, ECS_INVALID_OPERATION, 
+            "entity does not have component, use set() instead");
+        
+        ActualType& dst = *dst_ptr;
+        dst = FLECS_MOV(value);
+
+        ecs_modified_id(world, entity, id);
+    } else {
+        ActualType *dst_ptr = static_cast<ActualType*>(ecs_get_mut_modified_id(world, entity, id));
+        ecs_assert(dst_ptr != nullptr, ECS_INVALID_OPERATION, 
+            "entity does not have component, use set() instead");
+        
+        ActualType& dst = *dst_ptr;
+        dst = FLECS_MOV(value);
+    }
+}
+
+// set(const T&), T = not constructible
+template <typename T>
+inline void assign(world_t *world, flecs::entity_t entity, const T& value, flecs::id_t id) {
+    using ActualType = remove_reference_t<T>;
+
+    ecs_assert(_::type<ActualType>::size() != 0, ECS_INVALID_PARAMETER,
+            "operation invalid for empty type");
+
+    if (!ecs_is_deferred(world)) {
+        ActualType *dst_ptr = static_cast<ActualType*>(ecs_get_mut_id(world, entity, id));
+        ecs_assert(dst_ptr != nullptr, ECS_INVALID_OPERATION, 
+            "entity does not have component, use set() instead");
+        
+        ActualType& dst = *dst_ptr;
+        dst = FLECS_MOV(value);
+
+        ecs_modified_id(world, entity, id);
+    } else {
+        ActualType *dst_ptr = static_cast<ActualType*>(ecs_get_mut_modified_id(world, entity, id));
+        ecs_assert(dst_ptr != nullptr, ECS_INVALID_OPERATION, 
+            "entity does not have component, use set() instead");
+        
+        ActualType& dst = *dst_ptr;
+        dst = FLECS_MOV(value);
+    }
+}
+
+// set(T&&)
+template <typename T, typename A>
+inline void assign(world_t *world, entity_t entity, A&& value) {
+    id_t id = _::type<T>::id(world);
+    flecs::assign(world, entity, FLECS_FWD(value), id);
+}
+
+// set(const T&)
+template <typename T, typename A>
+inline void assign(world_t *world, entity_t entity, const A& value) {
+    id_t id = _::type<T>::id(world);
+    flecs::assign(world, entity, value, id);
+}
+
+
+// emplace for T(Args...)
+template <typename T, typename ... Args, if_t<
+    std::is_constructible<actual_type_t<T>, Args...>::value ||
+    std::is_default_constructible<actual_type_t<T>>::value > = 0>
+inline void emplace(world_t *world, flecs::entity_t entity, flecs::id_t id, Args&&... args) {
+    ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
+            "operation invalid for empty type");
+    T& dst = *static_cast<T*>(ecs_emplace_id(world, entity, id, nullptr));
+
+    FLECS_PLACEMENT_NEW(&dst, T{FLECS_FWD(args)...});
+
+    ecs_modified_id(world, entity, id);
 }
 
 /** Return id without generation.
@@ -22460,42 +22459,113 @@ struct world {
     template <typename T>
     ref<T> get_ref() const;
 
+
+    /* try_get */
+
+    /** Get singleton component.
+     */
+    const void* try_get(flecs::id_t id) const;
+
+    /** Get singleton pair.
+     */
+    const void* try_get(flecs::entity_t r, flecs::entity_t t) const;
+
     /** Get singleton component.
      */
     template <typename T>
-    const T* get() const;
+    const T* try_get() const;
 
     /** Get singleton pair.
      */
     template <typename First, typename Second, typename P = flecs::pair<First, Second>,
         typename A = actual_type_t<P>>
-    const A* get() const;
+    const A* try_get() const;
 
     /** Get singleton pair.
      */
     template <typename First, typename Second>
-    const First* get(Second second) const;
+    const First* try_get(Second second) const;
+
+
+    /* get */
+
+    /** Get singleton component.
+     */
+    const void* get(flecs::id_t id) const;
+
+    /** Get singleton component.
+     */
+    const void* get(flecs::entity_t r, flecs::entity_t t) const;
+
+    template <typename T>
+    const T& get() const;
+
+    /** Get singleton pair.
+     */
+    template <typename First, typename Second, typename P = flecs::pair<First, Second>,
+        typename A = actual_type_t<P>>
+    const A& get() const;
+
+    /** Get singleton pair.
+     */
+    template <typename First, typename Second>
+    const First& get(Second second) const;
 
     /** Get singleton component inside a callback.
      */
     template <typename Func, if_t< is_callable<Func>::value > = 0 >
     void get(const Func& func) const;
 
+
+    /* try_get_mut */
+
     /** Get mutable singleton component.
      */
+    void* try_get_mut(flecs::id_t id) const;
+
+    /** Get mutable singleton pair.
+     */
+    void* try_get_mut(flecs::entity_t r, flecs::entity_t t) const;
+
     template <typename T>
-    T* get_mut() const;
+    T* try_get_mut() const;
 
     /** Get mutable singleton pair.
      */
     template <typename First, typename Second, typename P = flecs::pair<First, Second>,
         typename A = actual_type_t<P>>
-    A* get_mut() const;
+    A* try_get_mut() const;
 
     /** Get mutable singleton pair.
      */
     template <typename First, typename Second>
-    First* get_mut(Second second) const;
+    First* try_get_mut(Second second) const;
+
+
+    /* get_mut */
+
+    /** Get mutable singleton component.
+     */
+    void* get_mut(flecs::id_t id) const;
+
+    /** Get mutable singleton pair.
+     */
+    void* get_mut(flecs::entity_t r, flecs::entity_t t) const;
+
+    template <typename T>
+    T& get_mut() const;
+
+    /** Get mutable singleton pair.
+     */
+    template <typename First, typename Second, typename P = flecs::pair<First, Second>,
+        typename A = actual_type_t<P>>
+    A& get_mut() const;
+
+    /** Get mutable singleton pair.
+     */
+    template <typename First, typename Second>
+    First& get_mut(Second second) const;
+
 
     /** Test if world has singleton component.
      */
@@ -24695,6 +24765,9 @@ struct entity_view : public id {
         children(flecs::ChildOf, FLECS_MOV(func));
     }
 
+
+    /* try_get */
+
     /** Get component value.
      * 
      * @tparam T The component to get.
@@ -24702,7 +24775,7 @@ struct entity_view : public id {
      *         have the component.
      */
     template <typename T, if_t< is_actual<T>::value > = 0>
-    const T* get() const {
+    const T* try_get() const {
         auto comp_id = _::type<T>::id(world_);
         ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
             "operation invalid for empty type");
@@ -24719,7 +24792,7 @@ struct entity_view : public id {
      */
     template <typename T, typename A = actual_type_t<T>, 
         if_t< flecs::is_pair<T>::value > = 0>
-    const A* get() const {
+    const A* try_get() const {
         auto comp_id = _::type<T>::id(world_);
         ecs_assert(_::type<A>::size() != 0, ECS_INVALID_PARAMETER,
             "operation invalid for empty type");
@@ -24734,8 +24807,8 @@ struct entity_view : public id {
      */
     template <typename First, typename Second, typename P = pair<First, Second>, 
         typename A = actual_type_t<P>, if_not_t< flecs::is_pair<First>::value > = 0>
-    const A* get() const {
-        return this->get<P>();
+    const A* try_get() const {
+        return this->try_get<P>();
     }
 
     /** Get a pair.
@@ -24745,7 +24818,7 @@ struct entity_view : public id {
      * @param second The second element of the pair.
      */
     template<typename First, typename Second, if_not_t< is_enum<Second>::value> = 0>
-    const First* get(Second second) const {
+    const First* try_get(Second second) const {
         auto first = _::type<First>::id(world_);
         ecs_assert(_::type<First>::size() != 0, ECS_INVALID_PARAMETER,
             "operation invalid for empty type");
@@ -24760,10 +24833,10 @@ struct entity_view : public id {
      * @param constant the enum constant.
      */
     template<typename First, typename Second, if_t< is_enum<Second>::value && !std::is_same<First, Second>::value > = 0>
-    const First* get(Second constant) const {
+    const First* try_get(Second constant) const {
         const auto& et = enum_type<Second>(this->world_);
         flecs::entity_t target = et.entity(constant);
-        return get<First>(target);
+        return try_get<First>(target);
     }
 
     /** Get component value (untyped).
@@ -24772,7 +24845,7 @@ struct entity_view : public id {
      * @return Pointer to the component value, nullptr if the entity does not
      *         have the component.
      */
-    const void* get(flecs::id_t comp) const {
+    const void* try_get(flecs::id_t comp) const {
         return ecs_get_id(world_, id_, comp);
     }
 
@@ -24784,8 +24857,149 @@ struct entity_view : public id {
      * @param first The first element of the pair.
      * @param second The second element of the pair.
      */
-    const void* get(flecs::entity_t first, flecs::entity_t second) const {
+    const void* try_get(flecs::entity_t first, flecs::entity_t second) const {
         return ecs_get_id(world_, id_, ecs_pair(first, second));
+    }
+
+    /** Get the second part for a pair.
+     * This operation gets the value for a pair from the entity. The first
+     * part of the pair should not be a component.
+     *
+     * @tparam Second the second element of a pair.
+     * @param first The first part of the pair.
+     */
+    template<typename Second>
+    const Second* try_get_second(flecs::entity_t first) const {
+        auto second = _::type<Second>::id(world_);
+        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second)) != NULL,
+            ECS_INVALID_PARAMETER, "pair is not a component");
+        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second))->component == second,
+            ECS_INVALID_PARAMETER, "type of pair is not Second");
+        ecs_assert(_::type<Second>::size() != 0, ECS_INVALID_PARAMETER,
+            "operation invalid for empty type");
+        return static_cast<const Second*>(
+            ecs_get_id(world_, id_, ecs_pair(first, second)));
+    }
+
+    /** Get the second part for a pair.
+     * This operation gets the value for a pair from the entity. The first
+     * part of the pair should not be a component.
+     *
+     * @tparam First The first element of the pair.
+     * @tparam Second the second element of a pair.
+     */
+    template<typename First, typename Second>
+    const Second* try_get_second() const {
+        return try_get<pair_object<First, Second>>();
+    }
+
+
+    /* get */
+
+    /** Get component value.
+     * 
+     * @tparam T The component to get.
+     * @return Ref to the component value, panics if the entity does not
+     *         have the component.
+     */
+    template <typename T, if_t< is_actual<T>::value > = 0>
+    const T& get() const {
+        const T *r = try_get<T>();
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get: entity does not have component (use try_get)");
+        return *r;
+    }
+
+    /** Get component value.
+     * Overload for when T is not the same as the actual type, which happens
+     * when using pair types.
+     * 
+     * @tparam T The component to get.
+     * @return Ref to the component value, panics if the entity does not
+     *         have the component.
+     */
+    template <typename T, typename A = actual_type_t<T>, 
+        if_t< flecs::is_pair<T>::value > = 0>
+    const A& get() const {
+        const A *r = try_get<T>();
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get: entity does not have component (use try_get)");
+        return *r;
+    }
+    
+    /** Get a pair.
+     * This operation gets the value for a pair from the entity.
+     *
+     * @tparam First The first element of the pair.
+     * @tparam Second the second element of a pair.
+     * @return Ref to the component value, panics if the entity does not
+     *         have the component.
+     */
+    template <typename First, typename Second, typename P = pair<First, Second>, 
+        typename A = actual_type_t<P>, if_not_t< flecs::is_pair<First>::value > = 0>
+    const A& get() const {
+        return this->get<P>();
+    }
+
+    /** Get a pair.
+     * This operation gets the value for a pair from the entity. 
+     *
+     * @tparam First The first element of the pair.
+     * @param second The second element of the pair.
+     * @return Ref to the component value, panics if the entity does not
+     *         have the component.
+     */
+    template<typename First, typename Second, if_not_t< is_enum<Second>::value> = 0>
+    const First& get(Second second) const {
+        const First *r = try_get<First>(second);
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get: entity does not have component (use try_get)");
+        return *r;
+    }
+
+    /** Get a pair.
+     * This operation gets the value for a pair from the entity. 
+     *
+     * @tparam First The first element of the pair.
+     * @param constant the enum constant.
+     * @return Ref to the component value, panics if the entity does not
+     *         have the component.
+     */
+    template<typename First, typename Second, if_t< is_enum<Second>::value && !std::is_same<First, Second>::value > = 0>
+    const First& get(Second constant) const {
+        const auto& et = enum_type<Second>(this->world_);
+        flecs::entity_t target = et.entity(constant);
+        return get<First>(target);
+    }
+
+    /** Get component value (untyped).
+     * 
+     * @param comp The component to get.
+     * @return Pointer to the component value, panics if the entity does not
+     *         have the component.
+     */
+    const void* get(flecs::id_t comp) const {
+        const void *r = ecs_get_id(world_, id_, comp);
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get: entity does not have component (use try_get)");
+        return r;
+    }
+
+    /** Get a pair (untyped).
+     * This operation gets the value for a pair from the entity. If neither the
+     * first nor the second part of the pair are components, the operation 
+     * will fail.
+     *
+     * @param first The first element of the pair.
+     * @param second The second element of the pair.
+     * @return Pointer to the component value, panics if the entity does not
+     *         have the component.
+     */
+    const void* get(flecs::entity_t first, flecs::entity_t second) const {
+        const void *r = ecs_get_id(world_, id_, ecs_pair(first, second));
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get: entity does not have component (use try_get)");
+        return r;
     }
 
     /** Get 1..N components.
@@ -24825,14 +25039,6 @@ struct entity_view : public id {
     template <typename Func, if_t< is_callable<Func>::value > = 0>
     bool get(const Func& func) const;
 
-    /** Get enum constant.
-     * 
-     * @tparam T The enum type for which to get the constant
-     * @return Constant entity if found, 0 entity if not.
-     */
-    template <typename T, if_t< is_enum<T>::value > = 0>
-    const T* get() const;
-
     /** Get the second part for a pair.
      * This operation gets the value for a pair from the entity. The first
      * part of the pair should not be a component.
@@ -24841,16 +25047,11 @@ struct entity_view : public id {
      * @param first The first part of the pair.
      */
     template<typename Second>
-    const Second* get_second(flecs::entity_t first) const {
-        auto second = _::type<Second>::id(world_);
-        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second)) != NULL,
-            ECS_INVALID_PARAMETER, "pair is not a component");
-        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second))->component == second,
-            ECS_INVALID_PARAMETER, "type of pair is not Second");
-        ecs_assert(_::type<Second>::size() != 0, ECS_INVALID_PARAMETER,
-            "operation invalid for empty type");
-        return static_cast<const Second*>(
-            ecs_get_id(world_, id_, ecs_pair(first, second)));
+    const Second& get_second(flecs::entity_t first) const {
+        const Second *r = try_get_second<Second>(first);
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get: entity does not have component (use try_get)");
+        return *r;
     }
 
     /** Get the second part for a pair.
@@ -24861,9 +25062,15 @@ struct entity_view : public id {
      * @tparam Second the second element of a pair.
      */
     template<typename First, typename Second>
-    const Second* get_second() const {
-        return get<pair_object<First, Second>>();
+    const Second& get_second() const {
+        const Second *r = try_get<First, Second>();
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get: entity does not have component (use try_get)");
+        return *r;
     }
+
+
+    /* try_get_mut */
 
     /** Get mutable component value.
      * 
@@ -24872,7 +25079,7 @@ struct entity_view : public id {
      *         have the component.
      */
     template <typename T, if_t< is_actual<T>::value > = 0>
-    T* get_mut() const {
+    T* try_get_mut() const {
         auto comp_id = _::type<T>::id(world_);
         ecs_assert(_::type<T>::size() != 0, ECS_INVALID_PARAMETER,
             "operation invalid for empty type");
@@ -24889,7 +25096,7 @@ struct entity_view : public id {
      */
     template <typename T, typename A = actual_type_t<T>, 
         if_t< flecs::is_pair<T>::value > = 0>
-    A* get_mut() const {
+    A* try_get_mut() const {
         auto comp_id = _::type<T>::id(world_);
         ecs_assert(_::type<A>::size() != 0, ECS_INVALID_PARAMETER,
             "operation invalid for empty type");
@@ -24904,8 +25111,8 @@ struct entity_view : public id {
      */
     template <typename First, typename Second, typename P = pair<First, Second>, 
         typename A = actual_type_t<P>, if_not_t< flecs::is_pair<First>::value > = 0>
-    A* get_mut() const {
-        return this->get_mut<P>();
+    A* try_get_mut() const {
+        return this->try_get_mut<P>();
     }
 
     /** Get a mutable pair.
@@ -24915,7 +25122,7 @@ struct entity_view : public id {
      * @param second The second element of the pair.
      */
     template<typename First, typename Second, if_not_t< is_enum<Second>::value> = 0>
-    First* get_mut(Second second) const {
+    First* try_get_mut(Second second) const {
         auto first = _::type<First>::id(world_);
         ecs_assert(_::type<First>::size() != 0, ECS_INVALID_PARAMETER, 
             "operation invalid for empty type");
@@ -24930,7 +25137,7 @@ struct entity_view : public id {
      * @param constant the enum constant.
      */
     template<typename First, typename Second, if_t< is_enum<Second>::value && !std::is_same<First, Second>::value > = 0>
-    First* get_mut(Second constant) const {
+    First* try_get_mut(Second constant) const {
         const auto& et = enum_type<Second>(this->world_);
         flecs::entity_t target = et.entity(constant);
         return get_mut<First>(target);
@@ -24942,7 +25149,7 @@ struct entity_view : public id {
      * @return Pointer to the component value, nullptr if the entity does not
      *         have the component.
      */
-    void* get_mut(flecs::id_t comp) const {
+    void* try_get_mut(flecs::id_t comp) const {
         return ecs_get_mut_id(world_, id_, comp);
     }
 
@@ -24954,7 +25161,7 @@ struct entity_view : public id {
      * @param first The first element of the pair.
      * @param second The second element of the pair.
      */
-    void* get_mut(flecs::entity_t first, flecs::entity_t second) const {
+    void* try_get_mut(flecs::entity_t first, flecs::entity_t second) const {
         return ecs_get_mut_id(world_, id_, ecs_pair(first, second));
     }
 
@@ -24966,7 +25173,7 @@ struct entity_view : public id {
      * @param first The first part of the pair.
      */
     template<typename Second>
-    Second* get_mut_second(flecs::entity_t first) const {
+    Second* try_get_mut_second(flecs::entity_t first) const {
         auto second = _::type<Second>::id(world_);
         ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second)) != NULL,
             ECS_INVALID_PARAMETER, "pair is not a component");
@@ -24986,10 +25193,148 @@ struct entity_view : public id {
      * @tparam Second the second element of a pair.
      */
     template<typename First, typename Second>
-    Second* get_mut_second() const {
+    Second* try_get_mut_second() const {
         return get_mut<pair_object<First, Second>>();
     }
 
+
+    /* get_mut */
+
+    /** Get mutable component value.
+     * 
+     * @tparam T The component to get.
+     * @return Pointer to the component value, nullptr if the entity does not
+     *         have the component.
+     */
+    template <typename T, if_t< is_actual<T>::value > = 0>
+    T& get_mut() const {
+        T* r = try_get_mut<T>();
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return *r;
+    }
+
+    /** Get mutable component value.
+     * Overload for when T is not the same as the actual type, which happens
+     * when using pair types.
+     * 
+     * @tparam T The component to get.
+     * @return Pointer to the component value, nullptr if the entity does not
+     *         have the component.
+     */
+    template <typename T, typename A = actual_type_t<T>, 
+        if_t< flecs::is_pair<T>::value > = 0>
+    A& get_mut() const {
+        A* r = try_get_mut<T>();
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return *r;
+    }
+
+    /** Get a mutable pair.
+     * This operation gets the value for a pair from the entity.
+     *
+     * @tparam First The first element of the pair.
+     * @tparam Second the second element of a pair.
+     */
+    template <typename First, typename Second, typename P = pair<First, Second>, 
+        typename A = actual_type_t<P>, if_not_t< flecs::is_pair<First>::value > = 0>
+    A& get_mut() const {
+        A* r = try_get_mut<First, Second>();
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return *r;
+    }
+
+    /** Get a mutable pair.
+     * This operation gets the value for a pair from the entity. 
+     *
+     * @tparam First The first element of the pair.
+     * @param second The second element of the pair.
+     */
+    template<typename First, typename Second, if_not_t< is_enum<Second>::value> = 0>
+    First& get_mut(Second second) const {
+        First* r = try_get_mut<First>(second);
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return *r;
+    }
+
+    /** Get a mutable pair.
+     * This operation gets the value for a pair from the entity. 
+     *
+     * @tparam First The first element of the pair.
+     * @param constant the enum constant.
+     */
+    template<typename First, typename Second, if_t< is_enum<Second>::value && !std::is_same<First, Second>::value > = 0>
+    First& get_mut(Second constant) const {
+        const auto& et = enum_type<Second>(this->world_);
+        flecs::entity_t target = et.entity(constant);
+        return get_mut<First>(target);
+    }
+
+    /** Get mutable component value (untyped).
+     * 
+     * @param comp The component to get.
+     * @return Pointer to the component value, nullptr if the entity does not
+     *         have the component.
+     */
+    void* get_mut(flecs::id_t comp) const {
+        void *r = ecs_get_mut_id(world_, id_, comp);
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return r;
+    }
+
+    /** Get a mutable pair (untyped).
+     * This operation gets the value for a pair from the entity. If neither the
+     * first nor the second part of the pair are components, the operation 
+     * will fail.
+     *
+     * @param first The first element of the pair.
+     * @param second The second element of the pair.
+     */
+    void* get_mut(flecs::entity_t first, flecs::entity_t second) const {
+        void *r = ecs_get_mut_id(world_, id_, ecs_pair(first, second));
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return r;
+    }
+
+    /** Get the second part for a pair.
+     * This operation gets the value for a pair from the entity. The first
+     * part of the pair should not be a component.
+     *
+     * @tparam Second the second element of a pair.
+     * @param first The first part of the pair.
+     */
+    template<typename Second>
+    Second& get_mut_second(flecs::entity_t first) const {
+        Second *r = try_get_mut_second<Second>(first);
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return *r;
+    }
+
+    /** Get the second part for a pair.
+     * This operation gets the value for a pair from the entity. The first
+     * part of the pair should not be a component.
+     *
+     * @tparam First The first element of the pair.
+     * @tparam Second the second element of a pair.
+     */
+    template<typename First, typename Second>
+    Second* get_mut_second() const {
+        Second *r = try_get_mut_second<First, Second>();
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: entity does not have component (use try_get_mut)");
+        return *r;
+    }
+
+    /** Get enum constant for enum relationship. */
+    template<typename Enum>
+    Enum get_constant() const;
+    
     /** Get target for a given pair.
      * This operation returns the target for a given pair. The optional
      * index can be used to iterate through targets, in case the entity has
@@ -26252,18 +26597,39 @@ struct entity_builder : entity_view {
         return set_ptr(comp, cptr->size, ptr);
     }
 
+    /** Set a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component it will be added.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
     template<typename T, if_t<is_actual<T>::value> = 0 >
     const Self& set(T&& value) const  {
         flecs::set<T>(this->world_, this->id_, FLECS_FWD(value));
         return to_base();
     }
 
+    /** Set a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component it will be added.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
     template<typename T, if_t<is_actual<T>::value > = 0>
     const Self& set(const T& value) const  {
         flecs::set<T>(this->world_, this->id_, value);
         return to_base();
     }
 
+    /** Set a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component it will be added.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
     template<typename T, typename A = actual_type_t<T>, if_not_t< 
         is_actual<T>::value > = 0>
     const Self& set(A&& value) const  {
@@ -26271,6 +26637,13 @@ struct entity_builder : entity_view {
         return to_base();
     }
 
+    /** Set a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component it will be added.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
     template<typename T, typename A = actual_type_t<T>, if_not_t<
         is_actual<T>::value > = 0>
     const Self& set(const A& value) const  {
@@ -26395,11 +26768,198 @@ struct entity_builder : entity_view {
         return to_base();
     }
 
+    /** Set a pair for an entity.
+     * This operation sets the pair value, and uses Second as type. If the
+     * entity did not yet have the pair, it will be added.
+     *
+     * @tparam First The first element of the pair.
+     * @tparam Second The second element of the pair
+     * @param value The value to set.
+     */
     template <typename First, typename Second>
     const Self& set_second(const Second& value) const  {
         flecs::set<pair_object<First, Second>>(this->world_, this->id_, value);
         return to_base();
+    }
+
+
+    /** Assign a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component the operation will panic.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
+    template<typename T, if_t<is_actual<T>::value> = 0 >
+    const Self& assign(T&& value) const  {
+        flecs::assign<T>(this->world_, this->id_, FLECS_FWD(value));
+        return to_base();
+    }
+
+    /** Assign a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component the operation will panic.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
+    template<typename T, if_t<is_actual<T>::value > = 0>
+    const Self& assign(const T& value) const  {
+        flecs::assign<T>(this->world_, this->id_, value);
+        return to_base();
+    }
+
+    /** Assign a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component the operation will panic.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
+    template<typename T, typename A = actual_type_t<T>, if_not_t< 
+        is_actual<T>::value > = 0>
+    const Self& assign(A&& value) const  {
+        flecs::assign<T>(this->world_, this->id_, FLECS_FWD(value));
+        return to_base();
+    }
+
+    /** Assign a component for an entity.
+     * This operation sets the component value. If the entity did not yet have 
+     * the component the operation will panic.
+     *
+     * @tparam T The component.
+     * @param value The value to set.
+     */
+    template<typename T, typename A = actual_type_t<T>, if_not_t<
+        is_actual<T>::value > = 0>
+    const Self& assign(const A& value) const  {
+        flecs::assign<T>(this->world_, this->id_, value);
+        return to_base();
+    }
+
+    /** Assign a pair for an entity.
+     * This operation sets the pair value, and uses First as type. If the
+     * entity did not yet have the component the operation will panic.
+     *
+     * @tparam First The first element of the pair.
+     * @tparam Second The second element of the pair
+     * @param value The value to set.
+     */
+    template <typename First, typename Second, typename P = pair<First, Second>, 
+        typename A = actual_type_t<P>, if_not_t< flecs::is_pair<First>::value> = 0>
+    const Self& assign(A&& value) const  {
+        flecs::assign<P>(this->world_, this->id_, FLECS_FWD(value));
+        return to_base();
+    }
+
+    /** Assign a pair for an entity.
+     * This operation sets the pair value, and uses First as type. If the
+     * entity did not yet have the component the operation will panic.
+     *
+     * @tparam First The first element of the pair.
+     * @tparam Second The second element of the pair
+     * @param value The value to set.
+     */
+    template <typename First, typename Second, typename P = pair<First, Second>, 
+        typename A = actual_type_t<P>, if_not_t< flecs::is_pair<First>::value> = 0>
+    const Self& assign(const A& value) const  {
+        flecs::assign<P>(this->world_, this->id_, value);
+        return to_base();
+    }
+
+    /** Assign a pair for an entity.
+     * This operation sets the pair value, and uses First as type. If the
+     * entity did not yet have the component the operation will panic.
+     *
+     * @tparam First The first element of the pair.
+     * @param second The second element of the pair.
+     * @param value The value to set.
+     */
+    template <typename First, typename Second, if_not_t< is_enum<Second>::value > = 0>
+    const Self& assign(Second second, const First& value) const  {
+        auto first = _::type<First>::id(this->world_);
+        flecs::assign(this->world_, this->id_, value, 
+            ecs_pair(first, second));
+        return to_base();
+    }
+
+    /** Assign a pair for an entity.
+     * This operation sets the pair value, and uses First as type. If the
+     * entity did not yet have the component the operation will panic.
+     *
+     * @tparam First The first element of the pair.
+     * @param second The second element of the pair.
+     * @param value The value to set.
+     */
+    template <typename First, typename Second, if_not_t< is_enum<Second>::value > = 0>
+    const Self& assign(Second second, First&& value) const  {
+        auto first = _::type<First>::id(this->world_);
+        flecs::assign(this->world_, this->id_, FLECS_FWD(value), 
+            ecs_pair(first, second));
+        return to_base();
+    }
+
+    /** Assign a pair for an entity.
+     * This operation sets the pair value, and uses First as type. If the
+     * entity did not yet have the component the operation will panic.
+     *
+     * @tparam First The first element of the pair.
+     * @param constant The enum constant.
+     * @param value The value to set.
+     */
+    template <typename First, typename Second, if_t< is_enum<Second>::value > = 0>
+    const Self& assign(Second constant, const First& value) const  {
+        const auto& et = enum_type<Second>(this->world_);
+        flecs::entity_t second = et.entity(constant);
+        return assign<First>(second, value);
+    }
+
+    /** Assign a pair for an entity.
+     * This operation sets the pair value, and uses Second as type. If the
+     * entity did not yet have the component the operation will panic.
+     *
+     * @tparam Second The second element of the pair
+     * @param first The first element of the pair.
+     * @param value The value to set.
+     */
+    template <typename Second>
+    const Self& assign_second(entity_t first, const Second& value) const  {
+        auto second = _::type<Second>::id(this->world_);
+        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second)) != NULL,
+            ECS_INVALID_PARAMETER, "pair is not a component");
+        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second))->component == second,
+            ECS_INVALID_PARAMETER, "type of pair is not Second");
+        flecs::assign(this->world_, this->id_, value, 
+            ecs_pair(first, second));
+        return to_base();
+    }
+
+    /** Assign a pair for an entity.
+     * This operation sets the pair value, and uses Second as type. If the
+     * entity did not yet have the component the operation will panic.
+     *
+     * @tparam Second The second element of the pair
+     * @param first The first element of the pair.
+     * @param value The value to set.
+     */
+    template <typename Second>
+    const Self& assign_second(entity_t first, Second&& value) const  {
+        auto second = _::type<Second>::id(this->world_);
+        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second)) != NULL,
+            ECS_INVALID_PARAMETER, "pair is not a component");
+        ecs_assert( ecs_get_type_info(world_, ecs_pair(first, second))->component == second,
+            ECS_INVALID_PARAMETER, "type of pair is not Second");
+        flecs::assign(this->world_, this->id_, FLECS_FWD(value), 
+            ecs_pair(first, second));
+        return to_base();
+    }
+
+    template <typename First, typename Second>
+    const Self& assign_second(const Second& value) const  {
+        flecs::assign<pair_object<First, Second>>(this->world_, this->id_, value);
+        return to_base();
     }    
+
 
     /** Set 1..N components.
      * This operation accepts a callback with as arguments the components to
@@ -27231,6 +27791,19 @@ struct entity : entity_builder<entity>
      */
     void destruct() const {
         ecs_delete(world_, id_);
+    }
+
+    /** Create child */
+    template <typename ... Args>
+    flecs::entity child(flecs::entity_t r = flecs::ChildOf, Args&&... args) {
+        flecs::world world(world_);
+        return world.entity(FLECS_FWD(args)...).add(r, id_);
+    }
+
+    template <typename R, typename ... Args>
+    flecs::entity child(Args&&... args) {
+        flecs::world world(world_);
+        return world.entity(FLECS_FWD(args)...).add(_::type<R>::id(world_), id_);
     }
 
     /** Set child order.
@@ -29421,6 +29994,67 @@ struct table {
         return ecs_table_get_column(table_, index, 0);
     }
 
+
+    /* get */
+
+    /** Get pointer to component array by component.
+     *
+     * @param id The component id.
+     * @return Pointer to the column, NULL if not found.
+     */
+    void* try_get(flecs::id_t id) const {
+        int32_t index = column_index(id);
+        if (index == -1) {
+            return NULL;
+        }
+        return get_column(index);
+    }
+
+    /** Get pointer to component array by pair.
+     *
+     * @param first The first element of the pair.
+     * @param second The second element of the pair.
+     * @return Pointer to the column, NULL if not found.
+     */
+    void* try_get(flecs::entity_t first, flecs::entity_t second) const {
+        return try_get(ecs_pair(first, second));
+    }
+
+    /** Get pointer to component array by component.
+     *
+     * @tparam T The component.
+     * @return Pointer to the column, NULL if not found.
+     */
+    template <typename T, if_t< is_actual<T>::value > = 0>
+    T* try_get() const {
+        return static_cast<T*>(try_get(_::type<T>::id(world_)));
+    }
+
+    /** Get pointer to component array by component.
+     *
+     * @tparam T The component.
+     * @return Pointer to the column, NULL if not found.
+     */
+    template <typename T, typename A = actual_type_t<T>,
+        if_t< flecs::is_pair<T>::value > = 0>
+    A* try_get() const {
+        return static_cast<A*>(try_get(_::type<T>::id(world_)));
+    }
+
+    /** Get pointer to component array by pair.
+     *
+     * @tparam First The first element of the pair.
+     * @param second The second element of the pair.
+     * @return Pointer to the column, NULL if not found.
+     */
+    template <typename First>
+    First* try_get(flecs::entity_t second) const {
+        return static_cast<First*>(try_get(_::type<First>::id(world_), second));
+    }
+
+
+    /* get */
+
     /** Get pointer to component array by component.
      *
      * @param id The component id.
@@ -29431,7 +30065,10 @@ struct table {
         if (index == -1) {
             return NULL;
         }
-        return get_column(index);
+        void *r = get_column(index);
+        ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
+            "invalid get_mut: table does not have component (use try_get)");
+        return r;
     }
 
     /** Get pointer to component array by pair.
@@ -29450,16 +30087,6 @@ struct table {
      * @return Pointer to the column, NULL if not found.
      */
     template <typename T, if_t< is_actual<T>::value > = 0>
-    T* get() const {
-        return static_cast<T*>(get(_::type<T>::id(world_)));
-    }
-
-    /** Get pointer to component array by (enum) component.
-     *
-     * @tparam T The (enum) component.
-     * @return Pointer to the column, NULL if not found.
-     */
-    template <typename T, if_t< is_enum<T>::value > = 0>
     T* get() const {
         return static_cast<T*>(get(_::type<T>::id(world_)));
     }
@@ -29485,6 +30112,7 @@ struct table {
     First* get(flecs::entity_t second) const {
         return static_cast<First*>(get(_::type<First>::id(world_), second));
     }
+
 
     /** Get pointer to component array by pair.
      *
@@ -30106,26 +30734,10 @@ inline const Self& entity_builder<Self>::insert(const Func& func) const  {
     return to_base();
 }
 
-template <typename T, if_t< is_enum<T>::value > >
-const T* entity_view::get() const {
-    entity_t r = _::type<T>::id(world_);
-    entity_t c = ecs_get_target(world_, id_, r, 0);
-
-    if (c) {
-#ifdef FLECS_META
-        using U = typename std::underlying_type<T>::type;
-        const T* v = static_cast<const T*>(
-            ecs_get_id(world_, c, ecs_pair(flecs::Constant, _::type<U>::id(world_))));
-        ecs_assert(v != NULL, ECS_INTERNAL_ERROR, "missing enum constant value");
-        return v;
-#else
-        // Fallback if we don't have the reflection addon
-        return static_cast<const T*>(ecs_get_id(world_, id_, r));
-#endif
-    } else {
-        // If there is no matching pair for (r, *), try just r
-        return static_cast<const T*>(ecs_get_id(world_, id_, r));
-    }
+template<typename Enum>
+inline Enum entity_view::get_constant() const {
+    flecs::entity tgt = this->target<Enum>();
+    return tgt.to_constant<Enum>();
 }
 
 template<typename First>
@@ -30409,24 +31021,6 @@ namespace _ {
         void populate(const Builder& b) {
             size_t i = 0;
             for (auto id : ids) {
-               if (!(id & ECS_ID_FLAGS_MASK)) {
-                    const flecs::type_info_t *ti = ecs_get_type_info(world_, id);
-                    if (ti) {
-                        // Union relationships always return a value of type
-                        // flecs::entity_t which holds the target id of the 
-                        // union relationship.
-                        // If a union component with a non-zero size (like an 
-                        // enum) is added to the query signature, the each/iter
-                        // functions would accept a parameter of the component
-                        // type instead of flecs::entity_t, which would cause
-                        // an assert.
-                        ecs_assert(
-                            !ti->size || !ecs_has_id(world_, id, flecs::Union),
-                            ECS_INVALID_PARAMETER,
-                            "use with() method to add union relationship");
-                    }
-                }
-
                 b->with(id).inout(inout[i]).oper(oper[i]);
                 i ++;
             }
@@ -31737,6 +32331,11 @@ public:
     query& operator=(query&& obj) noexcept {
         query_base::operator=(FLECS_FWD(obj));
         return *this;
+    }
+
+    flecs::query<> cache_query() const {
+        const flecs::query_t *q = ecs_query_get_cache_query(query_);
+        return flecs::query<>(q);
     }
 
 private:
@@ -34327,38 +34926,114 @@ inline ref<T> world::get_ref() const {
     return e.get_ref<T>();
 }
 
+inline const void* world::try_get(flecs::id_t id) const {
+    flecs::entity e(world_, id);
+    return e.try_get(id);
+}
+
+inline const void* world::try_get(flecs::entity_t r, flecs::entity_t t) const {
+    flecs::entity e(world_, r);
+    return e.try_get(r, t);
+}
+
 template <typename T>
-inline const T* world::get() const {
+inline const T* world::try_get() const {
+    flecs::entity e(world_, _::type<T>::id(world_));
+    return e.try_get<T>();
+}
+
+template <typename First, typename Second, typename P, typename A>
+inline const A* world::try_get() const {
+    flecs::entity e(world_, _::type<First>::id(world_));
+    return e.try_get<First, Second>();
+}
+
+template <typename First, typename Second>
+inline const First* world::try_get(Second second) const {
+    flecs::entity e(world_, _::type<First>::id(world_));
+    return e.try_get<First>(second);
+}
+
+inline const void* world::get(flecs::id_t id) const {
+    flecs::entity e(world_, id);
+    return e.get(id);
+}
+
+inline const void* world::get(flecs::entity_t r, flecs::entity_t t) const {
+    flecs::entity e(world_, r);
+    return e.get(r, t);
+}
+
+template <typename T>
+inline const T& world::get() const {
     flecs::entity e(world_, _::type<T>::id(world_));
     return e.get<T>();
 }
 
 template <typename First, typename Second, typename P, typename A>
-const A* world::get() const {
+inline const A& world::get() const {
     flecs::entity e(world_, _::type<First>::id(world_));
     return e.get<First, Second>();
 }
 
 template <typename First, typename Second>
-const First* world::get(Second second) const {
+const First& world::get(Second second) const {
     flecs::entity e(world_, _::type<First>::id(world_));
     return e.get<First>(second);
 }
 
+inline void* world::try_get_mut(flecs::id_t id) const {
+    flecs::entity e(world_, id);
+    return e.try_get_mut(id);
+}
+
+inline void* world::try_get_mut(flecs::entity_t r, flecs::entity_t t) const {
+    flecs::entity e(world_, r);
+    return e.try_get_mut(r, t);
+}
+
 template <typename T>
-T* world::get_mut() const {
+inline T* world::try_get_mut() const {
+    flecs::entity e(world_, _::type<T>::id(world_));
+    return e.try_get_mut<T>();
+}
+
+template <typename First, typename Second, typename P, typename A>
+inline A* world::try_get_mut() const {
+    flecs::entity e(world_, _::type<First>::id(world_));
+    return e.try_get_mut<First, Second>();
+}
+
+template <typename First, typename Second>
+inline First* world::try_get_mut(Second second) const {
+    flecs::entity e(world_, _::type<First>::id(world_));
+    return e.try_get_mut<First>(second);
+}
+
+inline void* world::get_mut(flecs::id_t id) const {
+    flecs::entity e(world_, id);
+    return e.get_mut(id);
+}
+
+inline void* world::get_mut(flecs::entity_t r, flecs::entity_t t) const {
+    flecs::entity e(world_, r);
+    return e.get_mut(r, t);
+}
+
+template <typename T>
+inline T& world::get_mut() const {
     flecs::entity e(world_, _::type<T>::id(world_));
     return e.get_mut<T>();
 }
 
 template <typename First, typename Second, typename P, typename A>
-A* world::get_mut() const {
+inline A& world::get_mut() const {
     flecs::entity e(world_, _::type<First>::id(world_));
     return e.get_mut<First, Second>();
 }
 
 template <typename First, typename Second>
-First* world::get_mut(Second second) const {
+inline First& world::get_mut(Second second) const {
     flecs::entity e(world_, _::type<First>::id(world_));
     return e.get_mut<First>(second);
 }
@@ -34511,9 +35186,8 @@ inline flecs::entity enum_data<E>::entity(underlying_type_t<E> value) const {
         .with(flecs::Constant, world.id<int32_t>())
         .build()
         .find([value](flecs::entity constant) {
-            const int32_t *constant_value = constant.get_second<int32_t>(flecs::Constant);
-            ecs_assert(constant_value, ECS_INTERNAL_ERROR, NULL);
-            return value == static_cast<underlying_type_t<E>>(*constant_value);
+            const int32_t& constant_value = constant.get_second<int32_t>(flecs::Constant);
+            return value == static_cast<underlying_type_t<E>>(constant_value);
         });
 #else
     return flecs::entity::null(world_);

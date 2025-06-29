@@ -134,15 +134,15 @@ static
 void EcsUpdateSpatialQuery(ecs_iter_t *it) {
     EcsSpatialQuery *q = ecs_field(it, EcsSpatialQuery, 0);
 
-    int i;
-    for (i = 0; i < it->count; i ++) {
-        if (!q->query) {
+    for (int i = 0; i < it->count; i ++) {
+        if (!q[i].query) {
             char *filter_str = ecs_id_str(it->world, ecs_field_id(it, 1));
             ecs_err("missing spatial query for '%s'", filter_str);
             ecs_os_free(filter_str);
+            continue;
         }
 
-        ecs_squery_update(q->query);
+        ecs_squery_update(q[i].query);
     }
 }
 

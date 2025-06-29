@@ -525,27 +525,7 @@ void CameraAutoMove(ecs_iter_t *it) {
     }
 }
 
-void FlecsGameCameraControllerImport(ecs_world_t *world) {
-    ECS_SYSTEM(world, CameraControllerAddPosition, EcsOnLoad,
-        [none]   flecs.components.graphics.Camera,
-        [none]   CameraController,
-        [out]    !flecs.components.transform.Position3);
-
-    ECS_SYSTEM(world, CameraControllerAddRotation, EcsOnLoad,
-        [none]   flecs.components.graphics.Camera,
-        [none]   CameraController,
-        [out]    !flecs.components.transform.Rotation3);
-
-    ECS_SYSTEM(world, CameraControllerAddVelocity, EcsOnLoad,
-        [none]   flecs.components.graphics.Camera,
-        [none]   CameraController,
-        [out]    !flecs.components.physics.Velocity3);
-
-    ECS_SYSTEM(world, CameraControllerAddAngularVelocity, EcsOnLoad,
-        [none]   flecs.components.graphics.Camera,
-        [none]   CameraController,
-        [out]    !flecs.components.physics.AngularVelocity);
-
+void FlecsGameCameraControllerImport(ecs_world_t *world) {    
     ECS_SYSTEM(world, CameraControllerSyncPosition, EcsOnUpdate,
         [out]    flecs.components.graphics.Camera, 
         [in]     flecs.components.transform.Position3,
@@ -578,6 +558,11 @@ void FlecsGameCameraControllerImport(ecs_world_t *world) {
     ECS_SYSTEM(world, CameraAutoMove, EcsOnUpdate,
         [inout]  flecs.components.physics.Velocity3,
         [inout]  CameraAutoMove);
+
+    ecs_add_pair(world, ecs_id(EcsCameraController), EcsWith, ecs_id(EcsPosition3));
+    ecs_add_pair(world, ecs_id(EcsCameraController), EcsWith, ecs_id(EcsRotation3));
+    ecs_add_pair(world, ecs_id(EcsCameraController), EcsWith, ecs_id(EcsVelocity3));
+    ecs_add_pair(world, ecs_id(EcsCameraController), EcsWith, ecs_id(EcsAngularVelocity));
 }
 
 
