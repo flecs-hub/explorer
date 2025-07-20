@@ -29,14 +29,11 @@
         </div>
       </div>
 
-      <div class="script-console pane">
-        <template v-if="scriptError">
+      <template v-if="scriptError">
+        <div class="script-console pane">
           <pre><span class="script-error">error</span>: {{ scriptError }}</pre>
-        </template>
-        <template v-else>
-          <pre><span class="script-ok">ok</span>: parsed without errors</pre>
-        </template>
-      </div>
+        </div>
+      </template>
     </template>
   </div>
 </template>
@@ -140,6 +137,9 @@ function closeScripts() {
 
 function paneScriptsCss() {
   let classes = ["pane-scripts"];
+  if (scriptError.value) {
+    classes.push("pane-scripts-error");
+  }
   if (!scriptLabels.value.length) {
     classes.push("pane-scripts-empty");
   }
@@ -155,11 +155,15 @@ defineExpose({openScript, closeScripts});
 div.pane-scripts {
   display: grid;
   overflow: auto;
-  grid-template-rows: auto 5.5rem;
+  grid-template-rows: auto;
   gap: var(--gap);
   border-radius: var(--border-radius-medium);
   background-color: var(--bg-content);
   height: 100%;
+}
+
+div.pane-scripts-error {
+  grid-template-rows: auto 5.5rem;
 }
 
 div.pane-scripts-empty {
@@ -203,7 +207,7 @@ div.script-editor-tabs {
   border-bottom-left-radius: 0px;
   border-bottom-right-radius: 0px;
   overflow: auto;
-  background-color: var(--bg-content);
+  background-color: var(--bg-color);
   grid-row: 1;
 }
 
@@ -236,7 +240,6 @@ div.flecs-script-button {
   border-bottom-width: 1px;
   border-color: var(--border);
   border-top-color: rgba(0, 0, 0, 0);
-  background-color: var(--bg-content);
   transition: background-color var(--animation-duration) ease-in-out;
   color: var(--secondary-text);
 }
