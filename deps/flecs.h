@@ -11603,7 +11603,7 @@ int ecs_log_last_error(void);
 #define ECS_MISSING_OS_API (9)
 #define ECS_OPERATION_FAILED (10)
 #define ECS_INVALID_CONVERSION (11)
-#define ECS_ID_IN_USE (12)
+#define ECS_INVALID_OPERATION (12)
 #define ECS_CYCLE_DETECTED (13)
 #define ECS_LEAK_DETECTED (14)
 #define ECS_DOUBLE_FREE (15)

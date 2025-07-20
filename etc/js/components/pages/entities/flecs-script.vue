@@ -35,6 +35,7 @@ function loadScript() {
     editorObj.gotoLine(1, 0);
     editorObj.focus();
     isLoading = false;
+    error.value = reply.error;
   });
 }
 

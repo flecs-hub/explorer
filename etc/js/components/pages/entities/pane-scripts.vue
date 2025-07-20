@@ -230,6 +230,8 @@ div.flecs-script-button {
   cursor: pointer;
   border-style: solid;
   border-width: 0px;
+  border-left-width: 1px;
+  border-right-width: 0px;
   border-top-width: 2px;
   border-bottom-width: 1px;
   border-color: var(--border);
@@ -239,12 +241,18 @@ div.flecs-script-button {
   color: var(--secondary-text);
 }
 
+div.flecs-script-button:nth-child(2) {
+  border-left-width: 0px;
+}
+
+div.flecs-script-button-active:last-child {
+  border-right-width: 1px;
+}
+
 div.flecs-script-button-active {
   background-color: var(--bg-pane);
   border-bottom-color: rgba(0, 0, 0, 0);
   border-top-color: var(--dark-green);
-  border-right-width: 1px;
-  border-left-width: 1px;
 }
 
 div.flecs-script-button:hover {

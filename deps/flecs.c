@@ -3839,7 +3839,7 @@ void flecs_assert_relation_unused(
         char *r_str = ecs_get_path(world, rel);
         char *p_str = ecs_get_path(world, property);
 
-        ecs_throw(ECS_ID_IN_USE, 
+        ecs_throw(ECS_INVALID_OPERATION, 
             "cannot change property '%s' for relationship '%s': already in use",
             p_str, r_str);
         
@@ -3956,7 +3956,7 @@ void flecs_register_final(ecs_iter_t *it) {
         ecs_entity_t e = it->entities[i];
         if (flecs_components_get(world, ecs_pair(EcsIsA, e)) != NULL) {
             char *e_str = ecs_get_path(world, e);
-            ecs_throw(ECS_ID_IN_USE,
+            ecs_throw(ECS_INVALID_OPERATION,
                 "cannot change property 'Final' for '%s': already inherited from",
                     e_str);
             ecs_os_free(e_str);
@@ -25366,7 +25366,7 @@ const char* ecs_strerror(
     ECS_ERR_STR(ECS_INVALID_OPERATION);
     ECS_ERR_STR(ECS_CONSTRAINT_VIOLATED);
     ECS_ERR_STR(ECS_LOCKED_STORAGE);
-    ECS_ERR_STR(ECS_ID_IN_USE);
+    ECS_ERR_STR(ECS_INVALID_OPERATION);
     }
 
     return "unknown error code";
@@ -37276,7 +37276,7 @@ void flecs_component_free(
 
     /* Id is still in use by a query */
     ecs_assert((world->flags & EcsWorldQuit) || (cr->keep_alive == 0), 
-        ECS_ID_IN_USE, "cannot delete id that is queried for");
+        ECS_INVALID_OPERATION, "cannot delete id that is queried for");
 
     if (ECS_IS_PAIR(id)) {
         ecs_entity_t rel = ECS_PAIR_FIRST(id);

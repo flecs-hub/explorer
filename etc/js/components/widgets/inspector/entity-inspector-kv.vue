@@ -1,6 +1,6 @@
 <template>
   <div class="key noselect" @click="toggle">
-    <template v-if="typeof value === 'object'">
+    <template v-if="typeof value === 'object' && value !== null">
       <expand-button
         :expand="expand">
       </expand-button>
