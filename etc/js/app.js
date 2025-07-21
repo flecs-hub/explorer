@@ -137,6 +137,7 @@ let components = [
   loadModule('js/components/pages/entities/pane-tree.vue', options),
   loadModule('js/components/pages/entities/pane-inspector.vue', options),
   loadModule('js/components/pages/entities/pane-scripts.vue', options),
+  loadModule('js/components/pages/entities/pane-scripts-close-button.vue', options),
   loadModule('js/components/pages/entities/flecs-script.vue', options),
 
   // Tree widget

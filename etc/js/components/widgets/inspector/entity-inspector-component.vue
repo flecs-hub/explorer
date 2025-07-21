@@ -169,8 +169,6 @@ function toggle() {
 }
 
 const singleTarget = computed(() => {
-  console.log(props.name + ":");
-  console.log(props.targets);
   return props.targets && !Array.isArray(props.targets);
 });
 

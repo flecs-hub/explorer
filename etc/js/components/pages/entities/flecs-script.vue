@@ -15,6 +15,7 @@ const props = defineProps({
   script: {type: Object, required: true},
 });
 
+const changed = defineModel("changed");
 const error = defineModel("error");
 
 // Editor object
@@ -36,6 +37,9 @@ function loadScript() {
     editorObj.focus();
     isLoading = false;
     error.value = reply.error;
+
+    // So we get an updated changed value
+    scriptUpdate(reply.code);
   });
 }
 
@@ -44,14 +48,21 @@ function onScriptChange(editorObj) {
     return;
   }
 
-  props.conn.scriptUpdate(props.script.path, editorObj.getValue(), {
-    try: true
+  scriptUpdate(editorObj.getValue());
+}
+
+function scriptUpdate(code, save = false) {
+  props.conn.scriptUpdate(props.script.path, code, {
+    try: true,
+    check_file: true,
+    save_file: save
   }, (msg) => {
     if (msg.error) {
       error.value = msg.error;
     } else {
       error.value = undefined;
     }
+    changed.value = msg.changed;
   });
 }
 
@@ -67,6 +78,15 @@ onMounted(() => {
     onScriptChange(editorObj);
   });
   
+  editorObj.commands.addCommand({
+    name: "save",
+    bindKey: { win: "Ctrl-S", mac: "Command-S" },
+    exec: function(editorObj) {
+      scriptUpdate(editorObj.getValue(), true);
+    },
+    readOnly: false // false if this command should not be available in read-only mode
+  });
+
   loadScript();
 });
 

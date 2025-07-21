@@ -10,11 +10,11 @@
               v-for="script in scriptLabels">
             {{ script.label }}
             <div class="script-close-button">
-              <icon-button 
-                src="close"
+              <pane-scripts-close-button
+                :changed="scriptChanged"
                 v-if="activeScript && script.label == activeScript.label"
-                @click.stop="onClose(script)">
-              </icon-button>
+                @onClose="onClose(script)">
+              </pane-scripts-close-button>
             </div>
           </div>
         </div>
@@ -24,6 +24,7 @@
             :conn="conn"
             :script="activeScript"
             v-model:error="scriptError"
+            v-model:changed="scriptChanged"
             v-if="activeScript">
           </flecs-script>
         </div>
@@ -53,6 +54,7 @@ const activeScriptPath = defineModel("script");
 const scripts = defineModel("scripts");
 const activeScript = ref();
 const scriptError = ref();
+const scriptChanged = ref();
 
 watch(() => [activeScript.value], () => {
   if (activeScript.value) {
@@ -256,6 +258,7 @@ div.flecs-script-button-active {
   background-color: var(--bg-pane);
   border-bottom-color: rgba(0, 0, 0, 0);
   border-top-color: var(--dark-green);
+  color: var(--primary-text);
 }
 
 div.flecs-script-button:hover {

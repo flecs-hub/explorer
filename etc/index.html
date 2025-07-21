@@ -152,5 +152,13 @@
     <script src="js/common.js"></script>
     <script src="js/module_loader.js"></script>
     <script src="js/app.js"></script>
+
+    <script>
+      window.addEventListener("keydown", function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+          e.preventDefault();
+        }
+      });
+    </script>    
   </body>
 </html>
