@@ -259,10 +259,17 @@ Promise.all(components).then((values) => {
           this.app_state.bytes.received = this.conn.bytes.received;
           this.app_state.has3DCanvas = flecs.has3DCanvas;
 
-          if (msg.components && msg.components["flecs.stats.WorldSummary"]) {
-            const summary = msg.components["flecs.stats.WorldSummary"];
-            this.app_state.world_info = summary;
-            this.app_state.build_info = summary.build_info;
+          if (msg.components) {
+            if (msg.components["flecs.stats.WorldSummary"]) {
+              const summary = msg.components["flecs.stats.WorldSummary"];
+              this.app_state.world_info = summary;
+              this.app_state.build_info = summary.build_info;
+            }
+
+            const buildInfo = msg.components["flecs.core.BuildInfo"];
+            if (buildInfo) {
+              this.app_state.build_info = buildInfo;
+            }
           }
         }.bind(this)
       });

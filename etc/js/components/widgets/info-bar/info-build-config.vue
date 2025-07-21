@@ -15,12 +15,7 @@ const props = defineProps({
 });
 
 const config = computed(() => {
-  const wi = props.app_state.world_info;
-  if (!wi) {
-    return {};
-  }
-
-  const bi = wi.build_info;
+  const bi = props.app_state.build_info;
   if (bi) {
     if (bi.sanitize) {
       return "sanitize";
@@ -30,7 +25,7 @@ const config = computed(() => {
       return "release";
     }
   } else {
-    return undefined;
+    return "unknown"
   }
 });
 
