@@ -106,14 +106,17 @@ hr {
   height: 1px;
   margin-top: 6px;
   margin-bottom: 6px;
-  background-color: white;
-  opacity: 0.2;
+  background-color: var(--border);
   border: none;
 }
 
 div.pane, input.pane {
   background-color: var(--bg-pane);
   color: var(--primary-text);
+  border-color: var(--border);
+  border-width: 1px;
+  border-style: solid;
+  border-radius: var(--border-radius-medium);
 }
 
 .noselect {

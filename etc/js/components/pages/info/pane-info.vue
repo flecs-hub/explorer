@@ -209,7 +209,6 @@ const addons = computed(() => {
 
 <style scoped>
 #pane-info {
-  border-radius: var(--border-radius-medium);
   padding: 0.5rem;
   padding-top: 0.0px;
 }

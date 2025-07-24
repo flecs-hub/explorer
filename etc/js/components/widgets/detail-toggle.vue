@@ -47,7 +47,6 @@ div.detail-toggle {
   border-color: var(--border);
   border-radius: var(--border-radius-medium);
   margin-bottom: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 div.detail-toggle-header {
@@ -58,6 +57,10 @@ div.detail-toggle-header {
   color: var(--secondary-text);
   font-size: 0.9rem;
   cursor: pointer;
+}
+
+div.detail-toggle-header:hover {
+  background-color: var(--bg-button-hover);
 }
 
 div.detail-toggle-button {

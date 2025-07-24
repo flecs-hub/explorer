@@ -33254,13 +33254,15 @@ void FlecsSystemsSokolRendererImport(
 
     ECS_COMPONENT_DEFINE(world, SokolRenderer);
 
+    ecs_add_id(world, ecs_id(SokolRenderer), EcsSingleton);
+
     /* Register systems in module scope */
     ecs_set_scope(world, module);
 
     /* System that initializes renderer */
     ECS_SYSTEM(world, SokolInitRenderer, EcsOnLoad,
         flecs.components.gui.Canvas, 
-        [out] !flecs.systems.sokol.Renderer($));
+        [out] !flecs.systems.sokol.Renderer);
 
     /* Configure immediate for SokolInitRenderer as it needs direct access to
      * the world for creating queries */

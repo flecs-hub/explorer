@@ -19,7 +19,7 @@
           </div>
         </div>
 
-        <div class="script-editor pane">
+        <div class="script-editor">
           <flecs-script 
             :conn="conn"
             :script="activeScript"
@@ -143,6 +143,7 @@ function paneScriptsCss() {
     classes.push("pane-scripts-error");
   }
   if (!scriptLabels.value.length) {
+    classes.push("pane");
     classes.push("pane-scripts-empty");
   }
   return classes;
@@ -159,17 +160,17 @@ div.pane-scripts {
   overflow: auto;
   grid-template-rows: auto;
   gap: var(--gap);
-  border-radius: var(--border-radius-medium);
   background-color: var(--bg-content);
   height: 100%;
 }
 
 div.pane-scripts-error {
-  grid-template-rows: auto 5.5rem;
+  grid-template-rows: auto 5.6rem;
 }
 
 div.pane-scripts-empty {
   background-color: var(--bg-pane);
+  height: calc(100% - 2px);
 }
 
 div.script-editor-container {

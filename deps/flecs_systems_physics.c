@@ -101,14 +101,14 @@ void EcsAddBoxCollider(ecs_iter_t *it) {
         for (i = 0; i < it->count; i ++) {
             ecs_entity_t pair = ecs_pair(C, B);
             EcsBox *collider = ecs_ensure_id(
-                it->world, it->entities[i], pair);
+                it->world, it->entities[i], pair, sizeof(EcsBox));
             ecs_os_memcpy_t(collider, &box[i], EcsBox);
         }
     } else {
         for (i = 0; i < it->count; i ++) {
             ecs_entity_t pair = ecs_pair(C, B);
             EcsBox *collider = ecs_ensure_id(
-                it->world, it->entities[i], pair);
+                it->world, it->entities[i], pair, sizeof(EcsBox));
             ecs_os_memcpy_t(collider, box, EcsBox);
         }
     }

@@ -1,7 +1,11 @@
 <template>
   <div :class="componentCss">
-    <div class="component-header noselect" @click="toggle">
-      <template v-if="value || (targets && !singleTarget)">
+    <div class="component-header noselect" 
+      @mouseenter="onEnter" 
+      @mouseleave="onLeave"
+      @click="toggle">
+
+      <template v-if="expand || (hover && canExpand)">
         <div class="chevron-icon">
           <expand-button
             :size="16" 
@@ -9,10 +13,11 @@
           </expand-button>
         </div>
       </template>
-
-      <div class="component-icon">
-        <icon :src="icon_src" :size="16" :opacity="0.5"></icon>
-      </div>
+      <template v-else>
+        <div class="component-icon">
+          <icon :src="icon_src" :size="16" :opacity="0.5"></icon>
+        </div>
+      </template>
 
       <div :class="componentNameCss">
         <template v-if="nameIsPair">
@@ -122,11 +127,15 @@ const props = defineProps({
 
 const remoteState = ref("alive");
 const expand = ref(false);
+const hover = ref(false);
 
 const componentCss = computed(() => {
   let classes = ["component"];
   if (expand.value) {
     classes.push("component-expand");
+  }
+  if (canExpand.value) {
+    classes.push("component-can-expand");
   }
   return classes;
 });
@@ -162,10 +171,22 @@ const targetCss = computed(() => {
   return classes;
 });
 
+const canExpand = computed(() => {
+  return props.value || (props.targets && !singleTarget.value);
+});
+
 function toggle() {
-  if (props.value || props.targets && !singleTarget.value) {
+  if (canExpand.value) {
     expand.value = !expand.value;
   }
+}
+
+function onEnter() {
+  hover.value = true;
+}
+
+function onLeave() {
+  hover.value = false;
 }
 
 const singleTarget = computed(() => {
@@ -212,26 +233,30 @@ div.component {
 }
 
 div.component-expand {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
+  padding-bottom: 2px;
 }
 
 div.component-header {
   display: grid;
-  grid-template-columns: 16px 16px auto 1fr 16px;
+  grid-template-columns: 0px 16px auto 1fr 16px 0px;
   gap: 4px;
   min-height: 28px;
   padding: 4px;
   padding-left: 0px;
   padding-right: 0px;
-  cursor: pointer;
-  border-radius: var(--border-radius-medium);
   background-color: rgba(0,0,0,0);
   color: var(--primary-text);
   transition: background-color 0.1s ease-out;
 }
 
-div.component-header:hover {
-  background-color: var(--bg-content-hover);
+div.component-can-expand {
+  cursor: pointer;
+}
+
+div.component-can-expand:hover {
+  background-color: var(--bg-button);
+  border-radius: var(--border-radius-medium);
 }
 
 div.component-preview {
@@ -248,6 +273,7 @@ div.component-delete-icon {
 
 div.chevron-icon {
   grid-column: 1;
+  padding-left: 4px;
   padding-top: 4px;
 }
 
@@ -272,7 +298,7 @@ div.component-name-pending-delete {
 
 div.component-value {
   padding-left: 20px;
-  padding-right: 16px;
+  padding-right: 24px;
   overflow-x: auto;
 }
 

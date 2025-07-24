@@ -106,7 +106,6 @@ defineExpose({
   grid-column: 1;
   grid-template-rows: calc(72px + var(--gap)) 1rem;
   gap: 0.5rem;
-  border-radius: var(--border-radius-medium);
 }
 
 div.pane-tree-search-box {

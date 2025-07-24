@@ -45,8 +45,7 @@ function onScriptOpen(evt) {
 
 <style scoped>
 #pane-inspector {
-  border-radius: var(--border-radius-medium);
-  height: 100%;
+  height: calc(100% - 2px);
   /* overflow: auto; */
 }
 </style>

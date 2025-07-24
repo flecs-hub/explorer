@@ -1,5 +1,5 @@
 <template>
-  <div id="entity-tree" class="pane">
+  <div id="entity-tree">
     <entity-subtree 
       :conn="conn"
       :selectedItem="selectedItem"
@@ -51,7 +51,6 @@ defineExpose({
   padding-left: 8px;
   padding-right: 8px;
   gap: 0.5rem;
-  border-radius: var(--border-radius-medium);
 }
 
 </style>

@@ -91,7 +91,7 @@ function onConnect() {
 <style scoped>
 div.url-bar-container {
   position: relative;
-  grid-column: 4;
+  grid-column: 3;
 }
 
 div.url-bar-connect {
@@ -106,7 +106,7 @@ div.url-bar-connect {
   outline: none;
 
   width: calc(100% - 2px);
-  height: calc(100% - 2px);
+  height: calc(100% - 4px);
 
   border-style: solid;
   border-width: 1px;

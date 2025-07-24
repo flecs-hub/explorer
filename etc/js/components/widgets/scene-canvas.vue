@@ -46,16 +46,16 @@ onUnmounted(() => {
 <style scoped>
 #canvas {
   width: calc(100% - 4px);
-  height: calc(100vh - var(--header-height) - var(--footer-height) - 3.0 * var(--gap) - 4px);
+  height: calc(100% - 4px);
   border-style: solid;
   border-radius: var(--border-radius-medium);
-  border-width: 2px;
-  border-color: var(--bg-pane);
+  border-width: 1px;
+  border-color: var(--border);
   cursor: pointer;
 }
 
 canvas.canvas-focus {
-  border-color: var(--less-dark-blue) !important;
+  border-color: var(--green) !important;
 }
 
 </style>

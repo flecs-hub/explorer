@@ -54,23 +54,13 @@ const app_params = defineModel("app_params");
 
 div.title-bar {
   display: grid;
-  grid-template-columns: 2.5rem auto 1.5fr 35rem 1fr auto auto 0.0rem;
+  grid-template-columns: 2.5rem 300px 1fr 300px auto 2.5rem;
   gap: var(--gap);
   font-size: 0.9rem;
 }
 
 div.title-bar-logo a {
   grid-column: 1;
-}
-
-div.title-bar-v3 {
-  grid-column: 2;
-}
-
-div.title-bar-controls {
-  grid-column: 3;
-  text-align: center;
-  padding: 4px;
 }
 
 div.title-bar-logo {
@@ -80,28 +70,34 @@ div.title-bar-logo {
   padding: 2px;
 }
 
+div.title-bar-controls {
+  grid-column: 2;
+  text-align: center;
+  padding: 4px;
+}
+
 div.title-info {
   display: flex;
   align-items: center;
 }
 
 div.title-info-right-1 {
-  grid-column: 6;
+  grid-column: 5;
 }
 
 div.title-info-right-2 {
-  grid-column: 7;
+  grid-column: 6;
 }
 
-@media screen and (max-width: 1024px) {
+@media screen and (max-width: 1600px) {
   div.title-bar {
-    grid-template-columns: 2.5rem auto 1fr 22rem 1fr auto auto 0.0rem;
+    grid-template-columns: 2.5rem 35px 1fr 10px auto 2.5rem;
   }
 }
 
 @media screen and (max-width: 800px) {
   div.title-bar {
-    grid-template-columns: 2.5rem 0rem 0rem 1fr 0rem 1.5rem auto 0.0rem;
+    grid-template-columns: 2.5rem 0px 1fr 0px auto 2.5rem;
   }
 
   div.title-info-right-1 {
