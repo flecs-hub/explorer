@@ -1,7 +1,8 @@
 <template>
-  <div id="prop-browser" class="pane" :style="posStyle">
+  <div id="prop-browser" :style="posStyle">
     <template v-for="(el, i) in prop_query.results">
-      <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="!isTarget"
+      <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="false"
+        :highlight="i == 0"
         v-on:click="selectProp(el)">
       </query-list-item>
     </template>
@@ -30,7 +31,49 @@ let oneof = ref("");
 const showWidget = ref(true);
 
 let selectProp = (prop) => {
-  emit('select', prop);
+  emit('select', { value: prop, kind: "select" });
+}
+
+function select(kind) {
+  if (!showWidget.value) {
+    return false;
+  }
+
+  if (prop_query.value.results && prop_query.value.results.length) {
+    emit('select', { value: prop_query.value.results[0], kind: kind });
+    return true;
+  }
+  return false;
+}
+
+function propToExpr(prop) {
+  if (prop.parent) {
+    return prop.parent + "." + prop.name;
+  } else {
+    return prop.name;
+  }
+}
+
+function equalsUpTo(result) {
+  const len = props.expr.length;
+  const s2 = result.substring(0, len);
+  return props.expr === s2;
+}
+
+function sortResults(results) {
+  return results.sort((a, b) => {
+    const aExpr = propToExpr(a);
+    const bExpr = propToExpr(b);
+
+    const aEq = equalsUpTo(aExpr);
+    const bEq = equalsUpTo(bExpr);
+
+    if (aEq != bEq) {
+      return bEq - aEq;
+    } else {
+      return aExpr.length - bExpr.length;
+    }
+  });
 }
 
 let isTarget = computed(() => {
@@ -70,7 +113,14 @@ watch(() => [props.expr, oneof.value], () => {
 
     props.conn.query(query, {try: true, rows: true, limit: 100}, (reply) => {
       if (reply.results) {
-        prop_query.value.results = reply.results;
+        if (reply.results.length == 1) {
+          let result = reply.results[0];
+          if (propToExpr(result) == props.expr) {
+            prop_query.value.results = [];
+            return;
+          }
+        }
+        prop_query.value.results = sortResults(reply.results);
       }
     });
   }
@@ -101,7 +151,8 @@ const show = () => {
 
 defineExpose({
   hide,
-  show
+  show,
+  select
 });
 
 </script>
@@ -114,6 +165,7 @@ defineExpose({
   overflow-y: auto;
   background: none;
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border-radius: var(--border-radius-medium);
   z-index: 100;
 }
 </style>

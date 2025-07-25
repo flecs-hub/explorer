@@ -34,7 +34,9 @@ const props = defineProps({
 const editor = ref(null);
 const browser = ref(null);
 
-const onSelect = (prop) => {
+const onSelect = (evt) => {
+  const prop = evt.value;
+
   editor.value.autoComplete(prop);
 
   nextTick(() => {
@@ -55,6 +57,13 @@ document.addEventListener('keydown', function(event) {
   if (event.key === 'Escape') {
     if (browser.value) {
       browser.value.hide();
+    }
+  } else if (event.key == 'Enter') {
+    if (browser.value) {
+      if (browser.value.select("enter")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
     }
   }
 });

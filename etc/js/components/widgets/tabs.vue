@@ -121,6 +121,8 @@ function slotLabel(item) {
   cursor: pointer;
   position: relative;
   -webkit-tap-highlight-color: transparent;
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
 }
 
 .tabs-overview button.tab-button .tab-title::before {
@@ -144,11 +146,6 @@ function slotLabel(item) {
 
 .tabs-overview button.tab-button:not(:last-child) .tab-title {
   box-shadow: 8px 0 0 -7px var(--tab-separator-color);
-}
-
-.tabs-overview button.tab-button:hover .tab-title {
-  background: var(--tab-separator-color);
-  box-shadow: none;
 }
 
 .tabs-overview button.tab-button.active .tab-title {

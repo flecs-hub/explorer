@@ -36,6 +36,7 @@ const props = defineProps({
   expr: {type: String, required: false, default: "" },
   index: {type: Number, required: false, default: 0},
   selected: {type: Number, required: false, default: -1},
+  highlight: {type: Boolean, required: false, default: false},
   show_usage: {type: Boolean, required: false }
 });
 
@@ -95,6 +96,8 @@ const css = computed(() => {
   let classes = ['query-list-item', 'noselect']
   if (props.index == props.selected) {
     classes.push('query-list-item-selected');
+  } else if (props.highlight) {
+    classes.push('query-list-item-highlight');
   } else if ((props.index + 1) % 2 == 0) {
     classes.push('query-list-item-alt');
   }
@@ -152,6 +155,10 @@ div.query-list-item-alt {
 div.query-list-item-selected, div.query-list-item-selected:hover {
   border-left-width: 0.25rem;
   background-color: var(--bg-content-select);
+}
+
+div.query-list-item-highlight {
+  background-color: var(--darker-blue);
 }
 
 span.usage-header {
