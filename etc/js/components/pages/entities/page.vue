@@ -112,6 +112,9 @@ const pageCss = computed(() => {
 
 const scriptCss = computed(() => {
   let classes = ["page-entities-script"];
+  if (!appParams.value.script) {
+    classes.push("page-entities-script-hide");
+  }
   return classes;
 })
 
@@ -177,6 +180,10 @@ div.page-entities-canvas {
   grid-row: 1;
   border-radius: var(--border-radius-medium);
   overflow: hidden;
+}
+
+div.page-entities-script-hide {
+  display: none;
 }
 
 div.page-entities-canvas-hide {
