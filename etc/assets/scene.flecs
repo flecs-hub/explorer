@@ -1,4 +1,4 @@
-// Script that creates a pen
+// Script that creates a city
 //
 // For C/C++ examples and docs go to:
 //  https://github.com/SanderMertens/flecs
@@ -6,45 +6,141 @@
 using flecs.script.*
 using flecs.components.*
 
-template FencePost {
-  prop x: 0.0
-  Position3: {x, 1}
-  Box: {0.5, 2, 0.5}
+const rng = Rng: {}
+
+// Simple tree template
+template Tree {  
+  const trunkHeight = 0.3
+  const canopyHeight = 1 - trunkHeight
+
+  {
+    Position3: {0, trunkHeight / 2, 0}
+    Rgb: {0.08, 0.03, 0.0}
+    Box: {0.1, trunkHeight, 0.1}
+  } {
+    Position3: {0, trunkHeight + canopyHeight / 2, 0}
+    Rgb: {0.1, 0.2, 0.06}
+    Box: {0.25, canopyHeight, 0.25}
+  }
 }
 
-template FenceBoard {
-  prop width: 10.0
-  prop y: 1.0
-  Position3: {0, y}
-  Box: {width, 0.5, 0.2}
-}
-
-template Fence {
-  prop width: 10.0
-  const post_count = i32: 2 + width / 5
-  const post_spacing: width / (post_count - 1)
+// Pavement with trees
+template Pavement {
+  prop pavementWidth: 5.0
+  prop pavementHeight: 1.0
+  Box: {pavementWidth, pavementHeight, pavementWidth}
+  Rgb: {0.2, 0.2, 0.2}
   
-  with Rgb(0.15, 0.1, 0.05) {
-    for i in 0..post_count {
-      FencePost(i * post_spacing - width / 2)
+  const treeCount = 3
+  const treeSpacing = pavementWidth / treeCount
+  const treeOffset = (pavementWidth/2) - 0.2
+
+  for i in 0..treeCount {
+    const x = (i + 0.5) * treeSpacing - pavementWidth / 2
+    Tree() {Position3: {-treeOffset, 0, x}}
+    Tree() {Position3: {treeOffset, 0, x}}
+    Tree() {Position3: {x, 0, -treeOffset}}
+    Tree() {Position3: {x, 0, treeOffset}}
+  }
+}
+
+// Procedural building
+template Building {
+  prop width: 4
+  prop floors: 8
+  prop windows: 3
+  prop windowSpacing: 0.2
+  prop wallThickness: 0.3
+  prop color = Rgb: {0.3, 0.3, 0.3}
+  prop windowColor = Rgb: {0.01, 0.02, 0.05}
+  prop windowInset: 0.2
+  
+  const height: floors
+  const pillars = windows + 2
+  const spaceForPillars: width - windowSpacing
+  const spaceForPillarsH: spaceForPillars / 2
+  const spacing: spaceForPillars / (pillars - 1)
+  
+  // Create a single blue box for the windows
+  {
+    Position3: {0, height / 2, 0}
+    Box: {width - windowInset, height, width - windowInset}
+    $windowColor
+    Specular: {0.2, 1.5}
+  }
+  
+  with $color {
+    // Create a box for each floor
+    for i in 0..floors {{
+      Position3: {0, y: i + 1, 0}
+      Box: {width, wallThickness, width}
+    }}
+    // Create boxes to separate the windows
+    for p in 1..(pillars - 1) {{
+      Position3: {p * spacing - spaceForPillarsH, height / 2}
+      Box: {windowSpacing, height, width}
+    }{
+      Position3: {0, height / 2, p * spacing - spaceForPillarsH}
+      Box: {width, height, windowSpacing}
+    }}
+    // Create boxes on the corners of the buildings
+    with Box(windowSpacing, height, windowSpacing) {
+     {Position3: {-spaceForPillarsH, height / 2, -spaceForPillarsH}} 
+     {Position3: {-spaceForPillarsH, height / 2, spaceForPillarsH}} 
+     {Position3: {spaceForPillarsH, height / 2, spaceForPillarsH}} 
+     {Position3: {spaceForPillarsH, height / 2, -spaceForPillarsH}}
     }
-    
-    FenceBoard(width, 0.5)
-    FenceBoard(width, 1.5)
   }
 }
 
-template Pen {
-  prop width: 10.0
-  prop depth: 10.0
+// City template
+template City {
+  prop gridSize: 7
+  prop blockWidth: 7.5
+  prop pavementWidth: 6
+  prop buildingWidth: 4
+  prop maxBuildingHeight: 14
+  prop buildingHeightVariation: 4
   
-  Fence(width) { Position3: {z: 0.5 * -depth} }
-  Fence(width) { Position3: {z: 0.5 * depth} }
+  const streetHeight: 0.1
+  const pavementHeight: 0.1
+  const gridSizeH = gridSize / 2
 
-  with Rotation3(y: PI / 2) {
-    Fence(depth) { Position3: {x: 0.5 * -width} }
-    Fence(depth) { Position3: {x: 0.5 * width} }
+  // Street plane
+  {
+    Position3: {0, streetHeight / 2, 0}
+    Box: {blockWidth * gridSize, streetHeight, blockWidth * gridSize}
+    Rgb: {0.08, 0.08, 0.08}
+  }
+
+  // The city grid
+  for x in 0 .. gridSize {
+    for y in 0 .. gridSize {
+      const xR: x - gridSizeH
+      const yR: y - gridSizeH
+      const xS: 1.0 - (abs(xR + 0.5) / gridSizeH)
+      const yS: 1.0 - (abs(yR + 0.5) / gridSizeH)
+      const baseHeight: (pow(xS, 2) * pow(yS, 2)) * maxBuildingHeight + 1
+      const color: rng.f(0.5) + 0.05
+      const xP: xR * blockWidth + blockWidth / 2
+      const yP: yR * blockWidth + blockWidth / 2
+      
+      // Pavement
+      Pavement($, $) { Position3: {xP, streetHeight + pavementHeight / 2, yP} }
+  
+      // Building
+      Building(
+        floors: baseHeight + rng.u(buildingHeightVariation)
+        windows: rng.u(5) + 1
+        wallThickness: rng.f(0.1) + 0.2
+        windowSpacing: rng.f(0.2) + 0.1
+        color: {color + rng.f(0.15), color, color}
+      ) {
+        Position3: {xP, pavementHeight, yP} 
+      }
+    }
   }
 }
 
-Pen my_pen(width: 10, depth: 15)
+// Instantiate the city template
+City city()
