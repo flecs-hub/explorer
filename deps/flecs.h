@@ -294,7 +294,7 @@
  * When enabled, Flecs will use the OS allocator provided in the OS API directly
  * instead of the builtin block allocator. This can decrease memory utilization
  * as memory will be freed more often, at the cost of decreased performance. */
-#define FLECS_USE_OS_ALLOC
+// #define FLECS_USE_OS_ALLOC
 
 /** @def FLECS_ID_DESC_MAX
  * Maximum number of ids to add ecs_entity_desc_t / ecs_bulk_desc_t */
@@ -16213,7 +16213,7 @@ typedef struct EcsPrimitive {
 /** Component added to member entities */
 typedef struct EcsMember {
     ecs_entity_t type;                             /**< Member type. */
-    int32_t count;                                 /**< Number of elements (for inline arrays). */
+    int32_t count;                                 /**< Number of elements for inline arrays. Leave to 0 for non-array members. */
     ecs_entity_t unit;                             /**< Member unit. */
     int32_t offset;                                /**< Member offset. */
     bool use_offset;                               /**< If offset should be explicitly used. */
@@ -16240,7 +16240,8 @@ typedef struct ecs_member_t {
     /** Member type. */
     ecs_entity_t type;
 
-    /** Element count (for inline arrays). May be set when used with ecs_struct_desc_t */
+    /** Element count (for inline arrays). May be set when used with 
+     * ecs_struct_desc_t. Leave to 0 for non-array members. */
     int32_t count;
 
     /** May be set when used with ecs_struct_desc_t. Member offset. */
@@ -16540,18 +16541,23 @@ typedef struct EcsUnitPrefix {
  * type at which offsets.
 */
 typedef enum ecs_meta_type_op_kind_t {
-    EcsOpArray,
-    EcsOpVector,
-    EcsOpOpaque,
-    EcsOpPush,
-    EcsOpPop,
+    EcsOpPushStruct,   /**< Push struct. */
+    EcsOpPushArray,    /**< Push array. */
+    EcsOpPushVector,   /**< Push vector. */
+    EcsOpPop,          /**< Pop scope. */
 
-    EcsOpScope, /**< Marks last constant that can open/close a scope */
+    EcsOpOpaqueStruct, /**< Opaque struct. */
+    EcsOpOpaqueArray,  /**< Opaque array. */
+    EcsOpOpaqueVector, /**< Opaque vector. */
+    EcsOpForward,      /**< Forward to type. Allows for recursive types. */
 
+    EcsOpScope,        /**< Marks last constant that can open/close a scope */
+
+    EcsOpOpaqueValue,  /**< Opaque value. */
     EcsOpEnum,
     EcsOpBitmask,
 
-    EcsOpPrimitive, /**< Marks first constant that's a primitive */
+    EcsOpPrimitive,    /**< Marks first constant that's a primitive */
 
     EcsOpBool,
     EcsOpChar,
@@ -16577,21 +16583,25 @@ typedef enum ecs_meta_type_op_kind_t {
 /** Meta type serializer instruction data. */
 typedef struct ecs_meta_type_op_t {
     ecs_meta_type_op_kind_t kind;                  /**< Instruction opcode. */
-    ecs_size_t offset;                             /**< Offset of current field */
-    int32_t count;                                 /**< Number of elements (for inline arrays). */
+    ecs_size_t offset;                             /**< Offset of current field. */
     const char *name;                              /**< Name of value (only used for struct members) */
     int32_t op_count;                              /**< Number of operations until next field or end */
     ecs_size_t size;                               /**< Size of type of operation */
-    ecs_entity_t type;                             /**< Type entity */
+    ecs_size_t elem_size;                          /**< Element size (for PushArray/PushVector) and element count (for PopArray) */
     int32_t member_index;                          /**< Index of member in struct */
-    ecs_hashmap_t *members;                        /**< string -> member index (structs only) */
+    ecs_entity_t type;                             /**< Type entity */
+    union {
+        ecs_hashmap_t *members;                    /**< string -> member index (structs) */
+        ecs_map_t *constants;                      /**< (u)int -> constant entity (enums/bitmasks) */
+        ecs_meta_serialize_t opaque;               /**< Serialize callback for opaque types */
+    } is;
 } ecs_meta_type_op_t;
 
 /** Component that stores the type serializer.
- * Added to all types with reflection data.
- */
+ * Added to all types with reflection data. */
 typedef struct EcsTypeSerializer {
-    ecs_vec_t ops;      /**< vector<ecs_meta_type_op_t> */
+    ecs_type_kind_t kind;         /**< Quick access to type kind (same as EcsType) */
+    ecs_vec_t ops;                /**< vector<ecs_meta_type_op_t> */
 } EcsTypeSerializer;
 
 
@@ -16606,18 +16616,15 @@ typedef struct EcsTypeSerializer {
 typedef struct ecs_meta_scope_t {
     ecs_entity_t type;                             /**< The type being iterated */
     ecs_meta_type_op_t *ops;                       /**< The type operations (see ecs_meta_type_op_t) */
-    int32_t op_count;                              /**< Number of operations in ops array to process */
-    int32_t op_cur;                                /**< Current operation */
-    int32_t elem_cur;                              /**< Current element (for collections) */
-    int32_t prev_depth;                            /**< Depth to restore, in case dotmember was used */
-    void *ptr;                                     /**< Pointer to the value being iterated */
-    const EcsComponent *comp;                      /**< Pointer to component, in case size/alignment is needed */
+    int16_t ops_count;                             /**< Number of elements in ops */
+    int16_t ops_cur;                               /**< Current element in ops */
+    int16_t prev_depth;                            /**< Depth to restore, in case dotmember was used */
+    void *ptr;                                     /**< Pointer to ops[0] */
     const EcsOpaque *opaque;                       /**< Opaque type interface */
-    ecs_vec_t *vector;                             /**< Current vector, in case a vector is iterated */
     ecs_hashmap_t *members;                        /**< string -> member index */
     bool is_collection;                            /**< Is the scope iterating elements? */
-    bool is_inline_array;                          /**< Is the scope iterating an inline array? */
     bool is_empty_scope;                           /**< Was scope populated (for collections) */
+    int32_t elem, elem_count;                      /**< Set for collections */
 } ecs_meta_scope_t;
 
 /** Type that enables iterating/populating a value using reflection data. */
@@ -16632,6 +16639,12 @@ typedef struct ecs_meta_cursor_t {
     ecs_entity_t (*lookup_action)(const ecs_world_t*, const char*, void*);
     void *lookup_ctx;                              /**< Context for lookup_action */
 } ecs_meta_cursor_t;
+
+/** Convert serializer to string. */
+FLECS_API
+char* ecs_meta_serializer_to_str(
+    ecs_world_t *world,
+    ecs_entity_t type);
 
 /** Create meta cursor.
  * A meta cursor allows for walking over, reading and writing a value without
@@ -16977,6 +16990,19 @@ ecs_id_t ecs_meta_get_id(
 FLECS_API
 double ecs_meta_ptr_to_float(
     ecs_primitive_kind_t type_kind,
+    const void *ptr);
+
+/** Get element count for array/vector operations. 
+ * The operation must either be EcsOpPushArray or EcsOpPushVector. If the 
+ * operation is EcsOpPushArray, the provided pointer may be NULL.
+ * 
+ * @param op The serializer operation.
+ * @param ptr Pointer to the array/vector value.
+ * @return The number of elements.
+ */
+FLECS_API
+ecs_size_t ecs_meta_op_get_elem_count(
+    const ecs_meta_type_op_t *op,
     const void *ptr);
 
 /* API functions for creating meta types */

@@ -45,8 +45,8 @@ const handleResize = () => {
     var r = el.getBoundingClientRect();
     canvasContainerStyle.value = 
       `position: absolute; 
-       width: ${r.width}px; 
-       height: ${r.height}px; 
+       width: ${r.width + 2}px; 
+       height: ${r.height + 2}px; 
        top: ${r.top}px; 
        left: ${r.left}px;`;
   } else {

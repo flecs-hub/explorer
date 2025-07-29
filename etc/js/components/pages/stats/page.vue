@@ -1,5 +1,5 @@
 <template>
-  <div id="page-stats" class="page-content">
+  <div id="page-stats" class="pane page-content">
     <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
     <div class="world-stats">
       <world-stats :conn="conn" :period="period"></world-stats>
@@ -38,7 +38,6 @@ const period = computed(() => {
 
 <style scoped>
 #page-stats {
-  height: calc(100% - 1rem);
   overflow: auto;
   border-radius: var(--border-radius-medium);
   background-color: var(--bg-pane);

@@ -33904,7 +33904,8 @@ void ecs_vec_init_if(
     ecs_vec_t *vec,
     ecs_size_t size)
 {
-    ecs_san_assert(!vec->elem_size || vec->elem_size == size, ECS_INVALID_PARAMETER, NULL);
+    ecs_san_assert(!vec->elem_size || vec->elem_size == size, 
+        ECS_INVALID_PARAMETER, NULL);
     (void)vec;
     (void)size;
 #ifdef FLECS_SANITIZE
@@ -34109,6 +34110,9 @@ void ecs_vec_set_count(
     ecs_size_t size,
     int32_t elem_count)
 {
+    ecs_assert(size != 0, ECS_INVALID_PARAMETER, NULL);
+    ecs_san_assert(v->elem_size != 0, ECS_INVALID_PARAMETER, 
+        "vector is not initialized");
     ecs_san_assert(size == v->elem_size, ECS_INVALID_PARAMETER, NULL);
     if (v->count != elem_count) {
         if (v->size < elem_count) {
@@ -47147,6 +47151,13 @@ bool ecs_equals_string(
     const void *str_b,
     const ecs_type_info_t *ti);
 
+const char* flecs_meta_op_kind_str(
+    ecs_meta_type_op_kind_t kind);
+
+ecs_size_t ecs_meta_op_get_elem_count(
+    const ecs_meta_type_op_t *op,
+    const void *ptr);
+
 #endif
 
 #endif
@@ -49242,13 +49253,20 @@ void flecs_json_serialize_query(
 #ifdef FLECS_JSON
 
 static
-int json_typeinfo_ser_type(
+int flecs_json_typeinfo_ser_type(
     const ecs_world_t *world,
     ecs_entity_t type,
     ecs_strbuf_t *buf);
 
 static
-int json_typeinfo_ser_primitive(
+int flecs_json_typeinfo_ser_type_slice(
+    const ecs_world_t *world,
+    const ecs_meta_type_op_t *ops,
+    int32_t op_count,
+    ecs_strbuf_t *str);
+
+static
+int flecs_json_typeinfo_ser_primitive(
     ecs_primitive_kind_t kind,
     ecs_strbuf_t *str) 
 {
@@ -49293,7 +49311,7 @@ int json_typeinfo_ser_primitive(
 }
 
 static
-void json_typeinfo_ser_constants(
+void flecs_json_typeinfo_ser_constants(
     const ecs_world_t *world,
     ecs_entity_t type,
     ecs_strbuf_t *str)
@@ -49309,86 +49327,28 @@ void json_typeinfo_ser_constants(
 }
 
 static
-void json_typeinfo_ser_enum(
+void flecs_json_typeinfo_ser_enum(
     const ecs_world_t *world,
     ecs_entity_t type,
     ecs_strbuf_t *str)
 {
     ecs_strbuf_list_appendstr(str, "\"enum\"");
-    json_typeinfo_ser_constants(world, type, str);
+    flecs_json_typeinfo_ser_constants(world, type, str);
 }
 
 static
-void json_typeinfo_ser_bitmask(
+void flecs_json_typeinfo_ser_bitmask(
     const ecs_world_t *world,
     ecs_entity_t type,
     ecs_strbuf_t *str)
 {
     ecs_strbuf_list_appendstr(str, "\"bitmask\"");
-    json_typeinfo_ser_constants(world, type, str);
-}
-
-static
-int json_typeinfo_ser_array(
-    const ecs_world_t *world,
-    ecs_entity_t elem_type,
-    int32_t count,
-    ecs_strbuf_t *str)
-{
-    ecs_strbuf_list_appendstr(str, "\"array\"");
-
-    flecs_json_next(str);
-    if (json_typeinfo_ser_type(world, elem_type, str)) {
-        goto error;
-    }
-
-    ecs_strbuf_list_append(str, "%u", count);
-    return 0;
-error:
-    return -1;
-}
-
-static
-int json_typeinfo_ser_array_type(
-    const ecs_world_t *world,
-    ecs_entity_t type,
-    ecs_strbuf_t *str)
-{
-    const EcsArray *arr = ecs_get(world, type, EcsArray);
-    ecs_assert(arr != NULL, ECS_INTERNAL_ERROR, NULL);
-    if (json_typeinfo_ser_array(world, arr->type, arr->count, str)) {
-        goto error;
-    }
-
-    return 0;
-error:
-    return -1;
-}
-
-static
-int json_typeinfo_ser_vector(
-    const ecs_world_t *world,
-    ecs_entity_t type,
-    ecs_strbuf_t *str)
-{
-    const EcsVector *arr = ecs_get(world, type, EcsVector);
-    ecs_assert(arr != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    ecs_strbuf_list_appendstr(str, "\"vector\"");
-
-    flecs_json_next(str);
-    if (json_typeinfo_ser_type(world, arr->type, str)) {
-        goto error;
-    }
-
-    return 0;
-error:
-    return -1;
+    flecs_json_typeinfo_ser_constants(world, type, str);
 }
 
 /* Serialize unit information */
 static
-int json_typeinfo_ser_unit(
+int flecs_json_typeinfo_ser_unit(
     const ecs_world_t *world,
     ecs_strbuf_t *str,
     ecs_entity_t unit) 
@@ -49413,7 +49373,7 @@ int json_typeinfo_ser_unit(
 }
 
 static
-void json_typeinfo_ser_range(
+void flecs_json_typeinfo_ser_range(
     ecs_strbuf_t *str,
     const char *kind,
     ecs_member_value_range_t *range)
@@ -49427,109 +49387,63 @@ void json_typeinfo_ser_range(
     flecs_json_array_pop(str);
 }
 
-/* Forward serialization to the different type kinds */
 static
-int json_typeinfo_ser_type_op(
+int flecs_json_typeinfo_ser_scope(
     const ecs_world_t *world,
-    ecs_meta_type_op_t *op, 
-    ecs_strbuf_t *str,
-    const EcsStruct *st) 
+    const ecs_meta_type_op_t *op,
+    ecs_strbuf_t *str)
 {
-    if (op->kind == EcsOpOpaque) {
-        const EcsOpaque *ct = ecs_get(world, op->type, 
-            EcsOpaque);
-        ecs_assert(ct != NULL, ECS_INTERNAL_ERROR, NULL);
-        return json_typeinfo_ser_type(world, ct->as_type, str);
+    if (flecs_json_typeinfo_ser_type_slice(
+        world, &op[1], op->op_count - 2, str)) 
+    {
+        return -1;
     }
 
-    flecs_json_array_push(str);
-
-    switch(op->kind) {
-    case EcsOpPush:
-    case EcsOpPop:
-        /* Should not be parsed as single op */
-        ecs_throw(ECS_INVALID_PARAMETER, 
-            "unexpected push/pop serializer instruction");
-        break;
-    case EcsOpEnum:
-        json_typeinfo_ser_enum(world, op->type, str);
-        break;
-    case EcsOpBitmask:
-        json_typeinfo_ser_bitmask(world, op->type, str);
-        break;
-    case EcsOpArray:
-        json_typeinfo_ser_array_type(world, op->type, str);
-        break;
-    case EcsOpVector:
-        json_typeinfo_ser_vector(world, op->type, str);
-        break;
-    case EcsOpOpaque:
-        /* Can't happen, already handled above */
-        ecs_throw(ECS_INTERNAL_ERROR, NULL);
-        break;
-    case EcsOpBool:
-    case EcsOpChar:
-    case EcsOpByte:
-    case EcsOpU8:
-    case EcsOpU16:
-    case EcsOpU32:
-    case EcsOpU64:
-    case EcsOpI8:
-    case EcsOpI16:
-    case EcsOpI32:
-    case EcsOpI64:
-    case EcsOpF32:
-    case EcsOpF64:
-    case EcsOpUPtr:
-    case EcsOpIPtr:
-    case EcsOpEntity:
-    case EcsOpId:
-    case EcsOpString:
-        if (json_typeinfo_ser_primitive( 
-            flecs_json_op_to_primitive_kind(op->kind), str))
-        {
-            ecs_throw(ECS_INTERNAL_ERROR, NULL);
-        }
-        break;
-    case EcsOpScope:
-    case EcsOpPrimitive:
-    default:
-        ecs_throw(ECS_INTERNAL_ERROR, NULL);
+    ecs_entity_t unit = ecs_get_target_for(world, op->type, EcsIsA, EcsUnit);
+    if (unit) {
+        flecs_json_member(str, "@self");
+        flecs_json_array_push(str);
+        flecs_json_object_push(str);
+        flecs_json_typeinfo_ser_unit(world, str, unit);
+        flecs_json_object_pop(str);
+        flecs_json_array_pop(str);
     }
 
-    if (st) {
-        ecs_member_t *m = ecs_vec_get_t(
-            &st->members, ecs_member_t, op->member_index);
-        ecs_assert(m != NULL, ECS_INTERNAL_ERROR, NULL);
+    return 0;
+}
 
-        bool value_range = ECS_NEQ(m->range.min, m->range.max);
-        bool error_range = ECS_NEQ(m->error_range.min, m->error_range.max);
-        bool warning_range = ECS_NEQ(m->warning_range.min, m->warning_range.max);
+static
+int flecs_json_typeinfo_ser_array(
+    const ecs_world_t *world,
+    const ecs_meta_type_op_t *op,
+    ecs_strbuf_t *str)
+{
+    ecs_strbuf_list_appendstr(str, "\"array\"");
 
-        ecs_entity_t unit = m->unit;
-        if (unit || error_range || warning_range || value_range) {
-            flecs_json_next(str);
-            flecs_json_next(str);
-            flecs_json_object_push(str);
-
-            if (unit) {
-                json_typeinfo_ser_unit(world, str, unit);
-            }
-            if (value_range) {
-                json_typeinfo_ser_range(str, "range", &m->range);
-            }
-            if (error_range) {
-                json_typeinfo_ser_range(str, "error_range", &m->error_range);
-            }
-            if (warning_range) {
-                json_typeinfo_ser_range(str, "warning_range", &m->warning_range);
-            }
-
-            flecs_json_object_pop(str);
-        }
+    flecs_json_next(str);
+    if (flecs_json_typeinfo_ser_scope(world, op, str)) {
+        goto error;
     }
 
-    flecs_json_array_pop(str);
+    ecs_strbuf_list_append(str, "%u", ecs_meta_op_get_elem_count(op, NULL));
+
+    return 0;
+error:
+    return -1;
+}
+
+static
+int flecs_json_typeinfo_ser_vector(
+    const ecs_world_t *world,
+    const ecs_meta_type_op_t *op,
+    ecs_strbuf_t *str)
+{
+    ecs_strbuf_list_appendstr(str, "\"vector\"");
+
+    flecs_json_next(str);
+    if (flecs_json_typeinfo_ser_scope(world, op, str)) {
+        goto error;
+    }
 
     return 0;
 error:
@@ -49538,59 +49452,73 @@ error:
 
 /* Iterate over a slice of the type ops array */
 static
-int json_typeinfo_ser_type_ops(
+int flecs_json_typeinfo_ser_type_slice(
     const ecs_world_t *world,
-    ecs_meta_type_op_t *ops,
+    const ecs_meta_type_op_t *ops,
     int32_t op_count,
-    ecs_strbuf_t *str,
-    const EcsStruct *st) 
+    ecs_strbuf_t *str) 
 {
-    const EcsStruct *stack[64] = {st};
-    int32_t sp = 1;
+    const EcsStruct *st = NULL;
+    if (ops[0].name) { /* If a member, previous operation is PushStruct */
+        const ecs_meta_type_op_t *push = &ops[-1];
+        ecs_assert(push->kind == EcsOpPushStruct, ECS_INTERNAL_ERROR, NULL);
+        st = ecs_get(world, push->type, EcsStruct);
+        ecs_assert(st != NULL, ECS_INTERNAL_ERROR, NULL);
+    }
 
     for (int i = 0; i < op_count; i ++) {
-        ecs_meta_type_op_t *op = &ops[i];
+        const ecs_meta_type_op_t *op = &ops[i];
 
-        if (op != ops) {
-            if (op->name) {
-                flecs_json_member(str, op->name);
-            }
+        if (op->name) {
+            flecs_json_member(str, op->name);
         }
 
-        int32_t elem_count = op->count;
-        if (elem_count > 1) {
-            flecs_json_array_push(str);
-            json_typeinfo_ser_array(world, op->type, op->count, str);
-            flecs_json_array_pop(str);
+        if (op->kind == EcsOpForward) {
+            if (flecs_json_typeinfo_ser_type(world, op->type, str)) {
+                goto error;
+            }
+            continue;
+        } else if (op->kind == EcsOpOpaqueStruct || 
+            op->kind == EcsOpOpaqueArray || op->kind == EcsOpOpaqueVector ||
+            op->kind == EcsOpOpaqueValue) 
+        {
+            const EcsOpaque *ct = ecs_get(world, op->type, EcsOpaque);
+            ecs_assert(ct != NULL, ECS_INTERNAL_ERROR, NULL);
+            if (flecs_json_typeinfo_ser_type(world, ct->as_type, str)) {
+                goto error;
+            }
+            continue;
+        } else if (op->kind == EcsOpPushStruct) {
+            flecs_json_object_push(str);
+            if (flecs_json_typeinfo_ser_scope(world, op, str)) {
+                return -1;
+            }
+            flecs_json_object_pop(str);
             i += op->op_count - 1;
             continue;
         }
 
-        switch(op->kind) {
-        case EcsOpPush:
-            flecs_json_object_push(str);
-            ecs_assert(sp < 63, ECS_INVALID_OPERATION, "type nesting too deep");
-            stack[sp ++] = ecs_get(world, op->type, EcsStruct);
-            break;
-        case EcsOpPop: {
-            ecs_entity_t unit = ecs_get_target_for(world, op->type, EcsIsA, EcsUnit);
-            if (unit) {
-                flecs_json_member(str, "@self");
-                flecs_json_array_push(str);
-                flecs_json_object_push(str);
-                json_typeinfo_ser_unit(world, str, unit);
-                flecs_json_object_pop(str);
-                flecs_json_array_pop(str);
-            }
+        flecs_json_array_push(str);
 
-            flecs_json_object_pop(str);
-            sp --;
+        switch(op->kind) {
+        case EcsOpPushArray:
+            if (flecs_json_typeinfo_ser_array(world, op, str)) {
+                goto error;
+            }
+            i += op->op_count - 1;
             break;
-        }
-        case EcsOpArray:
-        case EcsOpVector:
+        case EcsOpPushVector:
+            if (flecs_json_typeinfo_ser_vector(world, op, str)) {
+                goto error;
+            }
+            i += op->op_count - 1;
+            break;
         case EcsOpEnum:
+            flecs_json_typeinfo_ser_enum(world, op->type, str);
+            break;
         case EcsOpBitmask:
+            flecs_json_typeinfo_ser_bitmask(world, op->type, str);
+            break;
         case EcsOpBool:
         case EcsOpChar:
         case EcsOpByte:
@@ -49609,16 +49537,61 @@ int json_typeinfo_ser_type_ops(
         case EcsOpEntity:
         case EcsOpId:
         case EcsOpString:
-        case EcsOpOpaque:
-            if (json_typeinfo_ser_type_op(world, op, str, stack[sp - 1])) {
-                goto error;
+            if (flecs_json_typeinfo_ser_primitive( 
+                flecs_json_op_to_primitive_kind(op->kind), str))
+            {
+                ecs_throw(ECS_INTERNAL_ERROR, NULL);
             }
             break;
-        case EcsOpPrimitive:
         case EcsOpScope:
+        case EcsOpPrimitive:
+        case EcsOpPop:
+        case EcsOpForward:
+        case EcsOpOpaqueStruct:
+        case EcsOpOpaqueArray:
+        case EcsOpOpaqueVector:
+        case EcsOpOpaqueValue:
         default:
             ecs_throw(ECS_INTERNAL_ERROR, NULL);
         }
+
+        if (op->name) {
+            ecs_assert(st != NULL, ECS_INTERNAL_ERROR, NULL);
+            ecs_member_t *m = ecs_vec_get_t(
+                &st->members, ecs_member_t, op->member_index);
+            ecs_assert(m != NULL, ECS_INTERNAL_ERROR, NULL);
+
+            bool value_range = ECS_NEQ(m->range.min, m->range.max);
+            bool error_range = ECS_NEQ(m->error_range.min, m->error_range.max);
+            bool warning_range = ECS_NEQ(
+                m->warning_range.min, m->warning_range.max);
+
+            ecs_entity_t unit = m->unit;
+            if (unit || error_range || warning_range || value_range) {
+                flecs_json_next(str);
+                flecs_json_next(str);
+                flecs_json_object_push(str);
+
+                if (unit) {
+                    flecs_json_typeinfo_ser_unit(world, str, unit);
+                }
+                if (value_range) {
+                    flecs_json_typeinfo_ser_range(str, "range", &m->range);
+                }
+                if (error_range) {
+                    flecs_json_typeinfo_ser_range(
+                        str, "error_range", &m->error_range);
+                }
+                if (warning_range) {
+                    flecs_json_typeinfo_ser_range(
+                        str, "warning_range", &m->warning_range);
+                }
+
+                flecs_json_object_pop(str);
+            }
+        }
+
+        flecs_json_array_pop(str);
     }
 
     return 0;
@@ -49627,7 +49600,7 @@ error:
 }
 
 static
-int json_typeinfo_ser_type(
+int flecs_json_typeinfo_ser_type(
     const ecs_world_t *world,
     ecs_entity_t type,
     ecs_strbuf_t *buf)
@@ -49645,11 +49618,10 @@ int json_typeinfo_ser_type(
         return 0;
     }
 
-    const EcsStruct *st = ecs_get(world, type, EcsStruct);
     ecs_meta_type_op_t *ops = ecs_vec_first_t(&ser->ops, ecs_meta_type_op_t);
     int32_t count = ecs_vec_count(&ser->ops);
 
-    if (json_typeinfo_ser_type_ops(world, ops, count, buf, st)) {
+    if (flecs_json_typeinfo_ser_type_slice(world, ops, count, buf)) {
         return -1;
     }
 
@@ -49661,7 +49633,7 @@ int ecs_type_info_to_json_buf(
     ecs_entity_t type,
     ecs_strbuf_t *buf)
 {
-    return json_typeinfo_ser_type(world, type, buf);
+    return flecs_json_typeinfo_ser_type(world, type, buf);
 }
 
 char* ecs_type_info_to_json(
@@ -49689,19 +49661,11 @@ char* ecs_type_info_to_json(
 #ifdef FLECS_JSON
 
 static
-int flecs_json_ser_type_ops(
+int flecs_json_ser_type_slice(
     const ecs_world_t *world,
     ecs_meta_type_op_t *ops,
     int32_t op_count,
     const void *base, 
-    ecs_strbuf_t *str,
-    int32_t in_array);
-
-static
-int flecs_json_ser_type_op(
-    const ecs_world_t *world,
-    ecs_meta_type_op_t *op, 
-    const void *base,
     ecs_strbuf_t *str);
 
 /* Serialize enumeration */
@@ -49787,93 +49751,6 @@ error:
     return -1;
 }
 
-/* Serialize elements of a contiguous array */
-static
-int flecs_json_ser_elements(
-    const ecs_world_t *world,
-    ecs_meta_type_op_t *ops, 
-    int32_t op_count,
-    const void *base, 
-    int32_t elem_count, 
-    int32_t elem_size,
-    ecs_strbuf_t *str,
-    bool is_array)
-{
-    flecs_json_array_push(str);
-
-    const void *ptr = base;
-
-    int i;
-    for (i = 0; i < elem_count; i ++) {
-        ecs_strbuf_list_next(str);
-        if (flecs_json_ser_type_ops(world, ops, op_count, ptr, str, is_array)) {
-            return -1;
-        }
-        ptr = ECS_OFFSET(ptr, elem_size);
-    }
-
-    flecs_json_array_pop(str);
-
-    return 0;
-}
-
-static
-int flecs_json_ser_type_elements(
-    const ecs_world_t *world,
-    ecs_entity_t type, 
-    const void *base, 
-    int32_t elem_count, 
-    ecs_strbuf_t *str,
-    bool is_array)
-{
-    const EcsTypeSerializer *ser = ecs_get(
-        world, type, EcsTypeSerializer);
-    ecs_assert(ser != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    const EcsComponent *comp = ecs_get(world, type, EcsComponent);
-    ecs_assert(comp != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    ecs_meta_type_op_t *ops = ecs_vec_first_t(&ser->ops, ecs_meta_type_op_t);
-    int32_t op_count = ecs_vec_count(&ser->ops);
-
-    return flecs_json_ser_elements(
-        world, ops, op_count, base, elem_count, comp->size, str, is_array);
-}
-
-/* Serialize array */
-static
-int json_ser_array(
-    const ecs_world_t *world,
-    ecs_meta_type_op_t *op, 
-    const void *ptr, 
-    ecs_strbuf_t *str) 
-{
-    const EcsArray *a = ecs_get(world, op->type, EcsArray);
-    ecs_assert(a != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    return flecs_json_ser_type_elements(
-        world, a->type, ptr, a->count, str, true);
-}
-
-/* Serialize vector */
-static
-int json_ser_vector(
-    const ecs_world_t *world,
-    ecs_meta_type_op_t *op, 
-    const void *base, 
-    ecs_strbuf_t *str) 
-{
-    const ecs_vec_t *value = base;
-    const EcsVector *v = ecs_get(world, op->type, EcsVector);
-    ecs_assert(v != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    int32_t count = ecs_vec_count(value);
-    void *array = ecs_vec_first(value);
-
-    /* Serialize contiguous buffer of vector */
-    return flecs_json_ser_type_elements(world, v->type, array, count, str, false);
-}
-
 typedef struct json_serializer_ctx_t {
     ecs_strbuf_t *str;
     bool is_collection;
@@ -49881,7 +49758,7 @@ typedef struct json_serializer_ctx_t {
 } json_serializer_ctx_t;
 
 static
-int json_ser_custom_value(
+int flecs_json_ser_opaque_value(
     const ecs_serializer_t *ser,
     ecs_entity_t type,
     const void *value)
@@ -49894,271 +49771,258 @@ int json_ser_custom_value(
 }
 
 static
-int json_ser_custom_member(
+int flecs_json_ser_opaque_member(
     const ecs_serializer_t *ser,
     const char *name)
 {
     json_serializer_ctx_t *json_ser = ser->ctx;
-    if (!json_ser->is_struct) {
-        ecs_err("serializer::member can only be called for structs");
-        return -1;
-    }
     flecs_json_member(json_ser->str, name);
     return 0;
 }
 
 static
-int json_ser_custom_type(
+int flecs_json_ser_opaque(
     const ecs_world_t *world,
     ecs_meta_type_op_t *op, 
     const void *base, 
-    ecs_strbuf_t *str)
+    ecs_strbuf_t *str,
+    ecs_meta_type_op_kind_t kind)
 {
-    const EcsOpaque *ct = ecs_get(world, op->type, EcsOpaque);
-    ecs_assert(ct != NULL, ECS_INVALID_OPERATION, 
-        "entity %s in opaque type serializer instruction is not an opaque type",
-            ecs_get_name(world, op->type));
-    ecs_assert(ct->as_type != 0, ECS_INVALID_OPERATION, 
-        "opaque type %s has not populated as_type field",
-            ecs_get_name(world, op->type));
-    ecs_assert(ct->serialize != NULL, ECS_INVALID_OPERATION,
-        "opaque type %s does not have serialize interface", 
-            ecs_get_name(world, op->type));
+    bool is_struct = kind == EcsOpOpaqueStruct;
+    bool is_collection = kind == EcsOpOpaqueVector || kind == EcsOpOpaqueArray;
 
-    const EcsType *pt = ecs_get(world, ct->as_type, EcsType);
-    ecs_assert(pt != NULL, ECS_INVALID_OPERATION, 
-        "opaque type %s is missing flecs.meta.Type component",
-            ecs_get_name(world, op->type));
-
-    ecs_type_kind_t kind = pt->kind;
-    bool is_collection = false;
-    bool is_struct = false;
-
-    if (kind == EcsStructType) {
+    if (is_struct) {
         flecs_json_object_push(str);
-        is_struct = true;
-    } else if (kind == EcsArrayType || kind == EcsVectorType) {
+    } else if (is_collection) {
         flecs_json_array_push(str);
-        is_collection = true;
     }
 
-    json_serializer_ctx_t json_ser = {
-        .str = str,
-        .is_struct = is_struct,
-        .is_collection = is_collection
+    json_serializer_ctx_t json_ser = { 
+        .str = str, .is_struct = is_struct, .is_collection = is_collection
     };
 
     ecs_serializer_t ser = {
         .world = world,
-        .value = json_ser_custom_value,
-        .member = json_ser_custom_member,
+        .value = flecs_json_ser_opaque_value,
+        .member = is_struct ? flecs_json_ser_opaque_member : NULL,
         .ctx = &json_ser
     };
 
-    if (ct->serialize(&ser, base)) {
+    ecs_assert(op->is.opaque != NULL, ECS_INTERNAL_ERROR, NULL);
+    if (op->is.opaque(&ser, base)) {
         return -1;
     }
 
-    if (kind == EcsStructType) {
+    if (is_struct) {
         flecs_json_object_pop(str);
-    } else if (kind == EcsArrayType || kind == EcsVectorType) {
+    } else if (is_collection) {
         flecs_json_array_pop(str);
     }
 
     return 0;
 }
 
-/* Forward serialization to the different type kinds */
 static
-int flecs_json_ser_type_op(
+int flecs_json_ser_scope(
     const ecs_world_t *world,
-    ecs_meta_type_op_t *op, 
-    const void *ptr,
-    ecs_strbuf_t *str) 
+    ecs_meta_type_op_t *op,
+    const void *base,
+    ecs_strbuf_t *str)
 {
-    void *vptr = ECS_OFFSET(ptr, op->offset);
-    bool large_int = false;
-    if (op->kind == EcsOpI64) {
-        if (*(int64_t*)vptr >= 2147483648) {
-            large_int = true;
-        }
-    } else if (op->kind == EcsOpU64) {
-        if (*(uint64_t*)vptr >= 2147483648) {
-            large_int = true;
-        }
-    }
-
-    if (large_int) {
-        ecs_strbuf_appendch(str, '"');
-    }
-
-    switch(op->kind) {
-    case EcsOpPush:
-    case EcsOpPop:
-        /* Should not be parsed as single op */
-        ecs_throw(ECS_INVALID_PARAMETER, NULL);
-        break;
-    case EcsOpF32:
-        ecs_strbuf_appendflt(str, 
-            (ecs_f64_t)*(const ecs_f32_t*)vptr, '"');
-        break;
-    case EcsOpF64:
-        ecs_strbuf_appendflt(str, 
-            *(ecs_f64_t*)vptr, '"');
-        break;
-    case EcsOpEnum:
-        if (flecs_json_ser_enum(world, op, vptr, str)) {
-            goto error;
-        }
-        break;
-    case EcsOpBitmask:
-        if (flecs_json_ser_bitmask(world, op, vptr, str)) {
-            goto error;
-        }
-        break;
-    case EcsOpArray:
-        if (json_ser_array(world, op, vptr, str)) {
-            goto error;
-        }
-        break;
-    case EcsOpVector:
-        if (json_ser_vector(world, op, vptr, str)) {
-            goto error;
-        }
-        break;
-    case EcsOpOpaque:
-        if (json_ser_custom_type(world, op, vptr, str)) {
-            goto error;
-        }
-        break;
-    case EcsOpEntity: {
-        ecs_entity_t e = *(const ecs_entity_t*)vptr;
-        if (!e) {
-            ecs_strbuf_appendlit(str, "\"#0\"");
-        } else {
-            flecs_json_path(str, world, e);
-        }
-        break;
-    }
-    case EcsOpId: {
-        ecs_id_t id = *(const ecs_id_t*)vptr;
-        if (!id) {
-            ecs_strbuf_appendlit(str, "\"#0\"");
-        } else {
-            flecs_json_id(str, world, id);
-        }
-        break;
-    }
-
-    case EcsOpU64:
-    case EcsOpI64:
-    case EcsOpBool:
-    case EcsOpChar:
-    case EcsOpByte:
-    case EcsOpU8:
-    case EcsOpU16:
-    case EcsOpU32:
-    case EcsOpI8:
-    case EcsOpI16:
-    case EcsOpI32:
-    case EcsOpUPtr:
-    case EcsOpIPtr:
-    case EcsOpString:
-        if (flecs_expr_ser_primitive(world, 
-            flecs_json_op_to_primitive_kind(op->kind), 
-            ECS_OFFSET(ptr, op->offset), str, true)) 
-        {
-            ecs_throw(ECS_INTERNAL_ERROR, NULL);
-        }
-        break;
-
-    case EcsOpPrimitive:
-    case EcsOpScope:
-    default:
-        ecs_throw(ECS_INTERNAL_ERROR, NULL);
-    }
-
-    if (large_int) {
-        ecs_strbuf_appendch(str, '"');
+    if (flecs_json_ser_type_slice(world, &op[1], op->op_count - 2, base, str)) {
+        return -1;
     }
 
     return 0;
-error:
-    return -1;
+}
+
+static
+int flecs_json_ser_array(
+    const ecs_world_t *world,
+    ecs_meta_type_op_t *ops,
+    const void *array,
+    int32_t elem_size,
+    int32_t count,
+    ecs_strbuf_t *str)
+{
+    flecs_json_array_push(str);
+
+    int32_t i;
+    for (i = 0; i < count; i ++) {
+        ecs_strbuf_list_next(str);
+        void *ptr = ECS_ELEM(array, elem_size, i);
+        if (flecs_json_ser_scope(world, ops, ptr, str)) {
+            return -1;
+        }
+    }
+
+    flecs_json_array_pop(str);
+    return 0;
+}
+
+static
+int flecs_json_ser_forward(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *base,
+    ecs_strbuf_t *str)
+{
+    const EcsTypeSerializer *ts = ecs_get(world, type, EcsTypeSerializer);
+    if (!ts) {
+        ecs_err("missing type serializer for '%s'", 
+            flecs_errstr(ecs_get_path(world, type)));
+        return -1;
+    }
+
+    return flecs_json_ser_type_slice(world, ecs_vec_first(&ts->ops), 
+        ecs_vec_count(&ts->ops), base, str);
 }
 
 /* Iterate over a slice of the type ops array */
 static
-int flecs_json_ser_type_ops(
+int flecs_json_ser_type_slice(
     const ecs_world_t *world,
     ecs_meta_type_op_t *ops,
     int32_t op_count,
     const void *base,
-    ecs_strbuf_t *str,
-    int32_t in_array)
+    ecs_strbuf_t *str)
 {
     for (int i = 0; i < op_count; i ++) {
         ecs_meta_type_op_t *op = &ops[i];
+        const void *ptr = ECS_OFFSET(base, op->offset);
 
-        if (in_array <= 0) {
-            if (op->name) {
-                flecs_json_member(str, op->name);
+        if (op->name) {
+            flecs_json_member(str, op->name);
+        }
+
+        bool large_int = false;
+        if (op->kind == EcsOpI64) {
+            if (*(int64_t*)ptr >= 2147483648) {
+                large_int = true;
             }
-
-            int32_t elem_count = op->count;
-            if (elem_count > 1) {
-                /* Serialize inline array */
-                if (flecs_json_ser_elements(world, op, op->op_count, base,
-                    elem_count, op->size, str, true))
-                {
-                    return -1;
-                }
-
-                i += op->op_count - 1;
-                continue;
+        } else if (op->kind == EcsOpU64) {
+            if (*(uint64_t*)ptr >= 2147483648) {
+                large_int = true;
             }
         }
-        
+
+        if (large_int) {
+            ecs_strbuf_appendch(str, '"');
+        }
+
         switch(op->kind) {
-        case EcsOpPush:
+        case EcsOpPushStruct: {
             flecs_json_object_push(str);
-            in_array --;
-            break;
-        case EcsOpPop:
+            if (flecs_json_ser_scope(world, op, ptr, str)) {
+                return -1;
+            }
             flecs_json_object_pop(str);
-            in_array ++;
+
+            i += op->op_count - 1;
             break;
-        case EcsOpArray:
-        case EcsOpVector:
-        case EcsOpScope:
+        }
+        case EcsOpPushVector: {
+            const ecs_vec_t *vec = ptr;
+            if (flecs_json_ser_array(world, op, 
+                vec->array, op->elem_size, vec->count, str)) 
+            {
+                goto error;
+            }
+
+            i += op->op_count - 1;
+            break;
+        }
+        case EcsOpPushArray: {
+            if (flecs_json_ser_array(world, op, ptr, 
+                op->elem_size, ecs_meta_op_get_elem_count(op, ptr), str)) 
+            {
+                goto error;
+            }
+
+            i += op->op_count - 1;
+            break;
+        }
+        case EcsOpForward: {
+            if (flecs_json_ser_forward(world, op->type, 
+                ECS_OFFSET(base, op->offset), str))
+            {
+                goto error;
+            }
+            break;
+        }
+        case EcsOpF32:
+            ecs_strbuf_appendflt(str, 
+                (ecs_f64_t)*(const ecs_f32_t*)ptr, '"');
+            break;
+        case EcsOpF64:
+            ecs_strbuf_appendflt(str, *(ecs_f64_t*)ptr, '"');
+            break;
         case EcsOpEnum:
+            if (flecs_json_ser_enum(world, op, ptr, str)) {
+                goto error;
+            }
+            break;
         case EcsOpBitmask:
-        case EcsOpPrimitive:
+            if (flecs_json_ser_bitmask(world, op, ptr, str)) {
+                goto error;
+            }
+            break;
+        case EcsOpOpaqueStruct:
+        case EcsOpOpaqueArray:
+        case EcsOpOpaqueVector:
+        case EcsOpOpaqueValue:
+            if (flecs_json_ser_opaque(world, op, ptr, str, op->kind)) {
+                goto error;
+            }
+            break;
+        case EcsOpEntity: {
+            ecs_entity_t e = *(const ecs_entity_t*)ptr;
+            if (!e) {
+                ecs_strbuf_appendlit(str, "\"#0\"");
+            } else {
+                flecs_json_path(str, world, e);
+            }
+            break;
+        }
+        case EcsOpId: {
+            ecs_id_t id = *(const ecs_id_t*)ptr;
+            if (!id) {
+                ecs_strbuf_appendlit(str, "\"#0\"");
+            } else {
+                flecs_json_id(str, world, id);
+            }
+            break;
+        }
+        case EcsOpU64:
+        case EcsOpI64:
         case EcsOpBool:
         case EcsOpChar:
         case EcsOpByte:
         case EcsOpU8:
         case EcsOpU16:
         case EcsOpU32:
-        case EcsOpU64:
         case EcsOpI8:
         case EcsOpI16:
         case EcsOpI32:
-        case EcsOpI64:
-        case EcsOpF32:
-        case EcsOpF64:
         case EcsOpUPtr:
         case EcsOpIPtr:
-        case EcsOpEntity:
-        case EcsOpId:
         case EcsOpString:
-        case EcsOpOpaque:
-            if (flecs_json_ser_type_op(world, op, base, str)) {
-                goto error;
+            if (flecs_expr_ser_primitive(world, 
+                flecs_json_op_to_primitive_kind(op->kind), ptr, str, true)) 
+            {
+                ecs_throw(ECS_INTERNAL_ERROR, NULL);
             }
             break;
+        case EcsOpPrimitive:
+        case EcsOpScope:
+        case EcsOpPop:
         default:
-            ecs_throw(ECS_INTERNAL_ERROR, NULL);
+            ecs_throw(ECS_INTERNAL_ERROR, 
+                "unexpected serializer operation");
+        }
+
+        if (large_int) {
+            ecs_strbuf_appendch(str, '"');
         }
     }
 
@@ -50176,7 +50040,7 @@ int flecs_json_ser_type(
 {
     ecs_meta_type_op_t *ops = ecs_vec_first_t(v_ops, ecs_meta_type_op_t);
     int32_t count = ecs_vec_count(v_ops);
-    return flecs_json_ser_type_ops(world, ops, count, base, str, 0);
+    return flecs_json_ser_type_slice(world, ops, count, base, str);
 }
 
 static
@@ -51320,7 +51184,7 @@ const char* flecs_meta_utils_parse_member(
         return NULL;
     }
 
-    token->count = 1;
+    token->count = 0;
     token->is_partial = false;
 
     /* Parse member type */
@@ -51677,7 +51541,7 @@ ecs_entity_t flecs_meta_utils_lookup(
         type = ecs_lookup_symbol(world, typename, true, true);
     }
 
-    if (count != 1) {
+    if (count != 0) {
         ecs_check(count <= INT32_MAX, ECS_INVALID_PARAMETER, NULL);
 
         type = ecs_insert(world, ecs_value(EcsArray, {type, (int32_t)count}));
@@ -51716,7 +51580,7 @@ int flecs_meta_utils_parse_struct(
         });
 
         ecs_entity_t type = flecs_meta_utils_lookup(
-            world, &token.type, ptr, 1, &ctx);
+            world, &token.type, ptr, 0, &ctx);
         if (!type) {
             goto error;
         }
@@ -51879,7 +51743,6 @@ error:
 #ifdef FLECS_QUERY_DSL
 #endif
 
-static
 const char* flecs_meta_op_kind_str(
     ecs_meta_type_op_kind_t kind)
 {
@@ -51887,10 +51750,14 @@ const char* flecs_meta_op_kind_str(
 
     case EcsOpEnum: return "Enum";
     case EcsOpBitmask: return "Bitmask";
-    case EcsOpArray: return "Array";
-    case EcsOpVector: return "Vector";
-    case EcsOpOpaque: return "Opaque";
-    case EcsOpPush: return "Push";
+    case EcsOpForward: return "Forward";
+    case EcsOpPushStruct: return "Push";
+    case EcsOpPushArray: return "PushArray";
+    case EcsOpPushVector: return "PushVector";
+    case EcsOpOpaqueValue: return "OpaqueValue";
+    case EcsOpOpaqueStruct: return "OpaqueStruct";
+    case EcsOpOpaqueArray: return "OpaqueArray";
+    case EcsOpOpaqueVector: return "OpaqueVector";
     case EcsOpPop: return "Pop";
     case EcsOpPrimitive: return "Primitive";
     case EcsOpBool: return "Bool";
@@ -51916,9 +51783,28 @@ const char* flecs_meta_op_kind_str(
     }
 }
 
+ecs_size_t ecs_meta_op_get_elem_count(
+    const ecs_meta_type_op_t *op,
+    const void *ptr)
+{
+    ecs_assert(op->kind == EcsOpPushArray || op->kind == EcsOpPushVector, 
+        ECS_INTERNAL_ERROR, NULL);
+    if (op->kind == EcsOpPushArray) {
+        const ecs_meta_type_op_t *pop = &op[op->op_count - 1];
+        ecs_assert(pop != NULL, ECS_INTERNAL_ERROR, NULL);
+        return pop->elem_size;
+    } else if (op->kind == EcsOpPushVector) {
+        return ((const ecs_vec_t*)ptr)->count;
+    }
+    ecs_throw("cannot get element count for %s operation",
+        flecs_meta_op_kind_str(op->kind));
+error:
+    return 0;
+}
+
 /* Get current scope */
 static
-ecs_meta_scope_t* flecs_meta_cursor_get_scope(
+ecs_meta_scope_t* flecs_cursor_get_scope(
     const ecs_meta_cursor_t *cursor)
 {
     ecs_check(cursor != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -51929,7 +51815,7 @@ error:
 
 /* Restore scope, if dotmember was used */
 static
-ecs_meta_scope_t* flecs_meta_cursor_restore_scope(
+ecs_meta_scope_t* flecs_cursor_restore_scope(
     ecs_meta_cursor_t *cursor,
     const ecs_meta_scope_t* scope)
 {
@@ -51944,97 +51830,63 @@ error:
 
 /* Get current operation for scope */
 static
-ecs_meta_type_op_t* flecs_meta_cursor_get_op(
+ecs_meta_type_op_t* flecs_cursor_get_op(
     ecs_meta_scope_t *scope)
 {
     ecs_assert(scope->ops != NULL, ECS_INVALID_OPERATION, 
         "type serializer is missing instructions");
-    return &scope->ops[scope->op_cur];
-}
-
-/* Get component for type in current scope */
-static
-const EcsComponent* get_ecs_component(
-    const ecs_world_t *world,
-    ecs_meta_scope_t *scope)
-{
-    const EcsComponent *comp = scope->comp;
-    if (!comp) {
-        comp = scope->comp = ecs_get(world, scope->type, EcsComponent);
-        ecs_assert(comp != NULL, ECS_INTERNAL_ERROR, NULL);
-    }
-    return comp;
-}
-
-/* Get size for type in current scope */
-static
-ecs_size_t get_size(
-    const ecs_world_t *world,
-    ecs_meta_scope_t *scope)
-{
-    return get_ecs_component(world, scope)->size;
-}
-
-static
-int32_t get_elem_count(
-    ecs_meta_scope_t *scope)
-{
-    const EcsOpaque *opaque = scope->opaque;
-
-    if (scope->vector) {
-        return ecs_vec_count(scope->vector);
-    } else if (opaque && opaque->count) {
-        return flecs_uto(int32_t, opaque->count(scope[-1].ptr));
-    }
-
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    return op->count;
+    return &scope->ops[scope->ops_cur];
 }
 
 /* Get pointer to current field/element */
 static
 ecs_meta_type_op_t* flecs_meta_cursor_get_ptr(
     const ecs_world_t *world,
+    const ecs_meta_cursor_t *cursor,
     ecs_meta_scope_t *scope)
 {
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    ecs_size_t size = get_size(world, scope);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
     const EcsOpaque *opaque = scope->opaque;
 
-    if (scope->vector) {
-        ecs_vec_set_min_count(NULL, scope->vector, size, scope->elem_cur + 1);
-        scope->ptr = ecs_vec_first(scope->vector);
-    } else if (opaque) {
-        if (scope->is_collection) {
-            if (!opaque->ensure_element) {
-                char *str = ecs_get_path(world, scope->type);
-                ecs_err("missing ensure_element for opaque type %s", str);
-                ecs_os_free(str);
-                return NULL;
-            }
-            scope->is_empty_scope = false;
-
-            void *opaque_ptr = opaque->ensure_element(
-                scope->ptr, flecs_ito(size_t, scope->elem_cur));
-            ecs_assert(opaque_ptr != NULL, ECS_INVALID_OPERATION, 
-                "ensure_element returned NULL");
-            return opaque_ptr;
-        } else if (op->name) {
-            if (!opaque->ensure_member) {
-                char *str = ecs_get_path(world, scope->type);
-                ecs_err("missing ensure_member for opaque type %s", str);
-                ecs_os_free(str);
-                return NULL;
-            }
-            ecs_assert(scope->ptr != NULL, ECS_INTERNAL_ERROR, NULL);
-            return opaque->ensure_member(scope->ptr, op->name);
-        } else {
-            ecs_err("invalid operation for opaque type");
-            return NULL;
-        }
+    if (!opaque) {
+        /* Regular type */
+        return ECS_OFFSET(scope->ptr, op->offset);
     }
 
-    return ECS_OFFSET(scope->ptr, size * scope->elem_cur + op->offset);
+    /* Opaque type */
+
+    if (scope->is_collection) {
+        ecs_assert(scope != cursor->scope, ECS_INTERNAL_ERROR, NULL);
+        ecs_meta_scope_t *parent = &scope[-1];
+
+        if (!opaque->ensure_element) {
+            char *str = ecs_get_path(world, scope->type);
+            ecs_err("missing ensure_element() for opaque type %s", str);
+            ecs_os_free(str);
+            return NULL;
+        }
+
+        scope->is_empty_scope = false;
+
+        void *opaque_ptr = opaque->ensure_element(scope->ptr, parent->elem);
+        ecs_assert(opaque_ptr != NULL, ECS_INVALID_OPERATION, 
+            "ensure_element() returned NULL");
+
+        return opaque_ptr;
+    } else if (op->name) {
+        if (!opaque->ensure_member) {
+            char *str = ecs_get_path(world, scope->type);
+            ecs_err("missing ensure_member() for opaque type %s", str);
+            ecs_os_free(str);
+            return NULL;
+        }
+
+        ecs_assert(scope->ptr != NULL, ECS_INTERNAL_ERROR, NULL);
+        return opaque->ensure_member(scope->ptr, op->name);
+    } else {
+        ecs_err("invalid operation for opaque type");
+        return NULL;
+    }
 }
 
 static
@@ -52056,7 +51908,7 @@ int flecs_meta_cursor_push_type(
     scope[0] = (ecs_meta_scope_t) {
         .type = type,
         .ops = ecs_vec_first_t(&ser->ops, ecs_meta_type_op_t),
-        .op_count = ecs_vec_count(&ser->ops),
+        .ops_count = ecs_vec_count(&ser->ops),
         .ptr = ptr
     };
 
@@ -52076,7 +51928,7 @@ ecs_meta_cursor_t ecs_meta_cursor(
         .valid = true
     };
 
-    if (flecs_meta_cursor_push_type(world, result.scope, type, ptr) != 0) {
+    if (flecs_meta_cursor_push_type(world, result.scope, type, ptr) < 0) {
         result.valid = false;
     }
 
@@ -52088,36 +51940,57 @@ error:
 void* ecs_meta_get_ptr(
     ecs_meta_cursor_t *cursor)
 {
-    return flecs_meta_cursor_get_ptr(cursor->world, 
-        flecs_meta_cursor_get_scope(cursor));
+    return flecs_meta_cursor_get_ptr(cursor->world, cursor,
+        flecs_cursor_get_scope(cursor));
+}
+
+static
+void* flecs_meta_get_element_ptr(
+    ecs_meta_cursor_t *cursor,
+    ecs_meta_scope_t *scope)
+{
+    ecs_assert(cursor->scope != scope, ECS_INTERNAL_ERROR, NULL);
+    ecs_size_t size = scope->ops[0].size;
+    ecs_assert(size != 0, ECS_INTERNAL_ERROR, NULL);
+    ecs_meta_scope_t *parent = &scope[-1];
+    void *base = flecs_meta_cursor_get_ptr(cursor->world, cursor, parent);
+    return ECS_ELEM(base, size, parent->elem);
 }
 
 int ecs_meta_next(
     ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    scope = flecs_meta_cursor_restore_scope(cursor, scope);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    scope = flecs_cursor_restore_scope(cursor, scope);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
 
     if (scope->is_collection) {
-        scope->elem_cur ++;
-        scope->op_cur = 0;
+        ecs_assert(cursor->scope != scope, ECS_INTERNAL_ERROR, NULL);
+        ecs_meta_scope_t *parent = &scope[-1];
+        parent->elem ++;
+
+        scope->ops_cur = 0;
 
         if (scope->opaque) {
             return 0;
         }
 
-        if (scope->elem_cur >= get_elem_count(scope)) {
-            ecs_err("out of collection bounds (%d elements vs. size %d)", 
-                scope->elem_cur + 1, get_elem_count(scope));
+        scope->ptr = flecs_meta_get_element_ptr(cursor, scope);
+
+        if (parent->ptr && (parent->elem >= parent->elem_count)) {
+            char *str = ecs_get_path(cursor->world, parent->type);
+            ecs_err("out of collection bounds for type '%s' (%d elements vs. size %d)", 
+                str, parent->elem + 1, parent->elem_count);
+            ecs_os_free(str);
             return -1;
         }
+
         return 0;
     }
 
-    scope->op_cur += op->op_count;
+    scope->ops_cur += op->op_count;
 
-    if (scope->op_cur >= scope->op_count) {
+    if (scope->ops_cur >= scope->ops_count) {
         char *str = ecs_get_path(cursor->world, scope->type);
         ecs_err("too many elements for scope for type %s", str);
         ecs_os_free(str);
@@ -52131,17 +52004,25 @@ int ecs_meta_elem(
     ecs_meta_cursor_t *cursor,
     int32_t elem)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
     if (!scope->is_collection) {
         ecs_err("ecs_meta_elem can be used for collections only");
         return -1;
     }
 
-    scope->elem_cur = elem;
-    scope->op_cur = 0;
+    ecs_assert(scope != cursor->scope, ECS_INTERNAL_ERROR, NULL);
+    ecs_meta_scope_t *parent = &scope[-1];
 
-    if (scope->elem_cur >= get_elem_count(scope) || (scope->elem_cur < 0)) {
-        ecs_err("out of collection bounds (%d)", scope->elem_cur);
+    parent->elem = elem;
+    scope->ptr = flecs_meta_get_element_ptr(cursor, scope);
+    scope->ops_cur = 0;
+
+    if (parent->elem >= parent->elem_count || (parent->elem < 0)) {
+        char *str = ecs_get_path(cursor->world, parent->type);
+        ecs_err("ecs_meta_elem(%d) out of bounds for collection type "
+            "'%s' (element count is %d)", 
+                parent->elem, str, parent->elem_count);
+        ecs_os_free(str);
         return -1;
     }
     
@@ -52153,37 +52034,36 @@ int ecs_meta_member(
     const char *name)
 {
     if (cursor->depth == 0) {
-        ecs_err("cannot move to member in root scope");
+        ecs_err("cannot move to member in root scope (push first)");
         return -1;
     }
 
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    scope = flecs_meta_cursor_restore_scope(cursor, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    scope = flecs_cursor_restore_scope(cursor, scope);
 
     ecs_hashmap_t *members = scope->members;
     const ecs_world_t *world = cursor->world;
 
     if (!members) {
-        ecs_err("cannot move to member '%s' for non-struct type", name);
+        ecs_err("cannot move to member '%s' for non-struct type '%s'", 
+            name, flecs_errstr(ecs_get_path(world, scope->type)));
         return -1;
     }
 
     const uint64_t *cur_ptr = flecs_name_index_find_ptr(members, name, 0, 0);
     if (!cur_ptr) {
-        char *path = ecs_get_path(world, scope->type);
-        ecs_err("unknown member '%s' for type '%s'", name, path);
-        ecs_os_free(path);
+        ecs_err("unknown member '%s' for type '%s'", 
+            name, flecs_errstr(ecs_get_path(world, scope->type)));
         return -1;
     }
 
-    scope->op_cur = flecs_uto(int32_t, cur_ptr[0]);
+    scope->ops_cur = flecs_uto(int32_t, cur_ptr[0]);
 
     const EcsOpaque *opaque = scope->opaque;
     if (opaque) {
         if (!opaque->ensure_member) {
-            char *str = ecs_get_path(world, scope->type);
-            ecs_err("missing ensure_member for opaque type %s", str);
-            ecs_os_free(str);
+            ecs_err("missing ensure_member for opaque type %s",
+                flecs_errstr(ecs_get_path(world, scope->type)));
         }
     }
 
@@ -52217,8 +52097,8 @@ int ecs_meta_dotmember(
     ecs_meta_cursor_t *cursor,
     const char *name)
 {
-    ecs_meta_scope_t *cur_scope = flecs_meta_cursor_get_scope(cursor);
-    flecs_meta_cursor_restore_scope(cursor, cur_scope);
+    ecs_meta_scope_t *cur_scope = flecs_cursor_get_scope(cursor);
+    flecs_cursor_restore_scope(cursor, cur_scope);
 
     int32_t prev_depth = cursor->depth;
     int dotcount = 0;
@@ -52241,7 +52121,7 @@ int ecs_meta_dotmember(
         dotcount ++;
     }
 
-    cur_scope = flecs_meta_cursor_get_scope(cursor);
+    cur_scope = flecs_cursor_get_scope(cursor);
     if (dotcount) {
         cur_scope->prev_depth = prev_depth;
     }
@@ -52254,240 +52134,94 @@ error:
 int ecs_meta_push(
     ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
     const ecs_world_t *world = cursor->world;
 
+    /* Allow push for primitive scope if it's the root. Useful for scenarios 
+     * where a value always has to be surrounded by { }. */
     if (cursor->depth == 0) {
-        if (!cursor->is_primitive_scope) {
-            bool is_primitive = false;
-            if ((op->kind > EcsOpScope) && (op->count <= 1)) {
-                is_primitive = true;
-            } else if (op->kind == EcsOpOpaque) {
-                const EcsOpaque *t = ecs_get(world, op->type, EcsOpaque);
-                ecs_assert(t != NULL, ECS_INTERNAL_ERROR, NULL);
-                if (ecs_has(world, t->as_type, EcsPrimitive)) {
-                    is_primitive = true;
-                }
-            }
-
-            if ((cursor->is_primitive_scope = is_primitive)) {
-                return 0;
-            }
+        if (!cursor->is_primitive_scope && (op->kind > EcsOpScope)) {
+            cursor->is_primitive_scope = true;
+            return 0;
         }
     }
 
-    void *ptr = flecs_meta_cursor_get_ptr(world, scope);
+    void *ptr = flecs_meta_cursor_get_ptr(world, cursor, scope);
     cursor->depth ++;
     ecs_check(cursor->depth < ECS_META_MAX_SCOPE_DEPTH,
         ECS_INVALID_PARAMETER, NULL);
 
-    ecs_meta_scope_t *next_scope = flecs_meta_cursor_get_scope(cursor);
+    ecs_meta_scope_t *next_scope = flecs_cursor_get_scope(cursor);
+    *next_scope = (ecs_meta_scope_t) {0};
 
-    /* If we're not already in an inline array and this operation is an inline
-     * array, push a frame for the array.
-     * Doing this first ensures that inline arrays take precedence over other
-     * kinds of push operations, such as for a struct element type. */
-    if (!scope->is_inline_array && op->count > 1 && !scope->is_collection) {
-        /* Push a frame just for the element type, with inline_array = true */
-        next_scope[0] = (ecs_meta_scope_t){
-            .ops = op,
-            .op_count = op->op_count,
-            .ptr = scope->ptr,
-            .type = op->type,
-            .is_collection = true,
-            .is_inline_array = true
-        };
+    /* Check if we need to forward to serializer of other type. */
+    if (op->kind == EcsOpForward) {
+        const EcsTypeSerializer *ts = ecs_get(
+            world, op->type, EcsTypeSerializer);
+        ecs_assert(ts != NULL, ECS_INTERNAL_ERROR, NULL);
+        op = ecs_vec_first(&ts->ops);
+    } else if (op->kind == EcsOpOpaqueStruct) {
+        const EcsOpaque *opaque = ecs_get(world, op->type, EcsOpaque);
+        next_scope->opaque = opaque;
 
-        /* With 'is_inline_array' set to true we ensure that we can never push
-         * the same inline array twice */
-        return 0;
+        const EcsTypeSerializer *ts = ecs_get(
+            world, opaque->as_type, EcsTypeSerializer);
+        ecs_assert(ts != NULL, ECS_INTERNAL_ERROR, NULL);
+        op = ecs_vec_first(&ts->ops);
+
+    } else if (op->kind == EcsOpOpaqueVector || op->kind == EcsOpOpaqueArray) {
+        const EcsOpaque *opaque = ecs_get(world, op->type, EcsOpaque);
+        next_scope->opaque = opaque;
+
+        const EcsTypeSerializer *ts = ecs_get(
+            world, opaque->as_type, EcsTypeSerializer);
+        ecs_assert(ts != NULL, ECS_INTERNAL_ERROR, NULL);
+        op = ecs_vec_first(&ts->ops);
+
+        next_scope->is_collection = true;
+        next_scope->is_empty_scope = true;
+        scope->elem = 0;
     }
 
-    /* Operation-specific switch behavior */
-    switch(op->kind) {
+    next_scope->ops = &op[1]; /* op after push */
+    next_scope->ops_count = op->op_count - 1;
+    next_scope->ptr = ptr;
+    next_scope->type = op->type;
+    next_scope->members = op->is.members;
 
-    /* Struct push: this happens when pushing a struct member. */
-    case EcsOpPush: {
-        const EcsOpaque *opaque = scope->opaque;
-        if (opaque) {
-            /* If this is a nested push for an opaque type, push the type of the
-             * element instead of the next operation. This ensures that we won't
-             * use flattened offsets for nested members. */
-            if (flecs_meta_cursor_push_type(
-                world, next_scope, op->type, ptr) != 0) 
-            {
-                goto error;
-            }
+    if (!next_scope->opaque) {
+        if (op->kind == EcsOpPushStruct) {
+            ecs_assert(next_scope->members != NULL, ECS_INTERNAL_ERROR, NULL);
+        } else 
+        if (op->kind == EcsOpPushArray) {
+            next_scope->is_collection = true;
 
-            /* Strip the Push operation since we already pushed */
-            next_scope->members = next_scope->ops[0].members;
-            next_scope->ops = &next_scope->ops[1];
-            next_scope->op_count --;
-            break;
-        }
+            ecs_meta_type_op_t *pop = &op[op->op_count - 1];
+            ecs_assert(pop->kind == EcsOpPop, ECS_INTERNAL_ERROR, NULL);
+            scope->elem = 0;
+            scope->elem_count = pop->elem_size; /* Array count is encoded on pop */
+        } else
+        if (op->kind == EcsOpPushVector) {
+            ecs_vec_t *vec = ptr;
 
-        /* The ops array contains a flattened list for all members and nested
-         * members of a struct, so we can use (ops + 1) to initialize the ops
-         * array of the next scope. */
-        next_scope[0] = (ecs_meta_scope_t) {
-            .ops = &op[1],                /* op after push */
-            .op_count = op->op_count - 1, /* don't include pop */
-            .ptr = scope->ptr,
-            .type = op->type,
-            .members = op->members
-        };
-        break;
-    }
+            next_scope->ptr = vec ? vec->array : NULL;
+            next_scope->is_collection = true;
 
-    /* Array push for an array type. Arrays can be encoded in 2 ways: either by
-     * setting the EcsMember::count member to a value >1, or by specifying an
-     * array type as member type. This is the latter case. */
-    case EcsOpArray: {
-        if (flecs_meta_cursor_push_type(world, next_scope, op->type, ptr) != 0) {
+            scope->elem = 0;
+            scope->elem_count = vec ? vec->count : 0;
+        } else {
             goto error;
         }
-
-        const EcsArray *type_ptr = ecs_get(world, op->type, EcsArray);
-        next_scope->type = type_ptr->type;
-        next_scope->is_collection = true;
-        break;
-    }
-
-    /* Vector push */
-    case EcsOpVector: {
-        next_scope->vector = ptr;
-        if (flecs_meta_cursor_push_type(world, next_scope, op->type, NULL) != 0) {
-            goto error;
-        }
-
-        const EcsVector *type_ptr = ecs_get(world, op->type, EcsVector);
-        next_scope->type = type_ptr->type;
-        next_scope->is_collection = true;
-        break;
-    }
-
-    /* Opaque type push. Depending on the type the opaque type represents the
-     * scope will be pushed as a struct or collection type. The type information
-     * of the as_type is retained, as this is important for type checking and
-     * for nested opaque type support. */
-    case EcsOpOpaque: {
-        const EcsOpaque *type_ptr = ecs_get(world, op->type, EcsOpaque);
-        ecs_entity_t as_type = type_ptr->as_type;
-        const EcsType *mtype_ptr = ecs_get(world, as_type, EcsType);
-
-        /* Check what kind of type the opaque type represents */
-        switch(mtype_ptr->kind) {
-
-        /* Opaque vector support */
-        case EcsVectorType: {
-            const EcsVector *vt = ecs_get(world, type_ptr->as_type, EcsVector);
-            next_scope->type = vt->type;
-
-            /* Push the element type of the vector type */
-            if (flecs_meta_cursor_push_type(
-                world, next_scope, vt->type, NULL) != 0) 
-            {
-                goto error;
-            }
-
-            /* This tracks whether any data was assigned inside the scope. When
-             * the scope is popped, and is_empty_scope is still true, the vector
-             * will be resized to 0. */
-            next_scope->is_empty_scope = true;
-            next_scope->is_collection = true;
-            break;
-        }
-
-        /* Opaque array support */
-        case EcsArrayType: {
-            const EcsArray *at = ecs_get(world, type_ptr->as_type, EcsArray);
-            next_scope->type = at->type;
-
-            /* Push the element type of the array type */
-            if (flecs_meta_cursor_push_type(
-                world, next_scope, at->type, NULL) != 0) 
-            {
-                goto error;
-            }
-
-            /* Arrays are always a fixed size */
-            next_scope->is_empty_scope = false;
-            next_scope->is_collection = true;
-            break;
-        }
-
-        /* Opaque struct support */
-        case EcsStructType:
-            /* Push struct type that represents the opaque type. This ensures 
-             * that the deserializer retains information about members and 
-             * member types, which is necessary for nested opaque types, and 
-             * allows for error checking. */
-            if (flecs_meta_cursor_push_type(
-                world, next_scope, as_type, NULL) != 0) 
-            {
-                goto error;
-            }
-
-            /* Strip push op, since we already pushed */
-            next_scope->members = next_scope->ops[0].members;
-            next_scope->ops = &next_scope->ops[1];
-            next_scope->op_count --;
-            break;
-        
-        case EcsPrimitiveType:
-        case EcsEnumType:
-        case EcsBitmaskType:
-        case EcsOpaqueType:
-        default:
-            break;
-        }
-
-        next_scope->ptr = ptr;
-        next_scope->opaque = type_ptr;
-        break;
-    }
-
-    case EcsOpPop:
-    case EcsOpScope:
-    case EcsOpEnum:
-    case EcsOpBitmask:
-    case EcsOpPrimitive:
-    case EcsOpBool:
-    case EcsOpChar:
-    case EcsOpByte:
-    case EcsOpU8:
-    case EcsOpU16:
-    case EcsOpU32:
-    case EcsOpU64:
-    case EcsOpI8:
-    case EcsOpI16:
-    case EcsOpI32:
-    case EcsOpI64:
-    case EcsOpF32:
-    case EcsOpF64:
-    case EcsOpUPtr:
-    case EcsOpIPtr:
-    case EcsOpString:
-    case EcsOpEntity:
-    case EcsOpId: {
-        char *path = ecs_get_path(world, scope->type);
-        ecs_err("invalid push for type '%s'", path);
-        ecs_os_free(path);
-        goto error;
-    }
-    default:
-        ecs_throw(ECS_INVALID_PARAMETER, "invalid operation");
-    }
-
-    if (scope->is_collection && !scope->opaque) {
-        next_scope->ptr = ECS_OFFSET(next_scope->ptr,
-            scope->elem_cur * get_size(world, scope));
     }
 
     return 0;
-error:
+error: {
+    char *path = ecs_get_path(world, scope->type);
+    ecs_err("cannot open scope for type '%s'", path);
+    ecs_os_free(path);
     return -1;
+}
 }
 
 int ecs_meta_pop(
@@ -52498,65 +52232,61 @@ int ecs_meta_pop(
         return 0;
     }
 
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    scope = flecs_meta_cursor_restore_scope(cursor, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    scope = flecs_cursor_restore_scope(cursor, scope);
     cursor->depth --;
     if (cursor->depth < 0) {
         ecs_err("unexpected end of scope");
         return -1;
     }
 
-    ecs_meta_scope_t *next_scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(next_scope);
+    ecs_meta_scope_t *next_scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(next_scope);
 
-    if (!scope->is_inline_array) {
-        if (op->kind == EcsOpPush) {
-            next_scope->op_cur += op->op_count - 1;
+    if (op->kind == EcsOpPushStruct || op->kind == EcsOpPushArray || 
+        op->kind == EcsOpPushVector)
+    {
+        next_scope->ops_cur += op->op_count - 1;
 
-            /* push + op_count should point to the operation after pop */
-            op = flecs_meta_cursor_get_op(next_scope);
-            ecs_assert(op->kind == EcsOpPop, ECS_INTERNAL_ERROR, NULL);
-        } else if (op->kind == EcsOpArray || op->kind == EcsOpVector) {
-            /* Collection type, nothing else to do */
-        } else if (op->kind == EcsOpOpaque) {
-            const EcsOpaque *opaque = scope->opaque;
-            if (scope->is_collection) {
-                const EcsType *mtype = ecs_get(cursor->world, 
-                    opaque->as_type, EcsType);
-                ecs_assert(mtype != NULL, ECS_INTERNAL_ERROR, NULL);
+        /* push + op_count should point to the operation after pop */
+        op = flecs_cursor_get_op(next_scope);
+        ecs_assert(op->kind == EcsOpPop, ECS_INTERNAL_ERROR, NULL);
 
-                /* When popping an opaque collection type, call resize to make
-                 * sure the vector isn't larger than the number of elements we
-                 * deserialized. 
-                 * If the opaque type represents an array, don't call resize. */
-                if (mtype->kind != EcsArrayType) {
-                    ecs_assert(opaque != NULL, ECS_INTERNAL_ERROR, NULL);
-                    if (!opaque->resize) {
-                        char *str = ecs_get_path(cursor->world, scope->type);
-                        ecs_err("missing resize for opaque type %s", str);
-                        ecs_os_free(str);
-                        return -1;
-                    }
-                    if (scope->is_empty_scope) {
-                        /* If no values were serialized for scope, resize 
-                        * collection to 0 elements. */
-                        ecs_assert(!scope->elem_cur, ECS_INTERNAL_ERROR, NULL);
-                        opaque->resize(scope->ptr, 0);
-                    } else {
-                        /* Otherwise resize collection to the index of the last
-                        * deserialized element + 1 */
-                        opaque->resize(scope->ptr, 
-                            flecs_ito(size_t, scope->elem_cur + 1));
-                    }
-                }
-            } else {
-                /* Opaque struct type, nothing to be done */
-            }
-        } else {
-            /* should not have been able to push if the previous scope was not
-             * a complex or collection type */
-            ecs_assert(false, ECS_INTERNAL_ERROR, NULL);
+    } else if (op->kind == EcsOpForward || op->kind == EcsOpOpaqueStruct || 
+        op->kind == EcsOpOpaqueArray) 
+    {
+        next_scope->ops_cur += op->op_count - 1;
+    } else if (op->kind == EcsOpOpaqueVector) {
+        const EcsOpaque *opaque = scope->opaque;
+
+        /* When popping an opaque collection type, call resize to make
+         * sure the vector isn't larger than the number of elements we
+         * deserialized. If the opaque type represents an array, don't call 
+         * resize. */
+        ecs_assert(opaque != NULL, ECS_INTERNAL_ERROR, NULL);
+
+        if (!opaque->resize) {
+            char *str = ecs_get_path(cursor->world, scope->type);
+            ecs_err("missing resize for opaque type %s", str);
+            ecs_os_free(str);
+            return -1;
         }
+
+        if (scope->is_empty_scope) {
+            /* If no values were serialized for scope, resize 
+             * collection to 0 elements. */
+            opaque->resize(scope->ptr, 0);
+        } else {
+            /* Otherwise resize collection to the index of the last
+             * deserialized element + 1 */
+            opaque->resize(scope->ptr, 
+                flecs_ito(size_t, next_scope->elem + 1));
+        }
+    } else {
+        /* should not have been able to push if the previous scope was not
+         * a complex or collection type */
+        ecs_assert(false, ECS_INTERNAL_ERROR, "invalid operation for pop: %s",
+            flecs_meta_op_kind_str(op->kind));
     }
 
     return 0;
@@ -52565,7 +52295,7 @@ int ecs_meta_pop(
 bool ecs_meta_is_collection(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
     return scope->is_collection;
 }
 
@@ -52576,22 +52306,22 @@ ecs_entity_t ecs_meta_get_type(
         return cursor->scope[0].type;
     }
 
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
     return op->type;
 }
 
 ecs_entity_t ecs_meta_get_unit(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
     ecs_entity_t type = scope->type;
     const EcsStruct *st = ecs_get(cursor->world, type, EcsStruct);
     if (!st) {
         return 0;
     }
 
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
     ecs_member_t *m = ecs_vec_get_t(
         &st->members, ecs_member_t, op->member_index);
 
@@ -52601,22 +52331,22 @@ ecs_entity_t ecs_meta_get_unit(
 const char* ecs_meta_get_member(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
     return op->name;
 }
 
 ecs_entity_t ecs_meta_get_member_id(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
     ecs_entity_t type = scope->type;
     const EcsStruct *st = ecs_get(cursor->world, type, EcsStruct);
     if (!st) {
         return 0;
     }
 
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
     ecs_member_t *m = ecs_vec_get_t(
         &st->members, ecs_member_t, op->member_index);
 
@@ -52753,7 +52483,8 @@ void flecs_meta_conversion_error(
         ecs_err("cursor: out of bounds");
     } else {
         char *path = ecs_get_path(cursor->world, op->type);
-        ecs_err("unsupported conversion from %s to '%s'", from, path);
+        ecs_err("unsupported conversion from %s to '%s' (for %s)", 
+            from, path, flecs_meta_op_kind_str(op->kind));
         ecs_os_free(path);
     }
 }
@@ -52762,9 +52493,9 @@ int ecs_meta_set_bool(
     ecs_meta_cursor_t *cursor,
     bool value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     cases_T_bool(ptr, value);
@@ -52781,18 +52512,20 @@ int ecs_meta_set_bool(
         set_T(ecs_string_t, ptr, result);
         break;
     }
-    case EcsOpOpaque: {
-        const EcsOpaque *ot = ecs_get(cursor->world, op->type, EcsOpaque);
-        if (ot && ot->assign_bool) {
-            ot->assign_bool(ptr, value);
+    case EcsOpOpaqueValue: {
+        const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
+        ecs_assert(opaque != NULL, ECS_INTERNAL_ERROR, NULL);
+        if (opaque->assign_bool) {
+            opaque->assign_bool(ptr, value);
             break;
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpPrimitive:
     case EcsOpF32:
@@ -52812,9 +52545,9 @@ int ecs_meta_set_char(
     ecs_meta_cursor_t *cursor,
     char value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     cases_T_bool(ptr, value);
@@ -52825,11 +52558,9 @@ int ecs_meta_set_char(
         set_T(ecs_string_t, ptr, result);
         break;
     }
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
-        ecs_assert(opaque != NULL, ECS_INVALID_OPERATION, 
-            "entity %s is not an opaque type but serializer thinks so",
-                ecs_get_name(cursor->world, op->type));
+        ecs_assert(opaque != NULL, ECS_INTERNAL_ERROR, NULL);
         if (opaque->assign_char) { /* preferred operation */
             opaque->assign_char(ptr, value);
             break;
@@ -52842,10 +52573,11 @@ int ecs_meta_set_char(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpBitmask:
     case EcsOpPrimitive:
@@ -52874,9 +52606,9 @@ int ecs_meta_set_int(
     ecs_meta_cursor_t *cursor,
     int64_t value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     cases_T_bool(ptr, value);
@@ -52889,11 +52621,9 @@ int ecs_meta_set_int(
         set_T(ecs_string_t, ptr, result);
         break;
     }
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
-        ecs_assert(opaque != NULL, ECS_INVALID_OPERATION, 
-            "entity %s is not an opaque type but serializer thinks so",
-                ecs_get_name(cursor->world, op->type));
+        ecs_assert(opaque != NULL, ECS_INTERNAL_ERROR, NULL);
         if (opaque->assign_int) { /* preferred operation */
             opaque->assign_int(ptr, value);
             break;
@@ -52909,10 +52639,11 @@ int ecs_meta_set_int(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpPrimitive: {
         if(!value) return ecs_meta_set_null(cursor);
@@ -52932,9 +52663,9 @@ int ecs_meta_set_uint(
     ecs_meta_cursor_t *cursor,
     uint64_t value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     cases_T_bool(ptr, value);
@@ -52947,11 +52678,9 @@ int ecs_meta_set_uint(
         set_T(ecs_string_t, ptr, result);
         break;
     }
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
-        ecs_assert(opaque != NULL, ECS_INVALID_OPERATION, 
-            "entity %s is not an opaque type but serializer thinks so",
-                ecs_get_name(cursor->world, op->type));
+        ecs_assert(opaque != NULL, ECS_INTERNAL_ERROR, NULL);
         if (opaque->assign_uint) { /* preferred operation */
             opaque->assign_uint(ptr, value);
             break;
@@ -52967,10 +52696,11 @@ int ecs_meta_set_uint(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpPrimitive:
         if(!value) return ecs_meta_set_null(cursor);
@@ -52989,9 +52719,9 @@ int ecs_meta_set_float(
     ecs_meta_cursor_t *cursor,
     double value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     case EcsOpBool:
@@ -53010,11 +52740,9 @@ int ecs_meta_set_float(
         set_T(ecs_string_t, ptr, result);
         break;
     }
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
-        ecs_assert(opaque != NULL, ECS_INVALID_OPERATION, 
-            "entity %s is not an opaque type but serializer thinks so",
-                ecs_get_name(cursor->world, op->type));
+        ecs_assert(opaque != NULL, ECS_INTERNAL_ERROR, NULL);
         if (opaque->assign_float) { /* preferred operation */
             opaque->assign_float(ptr, value);
             break;
@@ -53034,10 +52762,11 @@ int ecs_meta_set_float(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpPrimitive:
         flecs_meta_conversion_error(cursor, op, "float");
@@ -53095,9 +52824,9 @@ int ecs_meta_set_value(
     } else if (mt->kind == EcsBitmaskType) {
         return ecs_meta_set_int(cursor, *(uint32_t*)value->ptr);
     } else {
-        ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-        ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-        void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+        ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+        ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+        void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
         if (op->type != value->type) {
             char *type_str = ecs_get_path(cursor->world, value->type);
             flecs_meta_conversion_error(cursor, op, type_str);
@@ -53210,9 +52939,9 @@ int ecs_meta_set_string(
     ecs_meta_cursor_t *cursor,
     const char *value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     case EcsOpI8:
@@ -53234,11 +52963,15 @@ int ecs_meta_set_string(
         }
     case EcsOpEnum:
     case EcsOpBitmask:
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
+    case EcsOpOpaqueValue:
     case EcsOpPrimitive:
     case EcsOpBool:
     case EcsOpChar:
@@ -53354,7 +53087,7 @@ int ecs_meta_set_string(
     case EcsOpPop:
         ecs_err("excess element '%s' in scope", value);
         goto error;
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
         ecs_assert(opaque != NULL, ECS_INVALID_OPERATION, 
             "entity %s is not an opaque type but serializer thinks so",
@@ -53376,10 +53109,10 @@ int ecs_meta_set_string(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
-    case EcsOpScope:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
+    case EcsOpForward:
     case EcsOpPrimitive:
         ecs_err("unsupported conversion from string '%s' to '%s'",
             value, flecs_meta_op_kind_str(op->kind));
@@ -53398,9 +53131,9 @@ int ecs_meta_set_string_literal(
     ecs_meta_cursor_t *cursor,
     const char *value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     if (!value) {
         return -1;
@@ -53417,11 +53150,15 @@ int ecs_meta_set_string_literal(
         set_T(ecs_char_t, ptr, value[1]);
         break;
 
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -53470,9 +53207,9 @@ int ecs_meta_set_entity(
     ecs_meta_cursor_t *cursor,
     ecs_entity_t value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     case EcsOpEntity:
@@ -53487,7 +53224,7 @@ int ecs_meta_set_entity(
         set_T(ecs_string_t, ptr, result);
         break;
     }   
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
         if (opaque && opaque->assign_entity) {
             opaque->assign_entity(ptr, 
@@ -53496,10 +53233,14 @@ int ecs_meta_set_entity(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -53535,9 +53276,9 @@ int ecs_meta_set_id(
     ecs_meta_cursor_t *cursor,
     ecs_entity_t value)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
 
     switch(op->kind) {
     case EcsOpId:
@@ -53549,7 +53290,7 @@ int ecs_meta_set_id(
         set_T(ecs_string_t, ptr, result);
         break;
     }
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
         if (opaque && opaque->assign_id) {
             opaque->assign_id(ptr, 
@@ -53558,10 +53299,14 @@ int ecs_meta_set_id(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -53597,15 +53342,15 @@ error:
 int ecs_meta_set_null(
     ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch (op->kind) {
     case EcsOpString:
         ecs_os_free(*(char**)ptr);
         set_T(ecs_string_t, ptr, NULL);
         break;
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         const EcsOpaque *ot = ecs_get(cursor->world, op->type, EcsOpaque);
         if (ot && ot->assign_null) {
             ot->assign_null(ptr);
@@ -53613,10 +53358,14 @@ int ecs_meta_set_null(
         }
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -53653,9 +53402,9 @@ error:
 bool ecs_meta_get_bool(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch(op->kind) {
     case EcsOpBool: return *(ecs_bool_t*)ptr;
     case EcsOpI8:   return *(ecs_i8_t*)ptr != 0;
@@ -53677,11 +53426,15 @@ bool ecs_meta_get_bool(
     case EcsOpBitmask: return *(ecs_u32_t*)ptr != 0;
     case EcsOpEntity: return *(ecs_entity_t*)ptr != 0;
     case EcsOpId: return *(ecs_id_t*)ptr != 0;
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpPrimitive:
         ecs_throw(ECS_INVALID_PARAMETER, "invalid element for bool");
@@ -53698,17 +53451,21 @@ error:
 char ecs_meta_get_char(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch(op->kind) {
     case EcsOpChar: 
         return *(ecs_char_t*)ptr != 0;
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -53741,9 +53498,9 @@ error:
 int64_t ecs_meta_get_int(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch(op->kind) {
     case EcsOpBool: return *(const ecs_bool_t*)ptr;
     case EcsOpI8:   return *(const ecs_i8_t*)ptr;
@@ -53771,11 +53528,15 @@ int64_t ecs_meta_get_int(
         ecs_throw(ECS_INVALID_PARAMETER,
             "invalid conversion from id to int");
         break;
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpPrimitive:
         ecs_throw(ECS_INVALID_PARAMETER, "invalid element for int");
@@ -53791,9 +53552,9 @@ error:
 uint64_t ecs_meta_get_uint(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch(op->kind) {
     case EcsOpBool: return *(ecs_bool_t*)ptr;
     case EcsOpI8:   return flecs_ito(uint64_t, *(const ecs_i8_t*)ptr);
@@ -53815,11 +53576,15 @@ uint64_t ecs_meta_get_uint(
     case EcsOpBitmask: return *(const ecs_u32_t*)ptr;
     case EcsOpEntity: return *(const ecs_entity_t*)ptr;
     case EcsOpId: return *(const ecs_id_t*)ptr;
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpPrimitive:
         ecs_throw(ECS_INVALID_PARAMETER, "invalid element for uint");
@@ -53864,11 +53629,15 @@ double flecs_meta_to_float(
         ecs_throw(ECS_INVALID_PARAMETER,
             "invalid conversion from id to float");
         break;
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpPrimitive:
         ecs_throw(ECS_INVALID_PARAMETER, "invalid element for float");
@@ -53884,9 +53653,9 @@ error:
 double ecs_meta_get_float(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     return flecs_meta_to_float(op->kind, ptr);
 }
 
@@ -53916,12 +53685,12 @@ static int ecs_meta_get_string_member_from_opaque(
 const char* ecs_meta_get_string(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch(op->kind) {
     case EcsOpString: return *(const char**)ptr;
-    case EcsOpOpaque: {
+    case EcsOpOpaqueValue: {
         /* If opaque type happens to map to a string, retrieve it. 
          Otherwise, fallback to default case (error). */
         const EcsOpaque *opaque = ecs_get(cursor->world, op->type, EcsOpaque);
@@ -53941,10 +53710,14 @@ const char* ecs_meta_get_string(
         /* Not a compatible opaque type, so fall through */
     }
     /* fall through */
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpPop:
+    case EcsOpForward:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -53977,16 +53750,20 @@ error:
 ecs_entity_t ecs_meta_get_entity(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch(op->kind) {
     case EcsOpEntity: return *(ecs_entity_t*)ptr;
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -54018,17 +53795,21 @@ error:
 ecs_entity_t ecs_meta_get_id(
     const ecs_meta_cursor_t *cursor)
 {
-    ecs_meta_scope_t *scope = flecs_meta_cursor_get_scope(cursor);
-    ecs_meta_type_op_t *op = flecs_meta_cursor_get_op(scope);
-    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, scope);
+    ecs_meta_scope_t *scope = flecs_cursor_get_scope(cursor);
+    ecs_meta_type_op_t *op = flecs_cursor_get_op(scope);
+    void *ptr = flecs_meta_cursor_get_ptr(cursor->world, cursor, scope);
     switch(op->kind) {
     case EcsOpEntity: return *(ecs_id_t*)ptr; /* Entities are valid ids */
     case EcsOpId: return *(ecs_id_t*)ptr;
-    case EcsOpArray:
-    case EcsOpVector:
-    case EcsOpOpaque:
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpPushArray:
+    case EcsOpPushVector:
     case EcsOpPop:
+    case EcsOpForward:
+    case EcsOpOpaqueValue:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpScope:
     case EcsOpEnum:
     case EcsOpBitmask:
@@ -54825,8 +54606,10 @@ void ecs_meta_dtor_serialized(
     
     for (i = 0; i < count; i ++) {
         ecs_meta_type_op_t *op = &ops[i];
-        if (op->members) {
-            flecs_name_index_free(op->members);
+        if (op->kind == EcsOpPushStruct) {
+            if (op->is.members) {
+                flecs_name_index_free(op->is.members);
+            }
         }
     }
 
@@ -54843,8 +54626,10 @@ static ECS_COPY(EcsTypeSerializer, dst, src, {
     
     for (o = 0; o < count; o ++) {
         ecs_meta_type_op_t *op = &ops[o];
-        if (op->members) {
-            op->members = flecs_name_index_copy(op->members);
+        if (op->kind == EcsOpPushStruct) {
+            if (op->is.members) {
+                op->is.members = flecs_name_index_copy(op->is.members);
+            }
         }
     }
 })
@@ -55175,10 +54960,6 @@ void flecs_set_struct_member(
     member->unit = unit;
     member->offset = offset;
 
-    if (!count) {
-        member->count = 1;
-    }
-
     ecs_os_strset(ECS_CONST_CAST(char**, &member->name), name);
 
     if (ranges) {
@@ -55313,7 +55094,7 @@ int flecs_add_member_to_struct(
                 return -1;
             }
 
-            member_size *= elem->count;
+            member_size *= elem->count ? elem->count : 1;
             size = ECS_ALIGN(size, member_alignment);
             elem->size = member_size;
             elem->offset = size;
@@ -55363,7 +55144,7 @@ int flecs_add_member_to_struct(
             return -1;
         }
 
-        member_size *= elem->count;
+        member_size *= elem->count ? elem->count : 1;
         elem->size = member_size;
         size = elem->offset + member_size;
 
@@ -55401,7 +55182,7 @@ int flecs_add_member_to_struct(
         ecs_assert(type_mbr != NULL, ECS_INTERNAL_ERROR, NULL);
 
         type_mbr->type = type;
-        type_mbr->count = 1;
+        type_mbr->count = 0;
 
         ecs_modified(world, type, EcsMember);
     }
@@ -56105,14 +55886,6 @@ void flecs_unit_quantity_monitor(ecs_iter_t *it) {
     }
 }
 
-static
-void flecs_member_on_set(ecs_iter_t *it) {
-    EcsMember *mbr = ecs_field(it, EcsMember, 0);
-    if (!mbr->count) {
-        mbr->count = 1;
-    }
-}
-
 void FlecsMetaImport(
     ecs_world_t *world)
 {
@@ -56258,7 +56031,6 @@ void FlecsMetaImport(
 
     ecs_set_hooks(world, EcsMember, { 
         .ctor = flecs_default_ctor,
-        .on_set = flecs_member_on_set
     });
 
     ecs_set_hooks(world, EcsMemberRanges, { 
@@ -56849,7 +56621,7 @@ void flecs_rtt_init_default_hooks_struct(
         if (ctor_hook_required) {
             ecs_rtt_call_data_t *ctor_data =
                 ecs_vec_append_t(NULL, &rtt_ctx->vctor, ecs_rtt_call_data_t);
-            ctor_data->count = m->count;
+            ctor_data->count = m->count ? m->count : 1;
             ctor_data->offset = m->offset;
             ctor_data->type_info = member_ti;
             if (member_ti->hooks.ctor) {
@@ -56861,7 +56633,7 @@ void flecs_rtt_init_default_hooks_struct(
         if (dtor_hook_required && member_ti->hooks.dtor) {
             ecs_rtt_call_data_t *dtor_data =
                 ecs_vec_append_t(NULL, &rtt_ctx->vdtor, ecs_rtt_call_data_t);
-            dtor_data->count = m->count;
+            dtor_data->count = m->count ? m->count : 1;
             dtor_data->offset = m->offset;
             dtor_data->type_info = member_ti;
             dtor_data->hook.xtor = member_ti->hooks.dtor;
@@ -56871,7 +56643,7 @@ void flecs_rtt_init_default_hooks_struct(
                 ecs_vec_append_t(NULL, &rtt_ctx->vmove, ecs_rtt_call_data_t);
             move_data->offset = m->offset;
             move_data->type_info = member_ti;
-            move_data->count = m->count;
+            move_data->count = m->count ? m->count : 1;
             if (member_ti->hooks.move) {
                 move_data->hook.move = member_ti->hooks.move;
             } else {
@@ -56883,7 +56655,7 @@ void flecs_rtt_init_default_hooks_struct(
                 ecs_vec_append_t(NULL, &rtt_ctx->vcopy, ecs_rtt_call_data_t);
             copy_data->offset = m->offset;
             copy_data->type_info = member_ti;
-            copy_data->count = m->count;
+            copy_data->count = m->count ? m->count : 1;
             if (member_ti->hooks.copy) {
                 copy_data->hook.copy = member_ti->hooks.copy;
             } else {
@@ -57216,6 +56988,7 @@ void flecs_rtt_vector_copy(
     for (i = 0; i < count; i++) {
         const ecs_vec_t *src_vec = ECS_ELEM(src_ptr, type_info->size, i);
         ecs_vec_t *dst_vec = ECS_ELEM(dst_ptr, type_info->size, i);
+        ecs_vec_init_if(dst_vec, rtt_ctx->type_info->size);
         int32_t src_count = ecs_vec_count(src_vec);
         int32_t dst_count = ecs_vec_count(dst_vec);
         if (dtor && dst_count) {
@@ -57484,11 +57257,10 @@ ecs_meta_type_op_t* flecs_meta_ops_add(ecs_vec_t *ops, ecs_meta_type_op_kind_t k
     ecs_meta_type_op_t *op = ecs_vec_append_t(NULL, ops, ecs_meta_type_op_t);
     op->kind = kind;
     op->offset = 0;
-    op->count = 1;
     op->op_count = 1;
     op->size = 0;
     op->name = NULL;
-    op->members = NULL;
+    op->is.members = NULL;
     op->type = 0;
     op->member_index = 0;
     return op;
@@ -57556,50 +57328,99 @@ int flecs_meta_serialize_bitmask(
 }
 
 static
-int flecs_meta_serialize_array(
+int flecs_meta_serialize_array_inline(
     ecs_world_t *world,
-    ecs_entity_t type,
+    ecs_entity_t elem_type,
+    int32_t count,
     ecs_size_t offset,
     ecs_vec_t *ops)
 {
-    (void)world;
+    int32_t first = ecs_vec_count(ops);
 
-    ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpArray);
-    op->offset = offset;
-    op->type = type;
-    op->size = flecs_meta_type_size(world, type);
+    {
+        ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpPushArray);
+        op->type = elem_type;
+        op->size = flecs_meta_type_size(world, elem_type) * count;
+        op->elem_size = flecs_meta_type_size(world, elem_type);
+        op->offset = offset;
+    }
+
+    if (flecs_meta_serialize_type(world, elem_type, 0, ops) != 0) {
+        return -1;
+    }
+
+    {
+        ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpPop);
+        op->type = elem_type;
+        op->offset = 0;
+        op->elem_size = count;
+    }
+
+    flecs_meta_ops_get(ops, first)->op_count = ecs_vec_count(ops) - first;
+
     return 0;
 }
 
 static
-int flecs_meta_serialize_array_component(
+int flecs_meta_serialize_array_type(
     ecs_world_t *world,
     ecs_entity_t type,
     ecs_vec_t *ops)
 {
     const EcsArray *ptr = ecs_get(world, type, EcsArray);
     if (!ptr) {
+        return -1;
+    }
+
+    return flecs_meta_serialize_array_inline(
+        world, ptr->type, ptr->count, 0, ops);
+}
+
+static
+int flecs_meta_serialize_vector_type(
+    ecs_world_t *world,
+    ecs_entity_t type,
+    ecs_vec_t *ops)
+{
+    const EcsVector *ptr = ecs_get(world, type, EcsVector);
+    if (!ptr) {
         return -1; /* Should never happen, will trigger internal error */
+    }
+
+    int32_t first = ecs_vec_count(ops);
+
+    {
+        ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpPushVector);
+        op->offset = 0;
+        op->type = ptr->type;
+        op->size = flecs_meta_type_size(world, type);
+        op->elem_size = flecs_meta_type_size(world, ptr->type);
     }
 
     if (flecs_meta_serialize_type(world, ptr->type, 0, ops) != 0) {
         return -1;
     }
 
-    ecs_meta_type_op_t *first = ecs_vec_first(ops);
-    first->count = ptr->count;
+    {
+        ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpPop);
+        op->offset = 0;
+        op->type = ptr->type;
+    }
+
+    flecs_meta_ops_get(ops, first)->op_count = ecs_vec_count(ops) - first;
+
     return 0;
 }
 
 static
-int flecs_meta_serialize_vector(
+int flecs_meta_serialize_forward(
     ecs_world_t *world,
     ecs_entity_t type,
     ecs_size_t offset,
     ecs_vec_t *ops)
 {
     (void)world;
-    ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpVector);
+    ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpForward);
     op->offset = offset;
     op->type = type;
     op->size = flecs_meta_type_size(world, type);
@@ -57607,17 +57428,33 @@ int flecs_meta_serialize_vector(
 }
 
 static
-int flecs_meta_serialize_custom_type(
+int flecs_meta_serialize_opaque_type(
     ecs_world_t *world,
     ecs_entity_t type,
     ecs_size_t offset,
     ecs_vec_t *ops)
 {
     (void)world;
-    ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpOpaque);
+    const EcsOpaque *o = ecs_get(world, type, EcsOpaque);
+    ecs_assert(o != NULL, ECS_INTERNAL_ERROR, NULL);
+    const EcsType *t = ecs_get(world, o->as_type, EcsType);
+    ecs_assert(o != NULL, ECS_INTERNAL_ERROR, 
+        "missing reflection for Opaque::as_type");
+
+    ecs_meta_type_op_kind_t kind = EcsOpOpaqueValue;
+    if (t->kind == EcsArrayType) {
+        kind = EcsOpOpaqueArray;
+    } else if (t->kind == EcsVectorType) {
+        kind = EcsOpOpaqueVector;
+    } else if (t->kind == EcsStructType) {
+        kind = EcsOpOpaqueStruct;
+    }
+
+    ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, kind);
     op->offset = offset;
     op->type = type;
     op->size = flecs_meta_type_size(world, type);
+    op->is.opaque = o->serialize;
     return 0;
 }
 
@@ -57632,7 +57469,7 @@ int flecs_meta_serialize_struct(
     ecs_assert(ptr != NULL, ECS_INTERNAL_ERROR, NULL);
 
     int32_t cur, first = ecs_vec_count(ops);
-    ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpPush);
+    ecs_meta_type_op_t *op = flecs_meta_ops_add(ops, EcsOpPushStruct);
     op->offset = offset;
     op->type = type;
     op->size = flecs_meta_type_size(world, type);
@@ -57642,7 +57479,7 @@ int flecs_meta_serialize_struct(
 
     ecs_hashmap_t *member_index = NULL;
     if (count) {        
-        op->members = member_index = flecs_name_index_new(
+        op->is.members = member_index = flecs_name_index_new(
             world, &world->allocator);
     }
 
@@ -57650,22 +57487,32 @@ int flecs_meta_serialize_struct(
         ecs_member_t *member = &members[i];
 
         cur = ecs_vec_count(ops);
-        if (flecs_meta_serialize_type(world, member->type, offset + member->offset, ops) != 0) {
-            continue;
-        }
 
-        op = flecs_meta_ops_get(ops, cur);
-        if (!op->type) {
-            op->type = member->type;
-        }
+        if (member->count >= 1) {
+            if (flecs_meta_serialize_array_inline(
+                world, member->type, member->count, member->offset, ops))
+            {
+                continue;
+            }
 
-        if (op->count <= 1) {
-            op->count = member->count;
+            op = flecs_meta_ops_get(ops, cur);
+        } else {
+            if (flecs_meta_serialize_type(
+                world, member->type, member->offset, ops)) 
+            {
+                continue;
+            }
+
+            op = flecs_meta_ops_get(ops, cur);
+            if (!op->type) {
+                op->type = member->type;
+            }
+
+            op->op_count = ecs_vec_count(ops) - cur;
         }
 
         const char *member_name = member->name;
         op->name = member_name;
-        op->op_count = ecs_vec_count(ops) - cur;
         op->member_index = i;
 
         flecs_name_index_ensure(
@@ -57676,6 +57523,7 @@ int flecs_meta_serialize_struct(
     ecs_meta_type_op_t *pop = flecs_meta_ops_add(ops, EcsOpPop);
     pop->type = type;
     flecs_meta_ops_get(ops, first)->op_count = ecs_vec_count(ops) - first;
+
     return 0;
 }
 
@@ -57699,33 +57547,12 @@ int flecs_meta_serialize_type(
     case EcsEnumType: return flecs_meta_serialize_enum(world, type, offset, ops);
     case EcsBitmaskType: return flecs_meta_serialize_bitmask(world, type, offset, ops);
     case EcsStructType: return flecs_meta_serialize_struct(world, type, offset, ops);
-    case EcsArrayType: return flecs_meta_serialize_array(world, type, offset, ops);
-    case EcsVectorType: return flecs_meta_serialize_vector(world, type, offset, ops);
-    case EcsOpaqueType: return flecs_meta_serialize_custom_type(world, type, offset, ops);
+    case EcsArrayType: return flecs_meta_serialize_forward(world, type, offset, ops);
+    case EcsVectorType: return flecs_meta_serialize_forward(world, type, offset, ops);
+    case EcsOpaqueType: return flecs_meta_serialize_opaque_type(world, type, offset, ops);
     }
 
     return 0;
-}
-
-static
-int flecs_meta_serialize_component(
-    ecs_world_t *world,
-    ecs_entity_t type,
-    ecs_vec_t *ops)
-{
-    const EcsType *ptr = ecs_get(world, type, EcsType);
-    if (!ptr) {
-        char *path = ecs_get_path(world, type);
-        ecs_err("missing EcsType for type %s'", path);
-        ecs_os_free(path);
-        return -1;
-    }
-
-    if (ptr->kind == EcsArrayType) {
-        return flecs_meta_serialize_array_component(world, type, ops);
-    } else {
-        return flecs_meta_serialize_type(world, type, 0, ops);
-    }
 }
 
 void ecs_meta_type_serialized_init(
@@ -57735,19 +57562,79 @@ void ecs_meta_type_serialized_init(
 
     int i, count = it->count;
     for (i = 0; i < count; i ++) {
-        ecs_entity_t e = it->entities[i];
+        ecs_entity_t type = it->entities[i];
         ecs_vec_t ops;
         ecs_vec_init_t(NULL, &ops, ecs_meta_type_op_t, 0);
-        flecs_meta_serialize_component(world, e, &ops);
 
-        EcsTypeSerializer *ptr = ecs_ensure(
-            world, e, EcsTypeSerializer);
+        const EcsType *type_ptr = ecs_get(world, type, EcsType);
+        if (!type_ptr) {
+            char *path = ecs_get_path(world, type);
+            ecs_err("missing EcsType for type %s'", path);
+            ecs_os_free(path);
+            continue;
+        }
+
+        if (type_ptr->kind == EcsArrayType) {
+            flecs_meta_serialize_array_type(world, type, &ops);
+        } else if (type_ptr->kind == EcsVectorType) {
+            flecs_meta_serialize_vector_type(world, type, &ops);
+        } else {
+            flecs_meta_serialize_type(world, type, 0, &ops);
+        }
+
+        EcsTypeSerializer *ptr = ecs_ensure(world, type, EcsTypeSerializer);
         if (ptr->ops.array) {
             ecs_meta_dtor_serialized(ptr);
         }
 
+        ptr->kind = type_ptr->kind;
         ptr->ops = ops;
     }
+}
+
+char* ecs_meta_serializer_to_str(
+    ecs_world_t *world,
+    ecs_entity_t type)
+{
+    const EcsTypeSerializer *ptr = ecs_get(
+        world, type, EcsTypeSerializer);
+    if (!ptr) {
+        return NULL;
+    }
+
+    ecs_strbuf_t buf = ECS_STRBUF_INIT;
+    ecs_meta_type_op_t *ops = ecs_vec_first(&ptr->ops);
+    int32_t i, count = ecs_vec_count(&ptr->ops);
+    for (i = 0; i < count; i ++) {
+        ecs_meta_type_op_t *op = &ops[i];
+        const char *kind_str = flecs_meta_op_kind_str(op->kind);
+        ecs_strbuf_append(&buf, "%s", kind_str);
+        ecs_strbuf_append(&buf, "%*s", 10 - ecs_os_strlen(kind_str), " ");
+
+        if (op->type) {
+            char *type = ecs_id_str(world, op->type);
+            ecs_strbuf_append(&buf, "%s ", type);
+            ecs_os_free(type);
+        }
+
+        if (op->name) {
+            ecs_strbuf_append(&buf, "%s: ", op->name);
+        }
+
+        ecs_strbuf_appendstr(&buf, "{ ");
+
+        ecs_strbuf_append(&buf, "offset: %d, size: %d ", 
+            op->offset, op->size);
+
+        ecs_strbuf_append(&buf, ", op_count = %d ", 
+            op->op_count);
+
+        ecs_strbuf_appendstr(&buf, "}");
+
+        ecs_strbuf_appendlit(&buf, "\n");
+    }
+
+    return ecs_strbuf_get(&buf);
 }
 
 #endif
@@ -64306,7 +64193,6 @@ int flecs_expr_ser_type_ops(
     int32_t op_count,
     const void *base, 
     ecs_strbuf_t *str,
-    int32_t in_array,
     bool is_expr);
 
 static
@@ -64402,94 +64288,6 @@ error:
     return -1;
 }
 
-/* Serialize elements of a contiguous array */
-static
-int expr_ser_elements(
-    const ecs_world_t *world,
-    ecs_meta_type_op_t *ops, 
-    int32_t op_count,
-    const void *base, 
-    int32_t elem_count, 
-    int32_t elem_size,
-    ecs_strbuf_t *str,
-    bool is_array)
-{
-    ecs_strbuf_list_push(str, "[", ", ");
-
-    const void *ptr = base;
-
-    int i;
-    for (i = 0; i < elem_count; i ++) {
-        ecs_strbuf_list_next(str);
-        if (flecs_expr_ser_type_ops(
-            world, ops, op_count, ptr, str, is_array, true)) 
-        {
-            return -1;
-        }
-        ptr = ECS_OFFSET(ptr, elem_size);
-    }
-
-    ecs_strbuf_list_pop(str, "]");
-
-    return 0;
-}
-
-static
-int expr_ser_type_elements(
-    const ecs_world_t *world,
-    ecs_entity_t type, 
-    const void *base, 
-    int32_t elem_count, 
-    ecs_strbuf_t *str,
-    bool is_array)
-{
-    const EcsTypeSerializer *ser = ecs_get(
-        world, type, EcsTypeSerializer);
-    ecs_assert(ser != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    const EcsComponent *comp = ecs_get(world, type, EcsComponent);
-    ecs_assert(comp != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    ecs_meta_type_op_t *ops = ecs_vec_first_t(&ser->ops, ecs_meta_type_op_t);
-    int32_t op_count = ecs_vec_count(&ser->ops);
-    return expr_ser_elements(
-        world, ops, op_count, base, elem_count, comp->size, str, is_array);
-}
-
-/* Serialize array */
-static
-int expr_ser_array(
-    const ecs_world_t *world,
-    ecs_meta_type_op_t *op, 
-    const void *ptr, 
-    ecs_strbuf_t *str) 
-{
-    const EcsArray *a = ecs_get(world, op->type, EcsArray);
-    ecs_assert(a != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    return expr_ser_type_elements(
-        world, a->type, ptr, a->count, str, true);
-}
-
-/* Serialize vector */
-static
-int expr_ser_vector(
-    const ecs_world_t *world,
-    ecs_meta_type_op_t *op, 
-    const void *base, 
-    ecs_strbuf_t *str) 
-{
-    const ecs_vec_t *value = base;
-    const EcsVector *v = ecs_get(world, op->type, EcsVector);
-    ecs_assert(v != NULL, ECS_INTERNAL_ERROR, NULL);
-
-    int32_t count = ecs_vec_count(value);
-    void *array = ecs_vec_first(value);
-
-    /* Serialize contiguous buffer of vector */
-    return expr_ser_type_elements(world, v->type, array, count, str, false);
-}
-
 /* Forward serialization to the different type kinds */
 static
 int flecs_expr_ser_type_op(
@@ -64502,7 +64300,10 @@ int flecs_expr_ser_type_op(
     ecs_assert(ptr != NULL, ECS_INVALID_PARAMETER, NULL);
 
     switch(op->kind) {
-    case EcsOpPush:
+    case EcsOpPushStruct:
+    case EcsOpOpaqueStruct:
+    case EcsOpOpaqueArray:
+    case EcsOpOpaqueVector:
     case EcsOpPop:
         /* Should not be parsed as single op */
         ecs_throw(ECS_INVALID_PARAMETER, NULL);
@@ -64514,16 +64315,6 @@ int flecs_expr_ser_type_op(
         break;
     case EcsOpBitmask:
         if (flecs_expr_ser_bitmask(world, op, ECS_OFFSET(ptr, op->offset), str)) {
-            goto error;
-        }
-        break;
-    case EcsOpArray:
-        if (expr_ser_array(world, op, ECS_OFFSET(ptr, op->offset), str)) {
-            goto error;
-        }
-        break;
-    case EcsOpVector:
-        if (expr_ser_vector(world, op, ECS_OFFSET(ptr, op->offset), str)) {
             goto error;
         }
         break;
@@ -64547,7 +64338,7 @@ int flecs_expr_ser_type_op(
     case EcsOpEntity:
     case EcsOpId:
     case EcsOpString:
-    case EcsOpOpaque:
+    case EcsOpOpaqueValue:
         if (flecs_expr_ser_primitive(world, flecs_expr_op_to_primitive_kind(op->kind), 
             ECS_OFFSET(ptr, op->offset), str, is_expr))
         {
@@ -64565,6 +64356,70 @@ error:
     return -1;
 }
 
+static
+int flecs_expr_ser_array(
+    const ecs_world_t *world,
+    ecs_meta_type_op_t *ops,
+    int32_t op_count,
+    const void *array,
+    int32_t elem_size,
+    int32_t count,
+    ecs_strbuf_t *str,
+    bool is_expr)
+{
+    ecs_strbuf_list_push(str, "[", ", ");
+
+    int32_t i;
+    for (i = 0; i < count; i ++) {
+        ecs_strbuf_list_next(str);
+        void *ptr = ECS_ELEM(array, elem_size, i);
+        flecs_expr_ser_type_ops(world, ops, op_count, ptr, str, is_expr);
+    }
+
+    ecs_strbuf_list_pop(str, "]");
+
+    return 0;
+}
+
+static
+int flecs_expr_ser_struct(
+    const ecs_world_t *world,
+    ecs_meta_type_op_t *ops,
+    int32_t op_count,
+    const void *base,
+    ecs_strbuf_t *str,
+    bool is_expr)
+{
+    ecs_strbuf_list_push(str, "{", ", ");
+
+    if (flecs_expr_ser_type_ops(world, ops, op_count, base, str, is_expr)) {
+        return -1;
+    }
+
+    ecs_strbuf_list_pop(str, "}");
+
+    return 0;
+}
+
+static
+int flecs_expr_ser_forward(
+    const ecs_world_t *world,
+    ecs_entity_t type,
+    const void *base,
+    ecs_strbuf_t *str,
+    bool is_expr)
+{
+    const EcsTypeSerializer *ts = ecs_get(world, type, EcsTypeSerializer);
+    if (!ts) {
+        ecs_err("missing type serializer for '%s'", 
+            flecs_errstr(ecs_get_path(world, type)));
+        return -1;
+    }
+
+    return flecs_expr_ser_type_ops(world, ecs_vec_first(&ts->ops), 
+        ecs_vec_count(&ts->ops), base, str, is_expr);
+}
+
 /* Iterate over a slice of the type ops array */
 static
 int flecs_expr_ser_type_ops(
@@ -64573,43 +64428,63 @@ int flecs_expr_ser_type_ops(
     int32_t op_count,
     const void *base,
     ecs_strbuf_t *str,
-    int32_t in_array,
     bool is_expr) 
 {
     for (int i = 0; i < op_count; i ++) {
         ecs_meta_type_op_t *op = &ops[i];
+        const void *ptr = ECS_OFFSET(base, op->offset);
 
-        if (in_array <= 0) {
-            if (op->name) {
-                ecs_strbuf_list_next(str);
-                ecs_strbuf_append(str, "%s: ", op->name);
-            }
-
-            int32_t elem_count = op->count;
-            if (elem_count > 1) {
-                /* Serialize inline array */
-                if (expr_ser_elements(world, op, op->op_count, base,
-                    elem_count, op->size, str, true))
-                {
-                    return -1;
-                }
-
-                i += op->op_count - 1;
-                continue;
-            }
+        if (op->name) {
+            ecs_strbuf_list_next(str);
+            ecs_strbuf_append(str, "%s: ", op->name);
         }
 
         switch(op->kind) {
-        case EcsOpPush:
-            ecs_strbuf_list_push(str, "{", ", ");
-            in_array --;
+        case EcsOpPushStruct: {
+            if (flecs_expr_ser_struct(world, &op[1], op->op_count - 2, 
+                ECS_OFFSET(base, op->offset), str, is_expr))
+            {
+                goto error;
+            }
+
+            i += op->op_count - 1;
             break;
+        }
+        case EcsOpPushArray: {
+            if (flecs_expr_ser_array(world, &op[1], op->op_count - 2, ptr, 
+                op->elem_size, ecs_meta_op_get_elem_count(op, ptr), str, 
+                is_expr))
+            {
+                goto error;
+            }
+
+            i += op->op_count - 1;
+            break;
+        }
+        case EcsOpPushVector: {
+            ecs_vec_t *vec = ECS_OFFSET(base, op->offset);
+
+            if (flecs_expr_ser_array(world, &op[1], op->op_count - 2, 
+                vec->array, op->elem_size, vec->count, str, is_expr))
+            {
+                goto error;
+            }
+
+            i += op->op_count - 1;
+            break;
+        }
+        case EcsOpForward: {
+            if (flecs_expr_ser_forward(world, op->type, 
+                ECS_OFFSET(base, op->offset), str, is_expr))
+            {
+                goto error;
+            }
+            break;
+        }
         case EcsOpPop:
-            ecs_strbuf_list_pop(str, "}");
-            in_array ++;
+            /* Should be skipped by push instruction */
+            ecs_abort(ECS_INTERNAL_ERROR, "EcsOpPop without EcsOpPush");
             break;
-        case EcsOpArray:
-        case EcsOpVector:
         case EcsOpEnum:
         case EcsOpBitmask:
         case EcsOpScope:
@@ -64632,7 +64507,7 @@ int flecs_expr_ser_type_ops(
         case EcsOpEntity:
         case EcsOpId:
         case EcsOpString:
-        case EcsOpOpaque:
+        case EcsOpOpaqueValue:
             if (flecs_expr_ser_type_op(world, op, base, str, is_expr)) {
                 goto error;
             }
@@ -64658,7 +64533,7 @@ int flecs_expr_ser_type(
 {
     ecs_meta_type_op_t *ops = ecs_vec_first_t(v_ops, ecs_meta_type_op_t);
     int32_t count = ecs_vec_count(v_ops);
-    return flecs_expr_ser_type_ops(world, ops, count, base, str, 0, is_expr);
+    return flecs_expr_ser_type_ops(world, ops, count, base, str, is_expr);
 }
 
 int ecs_ptr_to_expr_buf(
@@ -86928,7 +86803,6 @@ int flecs_expr_initializer_visit_type(
     if (flecs_expr_initializer_collection_check(script, node, cur)) {
         goto error;
     }
-
 
     ecs_expr_initializer_element_t *elems = ecs_vec_first(&node->elements);
     int32_t i, count = ecs_vec_count(&node->elements);

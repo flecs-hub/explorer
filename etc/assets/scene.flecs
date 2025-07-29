@@ -6,89 +6,89 @@
 using flecs.script.*
 using flecs.components.*
 
-const rng = Rng: {}
+const rng = Rng: {} // Random number generator
 
-// Simple tree template
 template Tree {  
-  const trunkHeight = 0.3
-  const canopyHeight = 1 - trunkHeight
+  const trunkY = 0.3
+  const canopyY = 1 - trunkY
 
   {
-    Position3: {0, trunkHeight / 2, 0}
+    Position3: {0, trunkY / 2, 0}
     Rgb: {0.08, 0.03, 0.0}
-    Box: {0.1, trunkHeight, 0.1}
+    Box: {0.1, trunkY, 0.1}
   } {
-    Position3: {0, trunkHeight + canopyHeight / 2, 0}
+    Position3: {0, trunkY + canopyY / 2, 0}
     Rgb: {0.1, 0.2, 0.06}
-    Box: {0.25, canopyHeight, 0.25}
+    Box: {0.25, canopyY, 0.25}
   }
 }
 
-// Pavement with trees
 template Pavement {
-  prop pavementWidth: 5.0
-  prop pavementHeight: 1.0
-  Box: {pavementWidth, pavementHeight, pavementWidth}
+  prop width: 5.0
+
+  Box: {width, 0.1, width}
   Rgb: {0.2, 0.2, 0.2}
   
-  const treeCount = 3
-  const treeSpacing = pavementWidth / treeCount
-  const treeOffset = (pavementWidth/2) - 0.2
+  const trees = 3
+  const spacing = width / trees
+  const offset = (width/2) - 0.2
 
-  for i in 0..treeCount {
-    const x = (i + 0.5) * treeSpacing - pavementWidth / 2
-    Tree() {Position3: {-treeOffset, 0, x}}
-    Tree() {Position3: {treeOffset, 0, x}}
-    Tree() {Position3: {x, 0, -treeOffset}}
-    Tree() {Position3: {x, 0, treeOffset}}
+  for i in 0..trees {
+    const x = (i + 0.5) * spacing - width / 2
+    Tree() {Position3: {-offset, 0, x}}
+    Tree() {Position3: {offset, 0, x}}
+    Tree() {Position3: {x, 0, -offset}}
+    Tree() {Position3: {x, 0, offset}}
   }
 }
 
-// Procedural building
 template Building {
   prop width: 4
   prop floors: 8
   prop windows: 3
   prop windowSpacing: 0.2
-  prop wallThickness: 0.3
+  prop floorThickness: 0.3
   prop color = Rgb: {0.3, 0.3, 0.3}
-  prop windowColor = Rgb: {0.01, 0.02, 0.05}
-  prop windowInset: 0.2
-  
-  const height: floors
-  const pillars = windows + 2
-  const spaceForPillars: width - windowSpacing
-  const spaceForPillarsH: spaceForPillars / 2
-  const spacing: spaceForPillars / (pillars - 1)
-  
-  // Create a single blue box for the windows
+
+  // Single blue box for the windows
   {
-    Position3: {0, height / 2, 0}
-    Box: {width - windowInset, height, width - windowInset}
-    $windowColor
+    Position3: {0, floors / 2, 0}
+    Box: {width - 0.2, floors, width - 0.2}
+    Rgb: {0.01, 0.02, 0.05}
     Specular: {0.2, 1.5}
   }
-  
+
+  const pillars = windows + 2
+  const wallW: width - windowSpacing
+  const wallWH: wallW / 2
+  const spacing: wallW / (pillars - 1)
+
   with $color {
-    // Create a box for each floor
+    // Floors
     for i in 0..floors {{
       Position3: {0, y: i + 1, 0}
-      Box: {width, wallThickness, width}
+      Box: {width, floorThickness, width}
     }}
-    // Create boxes to separate the windows
+
+    // Separation between windows
     for p in 1..(pillars - 1) {{
-      Position3: {p * spacing - spaceForPillarsH, height / 2}
-      Box: {windowSpacing, height, width}
+      Position3: {
+        p * spacing - wallWH, floors / 2
+      }
+      Box: {windowSpacing, floors, width}
     }{
-      Position3: {0, height / 2, p * spacing - spaceForPillarsH}
-      Box: {width, height, windowSpacing}
+      Position3: {
+        0, floors / 2, p * spacing - wallWH
+      }
+      Box: {width, floors, windowSpacing}
     }}
-    // Create boxes on the corners of the buildings
-    with Box(windowSpacing, height, windowSpacing) {
-     {Position3: {-spaceForPillarsH, height / 2, -spaceForPillarsH}} 
-     {Position3: {-spaceForPillarsH, height / 2, spaceForPillarsH}} 
-     {Position3: {spaceForPillarsH, height / 2, spaceForPillarsH}} 
-     {Position3: {spaceForPillarsH, height / 2, -spaceForPillarsH}}
+
+    // Create boxes on the corners
+    with Box(windowSpacing, floors, windowSpacing) {
+     {Position3: {-wallWH, floors / 2, -wallWH}}
+     {Position3: {-wallWH, floors / 2, wallWH}} 
+     {Position3: {wallWH, floors / 2, wallWH}} 
+     {Position3: {wallWH, floors / 2, -wallWH}}
     }
   }
 }
@@ -99,17 +99,18 @@ template City {
   prop blockWidth: 7.5
   prop pavementWidth: 6
   prop buildingWidth: 4
-  prop maxBuildingHeight: 14
-  prop buildingHeightVariation: 4
-  
-  const streetHeight: 0.1
-  const pavementHeight: 0.1
+  prop maxFloors: 14
+  prop varFloors: 4
+
   const gridSizeH = gridSize / 2
 
   // Street plane
   {
-    Position3: {0, streetHeight / 2, 0}
-    Box: {blockWidth * gridSize, streetHeight, blockWidth * gridSize}
+    Position3: {0, 0.1 / 2, 0}
+    Box: {
+      blockWidth * gridSize, 0.1, 
+      blockWidth * gridSize
+    }
     Rgb: {0.08, 0.08, 0.08}
   }
 
@@ -120,27 +121,29 @@ template City {
       const yR: y - gridSizeH
       const xS: 1.0 - (abs(xR + 0.5) / gridSizeH)
       const yS: 1.0 - (abs(yR + 0.5) / gridSizeH)
-      const baseHeight: (pow(xS, 2) * pow(yS, 2)) * maxBuildingHeight + 1
-      const color: rng.f(0.5) + 0.05
+      const baseY: pow(xS, 2) * pow(yS, 2) * maxFloors
       const xP: xR * blockWidth + blockWidth / 2
       const yP: yR * blockWidth + blockWidth / 2
-      
+      const rgb: rng.f(0.5) + 0.05
+
       // Pavement
-      Pavement($, $) { Position3: {xP, streetHeight + pavementHeight / 2, yP} }
+      Pavement(pavementWidth) {
+        Position3: {xP, 0.1, yP} 
+      }
   
       // Building
       Building(
-        floors: baseHeight + rng.u(buildingHeightVariation)
-        windows: rng.u(5) + 1
-        wallThickness: rng.f(0.1) + 0.2
+        floors: baseY + rng.u(varFloors) + 1
+        windows: rng.u(5) + 2
+        floorThickness: rng.f(0.1) + 0.2
         windowSpacing: rng.f(0.2) + 0.1
-        color: {color + rng.f(0.15), color, color}
+        color: {rgb + rng.f(0.15), rgb, rgb}
       ) {
-        Position3: {xP, pavementHeight, yP} 
+        Position3: {xP, 0.1, yP} 
       }
     }
   }
 }
 
-// Instantiate the city template
+// Create the city with default values
 City city()

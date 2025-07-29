@@ -1,5 +1,5 @@
 <template>
-  <div id="page-pipeline" class="page-content">
+  <div id="page-pipeline" class="pane page-content">
     <div class="controls">
       <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
       <dropdown :items="pipelines" v-model:active_item="app_params.pipeline"></dropdown>&nbsp;
@@ -166,7 +166,6 @@ function doPipelineStatsQuery() {
   display: grid;
   grid-template-columns: 900px auto;
   grid-template-rows: 38px auto;
-  height: calc(100% - 1rem);
   overflow: auto;
   background-color: var(--bg-pane);
   border-radius: var(--border-radius-medium);
