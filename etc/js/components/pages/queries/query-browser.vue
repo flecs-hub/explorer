@@ -163,9 +163,20 @@ const passFilter = (item) => {
   let isFlecs = false;
 
   if (item.parent) {
-    if (item.parent.split(".")[0] == "flecs") {
+    console.log(item.parent);
+    if ((item.parent.slice(0, 14) == "flecs.pipeline") ||
+        (item.parent.slice(0, 11) == "flecs.timer") ||
+        (item.parent.slice(0, 11) == "flecs.stats") ||
+        (item.parent.slice(0, 10) == "flecs.rest") ||
+        (item.parent.slice(0, 10) == "flecs.core")) {
       isFlecs = true;
     }
+
+    console.log(isFlecs);
+
+    // if (item.parent.split(".")[0] == "flecs") {
+    //   isFlecs = true;
+    // }
   }
 
   if (isFlecs && !show_flecs.value) {
