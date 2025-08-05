@@ -20,8 +20,8 @@ camera {
   Camera: {
     fov: 20
     up: [0, 1, 0]
-    near_: 1
-    far_: 1000
+    near_: 2
+    far_: 800
   }
 }
 

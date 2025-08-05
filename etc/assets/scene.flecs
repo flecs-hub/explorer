@@ -133,6 +133,7 @@ template City {
   
       // Building
       Building(
+        width: buildingWidth
         floors: baseY + rng.u(varFloors) + 1
         windows: rng.u(5) + 2
         floorThickness: rng.f(0.1) + 0.2
