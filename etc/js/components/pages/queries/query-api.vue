@@ -42,10 +42,17 @@ const props = defineProps({
 });
 
 const url = computed(() => {
+  let result;
   if (props.query.use_name) {
-    return props.conn.queryName(props.query.name, {rows: true, dryrun: true}).url;
+    result = props.conn.queryName(props.query.name, {dryrun: true}).url;
   } else {
-    return props.conn.query(props.query.expr, {rows: true, dryrun: true}).url;
+    result = props.conn.query(props.query.expr, {dryrun: true}).url;
+  }
+
+  if (props.conn.url) {
+    return props.conn.url + "/" + result;
+  } else {
+    return result;
   }
 });
 

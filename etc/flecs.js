@@ -159,6 +159,19 @@ const flecs = {
           } else {
             this._.FlecsHttpRequest = () => new XMLHttpRequest();
             this.mode = flecs.ConnectionMode.Remote;
+
+            let url = newHost;
+            if (url.slice(0, 4) !== "http") {
+              url = "http://" + url;
+            }
+
+            let portIndex = url.indexOf(":"); // first is protocol
+            portIndex = url.indexOf(":", portIndex + 1);
+            if (portIndex == -1) {
+              url += ":27750";
+            }
+
+            this.url = url;
           }
   
           // Connect to host, start connection manager
