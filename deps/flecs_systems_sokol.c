@@ -33199,6 +33199,7 @@ void SokolInitRenderer(ecs_iter_t *it) {
     ecs_vec_init_t(NULL, &lights, sokol_light_t, 0);
 
     ecs_query_t *lights_query = ecs_query(world, {
+        .entity = ecs_entity(world, { .name = "flecs.systems.sokol.LightsQuery"}),
         .terms = {
             { ecs_id(EcsPointLight) },
             { ecs_id(EcsTransform3) }

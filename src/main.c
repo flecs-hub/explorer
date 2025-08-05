@@ -14,15 +14,8 @@ void CleanupEmptyTables(ecs_iter_t *it) {
     });
 }
 
-EMSCRIPTEN_KEEPALIVE
-int main() {
-    // ecs_log_set_level(1);
-
-    ecs_world_t *world = ecs_init();
-    if (!world) {
-        ecs_err("failed to create world");
-        return -1;
-    }
+void PlaygroundImport(ecs_world_t *world) {
+    ECS_MODULE(world, Playground);
 
     ECS_IMPORT(world, FlecsUnits);
     ECS_IMPORT(world, FlecsScript);
@@ -42,6 +35,19 @@ int main() {
         .immediate = true,
         .interval = 1.0
     });
+}
+
+EMSCRIPTEN_KEEPALIVE
+int main() {
+    // ecs_log_set_level(1);
+
+    ecs_world_t *world = ecs_init();
+    if (!world) {
+        ecs_err("failed to create world");
+        return -1;
+    }
+
+    ECS_IMPORT(world, Playground);
 
     ecs_doc_set_name(world, EcsWorld, "Playground");
 
