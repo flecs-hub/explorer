@@ -1,6 +1,5 @@
 <template>
   <pre><span class="code-function">{{ query_func }}</span><span class="code-operator">(</span><span class="code-string">"{{ query_trimmed }}"</span><span class="code-operator">,
-  {</span><span class="code-member">rows</span><span class="code-operator">: </span><span class="code-keyword">true</span><span class="code-operator">},</span>
   <span class="code-operator">(</span><span class="code-variable">reply</span><span class="code-operator">) => {
     <span class="code-comment">// Success</span>
   }, </span>
