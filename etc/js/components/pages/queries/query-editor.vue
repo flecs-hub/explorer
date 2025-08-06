@@ -77,10 +77,4 @@ div.editor {
   grid-template-rows: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap) - 4rem);
 }
 
-@media screen and (max-width: 800px) {
-div.editor {
-  grid-template-rows: calc(40vh - 7rem);
-}
-}
-
 </style>

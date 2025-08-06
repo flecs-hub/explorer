@@ -20,10 +20,10 @@
         <th class="squeeze"></th>
       </thead>
       <tbody>
-        <tr v-for="(result, i) in results">
+        <tr v-for="(result, i) in results" :class="trCss(result)" @click="onSelect(result)">
           <td v-for="col in tableHeaders" :class="tdCss(i)">
             <template v-if="isEntity(col)">
-              <template v-if="col.get(result) === '*'">
+              <template v-if="col.get(result) === '*' || col.get(result) === undefined">
                 <div class="entity-table-none">
                   None
                 </div>
@@ -65,10 +65,11 @@ export default { name: "entity-table" }
 </script>
 
 <script setup>
-import { defineProps, computed, ref } from 'vue';
+import { defineProps, defineEmits, computed, ref } from 'vue';
 
 const orderByModes = ["none", "asc", "desc"];
 const orderBy = ref({});
+const emit = defineEmits(["select"]);
 
 const props = defineProps({
   result: {type: Object, required: true }
@@ -224,6 +225,14 @@ function tdCss(i) {
   }
 }
 
+function trCss(result) {
+  if (result.name) {
+    return "entity-table-row-selectable";
+  } else {
+    return "";
+  }
+}
+
 function toggleOrderBy(col) {
   if (orderBy.value.index != col.index) {
     orderBy.value.index = col.index;
@@ -237,6 +246,20 @@ function toggleOrderBy(col) {
     }
 
     orderBy.value.mode = orderByModes[orderByIndex];
+  }
+}
+
+function onSelect(result) {
+  if (result.name) {
+    if (result.name[0] == '#') {
+      return emit("select", result.name);
+    }
+
+    if (result.parent) {
+      return emit("select", result.parent + '.' + result.name);
+    }
+
+    return emit("select", result.name);
   }
 }
 
@@ -316,6 +339,14 @@ div.entity-table-name {
 
 div.entity-table-none {
   color: var(--secondary-text);
+}
+
+tr.entity-table-row-selectable {
+  cursor: pointer;
+}
+
+tr.entity-table-row-selectable:hover td {
+  background-color: var(--bg-cell-hover);
 }
 
 </style>

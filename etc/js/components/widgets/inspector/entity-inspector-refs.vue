@@ -22,7 +22,7 @@ export default { name: "entity-inspector-refs" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},

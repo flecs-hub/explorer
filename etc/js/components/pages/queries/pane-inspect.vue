@@ -5,7 +5,7 @@
         class="inspect-tab-content">
     <template v-slot:table>
       <div :class="visibleClass">
-        <entity-table :result="result"></entity-table>
+        <entity-table :result="result" @select="onSelectEntity"></entity-table>
       </div>
       <template v-if="result.error">
         <query-error :error="result.error"></query-error>
@@ -46,7 +46,7 @@ export default {
 </script>
 
 <script setup>
-import { ref, defineProps, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, defineProps, defineEmits, computed, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
   app_params: {type: Object, required: true },
@@ -55,6 +55,8 @@ const props = defineProps({
 
 const result = ref({reply: []});
 const request = ref(undefined);
+
+const emit = defineEmits(["selectEntity"]);
 
 const query = computed(() => {
   return props.app_params.query;
@@ -126,6 +128,10 @@ onUnmounted(() => {
 watch(() => [query.value.expr, query.value.name, query.value.use_name], () => {
   doRequest();
 });
+
+function onSelectEntity(entity) {
+  emit("selectEntity", entity);
+}
 
 </script>
 
