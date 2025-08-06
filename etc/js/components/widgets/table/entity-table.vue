@@ -85,18 +85,20 @@ const tableHeaders = computed(() => {
     for (let i = 0; i < query_info.vars.length; i ++) {
       const varName = query_info.vars[i];
       if (varName === "this") {
-        columns.push({
-          name: "Entity",
-          schema: ["entity"],
-          index: index++,
-          get: (result) => {
-            if (result.parent) {
-              return result.parent + "." + result.name;
-            } else {
-              return result.name;
+        if (!i || query_info.vars[i] !== "this") {
+          columns.push({
+            name: "Entity",
+            schema: ["entity"],
+            index: index++,
+            get: (result) => {
+              if (result.parent) {
+                return result.parent + "." + result.name;
+              } else {
+                return result.name;
+              }
             }
-          }
-        });
+          });
+        }
       } else {
         columns.push({
           name: varName,
