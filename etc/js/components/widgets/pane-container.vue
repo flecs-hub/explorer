@@ -16,7 +16,6 @@ import { computed, defineProps, defineExpose, onMounted, onBeforeUnmount, nextTi
 const props = defineProps({
   id: {type: String, required: false},
   class: {type: String, required: false},
-  style: {type: String, required: false},
   showLeftPane: {type: Boolean, required: false, default: true},
   showRightPane: {type: Boolean, required: false, default: true}
 });
@@ -28,7 +27,7 @@ const defaultLeftPaneWidth = 300;
 const defaultRightPaneWidth = 500;
 const minLeftPaneWidth = 180;
 const minRightPaneWidth = 320;
-const minCenterWidth = 360;
+const minCenterWidth = 200;
 
 const leftPaneWidth = ref(Number(localStorage.getItem(`${props.id}.leftPaneWidth`)) || defaultLeftPaneWidth);
 const rightPaneWidth = ref(Number(localStorage.getItem(`${props.id}.rightPaneWidth`)) || defaultRightPaneWidth);
@@ -54,7 +53,7 @@ function onWindowMouseMove(e) {
     leftPaneWidth.value = Math.round(newWidth);
     localStorage.setItem(`${props.id}.leftPaneWidth`, String(leftPaneWidth.value));
   } else if (dragging === 'rightPane') {
-    const newWidth = clampRightPane(containerRect.right - e.clientX, totalInnerWidth);
+    const newWidth = clampRightPane(containerRect.right - e.clientX - 4, totalInnerWidth);
     rightPaneWidth.value = Math.round(newWidth);
     localStorage.setItem(`${props.id}.rightPaneWidth`, String(rightPaneWidth.value));
   }
@@ -72,7 +71,6 @@ function onWindowMouseUp() {
 function startDragging(which) {
   dragging = which;
   containerRect = rootEl.value.getBoundingClientRect();
-  console.log(which);
 }
 
 // Attach listeners on mount, remove on unmount
@@ -98,17 +96,9 @@ function ensureWidthsFit() {
   if (!rootEl.value) return;
   const el = rootEl.value;
   const rect = el.getBoundingClientRect();
-  const totalInnerWidth = rect.width;
-  const columnGapPx = parseFloat(getComputedStyle(el).columnGap) || 0;
 
   const hasLeftPane = props.showLeftPane;
   const hasRightPane = props.showRightPane;
-  const numSplits = (hasLeftPane ? 1 : 0) + (hasRightPane ? 1 : 0);
-  const numCols = (hasLeftPane ? 1 : 0) + 1 + (hasRightPane ? 1 : 0) + numSplits;
-  const gapCount = Math.max(0, numCols - 1);
-
-  // Max sum of side widths to keep center >= minCenterWidth
-  const availableForSides = totalInnerWidth - (gapCount * columnGapPx) - (numSplits) - minCenterWidth;
 
   let left = hasLeftPane ? leftPaneWidth.value : 0;
   let right = hasRightPane ? rightPaneWidth.value : 0;
@@ -116,31 +106,6 @@ function ensureWidthsFit() {
   // Clamp to minimums first
   if (hasLeftPane) left = Math.max(minLeftPaneWidth, left);
   if (hasRightPane) right = Math.max(minRightPaneWidth, right);
-
-  // If overflow, reduce sides while respecting minima
-  const currentSides = left + right;
-  if (currentSides > availableForSides) {
-    let overflow = currentSides - availableForSides;
-    // Prefer reducing the larger side first
-    if (hasRightPane && right > left) {
-      const reducible = Math.max(0, right - minRightPaneWidth);
-      const reduceBy = Math.min(reducible, overflow);
-      right -= reduceBy;
-      overflow -= reduceBy;
-    }
-    if (overflow > 0 && hasLeftPane) {
-      const reducible = Math.max(0, left - minLeftPaneWidth);
-      const reduceBy = Math.min(reducible, overflow);
-      left -= reduceBy;
-      overflow -= reduceBy;
-    }
-    if (overflow > 0 && hasRightPane) {
-      const reducible = Math.max(0, right - minRightPaneWidth);
-      const reduceBy = Math.min(reducible, overflow);
-      right -= reduceBy;
-      overflow -= reduceBy;
-    }
-  }
 
   if (hasLeftPane) {
     leftPaneWidth.value = Math.round(left);
@@ -150,8 +115,6 @@ function ensureWidthsFit() {
     rightPaneWidth.value = Math.round(right);
     localStorage.setItem(`${props.id}.rightPaneWidth`, String(rightPaneWidth.value));
   }
-
-  // If neither visible, nothing to do
 }
 
 const gridStyle = computed(() => {
@@ -172,34 +135,10 @@ const gridStyle = computed(() => {
   }
 });
 
-function el() {
-  return rootEl.value;
-}
-
-defineExpose({el, startDragging});
+defineExpose({startDragging});
 
 </script>
 
 <style scoped>
-
-div.vsplitter {
-  grid-row: 1;
-  width: var(--gap);
-  cursor: col-resize;
-  background: transparent;
-  border-radius: var(--border-radius-small);
-  opacity: 0.6;
-  user-select: none;
-  z-index: 2;
-  /* Keep splitter inside grid cell to avoid layout overflow */
-  justify-self: stretch;
-  align-self: stretch;
-  box-sizing: border-box;
-}
-
-div.vsplitter:hover {
-  background: var(--bg-content-hover);
-  opacity: 1.0;
-}
 
 </style>

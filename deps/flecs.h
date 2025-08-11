@@ -21124,6 +21124,14 @@ struct script_builder;
 
 using Script = EcsScript;
 
+namespace script {
+namespace _ {
+
+void init(flecs::world& world);
+
+} // namespace _
+}
+
 /** @} */
 
 }
@@ -21897,7 +21905,7 @@ inline void set(world_t *world, flecs::entity_t entity, T&& value, flecs::id_t i
     ecs_cpp_get_mut_t res = ecs_cpp_set(world, entity, id, &value, sizeof(T));
 
     T& dst = *static_cast<remove_reference_t<T>*>(res.ptr);
-    dst = FLECS_MOV(value);
+    dst = FLECS_FWD(value);
 
     if (res.call_modified) {
         ecs_modified_id(world, entity, id);
@@ -21913,7 +21921,7 @@ inline void set(world_t *world, flecs::entity_t entity, const T& value, flecs::i
     ecs_cpp_get_mut_t res = ecs_cpp_set(world, entity, id, &value, sizeof(T));
 
     T& dst = *static_cast<remove_reference_t<T>*>(res.ptr);
-    dst = FLECS_MOV(value);
+    dst = value;
 
     if (res.call_modified) {
         ecs_modified_id(world, entity, id);
@@ -21944,7 +21952,7 @@ inline void assign(world_t *world, flecs::entity_t entity, T&& value, flecs::id_
         world, entity, id, &value, sizeof(T));
 
     T& dst = *static_cast<remove_reference_t<T>*>(res.ptr);
-    dst = FLECS_MOV(value);
+    dst = FLECS_FWD(value);
 
     if (res.call_modified) {
         ecs_modified_id(world, entity, id);
@@ -21961,7 +21969,7 @@ inline void assign(world_t *world, flecs::entity_t entity, const T& value, flecs
         world, entity, id, &value, sizeof(T));
 
     T& dst = *static_cast<remove_reference_t<T>*>(res.ptr);
-    dst = FLECS_MOV(value);
+    dst = value;
 
     if (res.call_modified) {
         ecs_modified_id(world, entity, id);
@@ -34855,6 +34863,7 @@ inline flecs::entity script_builder::run() const {
 }
 
 namespace _ {
+
     inline ecs_value_t get_const_var(const flecs::world_t *world, const char *name) {
         flecs::entity_t v = ecs_lookup_path_w_sep(
             world, 0, name, "::", "::", false);
@@ -35025,6 +35034,17 @@ void world::get_const_var(
 
     out = flecs::_::get_const_value<T>(
         world_, name, value, type, default_value);
+}
+
+
+namespace script {
+namespace _ {
+
+inline void init(flecs::world& world) {
+    world.component<Script>("flecs::script::Script");
+}
+
+}
 }
 
 }
@@ -35259,6 +35279,9 @@ inline void world::init_builtin_components() {
 #   endif
 #   ifdef FLECS_META
     meta::_::init(*this);
+#   endif
+#   ifdef FLECS_SCRIPT
+    script::_::init(*this);
 #   endif
 }
 

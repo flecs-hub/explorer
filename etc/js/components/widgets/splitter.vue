@@ -22,7 +22,7 @@ const props = defineProps({
 
 div.vsplitter {
   grid-row: 1;
-  width: var(--gap);
+  width: calc(var(--gap) - 2px);
   cursor: col-resize;
   background: var(--green);
   opacity: 0.0;
@@ -36,7 +36,7 @@ div.vsplitter {
 }
 
 div.vsplitter:hover {
-  opacity: 1.0;
+  opacity: 0.7;
 }
 
 </style>
