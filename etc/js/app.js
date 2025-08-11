@@ -162,6 +162,7 @@ let components = [
   loadModule('js/components/widgets/inspector/entity-inspector-preview.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-add-component.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-script-ast.vue', options),
+  loadModule('js/components/widgets/inspector/entity-link.vue', options),
 
   // Table widget
   loadModule('js/components/widgets/table/entity-table.vue', options),

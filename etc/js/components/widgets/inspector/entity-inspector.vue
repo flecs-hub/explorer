@@ -55,7 +55,8 @@
             :entityQueryResult="entityQueryResult"
             :isScript="isScript"
             :entityModules="entityModules"
-            @scriptOpen="onOpenScript">
+            @scriptOpen="onOpenScript"
+            @selectEntity="onSelectEntity">
           </entity-inspector-components>
         </template>
         <template v-else-if="inspectorMode == 'Matched by'">
@@ -328,6 +329,10 @@ onUnmounted(() => {
 
 function onOpenScript() {
   emit("scriptOpen", props);
+}
+
+function onSelectEntity(evt) {
+  emit("selectEntity", evt);
 }
 
 </script>

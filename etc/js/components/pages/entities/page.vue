@@ -46,7 +46,8 @@
         :conn="conn"
         :app_params="appParams"
         @abort="onAbort"
-        @scriptOpen="onScriptOpen">
+        @scriptOpen="onScriptOpen"
+        @selectEntity="onSelectEntity">
       </pane-inspector>
     </div>
   </pane-container>
@@ -107,6 +108,10 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
 function onAbort(evt) {
   appParams.value.entity.path = undefined;
   pane_tree.value.unselect();
+}
+
+function onSelectEntity(path) {
+  appParams.value.entity.path = path;
 }
 
 function onScriptOpen(path) {

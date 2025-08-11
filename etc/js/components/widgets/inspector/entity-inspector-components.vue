@@ -5,7 +5,8 @@
       :entity="path"
       :type_info="entityQueryResult.type_info"
       :item="m" v-for="m in entityModules"
-      :key="m.name">
+      :key="m.name"
+      @selectEntity="onSelectEntity">
     </entity-inspector-module>
   </div>
 
@@ -36,7 +37,7 @@ const props = defineProps({
   entityModules: {type: Array, required: true}
 });
 
-const emit = defineEmits(["scriptOpen"]);
+const emit = defineEmits(["scriptOpen", "selectEntity"]);
 
 function addComponent(component) {
   props.conn.add(props.path, component);
@@ -44,6 +45,10 @@ function addComponent(component) {
 
 function onOpenScript() {
   emit("scriptOpen", props);
+}
+
+function onSelectEntity(evt) {
+  emit("selectEntity", evt)
 }
 
 </script>

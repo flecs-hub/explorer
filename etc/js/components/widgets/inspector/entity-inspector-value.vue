@@ -29,7 +29,7 @@ export default { name: "entity-inspector-value" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed } from 'vue';
+import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
   value: {required: true},

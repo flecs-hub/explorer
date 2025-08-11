@@ -5,7 +5,8 @@
       :path="path"
       v-model:inspector_mode="appParams.inspector_mode"
       @abort="onAbort"
-      @scriptOpen="onScriptOpen">
+      @scriptOpen="onScriptOpen"
+      @selectEntity="onSelectEntity">
     </entity-inspector>
   </div>
 </template>
@@ -17,7 +18,7 @@ export default { name: "pane-inspector" }
 <script setup>
 import { defineProps, defineEmits, defineModel, computed } from 'vue';
 
-const emit = defineEmits(["abort", "scriptOpen"]);
+const emit = defineEmits(["abort", "scriptOpen", "selectEntity"]);
 
 const props = defineProps({
   conn: {type: Object, required: true}
@@ -39,6 +40,10 @@ function onAbort(evt) {
 
 function onScriptOpen(evt) {
   emit("scriptOpen", evt ? evt.path : undefined);
+}
+
+function onSelectEntity(evt) {
+  emit("selectEntity", evt);
 }
 
 </script>

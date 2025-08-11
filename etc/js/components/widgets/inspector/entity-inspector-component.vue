@@ -24,14 +24,14 @@
           {{ name[0] }}&nbsp;<icon src="arrow-right" 
             :opacity="0.5" 
             :size="16">
-          </icon>&nbsp;{{ name[1] }}
+          </icon>&nbsp;<entity-link :path="fullTargetName" @click="onEntity"></entity-link>
         </template>
         <template v-else>
           <template v-if="singleTarget">
             {{ name }}&nbsp;<icon src="arrow-right" 
               :opacity="0.5" 
               :size="16">
-            </icon>&nbsp;<span>{{ shortenEntity(targets) }}</span>
+            </icon>&nbsp;<entity-link :path="fullTargetName" @click="onEntity"></entity-link>
           </template>
           <template v-else>
             {{ name }}
@@ -89,7 +89,7 @@
               </icon>
             </div>
             <div :class="targetCss">
-              {{ shortenEntity(target) }}
+              <entity-link :path="target" @click="onEntity"></entity-link>
             </div>
             <template v-if="!base">
               <div class="component-target-remove">
@@ -111,7 +111,7 @@ export default { name: "entity-inspector-component" }
 </script>
 
 <script setup>
-import { defineProps, ref, computed } from 'vue';
+import { defineEmits, defineProps, ref, computed } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -124,6 +124,8 @@ const props = defineProps({
   targets: {required: false},
   base: {type: String, required: false}
 });
+
+const emit = defineEmits(["selectEntity"]);
 
 const remoteState = ref("alive");
 const expand = ref(false);
@@ -157,9 +159,18 @@ const isReadonly = computed(() => {
 
 const fullName = computed(() => {
   if (singleTarget.value) {
-    return `(${props.fullName}, ${props.targets})`;
+    return `(${props.fullName},${props.targets})`;
   } else {
     return props.fullName;
+  }
+});
+
+const fullTargetName = computed(() => {
+  if (singleTarget.value) {
+    return props.targets;
+  } else {
+    let pair = props.fullName.split(",");
+    return pair[1].slice(0, -1);
   }
 });
 
@@ -197,10 +208,6 @@ const nameIsPair = computed(() => {
   return Array.isArray(props.name);
 });
 
-function shortenEntity(entity) {
-  return explorer.shortenEntity(entity);
-}
-
 function removeComponent() {
   props.conn.remove(props.entity, fullName.value);
   remoteState.value = "pendingDelete";
@@ -221,6 +228,14 @@ function setValue(evt) {
     payload = evt.value;
   }
   props.conn.set(props.entity, props.fullName, payload);
+}
+
+function shortenEntity(entity) {
+  return explorer.shortenEntity(entity);
+}
+
+function onEntity(evt) {
+  emit("selectEntity", evt);
 }
 
 </script>

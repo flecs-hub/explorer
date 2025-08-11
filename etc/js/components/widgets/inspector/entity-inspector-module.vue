@@ -16,6 +16,7 @@
           :value="elem.value"
           :type="type_info[elem.fullName]"
           :base="elem.base"
+          @selectEntity="onSelectEntity"
           v-for="elem in item.value.components">
         </entity-inspector-component>
 
@@ -29,6 +30,7 @@
           icon_src="symbol-interface"
           :targets="elem.value"
           :base="elem.base"
+          @selectEntity="onSelectEntity"
           v-for="elem in item.value.pairs">
         </entity-inspector-component>
 
@@ -41,6 +43,7 @@
           :key="elem.fullName"
           :base="elem.base"
           icon_src="tag"
+          @selectEntity="onSelectEntity"
           v-for="elem in item.value.tags">
         </entity-inspector-component>
       </template>
@@ -53,7 +56,7 @@ export default { name: "entity-inspector-module" }
 </script>
 
 <script setup>
-import { defineProps } from 'vue';
+import { defineEmits, defineProps } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -62,11 +65,17 @@ const props = defineProps({
   type_info: {type: Object, required: true}
 });
 
+const emit = defineEmits(["selectEntity"]);
+
 function moduleHeaderName(name) {
   if (!name || !name.length) {
     return "root";
   }
   return name.split(".").join(" > ");
+}
+
+function onSelectEntity(evt) {
+  emit("selectEntity", evt);
 }
 
 </script>
