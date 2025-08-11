@@ -51,6 +51,8 @@
   --bg-button: hsl(210, 12%, 22%);
   --bg-button-hover: hsl(210, 12%, 26%);
 
+  --bg-splitter: rgb(51, 118, 205);
+
   --bg-auto-complete: rgb(25, 28, 31, 1.0);
   --bg-error:     var(--red);
   --bg-ok:        var(--green);

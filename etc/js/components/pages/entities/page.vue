@@ -1,5 +1,11 @@
 <template>
-  <div id="page-entities" :class="pageCss">
+  <pane-container 
+    id="page-entities" 
+    :class="pageCss" 
+    :showLeftPane="appParams.sidebar"
+    :showRightPane="showRightPane"
+    ref="rootEl">
+
     <pane-tree 
       :conn="conn"
       v-model:app_params="appParams"
@@ -8,8 +14,16 @@
       v-if="app_params.sidebar"
       ref="pane_tree">
     </pane-tree>
-    <div id="canvasPlaceholder" :class="canvasCss" :style="`grid-column: ${canvasColumn}`">
-    </div>
+
+    <splitter
+      v-if="app_params.sidebar && (showCanvas || showInspector || showScript)"
+      :parent="rootEl"
+      :column="sidebarSplitterColumn"
+      @mousedown="rootEl.startDragging('leftPane')"
+    ></splitter>
+
+    <div id="canvasPlaceholder" :class="canvasCss" :style="`grid-column: ${canvasColumn}`"></div>
+
     <div :class="scriptCss" :style="`grid-column: ${scriptColumn}`">
       <pane-scripts
         :conn="conn"
@@ -18,6 +32,14 @@
         ref="pane_scripts">
       </pane-scripts>
     </div>
+
+    <splitter
+      v-if="showRightPane"
+      :parent="rootEl"
+      :column="inspectorSplitterColumn"
+      @mousedown="rootEl.startDragging('rightPane')"
+    ></splitter>
+
     <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`"
       v-if="showInspector">
       <pane-inspector
@@ -27,7 +49,7 @@
         @scriptOpen="onScriptOpen">
       </pane-inspector>
     </div>
-  </div>
+  </pane-container>
 </template>
 
 <script>
@@ -35,10 +57,11 @@ export default { name: "page-entities" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, ref, computed, watch, nextTick } from 'vue';
+import { defineProps, defineModel, ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 
 const pane_tree = ref(null);
 const pane_scripts = ref(null);
+const rootEl = ref(null);
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -69,6 +92,10 @@ const showInspector = computed(() => {
   }
   return true;
 });
+
+// Right pane is shown when either an entity inspector is open or the
+// script editor is active.
+const showRightPane = computed(() => showInspector.value || showScript.value);
 
 watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.value.sidebar], () => {
   nextTick(() => {
@@ -127,30 +154,39 @@ const canvasCss = computed(() => {
 });
 
 const canvasColumn = computed(() => {
-  let result = 2;
-  if (!appParams.value.sidebar) {
-    result --;
-  }
-  return result;
+  // With both: tree(1) | split(2) | canvas(3) | split(4) | inspector(5)
+  if (appParams.value.sidebar && showInspector.value) return 3;
+  // With only sidebar: tree(1) | split(2) | canvas(3)
+  if (appParams.value.sidebar && !showInspector.value) return 3;
+  // With only inspector: canvas(1) | split(2) | inspector(3)
+  if (!appParams.value.sidebar && showInspector.value) return 1;
+  // Neither
+  return 1;
 });
 
 const scriptColumn = computed(() => {
-  let result = 2;
-  if (showCanvas.value) {
-    result = 3;
-  }
-  if (!appParams.value.sidebar) {
-    result --;
-  }
-  return result;
+  // Script pane should occupy the right pane column, same as inspector
+  return inspectorColumn.value;
 });
 
 const inspectorColumn = computed(() => {
-  let result = 3;
-  if (!appParams.value.sidebar) {
-    result --;
-  }
-  return result;
+  if (!showRightPane.value) return 0;
+  if (appParams.value.sidebar && showRightPane.value) return 5;
+  if (!appParams.value.sidebar && showRightPane.value) return 3;
+  return 0;
+});
+
+const sidebarSplitterColumn = computed(() => {
+  // With both: tree(1) | split(2) | canvas(3) | split(4) | inspector(5)
+  // With only sidebar: tree(1) | split(2) | canvas(3)
+  if (appParams.value.sidebar) return 2;
+  return 0;
+});
+
+const inspectorSplitterColumn = computed(() => {
+  if (!showRightPane.value) return 0;
+  // With both: inspector split at 4; with only inspector: split at 2
+  return appParams.value.sidebar ? 4 : 2;
 });
 
 </script>
@@ -160,26 +196,27 @@ const inspectorColumn = computed(() => {
   display: grid;
   grid-template-columns: 300px calc(100% - 300px - var(--gap)) 0px;
   grid-template-rows: 100%;
-  gap: var(--gap);
+  column-gap: 0; /* we'll model gaps explicitly as splitter columns */
+  row-gap: var(--gap);
   height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
+  overflow-x: hidden;
+  overflow-y: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 #page-entities:not(.page-entities-show-inspector):not(.page-entities-show-sidebar) {
   grid-template-columns: calc(100%);
 }
 
-#page-entities.page-entities-show-sidebar.page-entities-show-inspector {
-  grid-template-columns: 300px calc(100% - 300px - 500px - 2 * var(--gap)) 500px !important;
-}
-
-#page-entities:not(.page-entities-show-sidebar).page-entities-show-inspector {
-  grid-template-columns: calc(100% - 760px - 1 * var(--gap)) 760px !important;
-}
+/* Grid sizes are overridden dynamically via inline style */
 
 div.page-entities-canvas {
   grid-row: 1;
   border-radius: var(--border-radius-medium);
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 div.page-entities-script-hide {
@@ -193,11 +230,16 @@ div.page-entities-canvas-hide {
 div.page-entities-script {
   grid-row: 1;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 div.page-entities-inspector {
   grid-row: 1;
   overflow-x: auto;
+  min-width: 0;
+  min-height: 0;
 }
 
 </style>

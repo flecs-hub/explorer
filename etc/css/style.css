@@ -36,6 +36,9 @@ div.left-bar {
 div.page-content {
   grid-column: 3;
   grid-row: 3;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media screen and (max-width: 800px) {
