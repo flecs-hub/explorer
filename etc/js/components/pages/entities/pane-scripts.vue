@@ -26,6 +26,7 @@
             :script="activeScript"
             v-model:error="scriptError"
             v-model:changed="scriptChanged"
+            @onChange="onCodeChange"
             v-if="activeScript">
           </flecs-script>
         </div>
@@ -45,11 +46,13 @@ export default { name: "pane-scripts" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, computed, onMounted, ref, watch } from 'vue';
+import { defineProps, defineModel, defineEmits, computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}
 });
+
+const emit = defineEmits(["onCodeChange"])
 
 const activeScriptPath = defineModel("script");
 const scripts = defineModel("scripts");
@@ -148,6 +151,10 @@ function paneScriptsCss() {
     classes.push("pane-scripts-empty");
   }
   return classes;
+}
+
+function onCodeChange(evt) {
+  emit("onCodeChange", evt);
 }
 
 defineExpose({openScript, closeScripts});

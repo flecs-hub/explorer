@@ -8,12 +8,14 @@ export default { name: "flecs-script" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, onMounted, ref, watch } from 'vue';
+import { defineProps, defineModel, defineEmits, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
   script: {type: Object, required: true},
 });
+
+const emit = defineEmits(["onChange"])
 
 const changed = defineModel("changed");
 const error = defineModel("error");
@@ -49,6 +51,8 @@ function onScriptChange(editorObj) {
   }
 
   scriptUpdate(editorObj.getValue());
+
+  emit("onChange", editorObj.getValue());
 }
 
 function scriptUpdate(code, save = false) {

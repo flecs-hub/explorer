@@ -34,6 +34,7 @@ const defaultAppParams = {
   pipeline: "All systems",
   scripts: [],
   script: undefined,
+  code: undefined,
   refresh: "auto"
 }
 
@@ -275,11 +276,21 @@ Promise.all(components).then((values) => {
         on_fallback: explicitHost ? undefined : function() {
           this.app_params.run_playground();
         }.bind(this),
-        
+
         // Copy connection status to reactive property
         on_status: function(status) {
           this.app_state.mode = this.conn.mode;
           this.app_state.status = status;
+
+          if (status == flecs.ConnectionStatus.Connected) {
+            if (this.conn.mode == flecs.ConnectionMode.Wasm) {
+              if (this.app_params.code) {
+                this.conn.scriptUpdate("etc.assets.scene\\.flecs", this.app_params.code, {
+                  try: true
+                }, () => {});
+              }
+            }
+          }
         }.bind(this),
 
         // Copy heartbeat to reactive properties

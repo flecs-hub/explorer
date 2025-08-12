@@ -36,6 +36,7 @@
         :conn="conn"
         v-model:script="appParams.script"
         v-model:scripts="appParams.scripts"
+        @onCodeChange="onCodeChange"
         ref="pane_scripts">
       </pane-scripts>
     </div>
@@ -193,6 +194,12 @@ const inspectorSplitterColumn = computed(() => {
   // With both: inspector split at 4; with only inspector: split at 2
   return appParams.value.sidebar ? 4 : 2;
 });
+
+function onCodeChange(evt) {
+  if (props.app_state.mode == flecs.ConnectionMode.Wasm) {
+    appParams.value.code = evt;
+  }
+}
 
 </script>
 
