@@ -103,7 +103,7 @@ const props = defineProps({
   path: {type: String, required: false}
 });
 
-const emit = defineEmits(["abort", "scriptOpen"]);
+const emit = defineEmits(["abort", "scriptOpen", "selectEntity"]);
 
 const entityQuery = ref();
 const entityQueryResult = ref();

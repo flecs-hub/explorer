@@ -27,8 +27,8 @@ const props = defineProps({
 const appParams = defineModel("app_params");
 
 const path = computed(() => {
-  if (appParams.value.entity) {
-    return appParams.value.entity.path;
+  if (appParams.value) {
+    return appParams.value.path;
   } else {
     return undefined;
   }

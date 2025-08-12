@@ -4,7 +4,7 @@
       <div class="pane-tree-select">
         <dropdown 
           :items="treeModeItems" 
-          v-model:active_item="appParams.tree_mode">
+          v-model:active_item="appParams.entities.tree_mode">
         </dropdown>
       </div>
       <div class="pane-tree-search">
@@ -50,7 +50,7 @@ const treeModeItems = computed(() => {
 const queryFilter = computed(() => {
   let result = "";
 
-  if (appParams.value.tree_mode === "Outline") {
+  if (appParams.value.entities.tree_mode === "Outline") {
     let activeScript = appParams.value.script;
     if (activeScript) {
       result = `[none] (flecs.script.Script, ${activeScript})`;
@@ -60,7 +60,7 @@ const queryFilter = computed(() => {
     } else {
       result = `!_`; // match nothing
     }
-  } else if (appParams.value.tree_mode === "Scripts") {
+  } else if (appParams.value.entities.tree_mode === "Scripts") {
     result = `[none] flecs.script.Script, !flecs.core.Component`;
   }
 
@@ -75,17 +75,17 @@ function selectItem(item) {
       path = path.slice(idStart, path.length);
     }
 
-    if (appParams.value.tree_mode === "Scripts") {
+    if (appParams.value.entities.tree_mode === "Scripts") {
       emit("scriptOpen", path);
     } else {
       emit("entityOpen", path);
-      appParams.value.entity.path = path;
+      appParams.value.entities.path = path;
     }
   } else {
-    if (appParams.value.tree_mode === "Scripts") {
+    if (appParams.value.entities.tree_mode === "Scripts") {
       appParams.value.script = undefined;
     } else {
-      appParams.value.entity.path = undefined;
+      appParams.value.entities.path = undefined;
     }
   }
 }

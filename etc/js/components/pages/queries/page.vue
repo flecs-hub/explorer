@@ -15,7 +15,7 @@
     <template v-if="showInspector">
       <pane-inspector
         :conn="conn"
-        :app_params="app_params"
+        :app_params="app_params.queries"
         @abort="onAbort"
         @selectEntity="onSelectEntity">
       </pane-inspector>
@@ -45,7 +45,7 @@ const css = computed(() => {
   if (app_params.value.sidebar) {
     s += "-with-sidebar";
   }
-  if (app_params.value.entity.path) {
+  if (app_params.value.queries.path) {
     s += "-with-inspector";
   }
 
@@ -55,19 +55,19 @@ const css = computed(() => {
 });
 
 const showInspector = computed(() => {
-  return app_params.value.entity.path !== undefined;
+  return app_params.value.queries.path !== undefined;
 });
 
 function selectEntity(entity) {
-  app_params.value.entity.path = entity;
+  app_params.value.queries.path = entity;
 }
 
 function onAbort() {
-  app_params.value.entity.path = undefined;
+  app_params.value.queries.path = undefined;
 }
 
 function onSelectEntity(path) {
-  app_params.value.entity.path = path;
+  app_params.value.queries.path = path;
 }
 
 </script>

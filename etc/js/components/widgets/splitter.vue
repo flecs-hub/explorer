@@ -12,7 +12,6 @@ export default { name: "splitter" };
 import { defineProps } from 'vue';
 
 const props = defineProps({
-    parent: {type: Object, required: true},
     column: {type: Number, required: true, default: 0}
 });
 

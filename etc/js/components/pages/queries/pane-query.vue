@@ -1,7 +1,7 @@
 <template>
   <div id="pane-query" class="queries-left-pane pane">
     <tabs :items="['editor', 'browse']"
-        v-model:active_tab="app_params.query.query_tab"
+        v-model:active_tab="app_params.queries.query_tab"
         class="explorer-tab-content"
         v-on:changed="onTab">
       <template v-slot:editor>
@@ -35,7 +35,7 @@ const props = defineProps({
 const app_params = defineModel("app_params");
 
 const query = computed(() => {
-  return app_params.value.query;
+  return app_params.value.queries;
 });
 
 const host = computed(() => {

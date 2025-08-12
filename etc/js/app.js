@@ -12,6 +12,43 @@ function getParameterByName(name, url = window.location.href) {
 let native_request;
 let capture_keyboard_events;
 
+// Default explorer parameters
+const defaultAppParams = {
+  page: "entities",
+  host: undefined,
+  queries: {
+    path: undefined,
+    inspector_mode: "Components",
+    expr: "(ChildOf, flecs)",
+    name: undefined,
+    use_name: false,
+    query_tab: "editor",
+    inspect_tab: "table"
+  },
+  entities: {
+    path: undefined,
+    inspector_mode: "Components",
+    tree_mode: "Entities",
+  },
+  sidebar: true,
+  pipeline: "All systems",
+  scripts: [],
+  script: undefined,
+  refresh: "auto"
+}
+
+function newAppParams() {
+  let result = structuredClone(defaultAppParams);
+
+  result.run_playground = function() { 
+    this.scripts = ["etc.assets.scene\\.flecs"];
+    this.script = "etc.assets.scene\\.flecs";
+    this.host = "flecs_explorer.wasm";
+  }
+
+  return result;
+}
+
 function nameQueryFromExpr(expr, oneof) {
   if (!expr) {
     return {
@@ -329,14 +366,24 @@ Promise.all(components).then((values) => {
 
           const value = obj[key];
           if (typeof value === "object") {
-            for (let value_key in value) { // max 1 lvl of nesting
-              const nested = value[value_key];
-              if (nested !== undefined) {
-                result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
-                first = false;
+            if (!Array.isArray(value)) {
+              if (key === obj.page) { // only add params for current page
+                for (let value_key in value) { // max 1 lvl of nesting
+                  const nested = value[value_key];
+                  if (nested !== defaultAppParams[key][value_key]) {
+                    result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
+                    first = false;
+                  }
+                }
               }
+            } else {
+                for (let value_key in value) { // max 1 lvl of nesting
+                  const nested = value[value_key];
+                  result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
+                  first = false;
+                }
             }
-          } else if (value !== undefined) {
+          } else if (value !== defaultAppParams[key]) {
             result += `${first ? "?" : "&"}${key}=${encodeURIComponent(value)}`;
             first = false;
           }
@@ -436,32 +483,7 @@ Promise.all(components).then((values) => {
           build_info: undefined,
           command_counts: new Array(120).fill(0),
         },
-        app_params: { // Populated by user
-          page: "entities",
-          host: undefined,
-          query: {
-            expr: "(ChildOf, flecs)",
-            name: undefined,
-            use_name: false,
-            query_tab: "editor",
-            inspect_tab: "table"
-          },
-          entity: {
-            path: undefined
-          },
-          sidebar: true,
-          inspector_mode: undefined,
-          tree_mode: undefined,
-          pipeline: "All systems",
-          scripts: [],
-          script: undefined,
-          refresh: "auto",
-          run_playground: function() { 
-            this.scripts = ["etc.assets.scene\\.flecs"];
-            this.script = "etc.assets.scene\\.flecs";
-            this.host = "flecs_explorer.wasm";
-          }
-        },
+        app_params: newAppParams(), // Populated by user
         conn: undefined,
         lastWord: "",
         prev_command_count: -1,

@@ -1,7 +1,7 @@
 <template>
   <div id="pane-inspect" :class="`queries-right-pane pane ${gridColumnClass}`">
     <tabs :items="['table', 'json', 'api', 'inspect']" 
-        v-model:active_tab="app_params.query.inspect_tab"
+        v-model:active_tab="app_params.queries.inspect_tab"
         class="inspect-tab-content">
     <template v-slot:table>
       <div :class="visibleClass">
@@ -59,7 +59,7 @@ const request = ref(undefined);
 const emit = defineEmits(["selectEntity"]);
 
 const query = computed(() => {
-  return props.app_params.query;
+  return props.app_params.queries;
 });
 
 const gridColumnClass = computed(() => {

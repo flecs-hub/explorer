@@ -24,6 +24,13 @@
 
     <div id="canvasPlaceholder" :class="canvasCss" :style="`grid-column: ${canvasColumn}`"></div>
 
+    <splitter
+      v-if="showRightPane"
+      :parent="rootEl"
+      :column="inspectorSplitterColumn"
+      @mousedown="rootEl.startDragging('rightPane')"
+    ></splitter>
+
     <div :class="scriptCss" :style="`grid-column: ${scriptColumn}`">
       <pane-scripts
         :conn="conn"
@@ -33,18 +40,11 @@
       </pane-scripts>
     </div>
 
-    <splitter
-      v-if="showRightPane"
-      :parent="rootEl"
-      :column="inspectorSplitterColumn"
-      @mousedown="rootEl.startDragging('rightPane')"
-    ></splitter>
-
     <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`"
       v-if="showInspector">
       <pane-inspector
         :conn="conn"
-        :app_params="appParams"
+        :app_params="appParams.entities"
         @abort="onAbort"
         @scriptOpen="onScriptOpen"
         @selectEntity="onSelectEntity">
@@ -76,7 +76,7 @@ const showScript = computed(() => {
     return false;
   } else if (!appParams.value.script) {
     return false;
-  } else if (appParams.value.entity.path) {
+  } else if (appParams.value.entities.path) {
     return false;
   } else {
     return true;
@@ -88,7 +88,7 @@ const showCanvas = computed(() => {
 });
 
 const showInspector = computed(() => {
-  if (!appParams.value.entity.path) {
+  if (!appParams.value.entities.path) {
     return false;
   }
   return true;
@@ -106,20 +106,20 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
 });
 
 function onAbort(evt) {
-  appParams.value.entity.path = undefined;
+  appParams.value.entities.path = undefined;
   pane_tree.value.unselect();
 }
 
 function onSelectEntity(path) {
-  appParams.value.entity.path = path;
+  appParams.value.entities.path = path;
 }
 
 function onScriptOpen(path) {
   if (!props.app_state.has3DCanvas) {
     pane_scripts.value.openScript(path);
-    appParams.value.entity.path = path;
+    appParams.value.entities.path = path;
   } else {
-    appParams.value.entity.path = undefined;
+    appParams.value.entities.path = undefined;
     appParams.value.scripts.length = 0;
     pane_scripts.value.openScript(path);
   }
@@ -133,7 +133,7 @@ function onEntityOpen(path) {
 
 const pageCss = computed(() => {
   let classes = ["page-content"];
-  if (appParams.value.entity.path || showScript.value) {
+  if (appParams.value.entities.path || showScript.value) {
     classes.push("page-entities-show-inspector");
   }
   if (appParams.value.sidebar == true) {
