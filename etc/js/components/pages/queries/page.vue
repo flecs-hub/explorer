@@ -16,7 +16,8 @@
       <pane-inspector
         :conn="conn"
         :app_params="app_params"
-        @abort="onAbort">
+        @abort="onAbort"
+        @selectEntity="onSelectEntity">
       </pane-inspector>
     </template>
   </div>
@@ -63,6 +64,10 @@ function selectEntity(entity) {
 
 function onAbort() {
   app_params.value.entity.path = undefined;
+}
+
+function onSelectEntity(path) {
+  app_params.value.entity.path = path;
 }
 
 </script>
