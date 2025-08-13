@@ -1,6 +1,5 @@
 <template>
   <div :class="paneScriptsCss()">
-    {{ Script }}
     <template v-if="scriptLabels.length">
       <div class="script-editor-container pane">
         <div class="script-editor-tabs">
