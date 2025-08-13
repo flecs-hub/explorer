@@ -1,6 +1,6 @@
 <template>
   <template v-if="shrink_to_content">
-    <div :class="css">{{ formattedValue }}</div>
+    <div :class="css">{{ curValue }}</div>
   </template>
   <template v-else>
     <input 
@@ -37,6 +37,7 @@ const editMode = ref("default");
 const editBox = ref(null);
 const instance = ref(null);
 const draggingEnabled = ref(false);
+const curValue = ref();
 
 let draggingInstance = null;
 let dragX = 0;
@@ -63,10 +64,14 @@ const css = computed(() => {
 });
 
 const formattedValue = computed(() => {
-  if (props.type[0] === "float" && typeof props.value == "number") {
-    return props.value.toFixed(2);
+  if (curValue.value !== undefined) {
+    if (props.type[0] === "float" && typeof props.value == "number") {
+      return curValue.value.toFixed(2);
+    } else {
+      return curValue.value;
+    }
   } else {
-    return props.value;
+    return undefined;
   }
 });
 
@@ -82,16 +87,19 @@ onMounted(() => {
   }
 
   instance.value = getCurrentInstance();
+
+  curValue.value = props.value;
 });
 
 watch(() => props.value, () => {
+  if (editMode.value !== "edit") {
+    curValue.value = props.value;
+  }
+});
+
+watch(() => formattedValue.value, () => {
   if (editBox.value) {
-    if (editMode.value == "pendingChange") {
-      editMode.value = "default";
-    }
-    if (editMode.value !== "edit") {
-      editBox.value.value = formattedValue.value;
-    }
+    editBox.value.value = formattedValue.value;
   }
 });
 
@@ -99,7 +107,7 @@ function editField() {
   if (!props.readonly) {
     editMode.value = "edit";
     nextTick(() => {
-      editBox.value.value = props.value;
+      editBox.value.value = curValue.value;
     });
   } else {
     editBox.value.blur();
@@ -108,11 +116,11 @@ function editField() {
 
 function onSubmit() {
   if (editBox.value.value != props.value) {
+    curValue.value = Number(editBox.value.value);
     emit("setValue", {value: editBox.value.value});
-    editMode.value = "pendingChange";
-  } else {
-    editMode.value = "default";
   }
+
+  editMode.value = "default";
   editBox.value.blur();
 }
 
@@ -126,7 +134,8 @@ function onCancel() {
 
 function onDrag(value) {
   draggingEnabled.value = true;
-  editBox.value.value = value;
+  editMode.value = "edit";
+  curValue.value = value;
   document.documentElement.classList.add('cursor-ew');
 }
 
@@ -138,19 +147,15 @@ function onDragStop() {
   }
 }
 
-function setValue(value) {
-  editBox.value.value = value;
-}
-
 function onMouseDown(e) {
   if (props.type[0] === "float" || props.type[0] == "int") {
     draggingInstance = instance.value;
     dragX = e.clientX;
     draggingType = props.type[0];
-    draggingValue = props.value;
-    dragIncrement = Math.abs(props.value / 50);
+    draggingValue = curValue.value;
+    dragIncrement = Math.abs(draggingValue / 30);
     if (!dragIncrement) {
-      dragIncrement = 1;
+      dragIncrement = 1 / 30;
     }
   }
 }
