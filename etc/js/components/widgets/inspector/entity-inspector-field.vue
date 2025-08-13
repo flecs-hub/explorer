@@ -39,7 +39,6 @@ const instance = ref(null);
 const draggingEnabled = ref(false);
 
 let draggingInstance = null;
-let dragging = null;
 let dragX = 0;
 let dragIncrement = 0;
 let draggingRegistered = false;
@@ -125,20 +124,26 @@ function onCancel() {
   }
 }
 
-function onDragStart() {
+function onDrag(value) {
   draggingEnabled.value = true;
+  editBox.value.value = value;
   document.documentElement.classList.add('cursor-ew');
 }
 
 function onDragStop() {
-  draggingEnabled.value = false;
-  document.documentElement.classList.remove('cursor-ew');
-  onSubmit();
+  if (draggingEnabled.value) {
+    draggingEnabled.value = false;
+    document.documentElement.classList.remove('cursor-ew');
+    onSubmit();
+  }
+}
+
+function setValue(value) {
+  editBox.value.value = value;
 }
 
 function onMouseDown(e) {
   if (props.type[0] === "float" || props.type[0] == "int") {
-    dragging = editBox;
     draggingInstance = instance.value;
     dragX = e.clientX;
     draggingType = props.type[0];
@@ -153,27 +158,25 @@ function onMouseDown(e) {
 function onMouseUp() {
   if (draggingInstance) {
     draggingInstance.exposed.onDragStop();
-    dragging = null;
     draggingInstance = null;
   }
 }
 
 function onMouseMove(e) {
-  if (dragging && dragging.value) {
+  if (draggingInstance) {
     const newX = e.clientX;
     draggingValue += (newX - dragX) * dragIncrement
     if (draggingType === "float") {
-      dragging.value.value = draggingValue;
+      draggingInstance.exposed.onDrag(draggingValue);
     } else {
-      dragging.value.value = Math.round(draggingValue);
+      draggingInstance.exposed.onDrag(Math.round(draggingValue));
     }
-    
+
     dragX = newX;
-    draggingInstance.exposed.onDragStart();
   }
 }
 
-defineExpose({onSubmit, onDragStart, onDragStop});
+defineExpose({onDrag, onDragStop});
 
 </script>
 
