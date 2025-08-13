@@ -83,6 +83,7 @@ function selectItem(item) {
     }
   } else {
     if (appParams.value.entities.tree_mode === "Scripts") {
+      appParams.value.entities.path = undefined;
       appParams.value.script = undefined;
       appParams.value.scripts.length = 0;
     } else {
