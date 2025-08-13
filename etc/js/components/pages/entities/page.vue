@@ -117,8 +117,8 @@ function onSelectEntity(path) {
 
 function onScriptOpen(path) {
   if (!props.app_state.has3DCanvas) {
-    pane_scripts.value.openScript(path);
     appParams.value.entities.path = path;
+    pane_scripts.value.openScript(path);
   } else {
     appParams.value.entities.path = undefined;
     appParams.value.scripts.length = 0;
@@ -171,8 +171,14 @@ const canvasColumn = computed(() => {
 });
 
 const scriptColumn = computed(() => {
-  // Script pane should occupy the right pane column, same as inspector
-  return inspectorColumn.value;
+  if (!props.app_state.has3DCanvas) {
+    // When there's no 3D canvas use the space to show the script.
+    return canvasColumn.value;
+  } else {
+    // When there's a 3D canvas the script is displayed in the same pane as the
+    // inspector so that it doesn't obstruct the scene.
+    return inspectorColumn.value;
+  }
 });
 
 const inspectorColumn = computed(() => {

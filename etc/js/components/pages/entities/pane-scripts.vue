@@ -110,6 +110,7 @@ function selectScript(script) {
 }
 
 function onClose(script) {
+  console.log("onClose");
   let index = scriptLabels.value.indexOf(script);
   if (index !== -1) {
     scripts.value.splice(index, 1);
