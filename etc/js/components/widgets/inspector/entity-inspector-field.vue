@@ -11,7 +11,8 @@
       @focus="editField"
       @blur="onCancel"
       @keydown.enter="onSubmit"
-      @keydown.esc="onCancel">
+      @keydown.esc="onCancel"
+      @mousedown.stop="onMouseDown">
   </template>
 </template>
 
@@ -20,7 +21,7 @@ export default { name: "entity-inspector-field" }
 </script>
 
 <script setup>
-import { computed, defineProps, defineEmits, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, defineProps, defineEmits, defineExpose, nextTick, onMounted, ref, watch, getCurrentInstance } from 'vue';
 
 const props = defineProps({
   value: {required: true},
@@ -34,6 +35,16 @@ const props = defineProps({
 const emit = defineEmits(["setValue"]);
 const editMode = ref("default");
 const editBox = ref(null);
+const instance = ref(null);
+const draggingEnabled = ref(false);
+
+let draggingInstance = null;
+let dragging = null;
+let dragX = 0;
+let dragIncrement = 0;
+let draggingRegistered = false;
+let draggingValue = 0;
+let draggingType = null;
 
 const css = computed(() => {
   let classes = [props.class];
@@ -64,6 +75,14 @@ onMounted(() => {
   if (editBox.value) {
     editBox.value.value = formattedValue.value;
   }
+
+  if (!draggingRegistered) {
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    draggingRegistered = true;
+  }
+
+  instance.value = getCurrentInstance();
 });
 
 watch(() => props.value, () => {
@@ -100,9 +119,61 @@ function onSubmit() {
 
 function onCancel() {
   editMode.value = "default";
-  editBox.value.value = formattedValue.value;
-  editBox.value.blur();
+  if (editBox.value) {
+    editBox.value.value = formattedValue.value;
+    editBox.value.blur();
+  }
 }
+
+function onDragStart() {
+  draggingEnabled.value = true;
+  document.documentElement.classList.add('cursor-ew');
+}
+
+function onDragStop() {
+  draggingEnabled.value = false;
+  document.documentElement.classList.remove('cursor-ew');
+  onSubmit();
+}
+
+function onMouseDown(e) {
+  if (props.type[0] === "float" || props.type[0] == "int") {
+    dragging = editBox;
+    draggingInstance = instance.value;
+    dragX = e.clientX;
+    draggingType = props.type[0];
+    draggingValue = props.value;
+    dragIncrement = Math.abs(props.value / 50);
+    if (!dragIncrement) {
+      dragIncrement = 1;
+    }
+  }
+}
+
+function onMouseUp() {
+  if (draggingInstance) {
+    draggingInstance.exposed.onDragStop();
+    dragging = null;
+    draggingInstance = null;
+  }
+}
+
+function onMouseMove(e) {
+  if (dragging && dragging.value) {
+    const newX = e.clientX;
+    draggingValue += (newX - dragX) * dragIncrement
+    if (draggingType === "float") {
+      dragging.value.value = draggingValue;
+    } else {
+      dragging.value.value = Math.round(draggingValue);
+    }
+    
+    dragX = newX;
+    draggingInstance.exposed.onDragStart();
+  }
+}
+
+defineExpose({onSubmit, onDragStart, onDragStop});
 
 </script>
 
@@ -167,6 +238,16 @@ div.value-entity, div.value-entity {
 
 div.value-enum, input.value-enum, div.value-bitmask, input.value-bitmask {
   color: #7D67B5;
+}
+
+</style>
+
+<style>
+
+html.cursor-ew { cursor: ew-resize !important; }
+
+html.cursor-ew * {
+  cursor: inherit !important;
 }
 
 </style>
