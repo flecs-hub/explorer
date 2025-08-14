@@ -31,7 +31,9 @@
               <template v-else>
                 <div class="entity-table-name">
                   <entity-parent :path="col.get(result)"></entity-parent>
-                  <entity-name :path="col.get(result)"></entity-name>
+                  <span class="entity-link" @click.stop="onSelectEntity(col.get(result))">
+                    <entity-name :path="col.get(result)" :link="true"></entity-name>
+                  </span>
                 </div>
               </template>
             </template>
@@ -263,6 +265,10 @@ function onSelect(result) {
   }
 }
 
+function onSelectEntity(e) {
+  return emit("select", e);
+}
+
 </script>
 
 <style scoped>
@@ -347,6 +353,10 @@ tr.entity-table-row-selectable {
 
 tr.entity-table-row-selectable:hover td {
   background-color: var(--bg-cell-hover);
+}
+
+span.entity-link:hover {
+  color: var(--green);
 }
 
 </style>
