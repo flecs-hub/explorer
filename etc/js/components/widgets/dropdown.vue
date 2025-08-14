@@ -53,7 +53,7 @@ onBeforeUnmount(() => {
 });
 
 function onClick() {
-  showList.value = true;
+  showList.value = !showList.value;
 }
 
 function onWindowClick(event) {
