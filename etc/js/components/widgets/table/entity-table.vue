@@ -77,6 +77,17 @@ const props = defineProps({
   result: {type: Object, required: true }
 });
 
+function componentToColumnName(component) {
+  if (component[0] !== "(") {
+    // Not a pair
+    return explorer.shortenEntity(component);
+  } else {
+    let pair = component.slice(1, -1).split(",");
+    return "(" + explorer.shortenEntity(pair[0]) + ", " + 
+      explorer.shortenEntity(pair[1]) + ")";
+  }
+}
+
 const tableHeaders = computed(() => {
   const result = props.result;
   const columns = [];
@@ -125,7 +136,7 @@ const tableHeaders = computed(() => {
     const field = fields[i];
     if (field.schema) {
       columns.push({
-        name: field.id,
+        name: componentToColumnName(field.id),
         schema: field.schema,
         index: index++,
         get: (result) => {
