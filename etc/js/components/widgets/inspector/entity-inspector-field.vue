@@ -63,13 +63,29 @@ const css = computed(() => {
   return classes;
 });
 
+const unit = computed(() => {
+  if (props.type.length > 1) {
+    const metadata = props.type[1];
+    if (metadata.symbol !== undefined) {
+      return metadata.symbol;
+    }
+  }
+});
+
 const formattedValue = computed(() => {
+  let result;
   if (curValue.value !== undefined) {
     if (props.type[0] === "float" && typeof props.value == "number") {
-      return curValue.value.toFixed(2);
+      result = curValue.value.toFixed(2);
     } else {
-      return curValue.value;
+      result = curValue.value;
     }
+
+    if (unit.value) {
+      result += " " + unit.value;
+    }
+
+    return result
   } else {
     return undefined;
   }

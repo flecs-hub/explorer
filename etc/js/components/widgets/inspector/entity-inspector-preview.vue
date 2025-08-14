@@ -100,6 +100,15 @@ const props = defineProps({
 
 const emit = defineEmits(["setValue"]);
 
+const propCount = computed(() => {
+  let result = Object.keys(props.type).length;
+  let self = props.type["@self"];
+  if (self !== undefined) {
+    result --;
+  }
+  return result;
+});
+
 const previewTypeKind = computed(() => {
   const type = props.type;
   if (typeof type != "object") {
@@ -110,11 +119,7 @@ const previewTypeKind = computed(() => {
     return "scalar";
   }
 
-  let propCount = Object.keys(type).length;
   let self = type["@self"];
-  if (self !== undefined) {
-    propCount --;
-  }
 
   if (self) {
     if (self[0].unit === "flecs.units.Color.Rgb") {
@@ -126,17 +131,17 @@ const previewTypeKind = computed(() => {
     }
   }
 
-  if (propCount === 1) {
+  if (propCount.value === 1) {
     let memberType = propBy(type, 0)[0];
     if (memberType === "float" || memberType === "int") {
       return "vector"
     } else {
       return "single";
     }
-  } else if (propCount <= 3) {
+  } else if (propCount.value <= 3) {
     let isVector = true;
 
-    for (let i = 0; i < propCount; i ++) {
+    for (let i = 0; i < propCount.value; i ++) {
       let memberType = propBy(type, i)[0];
       if (memberType !== "float" && memberType !== "int") {
         isVector = false;
@@ -180,7 +185,13 @@ function setValue(evt, key) {
 function vectorElemClass() {
   let classes = ["component-preview-vector-elem"];
   if (!props.compact) {
-    classes.push("component-preview-vector-elem-width");
+    if (propCount.value == 1) {
+      classes.push("component-preview-vector-elem-width-one");
+    } else if (propCount.value == 2) {
+      classes.push("component-preview-vector-elem-width-two");
+    } else {
+      classes.push("component-preview-vector-elem-width");
+    }
   }
   return classes;
 }
@@ -244,6 +255,14 @@ div.component-preview-vector-comma {
 
 div.component-preview-vector-elem-width {
   width: 85px;
+}
+
+div.component-preview-vector-elem-width-one {
+  width: 263px;
+}
+
+div.component-preview-vector-elem-width-two {
+  width: 130px;
 }
 
 div.component-preview-single {
