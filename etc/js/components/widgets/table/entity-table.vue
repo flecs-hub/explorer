@@ -77,15 +77,31 @@ const props = defineProps({
   result: {type: Object, required: true }
 });
 
-function componentToColumnName(component) {
+function componentToColumnName(component, schema) {
+  let result;
   if (component[0] !== "(") {
     // Not a pair
-    return explorer.shortenEntity(component);
+    result = explorer.shortenEntity(component);
   } else {
     let pair = component.slice(1, -1).split(",");
-    return "(" + explorer.shortenEntity(pair[0]) + ", " + 
+    result = "(" + explorer.shortenEntity(pair[0]) + ", " + 
       explorer.shortenEntity(pair[1]) + ")";
   }
+
+  // If value is an object with a single member, add the unit symbol to the
+  // column name if the schema has one.
+  const keys = Object.keys(schema);
+  if (keys.length == 1) {
+    const first = schema[keys[0]];
+    if (first.length > 1) {
+      const symbol = first[1].symbol;
+      if (symbol) {
+        result += ` (${symbol})`;
+      }
+    }
+  }
+
+  return result;
 }
 
 const tableHeaders = computed(() => {
@@ -136,7 +152,7 @@ const tableHeaders = computed(() => {
     const field = fields[i];
     if (field.schema) {
       columns.push({
-        name: componentToColumnName(field.id),
+        name: componentToColumnName(field.id, field.schema),
         schema: field.schema,
         index: index++,
         get: (result) => {
