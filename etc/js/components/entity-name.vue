@@ -14,8 +14,9 @@ const props = defineProps({
 });
 
 const entityName = computed(() => {
-  const names = props.path.split(".");
-  return names.pop();
+  const path = props.path.replaceAll("\\\.", "@@");
+  const names = path.split(".");
+  return names.pop().replaceAll("@@", ".");
 });
 
 </script>

@@ -14,9 +14,10 @@ const props = defineProps({
 });
 
 const parent = computed(() => {
-  const names = props.path.split(".");
+  const path = props.path.replaceAll("\\\.", "@@");
+  const names = path.split(".");
   names.pop();
-  return names.join(".");
+  return names.join(".").replaceAll("@@", ".");
 });
 
 </script>
