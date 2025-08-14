@@ -1,6 +1,6 @@
 <template>
   <template v-if="shrink_to_content">
-    <div :class="css">{{ curValue }}</div>
+    <div :class="css">{{ formattedValue }}</div>
   </template>
   <template v-else>
     <input 
