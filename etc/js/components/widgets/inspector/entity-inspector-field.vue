@@ -132,8 +132,8 @@ function editField() {
 
 function onSubmit() {
   if (editBox.value.value != props.value) {
-    curValue.value = Number(editBox.value.value);
-    emit("setValue", {value: editBox.value.value});
+    curValue.value = Number(draggingValue);
+    emit("setValue", {value: draggingValue});
   }
 
   editMode.value = "default";
