@@ -197,25 +197,45 @@ const orderByIndices = computed(() => {
     let aValue = a.value;
     let bValue = b.value;
 
+    // If both elements are objects with a first member of a number type, sort
+    // on the first member so we don't compare numbers as strings.
+    if (typeof aValue === 'object' && typeof bValue === 'object') {
+      const aKeys = Object.keys(aValue);
+      const bKeys = Object.keys(bValue);
+      if (aKeys.length && bKeys.length) {
+        const aFirst = aValue[aKeys[0]];
+        const bFirst = bValue[bKeys[0]];
+
+        if (typeof aFirst === 'number' && typeof bFirst === 'number') {
+          aValue = aFirst;
+          bValue = bFirst;
+        }
+      }
+    }
+
+    let comp;
+
     if (typeof aValue === 'number' && typeof bValue === 'number') {
-      return (aValue - bValue) - (bValue - aValue);
+      comp = (aValue - bValue) - (bValue - aValue);
+    } else {
+
+      if (typeof aValue === 'number') {
+        aValue = "" + aValue;
+      }
+      if (typeof bValue === 'number') {
+        bValue = "" + bValue;
+      }
+
+      if (typeof aValue === 'object') {
+        aValue = JSON.stringify(aValue);
+      }
+      if (typeof bValue === 'object') {
+        bValue = JSON.stringify(bValue);
+      }
+
+      comp = aValue.localeCompare(bValue);
     }
 
-    if (typeof aValue === 'number') {
-      aValue = "" + aValue;
-    }
-    if (typeof bValue === 'number') {
-      bValue = "" + bValue;
-    }
-
-    if (typeof aValue === 'object') {
-      aValue = JSON.stringify(aValue);
-    }
-    if (typeof bValue === 'object') {
-      bValue = JSON.stringify(bValue);
-    }
-
-    let comp = aValue.localeCompare(bValue);
     if (orderBy.value.mode === 'desc') {
       comp *= -1;
     }
