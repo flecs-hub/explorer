@@ -5,7 +5,7 @@
         class="inspect-tab-content">
     <template v-slot:table>
       <div :class="visibleClass">
-        <entity-table :result="result" @select="onSelectEntity"></entity-table>
+        <entity-table :result="result" @select="onSelectEntity" ref="queryTable"></entity-table>
       </div>
       <template v-if="result.error">
         <query-error :error="result.error"></query-error>
@@ -55,6 +55,7 @@ const props = defineProps({
 
 const result = ref({reply: []});
 const request = ref(undefined);
+const queryTable = ref(null);
 
 const emit = defineEmits(["selectEntity"]);
 
@@ -126,6 +127,7 @@ onUnmounted(() => {
 })
 
 watch(() => [query.value.expr, query.value.name, query.value.use_name], () => {
+  queryTable.value.resetQuery();
   doRequest();
 });
 
