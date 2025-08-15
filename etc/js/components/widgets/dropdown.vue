@@ -63,6 +63,13 @@ function onWindowClick(event) {
   }
 }
 
+function onWindowClick(element) {
+  // Close if the dropdown doesn't contain the clicked element
+  if (!dropdown.value.contains(element.target)) {
+    showList.value = false;
+  }
+}
+
 function onSelect(item) {
   activeItem.value = item;
   showList.value = false;
