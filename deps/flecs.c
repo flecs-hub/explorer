@@ -46189,7 +46189,8 @@ int flecs_script_find_entity(
     ecs_entity_t from,
     const char *path,
     int32_t *frame_offset,
-    ecs_entity_t *out);
+    ecs_entity_t *out,
+    bool *is_var);
 
 ecs_script_var_t* flecs_script_find_var(
     const ecs_script_vars_t *vars,
@@ -65216,7 +65217,7 @@ int flecs_script_template_eval_prop(
     const ecs_type_info_t *ti;
 
     if (node->type) {
-        if (flecs_script_find_entity(v, 0, node->type, NULL, &type) || !type) {
+        if (flecs_script_find_entity(v, 0, node->type, NULL, &type, NULL) || !type) {
             flecs_script_eval_error(v, node,
                 "unresolved type '%s' for prop '%s'", 
                     node->type, node->name);
@@ -66388,13 +66389,13 @@ int flecs_script_check_pair_scope(
     ecs_entity_t dummy;
 
     if (flecs_script_find_entity(
-        v, 0, node->id.first, &node->id.first_sp, &dummy))
+        v, 0, node->id.first, &node->id.first_sp, &dummy, NULL))
     {
         return -1;
     }
 
     if (flecs_script_find_entity(
-        v, 0, node->id.second, &node->id.second_sp, &dummy))
+        v, 0, node->id.second, &node->id.second_sp, &dummy, NULL))
     {
         return -1;
     }
@@ -66728,75 +66729,89 @@ int flecs_script_find_entity(
     ecs_entity_t from,
     const char *path,
     int32_t *sp,
-    ecs_entity_t *out)
+    ecs_entity_t *out,
+    bool *is_var)
 {
     if (!path) {
         goto error;
     }
 
-    if (path[0] == '$') {
+    ecs_entity_t result = 0;
+
+    if (path[0] != '$') {
+        if (from) {
+            result = ecs_lookup_path_w_sep(v->world, from, path, NULL, NULL, false);
+        } else {
+            int32_t i, using_count = ecs_vec_count(&v->r->using);
+            if (using_count) {
+                ecs_entity_t *using = ecs_vec_first(&v->r->using);
+                for (i = using_count - 1; i >= 0; i --) {
+                    ecs_entity_t e = ecs_lookup_path_w_sep(
+                        v->world, using[i], path, NULL, NULL, false);
+                    if (e) {
+                        result = e;
+                    }
+                }
+            }
+
+            if (!result) {
+                result = ecs_lookup_path_w_sep(
+                    v->world, v->parent, path, NULL, NULL, true);
+            }
+        }
+
+        if (result) {
+            *out = result;
+            return 0;
+        }
+
+        if (!sp) {
+            return -1;
+        }
+    } else {
         if (!sp) {
             flecs_script_eval_error(v, NULL, 
                 "variable identifier '%s' not allowed here", path);
             goto error;
         }
 
-        const ecs_script_var_t *var = flecs_script_find_var(
-            v->vars, &path[1], v->dynamic_variable_binding ? NULL : sp);
-        if (!var) {
-            goto error;
-        }
+        path ++;
+    }
 
-        if (var->value.type != ecs_id(ecs_entity_t)) {
-            char *type_str = ecs_id_str(v->world, var->value.type);
-            flecs_script_eval_error(v, NULL, 
-                "variable '%s' must be of type entity, got '%s'", 
-                    path, type_str);
-            ecs_os_free(type_str);
-            goto error;
-        }
+    const ecs_script_var_t *var = flecs_script_find_var(
+        v->vars, path, v->dynamic_variable_binding ? NULL : sp);
+    if (!var) {
+        goto error;
+    }
 
-        if (v->template) {
-            return 0;
-        }
+    if (var->value.type != ecs_id(ecs_entity_t)) {
+        char *type_str = ecs_id_str(v->world, var->value.type);
+        flecs_script_eval_error(v, NULL, 
+            "variable '%s' must be of type entity, got '%s'", 
+                path, type_str);
+        ecs_os_free(type_str);
+        goto error;
+    }
 
-        if (var->value.ptr == NULL) {            
-            flecs_script_eval_error(v, NULL, 
-                "variable '%s' is not initialized", path);
-            goto error;
-        }
-
-        ecs_entity_t result = *(ecs_entity_t*)var->value.ptr;
-        if (!result) {
-            flecs_script_eval_error(v, NULL, 
-                "variable '%s' contains invalid entity id (0)", path);
-            goto error;
-        }
-
-        *out = result;
-
+    if (v->template) {
         return 0;
     }
 
-    if (from) {
-        *out = ecs_lookup_path_w_sep(v->world, from, path, NULL, NULL, false);
-    } else {
-        int32_t i, using_count = ecs_vec_count(&v->r->using);
-        if (using_count) {
-            ecs_entity_t *using = ecs_vec_first(&v->r->using);
-            for (i = using_count - 1; i >= 0; i --) {
-                ecs_entity_t e = ecs_lookup_path_w_sep(
-                    v->world, using[i], path, NULL, NULL, false);
-                if (e) {
-                    *out = e;
-                    return 0;
-                }
-            }
-        }
-
-        *out = ecs_lookup_path_w_sep(
-            v->world, v->parent, path, NULL, NULL, true);
+    if (var->value.ptr == NULL) {            
+        flecs_script_eval_error(v, NULL, 
+            "variable '%s' is not initialized", path);
+        goto error;
     }
+
+    result = *(ecs_entity_t*)var->value.ptr;
+    if (!result) {
+        flecs_script_eval_error(v, NULL, 
+            "variable '%s' contains invalid entity id (0)", path);
+        goto error;
+    }
+
+    *out = result;
+    if (is_var) *is_var = true;
 
     return 0;
 error:
@@ -66827,7 +66842,7 @@ ecs_entity_t flecs_script_find_entity_action(
     (void)world;
     ecs_script_eval_visitor_t *v = ctx;
     ecs_entity_t result;
-    if (!flecs_script_find_entity(v, 0, path, NULL, &result)) {
+    if (!flecs_script_find_entity(v, 0, path, NULL, &result, NULL)) {
         return result;
     }
     return 0;
@@ -66916,7 +66931,7 @@ int flecs_script_eval_id(
 
     ecs_entity_t first = 0;
     if (flecs_script_find_entity(
-        v, 0, id->first, &id->first_sp, &first) || !first)
+        v, 0, id->first, &id->first_sp, &first, NULL) || !first)
     {
         if (id->first[0] == '$') {
             flecs_script_eval_error(v, node, 
@@ -66935,7 +66950,7 @@ int flecs_script_eval_id(
     if (id->second) {
         ecs_entity_t second = 0;
         if (flecs_script_find_entity(
-            v, second_from, id->second, &id->second_sp, &second) || 
+            v, second_from, id->second, &id->second_sp, &second, &id->dynamic) || 
             !second) 
         {
             if (id->second[0] == '$') {
@@ -67106,7 +67121,8 @@ int flecs_script_eval_entity(
     bool is_slot = false;
     if (node->kind) {
         ecs_script_id_t id = {
-            .first = node->kind
+            .first = node->kind,
+            .first_sp = -1
         };
 
         if (!ecs_os_strcmp(node->kind, "prefab")) {
@@ -67426,7 +67442,7 @@ int flecs_script_eval_var_component(
     if (!var) {
         /* If we cannot find local variable, try find as const var */
         ecs_entity_t var_entity = 0;
-        if (flecs_script_find_entity(v, 0, node->name, NULL, &var_entity)) {
+        if (flecs_script_find_entity(v, 0, node->name, NULL, &var_entity, NULL)) {
             return -1;
         }
 
@@ -67764,7 +67780,7 @@ int flecs_script_eval_const(
     }
 
     if (!type && node->type) {
-        if (flecs_script_find_entity(v, 0, node->type, NULL, &type) || !type) {
+        if (flecs_script_find_entity(v, 0, node->type, NULL, &type, NULL) || !type) {
             flecs_script_eval_error(v, node,
                 "unresolved type '%s' for const variable '%s'", 
                     node->type, node->name);
@@ -67869,7 +67885,7 @@ int flecs_script_eval_pair_scope(
 {
     ecs_entity_t first;
     if (flecs_script_find_entity(
-        v, 0, node->id.first, &node->id.first_sp, &first) || !first)
+        v, 0, node->id.first, &node->id.first_sp, &first, NULL) || !first)
     {
         first = flecs_script_create_entity(v, node->id.first);
         if (!first) {
@@ -67881,7 +67897,7 @@ int flecs_script_eval_pair_scope(
     if (node->id.second) {
         if (node->id.second[0] == '$') {
             if (flecs_script_find_entity(
-                v, 0, node->id.second, &node->id.second_sp, &second)) 
+                v, 0, node->id.second, &node->id.second_sp, &second, NULL)) 
             {
                 return -1;
             }
