@@ -1,5 +1,5 @@
 <template>
-  <div class="key noselect" @click="toggle">
+  <div class="key noselect" @click.stop="toggle">
     <template v-if="typeof value === 'object' && value !== null">
       <expand-button
         :expand="expand">
@@ -7,7 +7,7 @@
     </template>
     {{  keyname }}
   </div>
-  <div class="value noselect" @click="toggle">
+  <div class="value noselect" @click.stop="toggle">
     <template v-if="typeof value === 'object'">
       <entity-inspector-preview
         :value="value"
