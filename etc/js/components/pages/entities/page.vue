@@ -16,13 +16,14 @@
     </pane-tree>
 
     <splitter
-      v-if="app_params.sidebar && (showCanvas || showInspector || showScript)"
+      v-if="app_params.sidebar"
       :parent="rootEl"
       :column="sidebarSplitterColumn"
       @mousedown="rootEl.startDragging('leftPane')"
     ></splitter>
 
-    <div id="canvasPlaceholder" :class="canvasCss" :style="`grid-column: ${canvasColumn}`"></div>
+    <pane-content :conn="conn">
+    </pane-content>
 
     <splitter
       v-if="showRightPane"

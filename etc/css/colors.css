@@ -20,19 +20,22 @@
   --less-dark-blue: #094a94;
   --darker-blue: hsl(212, 50%, 10%);
   --darker-green: hsl(153, 27%, 20%);
-  --dark-green: hsl(153, 37%, 30%);
-  --green: rgb(66, 185, 131);
+  --dark-green: #30694f;
+  --green: #42b983;
   --light-green: #A2D8B4;
   --blue: rgb(103, 154, 209);
-  --purple: rgb(188, 137, 189);
+  --purple: #bc89bd;
   --yellow: #b9a542;
   --red: #B5494B;
   --orange: #B5894B;
 
   --bright-green: #A2D8B4;
-  --bright-blue: rgb(86, 168, 248);
+  --bright-blue: #56a8f8;
+  
   --bright-red: #EF8784;
+  --yellow: #FFE100;
   --cyan: #00AABB;
+  --blue: rgb(73, 129, 181);
 
   --bg-pane: hsl(210, 12%, 16%);
 
@@ -85,8 +88,8 @@
 
   --table-padding: 8px;
 
-  --module-color: #FFE100;
-  --component-color: #4981B5;
+  --module-color: var(--yellow);
+  --component-color: var(--blue);
   --target-color: var(--cyan);
   --query-color: #DDE0E6;
   --prefab-color: var(--cyan);

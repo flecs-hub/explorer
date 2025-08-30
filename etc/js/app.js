@@ -156,6 +156,9 @@ let components = [
   loadModule('js/components/widgets/splitter.vue', options),
   loadModule('js/components/widgets/pane-container.vue', options),
   loadModule('js/components/widgets/terminal-color-pre.vue', options),
+  loadModule('js/components/widgets/edit-tabs.vue', options),
+  loadModule('js/components/widgets/edit-tabs-close-button.vue', options),
+  loadModule('js/components/widgets/histogram.vue', options),
   loadModule('js/components/icon.vue', options),
   loadModule('js/components/toggle.vue', options),
   loadModule('js/components/search-box.vue', options),
@@ -176,8 +179,8 @@ let components = [
   loadModule('js/components/pages/entities/page.vue', options),
   loadModule('js/components/pages/entities/pane-tree.vue', options),
   loadModule('js/components/pages/entities/pane-inspector.vue', options),
-  loadModule('js/components/pages/entities/pane-scripts.vue', options),
-  loadModule('js/components/pages/entities/pane-scripts-close-button.vue', options),
+  loadModule('js/components/pages/entities/pane-content.vue', options),
+  loadModule('js/components/pages/entities/entities-overview.vue', options),
   loadModule('js/components/pages/entities/flecs-script.vue', options),
 
   // Tree widget

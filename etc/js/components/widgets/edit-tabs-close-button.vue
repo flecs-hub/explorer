@@ -1,13 +1,13 @@
 <template>
-    <icon-button 
-      :src="iconImage"
-      @mouseover="onEnter" @mouseleave="onLeave"
-      @click.stop="onClose">
-    </icon-button>
+  <icon-button 
+    :src="iconImage"
+    @mouseover="onEnter" @mouseleave="onLeave"
+    @click.stop="onClose">
+  </icon-button>
 </template>
 
 <script>
-export default { name: "pane-scripts-close-button" }
+export default { name: "edit-tabs-close-button" }
 </script>
 
 <script setup>
