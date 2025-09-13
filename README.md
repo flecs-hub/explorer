@@ -5,8 +5,6 @@ Web-based UI for monitoring Flecs applications, trying out queries &amp; learnin
 
 <img width="1983" height="1206" alt="Screenshot 2025-09-12 at 5 48 15 PM" src="https://github.com/user-attachments/assets/e4d59ce4-eb7a-47da-9cb4-2e0bbf31ba5e" />
 
-<img width="1983" height="1206" alt="Screenshot 2025-09-12 at 5 49 11 PM" src="https://github.com/user-attachments/assets/108d5003-ef79-46d4-88c7-9f8eb13cd8a5" />
-
 A live version of the explorer is running @ https://flecs.dev/explorer
 
 ## Usage
@@ -110,7 +108,7 @@ world.progress();
 
 You should now be able to see statistics in the explorer, which should look like this:
 
-<img width="1231" alt="Screen Shot 2022-06-04 at 1 14 49 AM" src="https://user-images.githubusercontent.com/9919222/171993359-d3d31208-6e7e-46ad-909e-c5f80fa492d3.png">
+<img width="1983" height="1206" alt="Screenshot 2025-09-12 at 5 49 11 PM" src="https://github.com/user-attachments/assets/108d5003-ef79-46d4-88c7-9f8eb13cd8a5" />
 
 ### URL options
 The following options can be added to the URL:
