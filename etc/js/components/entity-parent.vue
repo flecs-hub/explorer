@@ -14,10 +14,7 @@ const props = defineProps({
 });
 
 const parent = computed(() => {
-  const path = props.path.replaceAll("\\\.", "@@");
-  const names = path.split(".");
-  names.pop();
-  return names.join(".").replaceAll("@@", ".");
+  return explorer.entityParent(props.path);
 });
 
 </script>

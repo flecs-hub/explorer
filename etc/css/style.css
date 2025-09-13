@@ -90,6 +90,7 @@ button {
   border-radius: var(--border-radius-medium);
   background-color: var(--bg-button);
   color: var(--primary-text);
+  transition: background-color var(--animation-duration);
 
   -webkit-touch-callout: none; /* iOS Safari */
     -webkit-user-select: none; /* Safari */
@@ -128,6 +129,10 @@ div.pane, input.pane {
   border-width: 1px;
   border-style: solid;
   border-radius: var(--border-radius-medium);
+}
+
+div.pane-alt {
+  background-color: var(--bg-pane-alt);
 }
 
 .noselect {

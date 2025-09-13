@@ -6,24 +6,24 @@
           <div class="edit-tabs-tabs-line"></div>
           <div 
               :class="editButtonCss(item)" 
-              @click="editButtonSelect(item)"
+              @click="editButtonSelect(item.value)"
               v-for="item in items">
-            {{ item }}
-            <div class="edit-tabs-close-button">
+            {{ item.label }}
+            <div class="edit-tabs-close-button"
+              v-if="activeItem && item.value == activeItem && item.canClose">
               <edit-tabs-close-button
-                :changed="false"
-                v-if="activeItem && item == activeItem"
-                @onClose="onClose(item)">
+                :changed="changed"
+                @onClose="editButtonClose(item)">
               </edit-tabs-close-button>
             </div>
           </div>
         </div>
 
-        <div class="edit-tabs-content">
-          <ul>
-            <template v-for="item in items" :key="item">
-              <li :class="editContentCss(item)">
-                <slot :name="item"></slot>
+        <div class="edit-tabs-content" :style="`padding: ${padding}; padding-bottom: 0px;`">
+          <ul style="height: inherit; padding: 0px;">
+            <template v-for="item in items" :key="item.value">
+              <li :class="editContentCss(item.value)">
+                <slot :name="item.value"></slot>
               </li>
             </template>
           </ul>
@@ -38,18 +38,23 @@ export default { name: "edit-tabs" }
 </script>
 
 <script setup>
-import { defineProps, onMounted, ref, watch } from 'vue';
+import { defineProps, defineModel, defineEmits, onMounted } from 'vue';
 
 const props = defineProps({
-  items: {type: Array, required: true}
+  items: {type: Array, required: true},
+  changed: {type: Boolean, required: false, default: false},
+  padding: {type: String, required: false, default: "4px;"}
 });
 
-const activeItem = ref();
+const emit = defineEmits(["onClose"]);
+const activeItem = defineModel("active_item");
 
 onMounted(() => {
   const items = props.items;
   if (items.length) {
-    activeItem.value = items[0];
+    if (activeItem.value === undefined) {
+      activeItem.value = items[0].value;
+    }
   }
 });
 
@@ -64,10 +69,15 @@ function editTabsCss() {
 
 function editButtonCss(item) {
   let classes = ["noselect", "edit-tabs-button"];
+
   if (activeItem.value) {
-    if (item == activeItem.value) {
+    if (item.value == activeItem.value) {
       classes.push("edit-tabs-button-active");
     }
+  }
+
+  if (item.canClose) {
+    classes.push("edit-tabs-button-can-close");
   }
 
   return classes;
@@ -75,6 +85,23 @@ function editButtonCss(item) {
 
 function editButtonSelect(item) {
   activeItem.value = item;
+}
+
+function editButtonClose(item) {
+  let prevItem = undefined;
+
+  for (let i of props.items) {
+    if (i.value == item.value) {
+      break;
+    }
+    prevItem = i;
+  }
+
+  if (prevItem) {
+    activeItem.value = prevItem.value;
+  }
+
+  emit("onClose", item);
 }
 
 function editContentCss(item) {
@@ -98,32 +125,19 @@ div.edit-tabs {
   height: 100%;
 }
 
-div.edit-tabs-error {
-  grid-template-rows: auto 5.6rem;
-}
-
-div.edit-tabs-empty {
-  background-color: var(--bg-pane);
-  height: calc(100% - 2px);
-}
-
 div.edit-tabs-container {
   grid-row: 1;
   display: grid;
-  grid-template-rows: 42.5px 1fr;
+  grid-template-rows: 38.5px 1fr;
   border-radius: var(--border-radius-medium);
   overflow: auto;
+  height: calc(100% - 2px);
 }
 
 div.edit-tabs-content {
-  padding: 4px;
   grid-row: 2;
-  height: calc(100% - 42.5px);
+  height: 100%;
   overflow-y: auto;
-}
-
-div.script-console {
-  grid-row: 2;
 }
 
 div.edit-tabs-tabs {
@@ -134,6 +148,14 @@ div.edit-tabs-tabs {
   overflow: auto;
   background-color: var(--bg-color);
   grid-row: 1;
+  display: flex;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+div.edit-tabs-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 div.edit-tabs-tabs-line {
@@ -153,9 +175,10 @@ div.edit-tabs-button {
   display: inline-block;
   position: relative;
   grid-column: 1;
-  padding: 10px;
+  padding: 8px;
   padding-left: 16px;
-  padding-right: 28px;
+  padding-right: 16px;
+  font-size: 0.9rem;
   cursor: pointer;
   border-style: solid;
   border-width: 0px;
@@ -167,6 +190,11 @@ div.edit-tabs-button {
   border-top-color: rgba(0, 0, 0, 0);
   transition: background-color var(--animation-duration) ease-in-out;
   color: var(--secondary-text);
+  white-space: nowrap;
+}
+
+div.edit-tabs-button-can-close {
+  padding-right: 28px;
 }
 
 div.edit-tabs-button:nth-child(2) {
@@ -174,6 +202,10 @@ div.edit-tabs-button:nth-child(2) {
 }
 
 div.edit-tabs-button-active:last-child {
+  border-right-width: 1px;
+}
+
+div.edit-tabs-button:last-child {
   border-right-width: 1px;
 }
 

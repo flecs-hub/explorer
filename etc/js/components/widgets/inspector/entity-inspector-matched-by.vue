@@ -1,11 +1,12 @@
 <template>
   <div class="entity-inspector-matched-by">
-    <div class="entity-inspector-match" v-for="match in entityQueryResult.matches">
-      <div><entity-parent :path="match"></entity-parent></div>
-      <div><entity-name :path="match"></entity-name></div>
-    </div>
-    <template v-if="!entityQueryResult.matches || !entityQueryResult.matches.length">
-      Not matched by queries
+    <template v-if="entityQueryResult.matches && entityQueryResult.matches.length">
+      <entity-list :entities="entityQueryResult.matches"
+        @click="emit('selectEntity', $event)">
+      </entity-list>
+    </template>
+    <template v-else>
+      <span style="color: var(--secondary-text);">Not matched by queries</span>
     </template>
   </div>
 </template>
@@ -17,9 +18,9 @@ export default { name: "entity-inspector-matched-by" }
 <script setup>
 import { defineProps, defineEmits } from 'vue';
 
+const emit = defineEmits(["selectEntity"]);
+
 const props = defineProps({
-  conn: {type: Object, required: true},
-  path: {type: String, required: true},
   entityQueryResult: {type: Object, required: true},
 });
 
@@ -27,13 +28,7 @@ const props = defineProps({
 
 <style scoped>
 
-div.entity-inspector-matched-by {
-  padding: 8px;
-  padding-top: 0px;
-}
-
 div.entity-inspector-match {
-  padding-left: 4px;
   padding-bottom: 8px;
 }
 

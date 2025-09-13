@@ -1,12 +1,50 @@
 <template>
   <div class="entities-overview">
-    <div class="overview-content">
-      <div v-if="hasMemoryData" class="memory-visualization">
+    <template v-if="isLoading">
+      <div class="placeholder">
+        <template v-if="isConnected">
+          <p>Connection established!</p>
+          <p>Follow these steps to enable overview statistics:</p>
+          <p>1. Make sure you're on the latest version of Flecs</p>
+          <p>2. Make sure the stats plugin is imported:
+
+          <pre>// C
+ECS_IMPORT(world, FlecsStats);
+
+// C with app addon
+ecs_app_run(world, &(ecs_app_desc_t) {
+    .enable_stats = true,
+    .enable_rest = true,
+});
+
+// C++
+world.import&lt;flecs::stats&gt;();
+
+// C++ with app addon
+world.app()
+  .enable_stats()
+  .enable_rest()
+  .run();</pre></p>
+        </template>
+        <template v-else>
+          <p>
+            Connecting
+            <icon
+              src="loading"
+              :opacity="0.5"
+              :rotating="true">
+            </icon>
+          </p>
+        </template>
+      </div>
+    </template>
+    <template v-else>
+      <div class="overview-content">
         <!-- Ring Chart Section -->
         <div class="chart-section">
           <div class="chart-wrapper">
             <div class="chart-container">
-              <canvas ref="chartCanvas" width="300" height="300"></canvas>
+              <canvas ref="chartCanvas" width="240" height="240"></canvas>
             </div>
             <div class="total-memory">
               <div class="total-label">Total Memory</div>
@@ -61,15 +99,7 @@
           </div>
         </div>
       </div>
-      <div v-else-if="loading" class="loading">
-        <div class="loading-spinner"></div>
-        <p>Loading world memory data...</p>
-      </div>
-      <div v-else class="no-data">
-        <icon src="alert-circle" class="no-data-icon"></icon>
-        <p>No memory data available</p>
-      </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -85,23 +115,29 @@ const CategoryColors = {
   EntityIndex: '#3b82f6',
   Component: '#06b6d4',
   ComponentIndex: '#42b983', 
-  Table: '#f59e0b',
-  Query: '#ef4444',
-  Commands: '#8b5cf6'
+  Table: '#ffd43b',
+  Query: '#f59e0b',
+  Commands: '#ef4444',
+  Allocators: '#8b5cf6'
 };
 
 const props = defineProps({
   conn: { type: Object, required: true },
+  app_state: { type: Object, required: true },
 });
 
 const emit = defineEmits(['entity-selected', 'entity-updated']);
 
 // Reactive data
-const loading = ref(true);
+const isLoading = ref(true);
 const worldMemoryQuery = ref();
 const worldMemoryData = ref({});
-const chartCanvas = ref();
-const chart = ref();
+const chartCanvas = ref(null);
+let chart;
+
+const isConnected = computed(() => {
+  return props.app_state.status == flecs.ConnectionStatus.Connected;
+});
 
 // Computed properties
 const hasMemoryData = computed(() => {
@@ -147,6 +183,11 @@ const chartData = computed(() => {
       label: 'Commands',
       value: calculateCommandTotal(stats.commands),
       color: CategoryColors.Commands
+    },
+    {
+      label: 'Allocators',
+      value: calculateAllocatorTotal(stats.allocators),
+      color: CategoryColors.Allocators
     }
   ].filter(item => item.value > 0);
 });
@@ -162,7 +203,8 @@ const memoryCategories = computed(() => {
     'component': CategoryColors.Component,
     'table': CategoryColors.Table,
     'query': CategoryColors.Query,
-    'commands': CategoryColors.Commands
+    'commands': CategoryColors.Commands,
+    'allocators': CategoryColors.Allocators
   };
   
   return [
@@ -215,6 +257,13 @@ const memoryCategories = computed(() => {
       total: calculateCommandTotal(stats.commands),
       data: stats.commands,
       color: colorMap.commands
+    },
+    {
+      name: 'allocators',
+      title: 'Allocators',
+      total: calculateAllocatorTotal(stats.allocators),
+      data: stats.allocators,
+      color: colorMap.allocators
     }
   ];
 });
@@ -255,6 +304,12 @@ function calculateCommandTotal(data) {
   return data.bytes_queue + data.bytes_entries + data.bytes_stack;
 }
 
+function calculateAllocatorTotal(data) {
+  return data.bytes_graph_edge + data.bytes_component_record + data.bytes_pair_record + 
+         data.bytes_table_diff + data.bytes_sparse_chunk + data.bytes_hashmap + 
+         data.bytes_allocator + data.bytes_cmd_entry_chunk + data.bytes_query_impl + data.bytes_query_cache;
+}
+
 function formatBytes(bytes) {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -288,11 +343,11 @@ function createChart() {
     return;
   }
   
-  if (chart.value) {
-    chart.value.destroy();
+  if (chart) {
+    chart.destroy();
   }
   
-  chart.value = new Chart(ctx, {
+  chart = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: chartData.value.map(item => item.label),
@@ -303,7 +358,7 @@ function createChart() {
       }]
     },
     options: {
-      responsive: true,
+      responsive: false,
       maintainAspectRatio: true,
       cutout: '60%',
       plugins: {
@@ -326,24 +381,42 @@ function createChart() {
   });
 }
 
+function updateChart() {
+  if (!chartCanvas.value || chartData.value.length === 0) {
+    console.log('Chart creation skipped: canvas or data not available');
+    return;
+  }
+
+  chart.data.datasets[0].data = chartData.value.map(item => item.value);
+
+  chart.update();
+}
+
 // Lifecycle hooks
 onMounted(() => {
+  let first = true;
+
   // Make managed request for world memory statistics
   worldMemoryQuery.value = props.conn.entity("flecs.stats.WorldMemory", {
     try: true,
-    managed: false,
-    persist: false,
+    managed: true,
+    persist: true,
     values: true
   }, (reply) => {
     worldMemoryData.value = reply;
-    loading.value = false;
-    nextTick(() => {
-      createChart();
-    });
+    isLoading.value = false;
+    if (first) {
+      nextTick(() => {
+        createChart();
+      });
+      first = false;
+    } else {
+      updateChart();
+    }
   }, (error) => {
     console.warn("Failed to fetch world memory data:", error);
     worldMemoryData.value = {};
-    loading.value = false;
+    isLoading.value = true;
   });
 });
 
@@ -352,8 +425,8 @@ onUnmounted(() => {
   if (worldMemoryQuery.value) {
     worldMemoryQuery.value.abort();
   }
-  if (chart.value) {
-    chart.value.destroy();
+  if (chart) {
+    chart.destroy();
   }
 });
 
@@ -557,7 +630,7 @@ onUnmounted(() => {
   padding-bottom: 8px;
 }
 
-.loading {
+.placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;

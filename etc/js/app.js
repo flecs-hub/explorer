@@ -18,7 +18,7 @@ const defaultAppParams = {
   host: undefined,
   queries: {
     path: undefined,
-    inspector_mode: "Components",
+    inspector_tab: "Inspect",
     expr: "(ChildOf, flecs)",
     name: undefined,
     use_name: false,
@@ -27,7 +27,8 @@ const defaultAppParams = {
   },
   entities: {
     path: undefined,
-    inspector_mode: "Components",
+    active_tab: undefined,
+    inspector_tab: "Inspect",
     tree_mode: "Entities",
   },
   sidebar: true,
@@ -42,8 +43,9 @@ function newAppParams() {
   let result = structuredClone(defaultAppParams);
 
   result.run_playground = function() { 
-    this.scripts = ["etc.assets.scene\\.flecs"];
-    this.script = "etc.assets.scene\\.flecs";
+    this.entities.active_tab = "Scene";
+    this.entities.inspector_tab = "Script";
+    this.entities.path = "etc.assets.scene\\.flecs";
     this.host = "flecs_explorer.wasm";
   }
 
@@ -152,7 +154,6 @@ let components = [
   loadModule('js/components/widgets/dropdown.vue', options),
   loadModule('js/components/widgets/detail-toggle.vue', options),
   loadModule('js/components/widgets/scene-canvas.vue', options),
-  loadModule('js/components/widgets/canvas-container.vue', options),
   loadModule('js/components/widgets/splitter.vue', options),
   loadModule('js/components/widgets/pane-container.vue', options),
   loadModule('js/components/widgets/terminal-color-pre.vue', options),
@@ -178,10 +179,11 @@ let components = [
   // Entities page
   loadModule('js/components/pages/entities/page.vue', options),
   loadModule('js/components/pages/entities/pane-tree.vue', options),
-  loadModule('js/components/pages/entities/pane-inspector.vue', options),
   loadModule('js/components/pages/entities/pane-content.vue', options),
   loadModule('js/components/pages/entities/entities-overview.vue', options),
-  loadModule('js/components/pages/entities/flecs-script.vue', options),
+
+  // Script widget
+  loadModule('js/components/widgets/flecs-script.vue', options),
 
   // Tree widget
   loadModule('js/components/widgets/tree/entity-tree.vue', options),
@@ -191,6 +193,7 @@ let components = [
 
   // Inspector widget
   loadModule('js/components/widgets/inspector/entity-inspector.vue', options),
+  loadModule('js/components/widgets/inspector/entity-inspector-container.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-module.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-components.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-matched-by.vue', options),
@@ -204,6 +207,10 @@ let components = [
   loadModule('js/components/widgets/inspector/entity-inspector-add-component.vue', options),
   loadModule('js/components/widgets/inspector/entity-inspector-script-ast.vue', options),
   loadModule('js/components/widgets/inspector/entity-link.vue', options),
+
+  // Entity list widget
+  loadModule('js/components/widgets/entity-list/entity-list.vue', options),
+  loadModule('js/components/widgets/entity-list/entity-list-item.vue', options),
 
   // Table widget
   loadModule('js/components/widgets/table/entity-table.vue', options),
@@ -445,7 +452,6 @@ Promise.all(components).then((values) => {
         handler(value) {
           let reload = false;
           if (!this.conn || value.host != this.conn.params.host) {
-            this.conn.connect(value.host);
             reload = true;
           }
           
@@ -455,6 +461,7 @@ Promise.all(components).then((values) => {
               this.toUrlParams(this.app_params));
 
           if (reload) {
+            this.conn.connect(value.host);
             location.reload();
           }
         },

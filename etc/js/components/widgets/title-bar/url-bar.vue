@@ -80,6 +80,9 @@ function onConnect() {
   if (props.app_state.mode == flecs.ConnectionMode.Wasm) {
     app_params.value.script = undefined;
     app_params.value.scripts = [];
+    app_params.value.entities.active_tab = "Overview";
+    app_params.value.entities.inspector_tab = "Inspect";
+    app_params.value.entities.path = undefined;
     app_params.value.host = "localhost";
   } else {
     app_params.value.run_playground();

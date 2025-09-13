@@ -3,14 +3,13 @@
     id="page-entities" 
     :class="pageCss" 
     :showLeftPane="appParams.sidebar"
-    :showRightPane="showRightPane"
     ref="rootEl">
 
     <pane-tree 
       :conn="conn"
       v-model:app_params="appParams"
+      @selectEntity="onSelectEntity"
       @scriptOpen="onScriptOpen"
-      @entityOpen="onEntityOpen"
       v-if="app_params.sidebar"
       ref="pane_tree">
     </pane-tree>
@@ -22,35 +21,28 @@
       @mousedown="rootEl.startDragging('leftPane')"
     ></splitter>
 
-    <pane-content :conn="conn">
+    <pane-content :conn="conn" :app_state="app_state"
+      ref="pane_content"
+      v-model:active_tab="appParams.entities.active_tab"
+      v-model:scripts="appParams.scripts"
+      @onCodeChange="onCodeChange">
     </pane-content>
 
     <splitter
-      v-if="showRightPane"
       :parent="rootEl"
       :column="inspectorSplitterColumn"
       @mousedown="rootEl.startDragging('rightPane')"
     ></splitter>
 
-    <div :class="scriptCss" :style="`grid-column: ${scriptColumn}`">
-      <pane-scripts
+    <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`">
+      <entity-inspector
         :conn="conn"
-        v-model:script="appParams.script"
-        v-model:scripts="appParams.scripts"
-        @onCodeChange="onCodeChange"
-        ref="pane_scripts">
-      </pane-scripts>
-    </div>
-
-    <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`"
-      v-if="showInspector">
-      <pane-inspector
-        :conn="conn"
-        :app_params="appParams.entities"
+        :path="appParams.entities.path"
+        v-model:app_params="appParams.entities"
         @abort="onAbort"
         @scriptOpen="onScriptOpen"
         @selectEntity="onSelectEntity">
-      </pane-inspector>
+      </entity-inspector>
     </div>
   </pane-container>
 </template>
@@ -60,10 +52,11 @@ export default { name: "page-entities" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
+import { defineProps, defineModel, ref, computed, watch, nextTick } from 'vue';
 
 const pane_tree = ref(null);
 const pane_scripts = ref(null);
+const pane_content = ref(null);
 const rootEl = ref(null);
 
 const props = defineProps({
@@ -96,10 +89,6 @@ const showInspector = computed(() => {
   return true;
 });
 
-// Right pane is shown when either an entity inspector is open or the
-// script editor is active.
-const showRightPane = computed(() => showInspector.value || showScript.value);
-
 watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.value.sidebar], () => {
   nextTick(() => {
     var resizeEvent = new Event('resize');
@@ -112,25 +101,22 @@ function onAbort(evt) {
   pane_tree.value.unselect();
 }
 
+function onScriptOpen(path) {
+  if (showCanvas.value) {
+    // If the explorer has a canvas, show script in the inspector spot so a user
+    // can edit the script while seeing the scene.
+    appParams.value.script = path;
+    appParams.value.entities.path = undefined;
+    console.log("set script to ", path);
+  } else {
+    // If the explorer doesn't have a canvas, open script in the center pane.
+    pane_content.value.openScript(path);
+  }
+}
+
 function onSelectEntity(path) {
   appParams.value.entities.path = path;
-}
-
-function onScriptOpen(path) {
-  if (!props.app_state.has3DCanvas) {
-    appParams.value.entities.path = path;
-    pane_scripts.value.openScript(path);
-  } else {
-    appParams.value.entities.path = undefined;
-    appParams.value.scripts.length = 0;
-    pane_scripts.value.openScript(path);
-  }
-}
-
-function onEntityOpen(path) {
-  if (props.app_state.has3DCanvas) {
-    pane_scripts.value.closeScripts();
-  }
+  appParams.value.entities.inspector_tab = "Inspect";
 }
 
 const pageCss = computed(() => {
@@ -144,61 +130,16 @@ const pageCss = computed(() => {
   return classes;
 });
 
-const scriptCss = computed(() => {
-  let classes = ["page-entities-script"];
-  if (!appParams.value.script) {
-    classes.push("page-entities-script-hide");
-  }
-  return classes;
-})
-
-const canvasCss = computed(() => {
-  let classes = ["page-entities-canvas"];
-  if (!showCanvas.value) {
-    classes.push("page-entities-canvas-hide")
-  }
-  return classes;
-});
-
-const canvasColumn = computed(() => {
-  // With both: tree(1) | split(2) | canvas(3) | split(4) | inspector(5)
-  if (appParams.value.sidebar && showInspector.value) return 3;
-  // With only sidebar: tree(1) | split(2) | canvas(3)
-  if (appParams.value.sidebar && !showInspector.value) return 3;
-  // With only inspector: canvas(1) | split(2) | inspector(3)
-  if (!appParams.value.sidebar && showInspector.value) return 1;
-  // Neither
-  return 1;
-});
-
-const scriptColumn = computed(() => {
-  if (!props.app_state.has3DCanvas) {
-    // When there's no 3D canvas use the space to show the script.
-    return canvasColumn.value;
-  } else {
-    // When there's a 3D canvas the script is displayed in the same pane as the
-    // inspector so that it doesn't obstruct the scene.
-    return inspectorColumn.value;
-  }
-});
-
 const inspectorColumn = computed(() => {
-  if (!showRightPane.value) return 0;
-  if (appParams.value.sidebar && showRightPane.value) return 5;
-  if (!appParams.value.sidebar && showRightPane.value) return 3;
-  return 0;
+  return (appParams.value.sidebar) ? 5 : 3;
 });
 
 const sidebarSplitterColumn = computed(() => {
-  // With both: tree(1) | split(2) | canvas(3) | split(4) | inspector(5)
-  // With only sidebar: tree(1) | split(2) | canvas(3)
   if (appParams.value.sidebar) return 2;
   return 0;
 });
 
 const inspectorSplitterColumn = computed(() => {
-  if (!showRightPane.value) return 0;
-  // With both: inspector split at 4; with only inspector: split at 2
   return appParams.value.sidebar ? 4 : 2;
 });
 
@@ -230,19 +171,7 @@ function onCodeChange(evt) {
 
 /* Grid sizes are overridden dynamically via inline style */
 
-div.page-entities-canvas {
-  grid-row: 1;
-  border-radius: var(--border-radius-medium);
-  overflow: hidden;
-  min-width: 0;
-  min-height: 0;
-}
-
 div.page-entities-script-hide {
-  display: none;
-}
-
-div.page-entities-canvas-hide {
   display: none;
 }
 

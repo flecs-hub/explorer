@@ -10,7 +10,7 @@
       <div class="entity-inspector-alert-message">{{ alert.message }}</div>
     </div>
     <template v-if="!entityQueryResult.alerts || !entityQueryResult.alerts.length">
-      No alerts
+      <span style="color: var(--secondary-text);">No alerts, all good.</span>
     </template>
   </div>
 </template>
@@ -41,10 +41,6 @@ function alertIcon(alert) {
 </script>
 
 <style scoped>
-
-div.entity-inspector-alerts {
-  padding-top: 8px;
-}
 
 div.entity-inspector-alert {
   padding: 8px;

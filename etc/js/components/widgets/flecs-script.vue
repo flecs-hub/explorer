@@ -1,5 +1,10 @@
 <template>
-  <div id="editor">
+  <div :class="editorCss">
+    <div :id="`editor-${script}`" class="editor">
+    </div>
+    <div v-if="error" class="editor-error">
+      <pre><span class="editor-error-text">error</span>: {{ error }}</pre>
+    </div>
   </div>
 </template>
 
@@ -8,16 +13,14 @@ export default { name: "flecs-script" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, defineEmits, onMounted, ref, watch } from 'vue';
+import { defineProps, defineModel, defineEmits, onMounted, computed, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
-  script: {type: Object, required: true},
+  script: {type: String, required: true}
 });
 
-const emit = defineEmits(["onChange"])
-
-const changed = defineModel("changed");
+const emit = defineEmits(["onChange", "onUpdate"]);
 const error = defineModel("error");
 
 // Editor object
@@ -31,7 +34,7 @@ const code = ref("");
 function loadScript() {
   isLoading = true;
   editorObj.setValue("");
-  props.conn.get(props.script.path, {component: "flecs.script.Script"}, (reply) => {
+  props.conn.get(props.script, {component: "flecs.script.Script"}, (reply) => {
     code.value = reply.code;
     editorObj.setValue(code.value);
     editorObj.clearSelection();
@@ -41,7 +44,9 @@ function loadScript() {
     error.value = reply.error;
 
     // So we get an updated changed value
-    scriptUpdate(reply.code);
+    // TODO: this was causing scripts to be reparsed when opening an editor.
+    // Find better way to get changed state.
+    // scriptUpdate(reply.code);
   });
 }
 
@@ -56,7 +61,7 @@ function onScriptChange(editorObj) {
 }
 
 function scriptUpdate(code, save = false) {
-  props.conn.scriptUpdate(props.script.path, code, {
+  props.conn.scriptUpdate(props.script, code, {
     try: true,
     check_file: true,
     save_file: save
@@ -66,12 +71,21 @@ function scriptUpdate(code, save = false) {
     } else {
       error.value = undefined;
     }
-    changed.value = msg.changed;
+
+    emit("onUpdate", msg);
   });
 }
 
+const editorCss = computed(() => {
+  if (error.value) {
+    return ["flecs-script", "flecs-script-error"];
+  } else {
+    return ["flecs-script"];
+  }
+});
+
 onMounted(() => {
-  editorObj = ace.edit("editor");
+  editorObj = ace.edit(`editor-${props.script}`);
   editorObj.setOption("highlightActiveLine", false);
   editorObj.setOption("tabSize", 2);
   editorObj.setBehavioursEnabled(true);
@@ -94,7 +108,7 @@ onMounted(() => {
   loadScript();
 });
 
-watch(() => [props.script.value], () => {
+watch(() => [props.script], () => {
   loadScript();
 });
 
@@ -102,9 +116,29 @@ watch(() => [props.script.value], () => {
 
 <style scoped>
 
-#editor {
+div.flecs-script {
+  display: grid;
+  grid-template-rows: 1fr;
+  height: inherit;
+}
+
+div.flecs-script-error {
+  grid-template-rows: auto 5.6rem 4px;
+}
+
+div.editor-error {
+  grid-row: 2;
+  background-color: var(--bg-pane);
+}
+
+span.editor-error-text {
+  color: var(--bright-red);
+}
+
+div.editor {
   grid-row: 1;
   height: 100%;
+  min-height: 250px;
   font-size: 14px;
   color: var(--primary-text);
 }

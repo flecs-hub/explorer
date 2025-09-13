@@ -635,7 +635,13 @@ const flecs = {
             }
 
             // Do request
-            result.do();
+            if (!params.managed || conn.status === flecs.ConnectionStatus.Connected) {
+              // If request is managed (meaning that it will get automatically polled)
+              // and we're not connected yet, don't do the request as it will be
+              // automatically polled when the connection is established.
+              // This prevents sending out duplicate requests.
+              result.do();
+            }
   
             // Return request object
             return result;

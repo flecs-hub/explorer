@@ -17,6 +17,7 @@ const props = defineProps({
   size: { type: Number, required: false, default: 16 },
   opacity: { type: Number, required: false },
   rotate: { type: Number, required: false, default: 0.0 },
+  rotating: { type: Boolean, required: false, default: false },
 });
 
 const style = computed(() => {
@@ -35,6 +36,12 @@ const style = computed(() => {
     `;
   }
 
+  if (props.rotating) {
+    result += `
+      animation: spin 1s linear infinite;
+    `;
+  }
+
   return result;
 });
 
@@ -49,4 +56,14 @@ const cssClass = computed(() => {
 </script>
 
 <style>
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 </style>

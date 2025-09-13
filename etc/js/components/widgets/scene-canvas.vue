@@ -1,16 +1,30 @@
 <template>
-  <canvas id="canvas" v-on:click="onFocus" :class="css()">
+  <canvas id="canvas" :style="canvasContainerStyle" v-on:click="onFocus" :class="css()">
   </canvas>
 </template>
 
 <script>
-export default { name: "scene-canvas" };
+export default { name: "canvas-container" };
 </script>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, defineProps, onMounted, nextTick, watch, onUnmounted } from 'vue';
 
+const props = defineProps({
+  app_params: {type: Object, required: true},
+  app_state: {type: Object, required: true},
+});
+
+const canvasContainerStyle = ref();
 const focus = ref(false);
+
+function css() {
+  let css = ["canvas-container"]; 
+  if (focus.value) {
+    css.push("canvas-focus");
+  }
+  return css;
+}
 
 function onFocus() {
   focus.value = !focus.value;
@@ -18,13 +32,6 @@ function onFocus() {
   if (focus.value) {
     document.activeElement.blur();
   }
-}
-
-function css() {
-  if (focus.value) {
-    return "canvas-focus";
-  }
-  return "";
 }
 
 function onOtherFocus() {
@@ -35,27 +42,64 @@ function onOtherFocus() {
 
 onMounted(() => {
   document.addEventListener("focus", onOtherFocus, true);
+  window.addEventListener('resize', handleResize);
+  var resizeEvent = new Event('resize');
+  window.dispatchEvent(resizeEvent);
 });
 
 onUnmounted(() => {
   document.removeEventListener("focus", onOtherFocus, true);
 });
 
+watch(() => [props.app_state.has3DCanvas, props.app_params.page, 
+             props.app_params.sidebar, props.app_params.entities.active_tab,
+             props.app_params.script], () => 
+{
+  handleResize();
+
+  setTimeout(() => {
+    var resizeEvent = new Event('resize');
+    window.dispatchEvent(resizeEvent);
+  }, 10);
+});
+
+const handleResize = () => {
+  nextTick(() => {
+    const el = document.getElementById("canvasPlaceholder");
+    let r = undefined;
+    if (el) {
+      r = el.getBoundingClientRect();
+    }
+
+    if (r && r.width && r.height) {
+      canvasContainerStyle.value = 
+        `position: absolute; 
+        width: ${r.width}px; 
+        height: ${r.height}px; 
+        top: ${r.top - 1}px; 
+        left: ${r.left - 1}px;`;
+    } else {
+      canvasContainerStyle.value = "display: none;";
+    }
+  });
+};
+
 </script>
 
 <style scoped>
-#canvas {
-  width: calc(100% - 4px);
-  height: calc(100% - 4px);
+
+canvas.canvas-container {
   border-style: solid;
   border-radius: var(--border-radius-medium);
+  border-top-left-radius: 0px;
+  border-top-right-radius: 0px;
   border-width: 1px;
   border-color: var(--border);
   cursor: pointer;
 }
 
 canvas.canvas-focus {
-  border-color: var(--green) !important;
+  border-color: var(--green);
 }
 
 </style>

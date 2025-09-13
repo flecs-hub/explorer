@@ -34,7 +34,7 @@ const props = defineProps({
   conn: {type: Object, required: true},
 });
 
-const emit = defineEmits(["scriptOpen", "entityOpen"]);
+const emit = defineEmits(["scriptOpen", "selectEntity"]);
 const appParams = defineModel("app_params");
 const nameFilter = ref();
 const entity_tree = ref(null);
@@ -75,20 +75,9 @@ function selectItem(item) {
       path = path.slice(idStart, path.length);
     }
 
-    if (appParams.value.entities.tree_mode === "Scripts") {
-      emit("scriptOpen", path);
-    } else {
-      emit("entityOpen", path);
-      appParams.value.entities.path = path;
-    }
+    emit("selectEntity", path);
   } else {
-    if (appParams.value.entities.tree_mode === "Scripts") {
-      appParams.value.entities.path = undefined;
-      appParams.value.script = undefined;
-      appParams.value.scripts.length = 0;
-    } else {
-      appParams.value.entities.path = undefined;
-    }
+    emit("selectEntity", undefined);
   }
 }
 

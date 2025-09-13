@@ -6,5 +6,12 @@ explorer = {
       escaped = escaped.replaceAll("@@", ".");
       return escaped;
     }
+  },
+
+  entityParent: function(path) {
+    path = path.replaceAll("\\\.", "@@");
+    const names = path.split(".");
+    names.pop();
+    return names.join(".").replaceAll("@@", ".");
   }
 }

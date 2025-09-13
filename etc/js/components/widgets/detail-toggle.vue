@@ -1,15 +1,15 @@
 <template>
-  <div class="detail-toggle">
+  <div :class="detailCss" @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
     <div class="detail-toggle-button">
       <expand-button 
         :expand="showDetail"
         :rotation="180">
       </expand-button>
     </div>
-    <div class="noselect detail-toggle-header" @click.stop="toggle">
+    <div :class="summaryCss" @click.stop="toggle">
       <slot name="summary"></slot>
     </div>
-    <div class="detail-toggle-detail" v-if="showDetail">
+    <div class="detail-toggle-detail" v-if="showDetail" :style="{ padding: padding }">
       <slot name="detail"></slot>
     </div>
   </div>
@@ -20,20 +20,43 @@ export default { name: "detail-toggle" };
 </script>
 
 <script setup>
-import { ref } from 'vue';
+import { defineProps, computed, ref } from 'vue';
+
+const props = defineProps({
+  padding: { type: String, required: false, default: "4px" },
+});
 
 const showDetail = ref(true);
+const hover = ref(false);
 
 function toggle() {
   showDetail.value = !showDetail.value;
 }
 
-function iconRotation() {
-  if (showDetail.value) {
-    return 0;
-  } else {
-    return 90;
+const detailCss = computed(() => {
+  let result = ["detail-toggle"];
+  if (hover.value) {
+    result.push("detail-toggle-hover");
   }
+  return result;
+});
+
+const summaryCss = computed(() => {
+  let result = ["noselect", "detail-toggle-header"];
+
+  if (!showDetail.value) {
+    result.push("detail-toggle-header-collapsed");
+  }
+
+  return result;
+});
+
+function onMouseEnter() {
+  hover.value = true;
+}
+
+function onMouseLeave() {
+  hover.value = false;
 }
 
 </script>
@@ -50,28 +73,35 @@ div.detail-toggle {
 }
 
 div.detail-toggle-header {
-  margin: 4px;
   padding: 4px;
-  background-color: var(--bg-button);
+  background-color: var(--bg-button-alt);
   border-radius: var(--border-radius-small);
-  color: var(--secondary-text);
+  border-bottom-left-radius: 0px;
+  border-bottom-right-radius: 0px;
+  color: var(--tertiary-text);
   font-size: 0.9rem;
   cursor: pointer;
+  transition: background-color var(--animation-duration), color var(--animation-duration);
 }
 
-div.detail-toggle-header:hover {
+div.detail-toggle-header-collapsed {
+  border-radius: var(--border-radius-small);
+}
+
+div.detail-toggle-hover {
+  border-color: var(--bg-button-hover);
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.2);
+}
+
+div.detail-toggle-hover div.detail-toggle-header {
   background-color: var(--bg-button-hover);
+  color: var(--secondary-text);
 }
 
 div.detail-toggle-button {
   position: absolute;
   top: 4px;
   right: 8px;
-}
-
-div.detail-toggle-detail {
-  margin-bottom: 8px;
-  padding: 4px;
 }
 
 </style>

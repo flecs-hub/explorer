@@ -13,12 +13,13 @@
     </pane-inspect>
 
     <template v-if="showInspector">
-      <pane-inspector
+      <entity-inspector
         :conn="conn"
+        :path="app_params.queries.path"
         :app_params="app_params.queries"
         @abort="onAbort"
         @selectEntity="onSelectEntity">
-      </pane-inspector>
+      </entity-inspector>
     </template>
   </div>
 </template>

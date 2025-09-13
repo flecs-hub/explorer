@@ -1,93 +1,116 @@
 <template>
-  <div class="entity-inspector">
-    <template v-if="entityQueryResult">
-      <div class="entity-inspector-icon-close">
-        <icon-button
-          src="close"
-          @click="onClose">
-        </icon-button>
-      </div>
-      <entity-path :path="entityQueryResult.parent"></entity-path>
-      <div>
-        <template v-if="entityLabel">
-          <span class="entity-inspector-name">{{ entityLabel }}
-            <span class="entity-inspector-id">{{ entityId }}</span>
-          </span>
-          <span class="entity-inspector-actual-name">&nbsp;{{ entityQueryResult.name }}</span>
-        </template>
-        <template v-else>
-          <span class="entity-inspector-name">{{ entityQueryResult.name }}
-            <span class="entity-inspector-id">{{ entityId }}</span>
-          </span>
-        </template>
+  <div id="pane-inspector">
+    <edit-tabs :items='items' v-model:active_item="appParams.inspector_tab" padding="0px;">
+      <template v-slot:Inspect>
+        <entity-inspector-container
+          :path="path"
+          :entityQueryResult="entityQueryResult" 
+          :disabled="isDisabled"
+          :loading="loading"
+          @disable="onDisable"
+          @delete="onDelete">
 
-        <template v-if="entityBrief">
-          <div class="entity-inspector-brief">
-            <span>{{ entityBrief }}</span>
-          </div>
-        </template>
-      </div>
+          <template v-slot:header>
+            <div class="component-filter" v-if="entityQueryResult">
+              <search-box v-model="componentFilter"></search-box>
+            </div>
+          </template>
 
-      <div class="entity-inspector-buttons">
-        <button @click="onDisable" v-if="!isDisabled" class="enable-button">
-          Disable
-        </button>
-        <button @click="onEnable" v-if="isDisabled" class="enable-button">
-          Enable
-        </button>
-        <button @click="onDelete">
-          <icon src="trash"></icon>
-        </button>
-      </div>
+          <template v-slot:content>
+            <entity-inspector-components
+              :conn="conn"
+              :path="path"
+              :entityQueryResult="entityQueryResult"
+              :isScript="isScript"
+              :entityModules="entityModules"
+              :filter="componentFilter"
+              v-model:loading="loading"
+              @selectEntity="onSelectEntity"
+              v-if="entityQueryResult">
+            </entity-inspector-components>
 
-      <hr/>
+            <div class="pane-inspector-actions" v-if="entityQueryResult">
+              <entity-inspector-add-component @submit="addComponent">
+              </entity-inspector-add-component>
+              <button @click="addScript" v-if="!isScript">Add Script</button>
+            </div>
+          </template>
+        </entity-inspector-container>
+      </template>
+      <template v-slot:Script>
+        <entity-inspector-container
+          :path="path"
+          :entityQueryResult="entityQueryResult" 
+          :disabled="isDisabled"
+          :loading="loading"
+          padding="padding-left: 0px; padding-right: 0px;"
+          @disable="onDisable"
+          @delete="onDelete">
+          <template v-slot:content>
+            <flecs-script
+              :conn="conn"
+              :script="path"
+              v-if="entityQueryResult">
+            </flecs-script>
+          </template>
+        </entity-inspector-container>
+      </template>
+      <template v-slot:Matches>
+        <entity-inspector-container
+          :path="path"
+          :entityQueryResult="entityQueryResult" 
+          :disabled="isDisabled"
+          :loading="loading"
+          @disable="onDisable"
+          @delete="onDelete">
 
-      <dropdown 
-        :items="inspectorModes"
-        v-model:active_item="inspectorMode">
-      </dropdown>
+          <template v-slot:content>
+            <entity-inspector-matched-by
+              :entityQueryResult="entityQueryResult"
+              @selectEntity="onSelectEntity"
+              v-if="entityQueryResult">
+            </entity-inspector-matched-by>
+          </template>
+        </entity-inspector-container>
+      </template>
+      <template v-slot:References>
+        <entity-inspector-container
+          :path="path"
+          :entityQueryResult="entityQueryResult" 
+          :disabled="isDisabled"
+          :loading="loading"
+          @disable="onDisable"
+          @delete="onDelete">
 
-      <div class="entity-inspector-content">
-        <template v-if="inspectorMode == 'Components'">
-          <entity-inspector-components
-            :conn="conn"
-            :path="path"
-            :entityQueryResult="entityQueryResult"
-            :isScript="isScript"
-            :entityModules="entityModules"
-            @scriptOpen="onOpenScript"
-            @selectEntity="onSelectEntity">
-          </entity-inspector-components>
-        </template>
-        <template v-else-if="inspectorMode == 'Matched by'">
-          <entity-inspector-matched-by
-            :conn="conn"
-            :path="path"
-            :entityQueryResult="entityQueryResult">
-          </entity-inspector-matched-by>
-        </template>
-        <template v-else-if="inspectorMode == 'Referenced by'">
-          <entity-inspector-refs
-            :conn="conn"
-            :path="path"
-            :entityQueryResult="entityQueryResult">
-          </entity-inspector-refs>
-        </template>
-        <template v-else-if="inspectorMode == 'Alerts'">
-          <entity-inspector-alerts
-            :conn="conn"
-            :path="path"
-            :entityQueryResult="entityQueryResult">
-          </entity-inspector-alerts>
-        </template>
-        <template v-else-if="inspectorMode == 'Script AST'">
-          <entity-inspector-script-ast
-            :conn="conn"
-            :path="path">
-          </entity-inspector-script-ast>
-        </template>
-      </div>
-    </template>
+          <template v-slot:content>
+            <entity-inspector-refs
+              :conn="conn"
+              :path="path"
+              :entityQueryResult="entityQueryResult"
+              @selectEntity="onSelectEntity"
+              v-if="entityQueryResult">
+            </entity-inspector-refs>
+          </template>
+        </entity-inspector-container>
+      </template>
+      <template v-slot:Alerts>
+        <entity-inspector-container
+          :path="path"
+          :entityQueryResult="entityQueryResult" 
+          :disabled="isDisabled"
+          :loading="loading"
+          @disable="onDisable"
+          @delete="onDelete">
+          <template v-slot:content>
+            <entity-inspector-alerts
+              :conn="conn"
+              :path="path"
+              :entityQueryResult="entityQueryResult">
+            </entity-inspector-alerts>
+          </template>
+        </entity-inspector-container>
+      </template>
+    </edit-tabs>
   </div>
 </template>
 
@@ -96,33 +119,87 @@ export default { name: "entity-inspector" }
 </script>
 
 <script setup>
-import { watch, onMounted, onUnmounted, ref, defineProps, defineEmits, computed } from 'vue';
-
-const props = defineProps({
-  conn: {type: Object, required: true},
-  path: {type: String, required: false}
-});
+import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted } from 'vue';
 
 const emit = defineEmits(["abort", "scriptOpen", "selectEntity"]);
 
+const props = defineProps({
+  conn: {type: Object, required: false},
+  path: {type: String, required: false}
+});
+
+const appParams = defineModel("app_params");
+
 const entityQuery = ref();
 const entityQueryResult = ref();
+
 const entityModules = ref([]);
 const entityLabel = ref();
 const entityBrief = ref();
 const entityId = ref();
-const expand = ref(false);
 const isDisabled = ref(false);
 const isScript = ref(false);
-const inspectorMode = defineModel("inspector_mode");
+const componentFilter = ref();
+const loading = ref(true);
 
-const inspectorModes = computed(() => {
-  let modes = ['Components', 'Matched by', 'Referenced by', 'Alerts'];
-  if (isScript.value) {
-    modes.push("Script AST");
+const inspectorMode = computed(() => {
+  return appParams.value.inspector_tab;
+});
+
+const path = computed(() => {
+  if (appParams.value) {
+    return appParams.value.path;
+  } else {
+    return undefined;
   }
-  return modes;
-})
+});
+
+const items = computed(() => {
+  let result = [];
+
+  result.push({
+    label: "Inspect",
+    value: "Inspect",
+    canClose: false
+  });
+
+  if (isScript.value) {
+    result.push({
+      label: "Script",
+      value: "Script",
+      canClose: false
+    });
+  }
+
+  result.push({
+    label: "Matches",
+    value: "Matches",
+    canClose: false
+  });
+
+  result.push({
+    label: "References",
+    value: "References",
+    canClose: false
+  });
+
+  result.push({
+    label: "Alerts",
+    value: "Alerts",
+    canClose: false
+  });
+
+  return result;
+});
+
+function onScriptOpen(evt) {
+  emit("scriptOpen", evt ? evt.path : undefined);
+}
+
+function onSelectEntity(evt) {
+  appParams.value.inspector_tab = "Inspect";
+  emit("selectEntity", evt);
+}
 
 function splitPair(id) {
   let moduleName, _;
@@ -191,6 +268,8 @@ function updateQuery() {
   const lastQuery = entityQuery.value;
   entityQuery.value = undefined;
 
+  loading.value = true;
+
   if (lastQuery) {
     lastQuery.abort();
     entityQueryResult.value = undefined;
@@ -202,17 +281,19 @@ function updateQuery() {
         {
           try: true, 
           managed: true,
-          values: inspectorMode.value == "Components",
+          values: true,
           entity_id: true,
           full_paths: true, 
           type_info: true,
           private: true,
           inherited: true,
-          matches: inspectorMode.value == "Matched by",
-          refs: inspectorMode.value == "Referenced by" ? "*" : undefined,
-          alerts: inspectorMode.value == "Alerts"
+          matches: inspectorMode.value == "Matches",
+          refs: inspectorMode.value == "References" ? "*" : undefined,
+          alerts: inspectorMode.value == "More"
         }, 
         (reply) => {
+          loading.value = false;
+
           entityQueryResult.value = reply;
 
           const moduleMap = {};
@@ -281,32 +362,40 @@ function updateQuery() {
           entityModules.value.sort((a, b) => {
             return a.name.localeCompare(b.name);
           });
-        }, (err) => {}, (request) => {
-          if (entityQuery.value == request) {
-            emit("abort", props.path);
-          }
+        }, 
+        (err) => {
+          loading.value = true;
+        }, 
+        (request) => {
+          loading.value = true;
         });
   }
 }
 
-function onClose() {
-  emit("abort", props.path);
+function addComponent(component) {
+  props.conn.add(props.path, component);
+  loading.value = true;
 }
 
-function onEnable() {
-  props.conn.enable(props.path);
+function addScript() {
+  appParams.value.inspector_tab = "Script";
+  props.conn.add(props.path, "flecs.script.Script");
+  loading.value = true;
 }
 
 function onDisable() {
-  props.conn.disable(props.path);
+  if (isDisabled.value) {
+    props.conn.enable(props.path);
+  } else {
+    props.conn.disable(props.path);
+  }
+  loading.value = true;
 }
 
 function onDelete() {
-  if (entityQuery.value) {
-    entityQuery.value.abort();
-  }
-
   props.conn.delete(props.path);
+  loading.value = true;
+  emit("selectEntity", undefined);
 }
 
 watch(() => [props.path, inspectorMode.value], () => {
@@ -327,113 +416,31 @@ onUnmounted(() => {
   }
 });
 
-function onOpenScript() {
-  emit("scriptOpen", props);
-}
-
-function onSelectEntity(evt) {
-  emit("selectEntity", evt);
-}
-
 </script>
 
 <style scoped>
-div.entity-inspector {
-  position: relative;
-  display: grid;
-  grid-template-rows: 1rem auto 3rem 1rem 2rem calc(100% - 6rem);
-  padding: 8px;
-  height: calc(100% - 4.0rem);
+
+#pane-inspector {
+  height: 100%;
 }
 
-span.entity-inspector-id {
-  font-size: 0.9rem;
-  color: var(--secondary-text);
-}
-
-span.entity-inspector-name {
-  font-size: 1.1em;
-  font-weight: 300;
-  color: var(--primary-text);
-  margin-top: 0.25em;
-}
-
-span.entity-inspector-actual-name {
-  font-size: 1.0em;
-  font-weight: 300;
-  color: var(--secondary-text);
-  margin-top: 0.25em;
-}
-
-div.entity-inspector-brief {
-  padding-top: 4px;
-  color: var(--secondary-text);
-}
-
-div.entity-inspector-modules {
+div.component-filter {
   padding-top: 4px;
 }
 
-div.entity-inspector-actions {
-  display: flex;
-  flex-direction: column;
-  padding-left: 1rem;
-  padding-right: 1.5rem;
+div.pane-inspector-tab {
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-top: 4px;
+  height: inherit;
 }
 
-div.entity-inspector-buttons {
-  display: flex;
-  flex-direction: row;
-  margin-top: 8px;
-  margin-bottom: 4px;
+div.pane-inspector-actions * {
+  margin-bottom: 8px;
 }
 
-div.entity-inspector-buttons button {
-  background-color: var(--bg-content-hover);
-  margin-right: 8px;
-  color: var(--primary-text);
-  font-weight: normal;
-}
-
-button.enable-button {
-  min-width: 100px;
-}
-
-</style>
-
-<style>
-div.entity-inspector-icon-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-
-div.entity-inspector-button, button.entity-inspector-button, input.entity-inspector-button {
-  padding: 6px;
-  text-align: center;
-  border-radius: var(--border-radius-medium);
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(0,0,0,0);
-  background-color: var(--bg-button);
-  color: var(--secondary-text);
-  font-size: 1rem;
-  margin-bottom: 10px;
-  cursor: pointer;
-}
-
-button.entity-inspector-button {
+button {
   width: 100%;
-}
-
-div.entity-inspector-button:hover, button.entity-inspector-button:hover {
-  background-color: var(--bg-button-hover);
-}
-
-div.entity-inspector-content {
-  height: calc(100% - 1rem);
-  overflow-y: auto;
-  margin-top: 8px;
 }
 
 </style>

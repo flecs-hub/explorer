@@ -111,7 +111,7 @@ export default { name: "entity-inspector-component" }
 </script>
 
 <script setup>
-import { defineEmits, defineProps, ref, computed } from 'vue';
+import { defineEmits, defineProps, defineModel, ref, computed } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -127,7 +127,8 @@ const props = defineProps({
 
 const emit = defineEmits(["selectEntity"]);
 
-const remoteState = ref("alive");
+const loading = defineModel("loading");
+
 const expand = ref(false);
 const hover = ref(false);
 
@@ -146,9 +147,6 @@ const componentNameCss = computed(() => {
   let classes = ["component-name"];
   if (props.base) {
     classes.push("component-name-inherited");
-  }
-  if (remoteState.value == "pendingDelete") {
-    classes.push("component-name-pending-delete");
   }
   return classes;
 });
@@ -210,7 +208,7 @@ const nameIsPair = computed(() => {
 
 function removeComponent() {
   props.conn.remove(props.entity, fullName.value);
-  remoteState.value = "pendingDelete";
+  loading.value = true;
 }
 
 function removeTarget(target) {
@@ -218,6 +216,7 @@ function removeTarget(target) {
     expand.value = false;
   }
   props.conn.remove(props.entity, `(${props.fullName}, ${target})`);
+  loading.value = true;
 }
 
 function setValue(evt) {
@@ -228,6 +227,7 @@ function setValue(evt) {
     payload = evt.value;
   }
   props.conn.set(props.entity, props.fullName, payload);
+  loading.value = true;
 }
 
 function shortenEntity(entity) {
@@ -262,16 +262,10 @@ div.component-header {
   padding-right: 0px;
   background-color: rgba(0,0,0,0);
   color: var(--primary-text);
-  transition: background-color 0.1s ease-out;
 }
 
 div.component-can-expand {
   cursor: pointer;
-}
-
-div.component-can-expand:hover {
-  background-color: var(--bg-button);
-  border-radius: var(--border-radius-medium);
 }
 
 div.component-preview {
@@ -305,10 +299,6 @@ div.component-name {
 
 div.component-name-inherited {
   color: var(--prefab-color);
-}
-
-div.component-name-pending-delete {
-  color: var(--yellow);
 }
 
 div.component-value {

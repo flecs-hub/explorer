@@ -1,14 +1,16 @@
 <template>
-  <div :class="buttonCss" @click.stop="onClick">
-    Add Component
-  </div>
-  <input 
-    :class="searchCss" 
-    type="text" 
-    ref="searchBox"
-    @click.stop
-    @keydown.enter="onSubmit"
-    @keydown.esc="onCancel">
+  <button @click.stop="onClick">
+    <div :class="buttonCss">
+      Add Component
+    </div>
+    <input 
+      :class="searchCss" 
+      type="text" 
+      ref="searchBox"
+      @click.stop
+      @keydown.enter="onSubmit"
+      @keydown.esc="onCancel">
+  </button>
 </template>
 
 <script>
@@ -65,10 +67,16 @@ input.search-input {
   border-color: var(--green);
   width: 100%;
   text-align: left;
+  text-transform: none;
 }
 
 div.add-button-hidden, input.search-input-hidden {
   display: none;
+}
+
+button {
+  width: 100%;
+  text-transform: none;
 }
 
 </style>

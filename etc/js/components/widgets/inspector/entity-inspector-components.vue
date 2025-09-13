@@ -6,19 +6,10 @@
       :type_info="entityQueryResult.type_info"
       :item="m" v-for="m in entityModules"
       :key="m.name"
+      :filter="filter"
+      v-model:loading="loading"
       @selectEntity="onSelectEntity">
     </entity-inspector-module>
-  </div>
-
-  <div class="entity-inspector-actions">
-    <template v-if="isScript">
-      <button class="entity-inspector-button" @click="onOpenScript">
-        Open Script
-      </button>
-    </template>
-    <entity-inspector-add-component
-      @submit="addComponent">
-    </entity-inspector-add-component>
   </div>
 </template>
 
@@ -27,21 +18,20 @@ export default { name: "entity-inspector-components" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, defineModel } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
   path: {type: String, required: true},
   entityQueryResult: {type: Object, required: true},
   isScript: {type: Boolean, required: true},
-  entityModules: {type: Array, required: true}
+  entityModules: {type: Array, required: true},
+  filter: {type: String, required: false}
 });
 
 const emit = defineEmits(["scriptOpen", "selectEntity"]);
 
-function addComponent(component) {
-  props.conn.add(props.path, component);
-}
+const loading = defineModel("loading");
 
 function onOpenScript() {
   emit("scriptOpen", props);

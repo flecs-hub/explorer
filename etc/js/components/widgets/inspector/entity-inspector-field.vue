@@ -131,10 +131,18 @@ function editField() {
 }
 
 function onSubmit() {
-  if (editBox.value.value != props.value) {
-    curValue.value = Number(draggingValue);
-    emit("setValue", {value: draggingValue});
+  let value;
+  if (draggingEnabled.value) {
+    if (editBox.value.value != props.value) {
+      value = Number(draggingValue);
+    }
+  } else {
+    value = Number(editBox.value.value);
   }
+
+  curValue.value = value;
+
+  emit("setValue", {value: value});
 
   editMode.value = "default";
   editBox.value.blur();
@@ -157,9 +165,9 @@ function onDrag(value) {
 
 function onDragStop() {
   if (draggingEnabled.value) {
-    draggingEnabled.value = false;
     document.documentElement.classList.remove('cursor-ew');
     onSubmit();
+    draggingEnabled.value = false;
   }
 }
 
