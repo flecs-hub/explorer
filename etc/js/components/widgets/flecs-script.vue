@@ -2,9 +2,7 @@
   <div :class="editorCss">
     <div :id="`editor-${script}`" class="editor">
     </div>
-    <div v-if="error" class="editor-error">
-      <pre><span class="editor-error-text">error</span>: {{ error }}</pre>
-    </div>
+    <pre style="margin: 4px;" class="editor-error" v-if="error"><span class="editor-error-text">error</span>: {{ error }}</pre>
   </div>
 </template>
 
@@ -43,7 +41,6 @@ function loadScript() {
     isLoading = false;
     error.value = reply.error;
 
-    // So we get an updated changed value
     // TODO: this was causing scripts to be reparsed when opening an editor.
     // Find better way to get changed state.
     // scriptUpdate(reply.code);
@@ -123,12 +120,7 @@ div.flecs-script {
 }
 
 div.flecs-script-error {
-  grid-template-rows: auto 5.6rem 4px;
-}
-
-div.editor-error {
-  grid-row: 2;
-  background-color: var(--bg-pane);
+  grid-template-rows: 1fr 6rem;
 }
 
 span.editor-error-text {
@@ -141,6 +133,14 @@ div.editor {
   min-height: 250px;
   font-size: 14px;
   color: var(--primary-text);
+}
+
+div.editor-error {
+  grid-row: 2;
+  background-color: var(--bg-content);
+  margin: 4px;
+  width: calc(100% - 8px);
+  overflow-x: auto;
 }
 
 </style>
