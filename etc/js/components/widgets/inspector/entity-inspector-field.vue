@@ -10,6 +10,7 @@
       @click.stop
       @focus="onFocus"
       @blur="onBlur"
+      @mousedown.stop="onMouseDown"
       @keydown.enter="onSubmit"
       @keydown.esc="onCancel">
   </template>
@@ -20,7 +21,7 @@ export default { name: "entity-inspector-field" }
 </script>
 
 <script setup>
-import { computed, defineProps, defineEmits, onMounted, ref, watch } from 'vue';
+import { computed, defineProps, defineEmits, defineExpose, onMounted, ref, watch, getCurrentInstance } from 'vue';
 
 const props = defineProps({
   value: {required: true},
@@ -35,6 +36,18 @@ const emit = defineEmits(["setValue"]);
 const editMode = ref("default");
 const editEl = ref(null);
 const localValue = ref();
+const instance = ref(null);
+
+let dragging = {
+  eventHandlersRegistered: false,
+  instance: null,
+  x: 0,
+  type: null,
+  value: 0,
+  delta: 0,
+  dragged: false,
+  startTime: 0
+}
 
 const css = computed(() => {
   let classes = [props.class];
@@ -48,6 +61,10 @@ const css = computed(() => {
   }
 
   return classes;
+});
+
+const isNumberType = computed(() => {
+  return props.type[0] === "float" || props.type[0] === "int";
 });
 
 const unit = computed(() => {
@@ -95,6 +112,14 @@ watch(() => [displayValue.value, editMode.value], () => {
 
 onMounted(() => {
   localValue.value = props.value;
+
+  if (!dragging.eventHandlersRegistered) {
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    dragging.eventHandlersRegistered = true;
+  }
+
+  instance.value = getCurrentInstance();
 });
 
 function onFocus() {
@@ -104,6 +129,7 @@ function onFocus() {
 
 function onBlur() {
   editMode.value = "default";
+  dragging.instance = null;
 }
 
 function onSubmit() {
@@ -119,507 +145,56 @@ function onSubmit() {
 
 function onCancel() {
   editMode.value = "default";
+  dragging.instance = null;
   localValue.value = props.value;
   editEl.value.blur();
 }
 
-</script>
-
-<style scoped>
-
-div.value, input.value {
-  min-height: 1rem;
-  padding: 4px;
-  padding-left: 8px;
-  background-color: var(--bg-content-alt);
-  border-radius: var(--border-radius-medium);
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(0,0,0,0);
-  color: var(--secondary-text);
-  cursor: text;
-  text-align: left;
-  overflow: auto;
-
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-input.value:focus {
-  border-color: var(--green);
-}
-
-input.value-pending {
-  border-color: var(--yellow);
-}
-
-input.value-readonly {
-  background-color: var(--bg-content);
-  cursor: default;
-  opacity: 0.9;
-}
-
-input.value-compact {
-  white-space: nowrap;
-}
-
-div.value-bool, input.value-bool {
-  color: #4981B5;
-}
-
-div.value-int, input.value-int {
-  color: var(--light-green);
-}
-
-div.value-float, input.value-float {
-  color: var(--light-green);
-}
-
-div.value-text, input.value-text {
-  color: var(--orange);
-}
-
-div.value-entity, div.value-entity {
-  color: var(--primary-text);
-}
-
-div.value-enum, input.value-enum, div.value-bitmask, input.value-bitmask {
-  color: #7D67B5;
-}
-
-</style>
-
-<style>
-
-html.cursor-ew { cursor: ew-resize !important; }
-
-html.cursor-ew * {
-  cursor: inherit !important;
-}
-
-</style>
-const editMode = ref("default");
-const editBox = ref(null);
-const instance = ref(null);
-const draggingEnabled = ref(false);
-const curValue = ref();
-
-let draggingInstance = null;
-let dragX = 0;
-let dragIncrement = 0;
-let draggingRegistered = false;
-let draggingValue = 0;
-let draggingType = null;
-
-const css = computed(() => {
-  let classes = [props.class];
-  classes.push(`value-${props.type[0]}`);
-  
-  if (editMode.value == "pendingChange") {
-    classes.push(`${props.class}-pending`);
-  }
-  if (props.readonly) {
-    classes.push(`${props.class}-readonly`);
-  }
-  if (props.compact) {
-    classes.push(`${props.class}-compact`);
-  }
-
-  return classes;
-});
-
-const unit = computed(() => {
-  if (props.type.length > 1) {
-    const metadata = props.type[1];
-    if (metadata.symbol !== undefined) {
-      return metadata.symbol;
+function onMouseDown(event) {
+  if (isNumberType.value) {
+    dragging.instance = instance.value;
+    dragging.x = event.clientX;
+    dragging.type = props.type[0];
+    dragging.value = localValue.value;
+    dragging.delta = Math.abs(dragging.value / 30);
+    dragging.dragged = false;
+    dragging.startTime = Date.now();
+    if (!dragging.delta) {
+      dragging.delta = 1 / 30;
     }
   }
-});
-
-const displayValue = computed(() => {
-  let result;
-  if (curValue.value !== undefined) {
-    if (props.type[0] === "float" && typeof props.value == "number") {
-      result = curValue.value.toFixed(2);
-    } else {
-      result = curValue.value;
-    }
-
-    if (unit.value) {
-      result += " " + unit.value;
-    }
-
-    return result
-  } else {
-    return undefined;
-  }
-});
-
-onMounted(() => {
-  if (editBox.value) {
-    editBox.value.value = displayValue.value;
-  }
-
-  if (!draggingRegistered) {
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    draggingRegistered = true;
-  }
-
-  instance.value = getCurrentInstance();
-
-  curValue.value = props.value;
-});
-
-watch(() => props.value, () => {
-  if (editMode.value !== "edit") {
-    curValue.value = props.value;
-  }
-});
-
-watch(() => displayValue.value, () => {
-  if (editBox.value) {
-    editBox.value.value = displayValue.value;
-  }
-});
-
-function editField() {
-  if (!props.readonly) {
-    editMode.value = "edit";
-    nextTick(() => {
-      editBox.value.value = curValue.value;
-    });
-  } else {
-    editBox.value.blur();
-  }
 }
 
-function onSubmit() {
-  let value;
-  if (draggingEnabled.value) {
-    value = Number(draggingValue);
-  } else {
-    value = Number(editBox.value.value);
-  }
-
-  curValue.value = value;
-  if (props.value !== value) {
-    emit("setValue", {value: value});
-  }
-
-  editMode.value = "default";
-  editBox.value.blur();
-}
-
-function onCancel() {
-  editMode.value = "default";
-  if (editBox.value) {
-    editBox.value.value = displayValue.value;
-    editBox.value.blur();
-  }
-}
-
-function onDrag(value) {
-  draggingEnabled.value = true;
-  editMode.value = "edit";
-  curValue.value = value;
-  document.documentElement.classList.add('cursor-ew');
-}
-
-function onDragStop() {
-  if (draggingEnabled.value) {
-    document.documentElement.classList.remove('cursor-ew');
-    onSubmit();
-    draggingEnabled.value = false;
-  }
-}
-
-function onMouseDown(e) {
-  if (props.type[0] === "float" || props.type[0] == "int") {
-    draggingInstance = instance.value;
-    dragX = e.clientX;
-    draggingType = props.type[0];
-    draggingValue = curValue.value;
-    dragIncrement = Math.abs(draggingValue / 30);
-    if (!dragIncrement) {
-      dragIncrement = 1 / 30;
-    }
+function onMouseMove(event) {
+  if (dragging.instance) {
+    dragging.instance.exposed.onDragMove(event);
+    dragging.dragged = true;
   }
 }
 
 function onMouseUp() {
-  if (draggingInstance) {
-    draggingInstance.exposed.onDragStop();
-    draggingInstance = null;
-  }
-}
-
-function onMouseMove(e) {
-  if (draggingInstance) {
-    const newX = e.clientX;
-    draggingValue += (newX - dragX) * dragIncrement
-    if (draggingType === "float") {
-      draggingInstance.exposed.onDrag(draggingValue);
-    } else {
-      draggingInstance.exposed.onDrag(Math.round(draggingValue));
+  if (dragging.instance) {
+    if (dragging.dragged && Date.now() - dragging.startTime > 100) {
+      dragging.instance.exposed.onSubmit();
     }
-
-    dragX = newX;
+    dragging.instance = null;
   }
 }
 
-defineExpose({onDrag, onDragStop});
+function onDragMove(event) {
+  const newX = event.clientX;
 
-</script>
-
-<style scoped>
-
-div.value, input.value {
-  min-height: 1rem;
-  padding: 4px;
-  padding-left: 8px;
-  background-color: var(--bg-content-alt);
-  border-radius: var(--border-radius-medium);
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(0,0,0,0);
-  color: var(--secondary-text);
-  cursor: text;
-  text-align: left;
-  overflow: auto;
-
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-}
-
-input.value:focus {
-  border-color: var(--green);
-}
-
-input.value-pending {
-  border-color: var(--yellow);
-}
-
-input.value-readonly {
-  background-color: var(--bg-content);
-  cursor: default;
-  opacity: 0.9;
-}
-
-input.value-compact {
-  white-space: nowrap;
-}
-
-div.value-bool, input.value-bool {
-  color: #4981B5;
-}
-
-div.value-int, input.value-int {
-  color: var(--light-green);
-}
-
-div.value-float, input.value-float {
-  color: var(--light-green);
-}
-
-div.value-text, input.value-text {
-  color: var(--orange);
-}
-
-div.value-entity, div.value-entity {
-  color: var(--primary-text);
-}
-
-div.value-enum, input.value-enum, div.value-bitmask, input.value-bitmask {
-  color: #7D67B5;
-}
-
-</style>
-
-<style>
-
-html.cursor-ew { cursor: ew-resize !important; }
-
-html.cursor-ew * {
-  cursor: inherit !important;
-}
-
-</style>
-const editMode = ref("default");
-const editBox = ref(null);
-const instance = ref(null);
-const draggingEnabled = ref(false);
-const curValue = ref();
-
-let draggingInstance = null;
-let dragX = 0;
-let dragIncrement = 0;
-let draggingRegistered = false;
-let draggingValue = 0;
-let draggingType = null;
-
-const css = computed(() => {
-  let classes = [props.class];
-  classes.push(`value-${props.type[0]}`);
-  
-  if (editMode.value == "pendingChange") {
-    classes.push(`${props.class}-pending`);
-  }
-  if (props.readonly) {
-    classes.push(`${props.class}-readonly`);
-  }
-  if (props.compact) {
-    classes.push(`${props.class}-compact`);
-  }
-
-  return classes;
-});
-
-const unit = computed(() => {
-  if (props.type.length > 1) {
-    const metadata = props.type[1];
-    if (metadata.symbol !== undefined) {
-      return metadata.symbol;
-    }
-  }
-});
-
-const displayValue = computed(() => {
-  let result;
-  if (curValue.value !== undefined) {
-    if (props.type[0] === "float" && typeof props.value == "number") {
-      result = curValue.value.toFixed(2);
-    } else {
-      result = curValue.value;
-    }
-
-    if (unit.value) {
-      result += " " + unit.value;
-    }
-
-    return result
+  dragging.value += (newX - dragging.x) * dragging.delta;
+  if (dragging.type === "float") {
+    editEl.value.value = dragging.value;
   } else {
-    return undefined;
-  }
-});
-
-onMounted(() => {
-  if (editBox.value) {
-    editBox.value.value = displayValue.value;
+    editEl.value.value = Math.round(dragging.value);
   }
 
-  if (!draggingRegistered) {
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
-    draggingRegistered = true;
-  }
-
-  instance.value = getCurrentInstance();
-
-  curValue.value = props.value;
-});
-
-watch(() => props.value, () => {
-  if (editMode.value !== "edit") {
-    curValue.value = props.value;
-  }
-});
-
-watch(() => displayValue.value, () => {
-  if (editBox.value) {
-    editBox.value.value = displayValue.value;
-  }
-});
-
-function editField() {
-  if (!props.readonly) {
-    editMode.value = "edit";
-    nextTick(() => {
-      editBox.value.value = curValue.value;
-    });
-  } else {
-    editBox.value.blur();
-  }
+  dragging.x = newX;
 }
 
-function onSubmit() {
-  let value;
-  if (draggingEnabled.value) {
-    value = Number(draggingValue);
-  } else {
-    value = Number(editBox.value.value);
-  }
-
-  curValue.value = value;
-  if (props.value !== value) {
-    emit("setValue", {value: value});
-  }
-
-  editMode.value = "default";
-  editBox.value.blur();
-}
-
-function onCancel() {
-  editMode.value = "default";
-  if (editBox.value) {
-    editBox.value.value = displayValue.value;
-    editBox.value.blur();
-  }
-}
-
-function onDrag(value) {
-  draggingEnabled.value = true;
-  editMode.value = "edit";
-  curValue.value = value;
-  document.documentElement.classList.add('cursor-ew');
-}
-
-function onDragStop() {
-  if (draggingEnabled.value) {
-    document.documentElement.classList.remove('cursor-ew');
-    onSubmit();
-    draggingEnabled.value = false;
-  }
-}
-
-function onMouseDown(e) {
-  if (props.type[0] === "float" || props.type[0] == "int") {
-    draggingInstance = instance.value;
-    dragX = e.clientX;
-    draggingType = props.type[0];
-    draggingValue = curValue.value;
-    dragIncrement = Math.abs(draggingValue / 30);
-    if (!dragIncrement) {
-      dragIncrement = 1 / 30;
-    }
-  }
-}
-
-function onMouseUp() {
-  if (draggingInstance) {
-    draggingInstance.exposed.onDragStop();
-    draggingInstance = null;
-  }
-}
-
-function onMouseMove(e) {
-  if (draggingInstance) {
-    const newX = e.clientX;
-    draggingValue += (newX - dragX) * dragIncrement
-    if (draggingType === "float") {
-      draggingInstance.exposed.onDrag(draggingValue);
-    } else {
-      draggingInstance.exposed.onDrag(Math.round(draggingValue));
-    }
-
-    dragX = newX;
-  }
-}
-
-defineExpose({onDrag, onDragStop});
+defineExpose({ onDragMove, onSubmit });
 
 </script>
 
