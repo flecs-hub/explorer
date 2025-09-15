@@ -76,10 +76,23 @@ const unit = computed(() => {
   }
 });
 
+function roundNumber(value) {
+  let numDecimals = 3;
+  let num = Math.abs(localValue.value);
+  let size = num ? Math.floor(Math.log10(num) + 1) : 0;
+  if (size < 0) {
+    numDecimals = -size + 3;
+  }
+
+  let result = localValue.value.toFixed(numDecimals);
+  result = result.replace(/\.?0+$/, "");
+  return result;
+}
+
 const roundedValue = computed(() => {
   if (localValue.value !== undefined) {
     if (props.type[0] === "float" && typeof props.value == "number") {
-      return localValue.value.toFixed(2);
+      return roundNumber(localValue.value);
     } else {
       return localValue.value;
     }
@@ -186,7 +199,7 @@ function onDragMove(event) {
 
   dragging.value += (newX - dragging.x) * dragging.delta;
   if (dragging.type === "float") {
-    editEl.value.value = dragging.value;
+    editEl.value.value = Math.round(dragging.value * 1000) / 1000;
   } else {
     editEl.value.value = Math.round(dragging.value);
   }

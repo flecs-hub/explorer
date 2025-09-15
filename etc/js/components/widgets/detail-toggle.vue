@@ -1,16 +1,18 @@
 <template>
-  <div :class="detailCss" @mouseenter="onMouseEnter" @mouseleave="onMouseLeave">
+  <div :class="detailCss" 
+    @mouseenter="onMouseEnter" 
+    @mouseleave="onMouseLeave">
     <div class="detail-toggle-button">
       <expand-button 
         :expand="showDetail"
         :rotation="180">
       </expand-button>
     </div>
-    <div :class="summaryCss" @click.stop="toggle">
+    <div :class="summaryCss" @click.stop="toggle"  @mousedown.stop="onMouseDown" @mouseup.stop="onMouseUp">
       <slot name="summary"></slot>
     </div>
-    <div class="detail-toggle-detail" v-if="showDetail" :style="{ padding: padding }">
-      <slot name="detail"></slot>
+    <div class="detail-toggle-detail" :style="detailStyle">
+      <slot name="detail" v-if="showDetail"></slot>
     </div>
   </div>
 </template>
@@ -28,6 +30,7 @@ const props = defineProps({
 
 const showDetail = ref(true);
 const hover = ref(false);
+const pressed = ref(false);
 
 function toggle() {
   showDetail.value = !showDetail.value;
@@ -37,6 +40,9 @@ const detailCss = computed(() => {
   let result = ["detail-toggle"];
   if (hover.value) {
     result.push("detail-toggle-hover");
+  }
+  if (pressed.value) {
+    result.push("detail-toggle-pressed");
   }
   return result;
 });
@@ -51,12 +57,28 @@ const summaryCss = computed(() => {
   return result;
 });
 
+const detailStyle = computed(() => {
+  if (showDetail.value) {
+    return { padding: props.padding };
+  }
+  return { padding: "0px" };
+});
+
 function onMouseEnter() {
   hover.value = true;
 }
 
 function onMouseLeave() {
   hover.value = false;
+  pressed.value = false;
+}
+
+function onMouseDown() {
+  pressed.value = true;
+}
+
+function onMouseUp() {
+  pressed.value = false;
 }
 
 </script>
@@ -98,10 +120,24 @@ div.detail-toggle-hover div.detail-toggle-header {
   color: var(--secondary-text);
 }
 
+div.detail-toggle-pressed {
+  border-color: var(--bg-button-alt);
+}
+
+div.detail-toggle-pressed div.detail-toggle-header {
+  background-color: var(--bg-button-alt);
+  color: var(--secondary-text);
+}
+
 div.detail-toggle-button {
   position: absolute;
   top: 4px;
   right: 8px;
+}
+
+div.detail-toggle-detail {
+  margin-bottom: 0px;
+  transition: padding-top var(--animation-duration), padding-bottom var(--animation-duration);
 }
 
 </style>
