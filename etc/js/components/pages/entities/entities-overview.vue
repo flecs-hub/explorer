@@ -38,68 +38,66 @@ world.app()
         </template>
       </div>
     </template>
-    <template v-else>
-      <div class="overview-content">
-        <!-- Ring Chart Section -->
-        <div class="chart-section">
-          <div class="chart-wrapper">
-            <div class="chart-container">
-              <canvas ref="chartCanvas" width="240" height="240"></canvas>
-            </div>
-            <div class="total-memory">
-              <div class="total-label">Total Memory</div>
-              <div class="total-value">{{ formatBytes(totalMemoryUsage) }}</div>
-            </div>
+    <div :class="css">
+      <!-- Ring Chart Section -->
+      <div class="chart-section">
+        <div class="chart-wrapper">
+          <div class="chart-container">
+            <canvas ref="chartCanvas" width="240" height="240"></canvas>
           </div>
-          <div class="chart-legend">
-            <table class="legend-table">
+          <div class="total-memory">
+            <div class="total-label">Total Memory</div>
+            <div class="total-value">{{ formatBytes(totalMemoryUsage) }}</div>
+          </div>
+        </div>
+        <div class="chart-legend">
+          <table class="legend-table">
+            <tbody>
+              <tr v-for="(item, index) in chartData" :key="item.label" class="legend-row">
+                <td class="legend-color-cell">
+                  <span class="legend-color" :style="{ backgroundColor: item.color }"></span>
+                </td>
+                <td class="legend-label">{{ item.label }}</td>
+                <td class="legend-value">{{ formatBytes(item.value) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Detailed Panels Section -->
+      <div class="details-section">
+        <div v-for="category in memoryCategories" :key="category.name" class="detail-panel">
+          <div class="panel-header" v-if="!category.hideTitle">
+            <div class="panel-header-line" :style="{ backgroundColor: category.color }"></div>
+            <h4>{{ category.title }}</h4>
+            <span class="panel-total">{{ formatBytes(category.total) }}</span>
+          </div>
+          <div class="panel-content">
+            <table class="stats-table">
               <tbody>
-                <tr v-for="(item, index) in chartData" :key="item.label" class="legend-row">
-                  <td class="legend-color-cell">
-                    <span class="legend-color" :style="{ backgroundColor: item.color }"></span>
-                  </td>
-                  <td class="legend-label">{{ item.label }}</td>
-                  <td class="legend-value">{{ formatBytes(item.value) }}</td>
+                <tr v-for="(value, key) in category.data" :key="key" class="stat-row">
+                  <template v-if="Array.isArray(value)">
+                    <td class="stat-value" colspan="2">
+                      <histogram 
+                        :buckets="value.slice(1)"
+                        :title="category.title">
+                      </histogram>
+                    </td>
+                  </template>
+                  <template v-else>
+                    <td class="stat-label">{{ formatStatLabel(key) }}</td>
+                    <td class="stat-value">
+                      {{ formatStatValue(key, value) }}
+                    </td>
+                  </template>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
-
-        <!-- Detailed Panels Section -->
-        <div class="details-section">
-          <div v-for="category in memoryCategories" :key="category.name" class="detail-panel">
-            <div class="panel-header" v-if="!category.hideTitle">
-              <div class="panel-header-line" :style="{ backgroundColor: category.color }"></div>
-              <h4>{{ category.title }}</h4>
-              <span class="panel-total">{{ formatBytes(category.total) }}</span>
-            </div>
-            <div class="panel-content">
-              <table class="stats-table">
-                <tbody>
-                  <tr v-for="(value, key) in category.data" :key="key" class="stat-row">
-                    <template v-if="Array.isArray(value)">
-                      <td class="stat-value" colspan="2">
-                        <histogram 
-                          :buckets="value.slice(1)"
-                          :title="category.title">
-                        </histogram>
-                      </td>
-                    </template>
-                    <template v-else>
-                      <td class="stat-label">{{ formatStatLabel(key) }}</td>
-                      <td class="stat-value">
-                        {{ formatStatValue(key, value) }}
-                      </td>
-                    </template>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -128,7 +126,6 @@ const props = defineProps({
 
 const emit = defineEmits(['entity-selected', 'entity-updated']);
 
-// Reactive data
 const isLoading = ref(true);
 const worldMemoryQuery = ref();
 const worldMemoryData = ref({});
@@ -139,7 +136,14 @@ const isConnected = computed(() => {
   return props.app_state.status == flecs.ConnectionStatus.Connected;
 });
 
-// Computed properties
+const css = computed(() => {
+  let result = ['overview-content'];
+  if (isLoading.value) {
+    result.push('overview-content-loading');
+  }
+  return result;
+});
+
 const hasMemoryData = computed(() => {
   return Object.keys(worldMemoryData.value).length > 0 && worldMemoryData.value.components && worldMemoryData.value.components['flecs.stats.WorldMemory'];
 });
@@ -411,7 +415,9 @@ onMounted(() => {
       });
       first = false;
     } else {
-      updateChart();
+      nextTick(() => {
+        updateChart();
+      });
     }
   }, (error) => {
     console.warn("Failed to fetch world memory data:", error);
@@ -451,6 +457,10 @@ onUnmounted(() => {
   padding: var(--gap);
   overflow-y: auto;
   min-height: 0;
+}
+
+.overview-content-loading {
+  display: none;
 }
 
 .memory-visualization {

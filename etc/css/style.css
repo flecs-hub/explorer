@@ -131,6 +131,31 @@ div.pane, input.pane {
   border-radius: var(--border-radius-medium);
 }
 
+div.input-wrapper {
+  position: relative;
+  /* display: inline-block; */
+}
+
+div.input-wrapper input {
+  border: none;
+  outline: none;
+}
+
+div.input-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 0;
+  background: var(--green);
+  transition: width var(--animation-duration) ease;
+}
+
+div.input-wrapper:focus-within::after {
+  width: 100%;
+}
+
 div.pane-alt {
   background-color: var(--bg-pane-alt);
 }

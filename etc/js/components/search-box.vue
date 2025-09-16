@@ -1,5 +1,5 @@
 <template>
-  <div class="search-box">
+  <div class="search-box input-wrapper">
     <input class="search-box" type="text" v-model="value">
     <template v-if="value && value.length">
       <icon class="search-box-icon" src="close" @click="onClear"></icon>

@@ -212,7 +212,7 @@ div.edit-tabs-button:last-child {
 div.edit-tabs-button-active {
   background-color: var(--bg-pane);
   border-bottom-color: rgba(0, 0, 0, 0);
-  border-top-color: var(--dark-green);
+  border-top-color: var(--green);
   color: var(--primary-text);
 }
 

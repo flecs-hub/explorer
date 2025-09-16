@@ -1,18 +1,19 @@
 <template>
   <template v-if="shrink_to_content">
-    <!-- <div :class="css">{{ displayValue }}</div> -->
+    <div :class="css">{{ displayValue }}</div>
   </template>
   <template v-else>
-    <input 
-      :class="css"
-      type="text" 
-      ref="editEl"
-      @click.stop
-      @focus="onFocus"
-      @blur="onBlur"
-      @mousedown.stop="onMouseDown"
-      @keydown.enter="onSubmit"
-      @keydown.esc="onCancel">
+    <div :class="css">
+      <input 
+        type="text" 
+        ref="editEl"
+        @click.stop
+        @focus="onFocus"
+        @blur="onBlur"
+        @mousedown.stop="onMouseDown"
+        @keydown.enter="onSubmit"
+        @keydown.esc="onCancel">
+    </div>
   </template>
 </template>
 
@@ -50,7 +51,7 @@ let dragging = {
 }
 
 const css = computed(() => {
-  let classes = [props.class];
+  let classes = ["input-wrapper", props.class];
   classes.push(`value-${props.type[0]}`);
   
   if (props.readonly) {
@@ -213,17 +214,9 @@ defineExpose({ onDragMove, onSubmit });
 
 <style scoped>
 
-div.value, input.value {
+div.value {
   min-height: 1rem;
-  padding: 4px;
-  padding-left: 8px;
-  background-color: var(--bg-content-alt);
-  border-radius: var(--border-radius-medium);
-  border-style: solid;
-  border-width: 1px;
-  border-color: rgba(0,0,0,0);
-  color: var(--secondary-text);
-  cursor: text;
+
   text-align: left;
   overflow: auto;
 
@@ -232,45 +225,48 @@ div.value, input.value {
   box-sizing: border-box;
 }
 
-input.value:focus {
-  border-color: var(--green);
+div.value input {
+  border-radius: var(--border-radius-medium);
+  background-color: var(--bg-content-alt);
+  padding: 4px;
+  padding-left: 8px;
+  width: calc(100% - 12px);
+  height: 100%;
+  color: var(--secondary-text);
+  cursor: text;
 }
 
-input.value-pending {
-  border-color: var(--yellow);
-}
-
-input.value-readonly {
+div.value-readonly input {
   background-color: var(--bg-content);
   cursor: default;
   opacity: 0.9;
 }
 
-input.value-compact {
+div.value-compact input {
   white-space: nowrap;
 }
 
-div.value-bool, input.value-bool {
+div.value-bool, div.value-bool input {
   color: #4981B5;
 }
 
-div.value-int, input.value-int {
+div.value-int, div.value-int input {
   color: var(--light-green);
 }
 
-div.value-float, input.value-float {
+div.value-float, div.value-float input {
   color: var(--light-green);
 }
 
-div.value-text, input.value-text {
+div.value-text, div.value-text input {
   color: var(--orange);
 }
 
-div.value-entity, div.value-entity {
+div.value-entity, div.value-entity input {
   color: var(--primary-text);
 }
 
-div.value-enum, input.value-enum, div.value-bitmask, input.value-bitmask {
+div.value-enum, div.value-enum input, div.value-bitmask, div.value-bitmask input {
   color: #7D67B5;
 }
 
