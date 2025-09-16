@@ -4,17 +4,16 @@
       <div class="edit-tabs-container pane">
         <div class="edit-tabs-tabs">
           <div class="edit-tabs-tabs-line"></div>
-          <div 
-              :class="editButtonCss(item)" 
-              @click="editButtonSelect(item.value)"
-              v-for="item in items">
-            {{ item.label }}
-            <div class="edit-tabs-close-button"
-              v-if="activeItem && item.value == activeItem && item.canClose">
-              <edit-tabs-close-button
-                :changed="changed"
-                @onClose="editButtonClose(item)">
-              </edit-tabs-close-button>
+          <div :class="editButtonCss(item)" @click="editButtonSelect(item.value)" v-for="item in items">
+            <div class="edit-tabs-button-content">
+              {{ item.label }}
+              <div class="edit-tabs-close-button"
+                v-if="activeItem && item.value == activeItem && item.canClose">
+                <edit-tabs-close-button
+                  :changed="changed"
+                  @onClose="editButtonClose(item)">
+                </edit-tabs-close-button>
+              </div>
             </div>
           </div>
         </div>
@@ -175,22 +174,19 @@ div.edit-tabs-button {
   display: inline-block;
   position: relative;
   grid-column: 1;
-  padding: 8px;
-  padding-left: 16px;
-  padding-right: 16px;
-  font-size: 0.9rem;
   cursor: pointer;
   border-style: solid;
   border-width: 0px;
   border-left-width: 1px;
   border-right-width: 0px;
-  border-top-width: 2px;
+  border-top-width: 0px;
   border-bottom-width: 1px;
   border-color: var(--border);
   border-top-color: rgba(0, 0, 0, 0);
   transition: background-color var(--animation-duration) ease-in-out;
   color: var(--secondary-text);
   white-space: nowrap;
+  overflow: hidden;
 }
 
 div.edit-tabs-button-can-close {
@@ -209,11 +205,33 @@ div.edit-tabs-button:last-child {
   border-right-width: 1px;
 }
 
+div.edit-tabs-button-content {
+  padding: 8px;
+  padding-left: 16px;
+  padding-right: 16px;
+  font-size: 0.9rem;
+  border-style: solid;
+  border-width: 0px;
+  border-top-width: 2px;
+  border-color: rgba(0, 0, 0, 0);
+}
+
 div.edit-tabs-button-active {
   background-color: var(--bg-pane);
   border-bottom-color: rgba(0, 0, 0, 0);
   border-top-color: var(--green);
+  border-top-left-radius: var(--border-radius-small);
+  border-top-right-radius: var(--border-radius-small);
+  border-right-width: 1px;
   color: var(--primary-text);
+}
+
+div.edit-tabs-button-active + div.edit-tabs-button {
+  border-left-width: 0px;
+}
+
+div.edit-tabs-button-active .edit-tabs-button-content {
+  border-color: var(--green);
 }
 
 div.edit-tabs-button:hover {
