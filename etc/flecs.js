@@ -353,6 +353,11 @@ const flecs = {
           );
         },
 
+        // Run action
+        action: function(action, recv, err) {
+          return this._.request(this, "PUT", "action/" + action, {}, recv, err);
+        },
+
         // Other REST endpoints
         request: function(path, params, recv, err, abort) {
           return this._.request(this, "GET", path, params, 

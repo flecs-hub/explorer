@@ -25,7 +25,8 @@
             }"
             :title="`Bucket ${getBucketLabel(index)}: ${bucket.value} items`"
             @mouseenter="hoveredBar = index"
-            @mouseleave="hoveredBar = null">
+            @mouseleave="hoveredBar = null"
+            v-if="bucket.value > 0">
           </div>
         </div>
       </div>
@@ -95,7 +96,7 @@ const normalizedBuckets = computed(() => {
   
   return props.buckets.map(value => ({
     value,
-    normalizedValue: (value / maxValue) * 0.95
+    normalizedValue: (value / maxValue) * 0.95 + (value ? 0.01 : 0)
   }));
 });
 

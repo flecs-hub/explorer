@@ -1,7 +1,7 @@
 <template>
   <div class="entities-overview">
     <template v-if="isLoading">
-      <div class="placeholder">
+      <div class="entities-overview-placeholder">
         <template v-if="isConnected">
           <p>Connection established!</p>
           <p>Follow these steps to enable overview statistics:</p>
@@ -39,6 +39,12 @@ world.app()
       </div>
     </template>
     <div :class="css">
+      <div class="entities-overview-header">
+        <button @click="shrinkMemory">Shrink Memory</button>
+        <button @click="refreshStatistics"><icon src="refresh"></icon></button>
+      </div>
+
+
       <!-- Ring Chart Section -->
       <div class="chart-section">
         <div class="chart-wrapper">
@@ -65,7 +71,6 @@ world.app()
         </div>
       </div>
 
-      <!-- Detailed Panels Section -->
       <div class="details-section">
         <div v-for="category in memoryCategories" :key="category.name" class="detail-panel">
           <div class="panel-header" v-if="!category.hideTitle">
@@ -106,7 +111,7 @@ export default { name: "entities-overview" };
 </script>
 
 <script setup>
-import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 
 // Shared color constants
 const CategoryColors = {
@@ -396,15 +401,17 @@ function updateChart() {
   chart.update();
 }
 
-// Lifecycle hooks
-onMounted(() => {
+function shrinkMemory() {
+  props.conn.action("shrink_memory", () => {
+    refreshStatistics();
+  });
+}
+
+function refreshStatistics() {
   let first = true;
 
-  // Make managed request for world memory statistics
   worldMemoryQuery.value = props.conn.entity("flecs.stats.WorldMemory", {
     try: true,
-    managed: true,
-    persist: true,
     values: true
   }, (reply) => {
     worldMemoryData.value = reply;
@@ -424,10 +431,21 @@ onMounted(() => {
     worldMemoryData.value = {};
     isLoading.value = true;
   });
+}
+
+watch(() => props.app_state.status, () => {
+  if (props.app_state.status == flecs.ConnectionStatus.Connected) {
+    refreshStatistics();
+  } else {
+    isLoading.value = true;
+  }
+});
+
+onMounted(() => {
+  refreshStatistics();
 });
 
 onUnmounted(() => {
-  // Clean up managed request and chart when component is unmounted
   if (worldMemoryQuery.value) {
     worldMemoryQuery.value.abort();
   }
@@ -439,110 +457,98 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.entities-overview {
+
+div.entities-overview {
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
-.overview-header h3 {
-  margin: 0;
-  font-size: 1.1em;
-  font-weight: 600;
-  color: var(--primary-text);
-}
-
-.overview-content {
+div.overview-content {
   flex: 1;
   padding: var(--gap);
   overflow-y: auto;
   min-height: 0;
 }
 
-.overview-content-loading {
+div.overview-content-loading {
   display: none;
 }
 
-.memory-visualization {
-  display: flex;
-  flex-direction: column;
-  gap: calc(var(--gap) * 2);
-}
-
-.chart-section {
+div.chart-section {
   display: grid;
   grid-template-columns: 300px 1fr;
   gap: calc(var(--gap) * 2);
   align-items: start;
-  padding-top: 16px;
+  padding-top: 8px;
   padding-bottom: 16px;
   padding-left: 16px;
 }
 
-.chart-wrapper {
+div.chart-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
 }
 
-.chart-container {
+div.chart-container {
   position: relative;
   width: 240px;
   height: 240px;
 }
 
-.total-memory {
+div.total-memory {
   text-align: center;
   padding: 1rem 1.5rem;
   min-width: 200px;
 }
 
-.total-label {
+div.total-label {
   font-size: 0.9em;
   color: var(--secondary-text);
   margin-bottom: 0.5rem;
   font-weight: 500;
 }
 
-.total-value {
+div.total-value {
   font-size: 1.5em;
   font-weight: 700;
 }
 
-.chart-legend {
+div.chart-legend {
   background-color: var(--bg-cell-alt);
   border-radius: var(--border-radius-medium);
   padding: 16px;
 }
 
-.legend-table {
+table.legend-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.legend-row {
+tr.legend-row {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.legend-row:last-child {
+tr.legend-row:last-child {
   border-bottom: none;
 }
 
-.legend-color-cell {
+td.legend-color-cell {
   width: 40px;
   padding: 8px;
   text-align: center;
 }
 
-.legend-color {
+span.legend-color {
   width: 16px;
   height: 16px;
   border-radius: 50%;
   display: inline-block;
 }
 
-.legend-label {
+td.legend-label {
   color: var(--primary-text);
   font-weight: 500;
   font-size: 1em;
@@ -550,7 +556,7 @@ onUnmounted(() => {
   text-align: left;
 }
 
-.legend-value {
+td.legend-value {
   color: var(--primary-text);
   font-weight: 600;
   font-size: 1em;
@@ -558,14 +564,14 @@ onUnmounted(() => {
   text-align: right;
 }
 
-.details-section {
+div.details-section {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: calc(var(--gap) * 2);
   align-items: stretch;
 }
 
-.detail-panel {
+div.detail-panel {
   background-color: var(--background-secondary);
   border: 1px solid var(--border);
   border-radius: var(--border-radius-medium);
@@ -575,7 +581,7 @@ onUnmounted(() => {
   padding: 16px;
 }
 
-.panel-header {
+div.panel-header {
   display: flex;
   align-items: center;
   padding-top: 4px;
@@ -584,14 +590,14 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.panel-header-line {
+div.panel-header-line {
   width: 4px;
   height: 24px;
   border-radius: 2px;
   flex-shrink: 0;
 }
 
-.panel-header h4 {
+div.panel-header h4 {
   flex: 1;
   margin: 0;
   font-size: 1.1em;
@@ -599,31 +605,31 @@ onUnmounted(() => {
   color: var(--primary-text);
 }
 
-.panel-total {
+div.panel-total {
   font-size: 1.1em;
   font-weight: 600;
   color: var(--primary-text);
 }
 
-.panel-content {
+div.panel-content {
   padding: 0;
   background-color: var(--background-primary);
 }
 
-.stats-table {
+table.stats-table {
   width: 100%;
   border-collapse: collapse;
 }
 
-.stat-row {
+tr.stat-row {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.stat-row:last-child {
+tr.stat-row:last-child {
   border-bottom: none;
 }
 
-.stat-label {
+td.stat-label {
   color: var(--secondary-text);
   font-size: 0.9em;
   text-align: left;
@@ -631,7 +637,7 @@ onUnmounted(() => {
   padding-bottom: 8px;
 }
 
-.stat-value {
+td.stat-value {
   font-size: 0.9em;
   color: var(--secondary-text);
   font-weight: 600;
@@ -640,7 +646,7 @@ onUnmounted(() => {
   padding-bottom: 8px;
 }
 
-.placeholder {
+div.entities-overview-placeholder {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -649,84 +655,59 @@ onUnmounted(() => {
   color: var(--secondary-text);
 }
 
-.loading-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-color);
-  border-top: 3px solid var(--text-accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: var(--gap);
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.no-data {
+div.entities-overview-header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  padding: calc(var(--gap) * 4);
-  color: var(--secondary-text);
+  justify-content: right;
+  padding-top: 4px;
 }
 
-.no-data-icon {
-  margin-bottom: var(--gap);
-  opacity: 0.5;
-}
+div.entities-overview-header button {
 
-.no-data p, .loading p {
-  margin: 0;
-  font-style: italic;
+  margin-left: 8px;
 }
 
 @media (max-width: 1024px) {
-  .details-section {
+  div.details-section {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .chart-section {
+  div.chart-section {
     grid-template-columns: 1fr;
     justify-items: center;
   }
   
-  .chart-container {
+  div.chart-container {
     width: 250px;
     height: 250px;
   }
 
-  .total-memory {
+  div.total-memory {
     min-width: 180px;
   }
 
-  .total-value {
+  div.total-value {
     font-size: 1.3em;
   }
 
-  .details-section {
+  div.details-section {
     grid-template-columns: 1fr;
   }
   
-  .detail-panel {
+  div.detail-panel {
     transform: none !important;
   }
   
-  .detail-panel:hover {
+  div.detail-panel:hover {
     transform: none !important;
   }
 }
 
 @media (max-width: 480px) {
-  .memory-visualization {
-    gap: var(--gap);
-  }
-  
-  .chart-container {
+  div.chart-container {
     width: 200px;
     height: 200px;
   }

@@ -181,6 +181,15 @@ void FlecsSystemsPhysicsImport(
         .move = ecs_move(EcsSpatialQueryResult)
     });    
 
+    ecs_add_pair(world, ecs_id(EcsVelocity2), 
+        EcsWith, ecs_id(EcsPosition2));
+    ecs_add_pair(world, ecs_id(EcsVelocity3), 
+        EcsWith, ecs_id(EcsPosition3));
+    ecs_add_pair(world, ecs_id(EcsRotation3), 
+        EcsWith, ecs_id(EcsPosition3));
+    ecs_add_pair(world, ecs_id(EcsAngularVelocity), 
+        EcsWith, ecs_id(EcsRotation3));
+
     ECS_SYSTEM(world, EcsMove2, EcsOnUpdate, 
         [inout] flecs.components.transform.Position2,
         [in]    flecs.components.physics.Velocity2);
@@ -207,15 +216,6 @@ void FlecsSystemsPhysicsImport(
 
     ECS_SYSTEM(world, EcsUpdateSpatialQuery, EcsPreUpdate, 
         SpatialQuery(self, *), ?Prefab);
-
-    ecs_add_pair(world, ecs_id(EcsVelocity2), 
-        EcsWith, ecs_id(EcsPosition2));
-    ecs_add_pair(world, ecs_id(EcsVelocity3), 
-        EcsWith, ecs_id(EcsPosition3));
-    ecs_add_pair(world, ecs_id(EcsRotation3), 
-        EcsWith, ecs_id(EcsPosition3));
-    ecs_add_pair(world, ecs_id(EcsAngularVelocity), 
-        EcsWith, ecs_id(EcsRotation3));
 }
 
 
