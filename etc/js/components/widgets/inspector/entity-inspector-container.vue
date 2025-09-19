@@ -45,7 +45,7 @@
           </icon-button>
 
           <icon-button
-            src="close" 
+            src="chrome-close" 
             @click.stop="emit('close')">
           </icon-button>
         </div>
