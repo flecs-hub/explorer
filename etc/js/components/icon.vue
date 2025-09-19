@@ -1,5 +1,5 @@
 <template>
-  <div style="display: inline-block;">
+  <div style="display: inline-block; margin-bottom: 0px;">
     <img :style="style" :class="cssClass" :src="src"/>
   </div>
 </template>

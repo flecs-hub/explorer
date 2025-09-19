@@ -31,10 +31,10 @@
             </entity-inspector-components>
 
             <div class="pane-inspector-actions" v-if="entityQueryResult">
-              <button @click="inspectQuery" v-if="isQuery">Inspect Query</button>
+              <button @click="inspectQuery" v-if="isQuery"><icon src="search"></icon>&nbsp;&nbsp;Inspect Query</button>
               <entity-inspector-add-component @submit="addComponent">
               </entity-inspector-add-component>
-              <button @click="addScript" v-if="!isScript">Add Script</button>
+              <button @click="addScript" v-if="!isScript"><icon src="symbol-namespace"></icon>&nbsp;&nbsp;Add Script</button>
             </div>
           </template>
         </entity-inspector-container>

@@ -1,7 +1,7 @@
 <template>
   <button @click.stop="onClick">
     <div :class="buttonCss">
-      Add Component
+      <icon src="symbol-field"></icon>&nbsp;&nbsp;Add Component
     </div>
     <input 
       :class="searchCss" 
