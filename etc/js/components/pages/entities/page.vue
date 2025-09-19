@@ -41,6 +41,7 @@
         v-model:app_params="appParams.entities"
         @close="onClose"
         @scriptOpen="onScriptOpen"
+        @queryOpen="onQueryOpen"
         @selectEntity="onSelectEntity">
       </entity-inspector>
     </div>
@@ -116,7 +117,15 @@ function onScriptOpen(path) {
 
 function onSelectEntity(path) {
   appParams.value.entities.path = path;
-  appParams.value.entities.inspector_tab = "Inspect";
+}
+
+function onQueryOpen() {
+  appParams.value.page = "queries";
+  appParams.value.queries.name = appParams.value.entities.path;
+  appParams.value.queries.use_name = true;
+  appParams.value.queries.path = undefined;
+  appParams.value.queries.query_tab="browse";
+  appParams.value.queries.inspect_tab="table";
 }
 
 const pageCss = computed(() => {

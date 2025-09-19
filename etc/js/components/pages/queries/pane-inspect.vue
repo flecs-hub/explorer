@@ -88,7 +88,7 @@ const doRequest = () => {
     request.value = undefined;
   } else {
     request.value = query_func(q, {
-        try: true, 
+        try: true,
         rows: true, 
         full_paths: true,
         query_info: true, 

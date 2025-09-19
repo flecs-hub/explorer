@@ -27,11 +27,23 @@ export default { name: "query-inspect" }
 </script>
 
 <script setup>
-import { defineProps, computed } from 'vue';
+import { defineProps, computed, ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   query: {type: Object, required: true},
-  result: {type: Object, required: true}
+  result: {type: Object, required: false},
+  conn: {type: Object, required: false}
+});
+
+const localResult = ref({reply: []});
+const localQuery = ref(null);
+
+const result = computed(() => {
+  if (props.result) {
+    return props.result;
+  }
+
+  return localResult.value;
 });
 
 const is_set = computed(() => {
@@ -79,6 +91,37 @@ const query_icon = computed(() => {
   }
 });
 
+onMounted(() => {
+  if (!props.result) {
+    if (!props.conn) {
+      console.error("No flecs connection provided for query-inspect");
+      return;
+    }
+
+    localQuery.value = props.conn.queryName(props.query, {
+      try: true,
+      rows: true, 
+      full_paths: true,
+      query_info: true, 
+      field_info: true, 
+      query_plan: true, 
+      query_profile: true,
+      managed: true,
+      persist: true
+    }, (reply) => {
+      localResult.value = reply;
+    }, (err) => {
+      // localResult.value = err;
+    });
+  }
+});
+
+onUnmounted(() => {
+  if (localQuery.value) {
+    localQuery.value.abort();
+  }
+});
+
 </script>
 
 <style scoped>
@@ -90,7 +133,6 @@ const query_icon = computed(() => {
 
 #query-inspect p {
   margin: 0px;
-  padding-left: 0.5rem;
   text-transform: uppercase;
   color: var(--secondary-text);
   font-weight: bold;
@@ -101,7 +143,6 @@ div.query-inspect-header {
   display: grid;
   grid-template-columns: 28px 1fr;
   grid-template-rows: 2;
-  padding-left: 0.5rem;
   margin-bottom: 2rem;
 }
 

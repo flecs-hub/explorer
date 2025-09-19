@@ -31,6 +31,7 @@
             </entity-inspector-components>
 
             <div class="pane-inspector-actions" v-if="entityQueryResult">
+              <button @click="inspectQuery" v-if="isQuery">Inspect Query</button>
               <entity-inspector-add-component @submit="addComponent">
               </entity-inspector-add-component>
               <button @click="addScript" v-if="!isScript">Add Script</button>
@@ -54,6 +55,20 @@
               :script="path"
               v-if="entityQueryResult">
             </flecs-script>
+          </template>
+        </entity-inspector-container>
+      </template>
+      <template v-slot:Query v-if="isQuery">
+        <entity-inspector-container
+          :path="path"
+          :entityQueryResult="entityQueryResult" 
+          :disabled="isDisabled"
+          :loading="loading"
+          @disable="onDisable"
+          @delete="onDelete"
+          @close="onClose">
+          <template v-slot:content>
+            <query-inspect :query="path" :conn="conn"></query-inspect>
           </template>
         </entity-inspector-container>
       </template>
@@ -126,7 +141,7 @@ export default { name: "entity-inspector" }
 <script setup>
 import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted } from 'vue';
 
-const emit = defineEmits(["abort", "scriptOpen", "selectEntity", "close"]);
+const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close"]);
 
 const props = defineProps({
   conn: {type: Object, required: false},
@@ -144,6 +159,7 @@ const entityBrief = ref();
 const entityId = ref();
 const isDisabled = ref(false);
 const isScript = ref(false);
+const isQuery = ref(false);
 const componentFilter = ref();
 const loading = ref(true);
 
@@ -172,6 +188,14 @@ const items = computed(() => {
     result.push({
       label: "Script",
       value: "Script",
+      canClose: false
+    });
+  }
+
+  if (isQuery.value) {
+    result.push({
+      label: "Query",
+      value: "Query",
       canClose: false
     });
   }
@@ -359,6 +383,17 @@ function updateQuery() {
           isScript.value = (reply.components != undefined) && 
             reply.components.hasOwnProperty("flecs.script.Script");
 
+          // Extract whether entity is a query
+          isQuery.value = (reply.tags != undefined) && 
+            reply.tags.indexOf("flecs.core.Query") != -1;
+
+          if (!isScript.value && appParams.value.inspector_tab == "Script") {
+            appParams.value.inspector_tab = "Inspect";
+          }
+          if (!isQuery.value && appParams.value.inspector_tab == "Query") {
+            appParams.value.inspector_tab = "Inspect";
+          }
+
           entityModules.value.length = 0;
           for (let key in moduleMap) {
             entityModules.value.push({name: key, value: moduleMap[key]});
@@ -388,6 +423,10 @@ function addScript() {
   loading.value = true;
 }
 
+function inspectQuery() {
+  emit("queryOpen");
+}
+
 function onDisable() {
   if (isDisabled.value) {
     props.conn.enable(props.path);
@@ -404,6 +443,9 @@ function onDelete() {
 }
 
 function onClose() {
+  appParams.value.inspector_tab = "Inspect";
+  isScript.value = false;
+  isQuery.value = false;
   emit("close");
 }
 
