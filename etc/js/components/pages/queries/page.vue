@@ -17,7 +17,7 @@
         :conn="conn"
         :path="app_params.queries.path"
         :app_params="app_params.queries"
-        @abort="onAbort"
+        @close="onClose"
         @selectEntity="onSelectEntity">
       </entity-inspector>
     </template>
@@ -63,7 +63,7 @@ function selectEntity(entity) {
   app_params.value.queries.path = entity;
 }
 
-function onAbort() {
+function onClose() {
   app_params.value.queries.path = undefined;
 }
 

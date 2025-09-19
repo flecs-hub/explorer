@@ -651,7 +651,7 @@ div.entities-overview-placeholder {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--gap) * 4);
+  padding-top: 16px;
   color: var(--secondary-text);
 }
 
@@ -664,8 +664,7 @@ div.entities-overview-header {
 }
 
 div.entities-overview-header button {
-
-  margin-left: 8px;
+  margin-left: 4px;
 }
 
 @media (max-width: 1024px) {

@@ -5,7 +5,6 @@
       <icon 
         :src="buttonIcon" 
         :opacity="buttonIconOpacity" 
-        :rotate="90"
         @click="request"></icon>
     </button>
   </div>

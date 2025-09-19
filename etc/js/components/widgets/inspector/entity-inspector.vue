@@ -8,7 +8,8 @@
           :disabled="isDisabled"
           :loading="loading"
           @disable="onDisable"
-          @delete="onDelete">
+          @delete="onDelete"
+          @close="onClose">
 
           <template v-slot:header>
             <div class="component-filter" v-if="entityQueryResult">
@@ -45,7 +46,8 @@
           :loading="loading"
           padding="padding-left: 0px; padding-right: 0px;"
           @disable="onDisable"
-          @delete="onDelete">
+          @delete="onDelete"
+          @close="onClose">
           <template v-slot:content>
             <flecs-script
               :conn="conn"
@@ -62,7 +64,8 @@
           :disabled="isDisabled"
           :loading="loading"
           @disable="onDisable"
-          @delete="onDelete">
+          @delete="onDelete"
+          @close="onClose">
 
           <template v-slot:content>
             <entity-inspector-matched-by
@@ -80,7 +83,8 @@
           :disabled="isDisabled"
           :loading="loading"
           @disable="onDisable"
-          @delete="onDelete">
+          @delete="onDelete"
+          @close="onClose">
 
           <template v-slot:content>
             <entity-inspector-refs
@@ -100,7 +104,8 @@
           :disabled="isDisabled"
           :loading="loading"
           @disable="onDisable"
-          @delete="onDelete">
+          @delete="onDelete"
+          @close="onClose">
           <template v-slot:content>
             <entity-inspector-alerts
               :conn="conn"
@@ -121,7 +126,7 @@ export default { name: "entity-inspector" }
 <script setup>
 import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted } from 'vue';
 
-const emit = defineEmits(["abort", "scriptOpen", "selectEntity"]);
+const emit = defineEmits(["abort", "scriptOpen", "selectEntity", "close"]);
 
 const props = defineProps({
   conn: {type: Object, required: false},
@@ -396,6 +401,10 @@ function onDelete() {
   props.conn.delete(props.path);
   loading.value = true;
   emit("selectEntity", undefined);
+}
+
+function onClose() {
+  emit("close");
 }
 
 watch(() => [props.path, inspectorMode.value], () => {

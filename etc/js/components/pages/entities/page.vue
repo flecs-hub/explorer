@@ -39,7 +39,7 @@
         :conn="conn"
         :path="appParams.entities.path"
         v-model:app_params="appParams.entities"
-        @abort="onAbort"
+        @close="onClose"
         @scriptOpen="onScriptOpen"
         @selectEntity="onSelectEntity">
       </entity-inspector>
@@ -96,7 +96,7 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
   });
 });
 
-function onAbort(evt) {
+function onClose(evt) {
   appParams.value.entities.path = undefined;
   pane_tree.value.unselect();
 }

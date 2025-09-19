@@ -27,6 +27,9 @@
       </refresh-control>
     </div>
     <div class="title-info-right-2">
+      <button @click="worldJsonEndpoint"><icon src="arrow-down"></icon></button>
+    </div>
+    <div class="title-info-right-3">
       <layout-control 
         v-model:app_params="app_params">
       </layout-control>
@@ -48,13 +51,17 @@ const props = defineProps({
 
 const app_params = defineModel("app_params");
 
+function worldJsonEndpoint() {
+  window.open(props.conn.url + "/world", "_blank");
+}
+
 </script>
 
 <style scoped>
 
 div.title-bar {
   display: grid;
-  grid-template-columns: 2.5rem 300px 1fr 300px auto 2.5rem;
+  grid-template-columns: 2.5rem 300px 1fr 300px auto 2.0rem 2.5rem;
   gap: var(--gap);
   font-size: 0.9rem;
 }
@@ -87,6 +94,10 @@ div.title-info-right-1 {
 
 div.title-info-right-2 {
   grid-column: 6;
+}
+
+div.title-info-right-3 {
+  grid-column: 7;
 }
 
 @media screen and (max-width: 1600px) {

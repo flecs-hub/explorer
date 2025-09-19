@@ -57,6 +57,11 @@ div.build-config-release {
   opacity: 0.5;
 }
 
+div.build-config-unknown {
+  background-color: var(--secondary-text);
+  opacity: 0.5;
+}
+
 div.build-config-sanitize-text {
   color: var(--primary-text);
 }

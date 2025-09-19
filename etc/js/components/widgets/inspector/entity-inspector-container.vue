@@ -2,7 +2,7 @@
   <div class="entity-inspector-container">
     <template v-if="!path">
       <div class="entity-inspector-no-result">
-        No entity selected.
+        <p>No entity selected.</p>
       </div>
     </template>
     <template v-else>
@@ -43,6 +43,11 @@
             src="trash" 
             @click.stop="emit('delete')">
           </icon-button>
+
+          <icon-button
+            src="close" 
+            @click.stop="emit('close')">
+          </icon-button>
         </div>
 
         <div class="entity-inspector-header-header">
@@ -71,7 +76,7 @@ const props = defineProps({
   padding: {type: String, required: false, default: "padding-left: 8px; padding-right: 8px;"}
 });
 
-const emit = defineEmits(["disable", "delete"]);
+const emit = defineEmits(["disable", "delete", "close"]);
 
 const entityId = computed(() => {
   if (props.entityQueryResult) {
@@ -198,6 +203,10 @@ div.entity-inspector-buttons * {
 }
 
 div.entity-inspector-no-result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 8px;
   padding-left: 8px;
   padding-right: 8px;
   color: var(--secondary-text);

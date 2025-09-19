@@ -230,7 +230,7 @@ const flecs = {
               }
             }, (msg) => {
               if (err) {
-                if (msg[0] == '{' || msg[0] == '[') {
+                if (msg && (msg[0] == '{' || msg[0] == '[')) {
                   err(JSON.parse(msg));
                 } else {
                   err({error: msg});
