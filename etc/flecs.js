@@ -287,50 +287,50 @@ const flecs = {
         },
 
         // Add component
-        add: function(path, component) {
+        add: function(path, component, recv, err) {
           path = this._.escapePath(path);
           return this._.request(this, "PUT", "component/" + path, 
-            {component: component});
+            {component: component}, recv, err);
         },
 
         // Remove component
-        remove: function(path, component) {
+        remove: function(path, component, recv, err) {
           path = this._.escapePath(path);
           return this._.request(this, "DELETE", "component/" + path,
-            {component: component});
+            {component: component}, recv, err);
         },
 
         // Enable entity/component
-        enable: function(path, component) {
+        enable: function(path, component, recv, err) {
           path = this._.escapePath(path);
           return this._.request(this, "PUT", "toggle/" + path, {
             enable: true, component: component
-          });
+          }, recv, err);
         },
 
         // Disable entity/component
-        disable: function(path, component) {
+        disable: function(path, component, recv, err) {
           path = this._.escapePath(path);
           return this._.request(this, "PUT", "toggle/" + path, {
             enable: false, component: component
-          });
+          }, recv, err);
         },
 
         // Create entity
-        create: function(path) {
+        create: function(path, recv, err) {
           path = this._.escapePath(path);
-          return this._.request(this, "PUT", "entity/" + path, {});
+          return this._.request(this, "PUT", "entity/" + path, {}, recv, err);
         },
 
         // Delete entity
-        delete: function(path) {
+        delete: function(path, recv, err) {
           path = this._.escapePath(path);
-          return this._.request(this, "DELETE", "entity/" + path, {});
+          return this._.request(this, "DELETE", "entity/" + path, {}, recv, err);
         },
 
         // Get all entities in world
-        world: function(reply, err) {
-          return this._.request(this, "GET", "world", {}, reply, err);
+        world: function(recv, err) {
+          return this._.request(this, "GET", "world", {}, recv, err);
         },
 
         // Update script code

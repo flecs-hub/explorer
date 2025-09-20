@@ -53,7 +53,7 @@
             <flecs-script
               :conn="conn"
               :script="path"
-              v-if="entityQueryResult">
+              v-if="entityQueryResult && isScript">
             </flecs-script>
           </template>
         </entity-inspector-container>
@@ -139,7 +139,7 @@ export default { name: "entity-inspector" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 
 const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close"]);
 
@@ -162,6 +162,7 @@ const isScript = ref(false);
 const isQuery = ref(false);
 const componentFilter = ref();
 const loading = ref(true);
+const firstRequest = ref(true);
 
 const inspectorMode = computed(() => {
   return appParams.value.inspector_tab;
@@ -184,7 +185,7 @@ const items = computed(() => {
     canClose: false
   });
 
-  if (isScript.value) {
+  if (isScript.value || inspectorMode.value == "Script") {
     result.push({
       label: "Script",
       value: "Script",
@@ -321,8 +322,6 @@ function updateQuery() {
           alerts: inspectorMode.value == "More"
         }, 
         (reply) => {
-          loading.value = false;
-
           entityQueryResult.value = reply;
 
           const moduleMap = {};
@@ -387,11 +386,25 @@ function updateQuery() {
           isQuery.value = (reply.tags != undefined) && 
             reply.tags.indexOf("flecs.core.Query") != -1;
 
-          if (!isScript.value && appParams.value.inspector_tab == "Script") {
-            appParams.value.inspector_tab = "Inspect";
+          // If this is the first time we request the entity, check if the
+          // inspector tab is set to something valid.
+          if (firstRequest.value) {
+            if (!isScript.value && appParams.value.inspector_tab == "Script") {
+              appParams.value.inspector_tab = "Inspect";
+            }
+
+            if (!isQuery.value && appParams.value.inspector_tab == "Query") {
+              appParams.value.inspector_tab = "Inspect";
+            }
           }
-          if (!isQuery.value && appParams.value.inspector_tab == "Query") {
-            appParams.value.inspector_tab = "Inspect";
+
+          firstRequest.value = false;
+
+          if (!isScript.value && inspectorMode.value == "Script") {
+            // Waiting for script component to get added, so don't hide the
+            // loading indicator.
+          } else {
+            loading.value = false;
           }
 
           entityModules.value.length = 0;
@@ -418,9 +431,9 @@ function addComponent(component) {
 }
 
 function addScript() {
-  appParams.value.inspector_tab = "Script";
   props.conn.add(props.path, "flecs.script.Script");
   loading.value = true;
+  appParams.value.inspector_tab = "Script";
 }
 
 function inspectQuery() {
@@ -449,8 +462,12 @@ function onClose() {
   emit("close");
 }
 
-watch(() => [props.path, inspectorMode.value], () => {
+watch(() => [props.path, inspectorMode.value], () => {  
   updateQuery();
+});
+
+watch(() => [props.path], () => {
+  firstRequest.value = true;
 });
 
 onMounted(() => {

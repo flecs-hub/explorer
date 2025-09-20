@@ -21,7 +21,7 @@ export default { name: "entity-inspector-refs" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   entityQueryResult: {type: Object, required: true},
