@@ -706,7 +706,7 @@ const flecs = {
             this.setStatus(pub, flecs.ConnectionStatus.Initializing);
   
             this.connMgrRequest = pub.entity("flecs.core.World", 
-              {values: true, label: true, poll_interval_ms: 100000}, 
+              {values: true, label: true, poll_interval_ms: 1000}, 
               (msg) => {
                 pub.worldInfo = msg;
 
