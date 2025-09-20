@@ -111,7 +111,7 @@ export default { name: "entity-inspector-component" }
 </script>
 
 <script setup>
-import { defineEmits, defineProps, defineModel, ref, computed } from 'vue';
+import { defineEmits, defineProps, defineModel, ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -187,6 +187,7 @@ const canExpand = computed(() => {
 function toggle() {
   if (canExpand.value) {
     expand.value = !expand.value;
+    localStorage.setItem(`${props.fullName}.expand`, String(expand.value));
   }
 }
 
@@ -237,6 +238,10 @@ function shortenEntity(entity) {
 function onEntity(evt) {
   emit("selectEntity", evt);
 }
+
+onMounted(() => {
+  expand.value = localStorage.getItem(`${props.fullName}.expand`) === "true";
+});
 
 </script>
 
