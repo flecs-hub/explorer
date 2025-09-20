@@ -62,7 +62,7 @@
       <div class="component-delete-icon" v-if="!base && (!targets || singleTarget)">
         <icon-button
           src="trash" 
-          @click.stop="removeComponent">
+          @click.stop="emit('removeComponent')">
         </icon-button>
       </div>
     </div>
@@ -125,7 +125,7 @@ const props = defineProps({
   base: {type: String, required: false}
 });
 
-const emit = defineEmits(["selectEntity"]);
+const emit = defineEmits(["selectEntity", "removeComponent"]);
 
 const loading = defineModel("loading");
 
@@ -206,10 +206,10 @@ const nameIsPair = computed(() => {
   return Array.isArray(props.name);
 });
 
-function removeComponent() {
-  props.conn.remove(props.entity, fullName.value);
-  loading.value = true;
-}
+// function removeComponent() {
+//   props.conn.remove(props.entity, fullName.value);
+//   loading.value = true;
+// }
 
 function removeTarget(target) {
   if (!singleTarget.value && props.targets.length == 2) {

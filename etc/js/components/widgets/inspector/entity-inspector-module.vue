@@ -19,6 +19,7 @@
             :base="elem.base"
             v-model:loading="loading"
             @selectEntity="onSelectEntity"
+            @removeComponent="emit('removeComponent', elem.fullName)"
             v-if="matchesFilter(elem)">
           </entity-inspector-component>
         </template>
@@ -36,6 +37,7 @@
             :base="elem.base"
             v-model:loading="loading"
             @selectEntity="onSelectEntity"
+            @removeComponent="emit('removeComponent', elem.fullName)"
             v-if="matchesFilter(elem)">
           </entity-inspector-component>
         </template>
@@ -52,6 +54,7 @@
             icon_src="tag"
             v-model:loading="loading"
             @selectEntity="onSelectEntity"
+            @removeComponent="emit('removeComponent', elem.fullName)"
             v-if="matchesFilter(elem)">
           </entity-inspector-component>
         </template>
@@ -75,7 +78,7 @@ const props = defineProps({
   filter: {type: String, required: false}
 });
 
-const emit = defineEmits(["selectEntity"]);
+const emit = defineEmits(["selectEntity", "removeComponent"]);
 
 const loading = defineModel("loading");
 

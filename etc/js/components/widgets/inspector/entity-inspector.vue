@@ -27,14 +27,15 @@
               :filter="componentFilter"
               v-model:loading="loading"
               @selectEntity="onSelectEntity"
+              @removeComponent="onRemoveComponent"
               v-if="entityQueryResult">
             </entity-inspector-components>
 
             <div class="pane-inspector-actions" v-if="entityQueryResult">
               <button @click="inspectQuery" v-if="isQuery"><icon src="search"></icon>&nbsp;&nbsp;Inspect Query</button>
-              <entity-inspector-add-component @submit="addComponent">
+              <entity-inspector-add-component @submit="onAddComponent">
               </entity-inspector-add-component>
-              <button @click="addScript" v-if="!isScript"><icon src="symbol-namespace"></icon>&nbsp;&nbsp;Add Script</button>
+              <button @click="onAddScript" v-if="!isScript"><icon src="symbol-namespace"></icon>&nbsp;&nbsp;Add Script</button>
             </div>
           </template>
         </entity-inspector-container>
@@ -221,15 +222,6 @@ const items = computed(() => {
 
   return result;
 });
-
-function onScriptOpen(evt) {
-  emit("scriptOpen", evt ? evt.path : undefined);
-}
-
-function onSelectEntity(evt) {
-  appParams.value.inspector_tab = "Inspect";
-  emit("selectEntity", evt);
-}
 
 function splitPair(id) {
   let moduleName, _;
@@ -425,26 +417,51 @@ function updateQuery() {
   }
 }
 
-function addComponent(component) {
-  props.conn.add(props.path, component);
-  loading.value = true;
-}
-
-function addScript() {
-  props.conn.add(props.path, "flecs.script.Script");
-  loading.value = true;
-  appParams.value.inspector_tab = "Script";
-}
-
 function inspectQuery() {
   emit("queryOpen");
 }
 
+function onScriptOpen(evt) {
+  emit("scriptOpen", evt ? evt.path : undefined);
+}
+
+function onAddComponent(component) {
+  props.conn.add(props.path, component, (reply) => {
+    entityQuery.value.now();
+  });
+  loading.value = true;
+}
+
+function onAddScript() {
+  loading.value = true;
+  appParams.value.inspector_tab = "Script";
+  props.conn.add(props.path, "flecs.script.Script", (reply) => {
+    entityQuery.value.now();
+  });
+}
+
+
+function onRemoveComponent(component) {
+  loading.value = true;
+  props.conn.remove(props.path, component, (reply) => {
+    entityQuery.value.now();
+  });
+}
+
+function onSelectEntity(evt) {
+  appParams.value.inspector_tab = "Inspect";
+  emit("selectEntity", evt);
+}
+
 function onDisable() {
   if (isDisabled.value) {
-    props.conn.enable(props.path);
+    props.conn.enable(props.path, undefined, (reply) => {
+      entityQuery.value.now();
+    });
   } else {
-    props.conn.disable(props.path);
+    props.conn.disable(props.path, undefined, (reply) => {
+      entityQuery.value.now();
+    });
   }
   loading.value = true;
 }

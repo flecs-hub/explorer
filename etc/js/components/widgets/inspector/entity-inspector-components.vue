@@ -8,7 +8,8 @@
       :key="m.name"
       :filter="filter"
       v-model:loading="loading"
-      @selectEntity="onSelectEntity">
+      @selectEntity="emit('selectEntity')"
+      @removeComponent="emit('removeComponent', $event)">
     </entity-inspector-module>
   </div>
 </template>
@@ -29,17 +30,9 @@ const props = defineProps({
   filter: {type: String, required: false}
 });
 
-const emit = defineEmits(["scriptOpen", "selectEntity"]);
+const emit = defineEmits(["selectEntity", "removeComponent"]);
 
 const loading = defineModel("loading");
-
-function onOpenScript() {
-  emit("scriptOpen", props);
-}
-
-function onSelectEntity(evt) {
-  emit("selectEntity", evt)
-}
 
 </script>
 

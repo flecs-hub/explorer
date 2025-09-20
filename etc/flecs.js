@@ -88,7 +88,7 @@ const flecs = {
     createConnection(params) {
       let connParams = {
         host: undefined,
-        timeout_ms: 1000,
+        timeout_ms: 10000,
         poll_interval_ms: 1000, // For managed queries
         retry_interval_ms: 200,
         max_retry_count: 5
@@ -441,7 +441,7 @@ const flecs = {
               aborted: false,
   
               // Do request
-              do() {
+              do(cache = true) {
                 if (dryrun) {
                   return;
                 }
@@ -469,6 +469,10 @@ const flecs = {
                   url += "/" + this.url;
                 } else {
                   url = "/" + this.url;
+                }
+
+                if (!cache) {
+                  url += "&cache=false";
                 }
 
                 this.request = conn._.FlecsHttpRequest();
@@ -566,11 +570,23 @@ const flecs = {
                   this.request = undefined;
                 }
               },
+
+              // Run request now
+              now() {
+                this.request.abort();
+                this.do(false);
+              },
   
               // Private methods
               _: {
+                timer: undefined,
+
                 // Do polling if request has poll interval
                 poll(pub) {
+                  if (pub.timer) {
+                    clearTimeout(pub.timer);
+                  }
+
                   if (pub.poll_interval_ms && !pub.aborted) {
                     if (pub.status == flecs.RequestStatus.Done) {
                       // If this is a polling request and valid data was received,
@@ -578,7 +594,7 @@ const flecs = {
                       pub.status = flecs.RequestStatus.Alive;
                     }
   
-                    setTimeout(() => {
+                    pub.timer = setTimeout(() => {
                       this.retry_count = 0;
                       pub.redo();
                     }, pub.poll_interval_ms);
@@ -690,7 +706,7 @@ const flecs = {
             this.setStatus(pub, flecs.ConnectionStatus.Initializing);
   
             this.connMgrRequest = pub.entity("flecs.core.World", 
-              {values: true, label: true, poll_interval_ms: 1000}, 
+              {values: true, label: true, poll_interval_ms: 100000}, 
               (msg) => {
                 pub.worldInfo = msg;
 
