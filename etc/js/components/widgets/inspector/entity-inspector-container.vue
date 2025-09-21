@@ -113,7 +113,7 @@ const entityBrief = computed(() => {
 });
 
 const entityName = computed(() => {
-  if (props.entityQueryResult) {
+  if (props.entityQueryResult && props.entityQueryResult.name !== undefined) {
     return props.entityQueryResult.name;
   } else {
     return explorer.shortenEntity(props.path)
