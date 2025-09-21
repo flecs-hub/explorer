@@ -294,7 +294,9 @@ function updateQuery() {
 
   if (lastQuery) {
     lastQuery.abort();
-    entityQueryResult.value = undefined;
+    if (entityQueryResult.value && entityQueryResult.value.name) {
+      entityQueryResult.value.name = undefined;
+    }
   }
 
   if (props.path) {
@@ -410,6 +412,7 @@ function updateQuery() {
         }, 
         (err) => {
           loading.value = true;
+          entityQueryResult.value = undefined;
         }, 
         (request) => {
           loading.value = true;
