@@ -294,7 +294,6 @@ function updateQuery() {
 
   if (lastQuery) {
     lastQuery.abort();
-    entityQueryResult.value = undefined;
   }
 
   if (props.path) {
