@@ -41,7 +41,7 @@ export default { name: "entity-inspector-kv" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, ref } from 'vue';
+import { defineProps, defineEmits, ref, onMounted } from 'vue';
 
 const props = defineProps({
   keyname: {type: String, required: true},
@@ -55,6 +55,7 @@ const expand = ref(false);
 
 function toggle() {
   expand.value = !expand.value;
+  localStorage.setItem(`${props.keyname}.expand`, String(expand.value));
 }
 
 function setValue(evt, key) {
@@ -64,6 +65,10 @@ function setValue(evt, key) {
     emit('setValue', { key: key, value: evt.value });
   }
 }
+
+onMounted(() => {
+  expand.value = localStorage.getItem(`${props.keyname}.expand`) === "true";
+});
 
 </script>
 
