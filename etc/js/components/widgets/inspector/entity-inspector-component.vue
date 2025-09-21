@@ -70,6 +70,7 @@
     <template v-if="expand && value">
       <div class="component-value">
         <entity-inspector-value
+          :path="fullName"
           :value="value"
           :type="type"
           :readonly="isReadonly"
