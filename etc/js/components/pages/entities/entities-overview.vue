@@ -283,7 +283,8 @@ const totalMemoryUsage = computed(() => {
 
 // Helper functions
 function calculateEntitiesTotal(data) {
-  return data.bytes_alive + data.bytes_not_alive + data.bytes_unused;
+  return data.bytes_alive + data.bytes_not_alive + data.bytes_unused + 
+    data.bytes_names + data.bytes_doc_names;
 }
 
 function calculateComponentIndexTotal(data) {
