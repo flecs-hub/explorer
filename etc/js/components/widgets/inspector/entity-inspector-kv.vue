@@ -18,6 +18,7 @@
       </entity-inspector-preview>
       <template v-if="expand">
         <entity-inspector-value
+          :path="path"
           :value="value"
           :type="type"
           :readonly="readonly"
@@ -44,6 +45,7 @@ export default { name: "entity-inspector-kv" }
 import { defineProps, defineEmits, ref, onMounted } from 'vue';
 
 const props = defineProps({
+  path: {type: String, required: true},
   keyname: {type: String, required: true},
   value: {required: true},
   type: {type: Object, required: true},
@@ -55,7 +57,7 @@ const expand = ref(false);
 
 function toggle() {
   expand.value = !expand.value;
-  localStorage.setItem(`${props.keyname}.expand`, String(expand.value));
+  localStorage.setItem(`${props.path}.expand`, String(expand.value));
 }
 
 function setValue(evt, key) {
@@ -67,7 +69,7 @@ function setValue(evt, key) {
 }
 
 onMounted(() => {
-  expand.value = localStorage.getItem(`${props.keyname}.expand`) === "true";
+  expand.value = localStorage.getItem(`${props.path}.expand`) === "true";
 });
 
 </script>

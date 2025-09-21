@@ -4,6 +4,7 @@
       <div class="prop-grid">
         <template v-for="(value, key) in value">
           <entity-inspector-kv
+            :path="path + '.' + key"
             :keyname="key"
             :value="value"
             :type="type[key]"
@@ -32,6 +33,7 @@ export default { name: "entity-inspector-value" }
 import { defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
+  path: {type: String, required: true},
   value: {required: true},
   type: {type: Object, required: true},
   readonly: {type: Boolean, required: true}
