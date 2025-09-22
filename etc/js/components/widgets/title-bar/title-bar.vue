@@ -20,16 +20,16 @@
       :app_state="app_state"
       v-model:app_params="app_params">
     </url-bar>
-    <div class="title-info-right-1">
-      <refresh-control 
-        :conn="conn" 
-        v-model:app_params="app_params">
-      </refresh-control>
-    </div>
-    <div class="title-info-right-2">
+
+    <div class="title-bar-buttons">
+      <button class="refresh-toggle" @click="toggle">{{ buttonText }}</button>
+      <button :class="refreshButtonCss()">
+        <icon 
+          :src="buttonIcon" 
+          :opacity="buttonIconOpacity" 
+          @click="request"></icon>
+      </button>
       <button @click="worldJsonEndpoint"><icon src="arrow-down"></icon></button>
-    </div>
-    <div class="title-info-right-3">
       <layout-control 
         v-model:app_params="app_params">
       </layout-control>
@@ -42,7 +42,7 @@ export default { name: "title-bar" };
 </script>
 
 <script setup>
-import { defineProps, defineModel } from 'vue';
+import { computed, defineProps, defineModel } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -55,13 +55,58 @@ function worldJsonEndpoint() {
   window.open(props.conn.url + "/world", "_blank");
 }
 
+const autoRefresh = computed(() => {
+  return app_params.value.refresh === "auto";
+});
+
+const buttonText = computed(() => {
+  return autoRefresh.value ? "Auto refresh" : "Manual refresh";
+});
+
+const buttonIcon = computed(() => {
+  return autoRefresh.value ? "circle-large" : "refresh";
+});
+
+const buttonIconOpacity = computed(() => {
+  return autoRefresh.value ? 0.5 : 1.0;
+})
+
+function toggle() {
+  if (app_params.value.refresh === "auto") {
+    app_params.value.refresh = "manual";
+  } else {
+    app_params.value.refresh = "auto";
+  }
+
+  let poll_interval_ms = 1000;
+  if (app_params.value.refresh !== "auto") {
+    poll_interval_ms = 0;
+  }
+
+  props.conn.set_managed_params({ poll_interval_ms });
+}
+
+function request() {
+  if (!autoRefresh.value) {
+    props.conn.request_managed();
+  }
+}
+
+function refreshButtonCss() {
+  let classes = ["refresh-button"];
+  if (autoRefresh.value) {
+    classes.push("refresh-button-disabled");
+  }
+  return classes;
+}
+
 </script>
 
 <style scoped>
 
 div.title-bar {
   display: grid;
-  grid-template-columns: 2.5rem 300px 1fr 300px auto 2.0rem 2.5rem;
+  grid-template-columns: 2.5rem 300px 1fr 300px auto 0px;
   gap: var(--gap);
   font-size: 0.9rem;
 }
@@ -88,31 +133,26 @@ div.title-info {
   align-items: center;
 }
 
-div.title-info-right-1 {
+div.title-bar-buttons {
   grid-column: 5;
+  display: flex;
+  justify-content: right;
+  padding-left: 4px;
 }
 
-div.title-info-right-2 {
-  grid-column: 6;
-}
-
-div.title-info-right-3 {
-  grid-column: 7;
+div.title-bar-buttons button {
+  margin-left: 4px;
 }
 
 @media screen and (max-width: 1600px) {
   div.title-bar {
-    grid-template-columns: 2.5rem 35px 1fr 10px auto 2.5rem;
+    grid-template-columns: 2.5rem 35px 1fr 10px auto 0px;
   }
 }
 
 @media screen and (max-width: 800px) {
   div.title-bar {
-    grid-template-columns: 2.5rem 0px 1fr 0px auto 2.5rem;
-  }
-
-  div.title-info-right-1 {
-    display: none;
+    grid-template-columns: 2.5rem 0px 1fr 0px auto 0px;
   }
 
   div.title-bar-v3 {

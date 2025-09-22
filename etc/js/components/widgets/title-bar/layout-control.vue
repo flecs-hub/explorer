@@ -1,12 +1,10 @@
 <template>
-  <div class="layout-control">
-    <button @click="onToggle">
-      <icon 
-        :src="buttonIcon"
-        :opacity="0.7">
-      </icon>
-    </button>
-  </div>
+  <button @click="onToggle">
+    <icon 
+      :src="buttonIcon"
+      :opacity="0.7">
+    </icon>
+  </button>
 </template>
 
 <script>
