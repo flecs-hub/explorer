@@ -70,10 +70,13 @@ const isNumberType = computed(() => {
 
 const unit = computed(() => {
   if (props.type.length > 1) {
-    const metadata = props.type[1];
-    if (metadata.symbol !== undefined) {
-      return metadata.symbol;
-    }
+    return props.type[1];
+  }
+});
+
+const unitSymbol = computed(() => {
+  if (unit.value) {
+    return unit.value.symbol;
   }
 });
 
@@ -104,8 +107,10 @@ const displayValue = computed(() => {
   if (localValue.value !== undefined) {
     let result = roundedValue.value;
 
-    if (unit.value) {
-      result += " " + unit.value;
+    if (unit.value && unit.value.unit == "flecs.units.Duration.Seconds") {
+      result = explorer.fmtDuration(result);
+    } else if (unitSymbol.value) {
+      result += " " + unitSymbol.value;
     }
 
     return result

@@ -1,9 +1,17 @@
 <template>
-  <div class="dropdown" ref="dropdown">
+  <div :class="css" ref="dropdown">
     <div class="dropdown-container" @click="onClick">
       <div class="dropdown-text noselect">
+        <template v-if="label">
+          {{ label }}&nbsp;
+        </template>
         <template v-if="activeItem">
-          {{ activeItem }}
+          <span class="dropdown-text-active">
+            {{ activeItem }}
+            <template v-if="postfix">
+              {{ postfix }}
+            </template>
+          </span>
         </template>
       </div>
       <div class="dropdown-button">
@@ -16,6 +24,9 @@
         <ul>
           <li class="dropdown-item noselect" v-for="item in items" @click="onSelect(item)">
             {{ item }}
+            <template v-if="postfix">
+              {{ postfix }}
+            </template>
           </li>
         </ul>
       </div>
@@ -28,16 +39,17 @@ export default { name: "dropdown" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, defineProps, defineModel, onMounted, onBeforeUnmount, ref } from 'vue';
 
 const props = defineProps({
   items: {type: Array, required: true},
+  label: {type: String, required: false},
+  postfix: {type: String, required: false},
+  transparent: {type: Boolean, required: false, default: false},
 });
 
 const activeItem = defineModel("active_item");
-
 const showList = ref(false);
-
 const dropdown = ref(null);
 
 onMounted(() => {
@@ -50,6 +62,14 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('click', onWindowClick)
+});
+
+const css = computed(() => {
+  let classes = ["dropdown"];
+  if (props.transparent) {
+    classes.push("dropdown-transparent");
+  }
+  return classes;
 });
 
 function onClick() {
@@ -78,9 +98,13 @@ div.dropdown {
   border-radius: var(--border-radius-medium);
   color: var(--secondary-text);
   background-color: var(--bg-button);
-  transition: background-color 0.05s ease-in;
+  transition: background-color var(--animation-duration) ease-in;
   cursor: pointer;
   font-size: 0.9rem;
+}
+
+div.dropdown-transparent {
+  background-color: rgba(0, 0, 0, 0.0);
 }
 
 div.dropdown:hover {
@@ -97,6 +121,10 @@ div.dropdown-text {
   grid-column: 1;
   padding: 8px;
   padding-right: 0px;
+}
+
+span.dropdown-text-active {
+  color: var(--primary-text);
 }
 
 div.dropdown-button {

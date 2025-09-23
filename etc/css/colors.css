@@ -86,6 +86,7 @@
   --footprint: 5.0rem; /* var(--header-height) + var(--footer-height) + 3 * var(--gap); */
 
   --animation-duration: .12s;
+  --animation-duration-fast: .06s;
 
   --table-padding: 8px;
 

@@ -66,6 +66,11 @@
       <div v-for="(addon, i) in addons" :class="css_addon(i)">{{ addon }}</div>
     </div>
 
+    <p>Flags</p>
+    <div class="info-addons">
+      <div v-for="(flag, i) in flags" :class="css_addon(i)">{{ flag }}</div>
+    </div>
+
     <p>Natvis</p>
     <div class="info-natvis">
       <pre>{{ natvisXml }}</pre>
@@ -200,6 +205,14 @@ const bytesReceived = computed(() => {
 const addons = computed(() => {
   if (props.app_state.build_info && props.app_state.build_info.addons) {
     return props.app_state.build_info.addons;
+  } else {
+    return [];
+  }
+});
+
+const flags = computed(() => {
+  if (props.app_state.build_info && props.app_state.build_info.flags) {
+    return props.app_state.build_info.flags;
   } else {
     return [];
   }

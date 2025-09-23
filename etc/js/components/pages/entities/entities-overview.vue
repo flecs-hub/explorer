@@ -40,16 +40,60 @@ world.app()
     </template>
     <div :class="css">
       <div class="entities-overview-header">
-        <button @click="shrinkMemory">Shrink Memory</button>
-        <button @click="refreshStatistics"><icon src="refresh"></icon></button>
+        <div class="entities-overview-header-left">
+          <icon src="globe" :opacity="0.5"></icon>
+          <span>Uptime: {{ uptime }}</span>
+        </div>
+        <div class="entities-overview-header-center">
+          <span><dropdown label="Target FPS" postfix="Hz" :items="targetFpsOptions" v-model:active_item="targetFps" :transparent="true"></dropdown></span>
+        </div>
+        <div class="entities-overview-header-right">
+          <button @click="shrinkMemory">Shrink Memory</button>
+          <button @click="refreshStatistics"><icon src="refresh"></icon></button>
+        </div>
       </div>
 
+      <!-- Statistics Row -->
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="stat-title">FPS</div>
+          <div class="stat-number">{{ fps }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-title">Load</div>
+          <div class="stat-number">{{ load}}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-title">Entities</div>
+          <div class="stat-number">{{ entities }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-title">Tables</div>
+          <div class="stat-number">{{ tables }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-title">Systems</div>
+          <div class="stat-number">{{ systems }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-title">Observers</div>
+          <div class="stat-number">{{ observers }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-title">Queries</div>
+          <div class="stat-number">{{ queries }}</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-title">Commands</div>
+          <div class="stat-number">{{ commands }}</div>
+        </div>
+      </div>
 
       <!-- Ring Chart Section -->
       <div class="chart-section">
         <div class="chart-wrapper">
           <div class="chart-container">
-            <canvas ref="chartCanvas" width="240" height="240"></canvas>
+            <canvas ref="chartCanvas" width="200" height="200"></canvas>
           </div>
           <div class="total-memory">
             <div class="total-label">Total Memory</div>
@@ -115,13 +159,13 @@ import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted, nextTi
 
 // Shared color constants
 const CategoryColors = {
-  EntityIndex: '#3b82f6',
-  Component: '#06b6d4',
-  ComponentIndex: '#42b983', 
-  Table: '#ffd43b',
-  Query: '#f59e0b',
-  Commands: '#ef4444',
-  Allocators: '#8b5cf6'
+  EntityIndex: '#5BE595',
+  Component: '#46D9E6',
+  ComponentIndex: '#4596E5', 
+  Table: '#2D5BE6',
+  Query: '#6146E6',
+  Commands: '#9546E5',
+  Allocators: '#E550E6'
 };
 
 const props = defineProps({
@@ -135,7 +179,12 @@ const isLoading = ref(true);
 const worldMemoryQuery = ref();
 const worldMemoryData = ref({});
 const chartCanvas = ref(null);
+const targetFps = ref(60);
 let chart;
+
+const targetFpsOptions = computed(() => {
+  return [0, 1, 10, 20, 30, 40, 60, 70, 90, 120, 240, 480];
+});
 
 const isConnected = computed(() => {
   return props.app_state.status == flecs.ConnectionStatus.Connected;
@@ -147,6 +196,66 @@ const css = computed(() => {
     result.push('overview-content-loading');
   }
   return result;
+});
+
+const worldSummary = computed(() => {
+  if (!props.app_state.heartbeat) return {};
+  return props.app_state.heartbeat.components['flecs.stats.WorldSummary'];
+});
+
+const fps = computed(() => {
+  if (worldSummary.value.fps === undefined) return "n/a";
+  return worldSummary.value.fps.toFixed(0) + "Hz";
+});
+
+const load = computed(() => {
+  const fps = worldSummary.value.fps;
+  const targetFps = worldSummary.value.target_fps;
+  const frameTime = worldSummary.value.frame_time_frame;
+  
+  if (fps === undefined) return "n/a";
+  if (frameTime === undefined) return "n/a";
+  if (targetFps === undefined) return "n/a";
+
+  let targetTime = 1.0 / targetFps;
+  const result = frameTime / targetTime;
+
+  return (result * 100).toFixed(0) + "%";
+});
+
+const uptime = computed(() => {
+  if (worldSummary.value.uptime === undefined) return "n/a";
+  return explorer.fmtDuration(worldSummary.value.uptime);
+});
+
+const entities = computed(() => {
+  if (worldSummary.value.entity_count === undefined) return "n/a";
+  return worldSummary.value.entity_count;
+});
+
+const tables = computed(() => {
+  if (worldSummary.value.table_count === undefined) return "n/a";
+  return worldSummary.value.table_count;
+});
+
+const systems = computed(() => {
+  if (worldSummary.value.systems_ran_frame === undefined) return "n/a";
+  return worldSummary.value.systems_ran_frame;
+});
+
+const observers = computed(() => {
+  if (worldSummary.value.observers_ran_frame === undefined) return "n/a";
+  return worldSummary.value.observers_ran_frame;
+});
+
+const queries = computed(() => {
+  if (worldSummary.value.queries_ran_frame === undefined) return "n/a";
+  return worldSummary.value.queries_ran_frame;
+});
+
+const commands = computed(() => {
+  if (worldSummary.value.command_count_frame === undefined) return "n/a";
+  return worldSummary.value.command_count_frame;
 });
 
 const hasMemoryData = computed(() => {
@@ -437,9 +546,22 @@ function refreshStatistics() {
 watch(() => props.app_state.status, () => {
   if (props.app_state.status == flecs.ConnectionStatus.Connected) {
     refreshStatistics();
+    if (props.app_state.heartbeat) {
+      const summary = props.app_state.heartbeat.components['flecs.stats.WorldSummary'];
+      if (summary) {
+        targetFps.value = summary.target_fps;
+      }
+    }
+
   } else {
     isLoading.value = true;
   }
+});
+
+watch(() => targetFps.value, () => {
+  props.conn.set("flecs.core.World", "flecs.stats.WorldSummary", { 
+    target_fps: targetFps.value 
+  });
 });
 
 onMounted(() => {
@@ -478,49 +600,48 @@ div.overview-content-loading {
 
 div.chart-section {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 232px 1fr;
   gap: calc(var(--gap) * 2);
   align-items: start;
-  padding-top: 8px;
-  padding-bottom: 16px;
+  padding-top: 24px;
+  padding-bottom: 0px;
   padding-left: 16px;
+  padding-right: 16px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+  background-color: var(--bg-content);
+  border-radius: var(--border-radius-medium);
 }
 
 div.chart-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 div.chart-container {
   position: relative;
-  width: 240px;
-  height: 240px;
+  width: 200px;
+  height: 200px;
 }
 
 div.total-memory {
   text-align: center;
-  padding: 1rem 1.5rem;
+  padding: 8px;
   min-width: 200px;
 }
 
 div.total-label {
   font-size: 0.9em;
   color: var(--secondary-text);
-  margin-bottom: 0.5rem;
+  margin-bottom: 4px;
   font-weight: 500;
 }
 
 div.total-value {
   font-size: 1.5em;
   font-weight: 700;
-}
-
-div.chart-legend {
-  background-color: var(--bg-cell-alt);
-  border-radius: var(--border-radius-medium);
-  padding: 16px;
 }
 
 table.legend-table {
@@ -551,17 +672,15 @@ span.legend-color {
 
 td.legend-label {
   color: var(--primary-text);
-  font-weight: 500;
   font-size: 1em;
-  padding: 12px;
+  padding: 8px;
   text-align: left;
 }
 
 td.legend-value {
-  color: var(--primary-text);
-  font-weight: 600;
+  color: var(--secondary-text);
   font-size: 1em;
-  padding: 12px;
+  padding: 8px;
   text-align: right;
 }
 
@@ -574,11 +693,10 @@ div.details-section {
 
 div.detail-panel {
   background-color: var(--background-secondary);
-  border: 1px solid var(--border);
+  border: 1px solid var(--bg-color);
   border-radius: var(--border-radius-medium);
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: var(--bg-content);
   padding: 16px;
 }
 
@@ -660,17 +778,77 @@ div.entities-overview-header {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: right;
-  padding-top: 4px;
+  padding: 4px;
+  padding-left: 8px;
+  background-color: var(--bg-content);
+  border-radius: var(--border-radius-medium);
+  color: var(--secondary-text);
+  font-size: 0.9em;
+  font-weight: 500;
 }
 
-div.entities-overview-header button {
+div.entities-overview-header-left {
+  display: flex;
+  flex: 1;
+}
+
+div.entities-overview-header-right {
+  display: flex;
+  flex: 1;
+  justify-content: right;
+}
+
+div.entities-overview-header-left * {
+  margin-right: 4px;
+}
+
+div.entities-overview-header-right * {
   margin-left: 4px;
+}
+
+/* Statistics Row Styles */
+div.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin: 8px 0;
+}
+
+div.stat-box {
+  background: var(--bg-content);
+  border-radius: var(--border-radius-medium);
+  padding: 8px 8px;
+  text-align: center;
+  min-height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+div.stat-title {
+  font-size: 0.75em;
+  color: var(--secondary-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+div.stat-number {
+  font-size: 1.8em;
+  font-weight: 700;
+  color: var(--primary-text);
+  line-height: 1;
 }
 
 @media (max-width: 1024px) {
   div.details-section {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
+  div.stats-row {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
   }
 }
 
@@ -704,12 +882,36 @@ div.entities-overview-header button {
   div.detail-panel:hover {
     transform: none !important;
   }
+  
+  div.stats-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  div.stat-number {
+    font-size: 1.5em;
+  }
 }
 
 @media (max-width: 480px) {
   div.chart-container {
     width: 200px;
     height: 200px;
+  }
+  
+  div.stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin: 12px 0;
+  }
+  
+  div.stat-title {
+    font-size: 0.7em;
+    margin-bottom: 4px;
+  }
+  
+  div.stat-number {
+    font-size: 1.3em;
   }
 }
 </style>

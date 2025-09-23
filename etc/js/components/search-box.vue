@@ -1,6 +1,10 @@
 <template>
-  <div class="search-box input-wrapper">
-    <input class="search-box" type="text" v-model="value">
+  <div :class="css">
+    <input :class="css" type="text" v-model="value" 
+      @keyup.enter="onEnter" 
+      @focus="isFocused = true" 
+      @blur="isFocused = false" 
+      ref="searchBox">
     <template v-if="value && value.length">
       <icon class="search-box-icon" src="close" @click="onClear"></icon>
     </template>
@@ -15,12 +19,26 @@ export default { name: "search-box" }
 </script>
 
 <script setup>
-import { defineModel } from 'vue';
+import { defineModel, ref, computed } from 'vue';
 
 const value = defineModel();
+const searchBox = ref(null);
+const isFocused = ref(false);
+
+const css = computed(() => {
+  let classes = ["search-box", "input-wrapper"];
+  if (isFocused.value) {
+    classes.push("search-box-focused");
+  }
+  return classes;
+});
 
 function onClear() {
   value.value = undefined;
+}
+
+function onEnter() {
+  searchBox.value.blur();
 }
 
 </script>
@@ -30,13 +48,18 @@ function onClear() {
 div.search-box {
   background-color: var(--bg-content);
   border-radius: var(--border-radius-medium);
+  transition: background-color var(--animation-duration-fast);
   padding: 0.5rem;
 }
 
 div.search-box input {
-  background-color: var(--bg-content);
+  background: transparent;
   border-radius: var(--border-radius-medium);
   width: calc(100% - 0.5rem - 10px);
+}
+
+div.search-box-focused {
+  background-color: var(--bg-content-select);
 }
 
 </style>
