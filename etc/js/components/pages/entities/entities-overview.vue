@@ -204,11 +204,12 @@ const worldSummary = computed(() => {
 });
 
 const fps = computed(() => {
-  if (worldSummary.value.fps === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.fps === undefined) return "n/a";
   return worldSummary.value.fps.toFixed(0) + "Hz";
 });
 
 const load = computed(() => {
+  if (!worldSummary.value) return "n/a";
   const fps = worldSummary.value.fps;
   const targetFps = worldSummary.value.target_fps;
   const frameTime = worldSummary.value.frame_time_frame;
@@ -224,37 +225,37 @@ const load = computed(() => {
 });
 
 const uptime = computed(() => {
-  if (worldSummary.value.uptime === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.uptime === undefined) return "n/a";
   return explorer.fmtDuration(worldSummary.value.uptime);
 });
 
 const entities = computed(() => {
-  if (worldSummary.value.entity_count === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.entity_count === undefined) return "n/a";
   return worldSummary.value.entity_count;
 });
 
 const tables = computed(() => {
-  if (worldSummary.value.table_count === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.table_count === undefined) return "n/a";
   return worldSummary.value.table_count;
 });
 
 const systems = computed(() => {
-  if (worldSummary.value.systems_ran_frame === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.systems_ran_frame === undefined) return "n/a";
   return worldSummary.value.systems_ran_frame;
 });
 
 const observers = computed(() => {
-  if (worldSummary.value.observers_ran_frame === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.observers_ran_frame === undefined) return "n/a";
   return worldSummary.value.observers_ran_frame;
 });
 
 const queries = computed(() => {
-  if (worldSummary.value.queries_ran_frame === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.queries_ran_frame === undefined) return "n/a";
   return worldSummary.value.queries_ran_frame;
 });
 
 const commands = computed(() => {
-  if (worldSummary.value.command_count_frame === undefined) return "n/a";
+  if (!worldSummary.value || worldSummary.value.command_count_frame === undefined) return "n/a";
   return worldSummary.value.command_count_frame;
 });
 
