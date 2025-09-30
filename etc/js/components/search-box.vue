@@ -48,7 +48,6 @@ function onEnter() {
 div.search-box {
   background-color: var(--bg-input);
   border-radius: var(--border-radius-medium);
-  transition: background-color var(--animation-duration-fast);
   padding: 0.5rem;
 }
 

@@ -8,7 +8,7 @@
       :key="m.name"
       :filter="filter"
       v-model:loading="loading"
-      @selectEntity="emit('selectEntity')"
+      @selectEntity="emit('selectEntity', $event)"
       @removeComponent="emit('removeComponent', $event)">
     </entity-inspector-module>
   </div>
