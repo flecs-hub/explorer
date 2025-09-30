@@ -39,17 +39,20 @@
 
   --bg-pane: hsl(210, 12%, 16%);
 
-  --bg-color-alt: hsl(210, 17%, 10%);
-  --bg-color:     hsl(210, 11%, 12%);
+  --bg-color:     hsl(210, 11%, 11%);
+  --bg-color-alt: hsl(210, 17%, 9%);
+
+  --bg-content-alt:     hsl(210, 11%, 12%);
+  --bg-content: hsl(214, 10%, 13%);
+  --bg-content-hover: hsl(210, 12%, 20%);
+  --bg-content-select: hsl(210, 12%, 10%);
+  
+  --bg-input:     hsl(210, 11%, 12%);
+  --bg-input-select: hsl(210, 12%, 10%);
 
   --bg-cell: hsl(210, 12%, 16%);
   --bg-cell-alt: hsl(210, 12%, 15%);
   --bg-cell-hover: hsl(210, 12%, 20%);
-
-  --bg-content:       hsl(214, 10%, 13%);
-  --bg-content-alt:   hsl(214, 10%, 12%);
-  --bg-content-hover: hsl(210, 12%, 20%);
-  --bg-content-select: hsl(210, 12%, 10%);
 
   --bg-button: hsl(210, 12%, 22%);
   --bg-button-alt: hsl(210, 12%, 19%);

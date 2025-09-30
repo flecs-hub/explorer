@@ -232,7 +232,7 @@ div.value {
 
 div.value input {
   border-radius: var(--border-radius-medium);
-  background-color: var(--bg-content-alt);
+  background-color: var(--bg-input);
   padding: 4px;
   padding-left: 8px;
   width: calc(100% - 12px);
@@ -242,9 +242,9 @@ div.value input {
 }
 
 div.value-readonly input {
-  background-color: var(--bg-content);
+  background-color: var(--bg-input);
   cursor: default;
-  opacity: 0.9;
+  opacity: 0.8;
 }
 
 div.value-compact input {

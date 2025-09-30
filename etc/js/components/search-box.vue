@@ -46,7 +46,7 @@ function onEnter() {
 <style scoped>
 
 div.search-box {
-  background-color: var(--bg-content);
+  background-color: var(--bg-input);
   border-radius: var(--border-radius-medium);
   transition: background-color var(--animation-duration-fast);
   padding: 0.5rem;
@@ -59,7 +59,7 @@ div.search-box input {
 }
 
 div.search-box-focused {
-  background-color: var(--bg-content-select);
+  background-color: var(--bg-input-select);
 }
 
 </style>
