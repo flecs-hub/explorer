@@ -36,8 +36,7 @@
         },
         "${os windows}": {
             "lib": [
-                "ws2_32",
-                "dbgHelp"
+                "ws2_32"
             ],
             "defines": [
                 "_WINDOWS",

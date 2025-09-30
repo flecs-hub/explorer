@@ -116,11 +116,11 @@ world.app()
       </div>
 
       <div class="details-section">
-        <div v-for="category in memoryCategories" :key="category.name" class="detail-panel">
+        <div v-for="category in memoryData" :key="category.name" class="detail-panel">
           <div class="panel-header" v-if="!category.hideTitle">
             <div class="panel-header-line" :style="{ backgroundColor: category.color }"></div>
-            <h4>{{ category.title }}</h4>
-            <span class="panel-total">{{ formatBytes(category.total) }}</span>
+            <h4>{{ category.label }}</h4>
+            <span class="panel-total">{{ formatBytes(category.value) }}</span>
           </div>
           <div class="panel-content">
             <table class="stats-table">
@@ -130,7 +130,7 @@ world.app()
                     <td class="stat-value" colspan="2">
                       <histogram 
                         :buckets="value.slice(1)"
-                        :title="category.title">
+                        :title="category.label">
                       </histogram>
                     </td>
                   </template>
@@ -158,15 +158,7 @@ export default { name: "entities-overview" };
 import { defineProps, defineEmits, ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
 
 // Shared color constants
-const CategoryColors = {
-  EntityIndex: '#5BE595',
-  Component: '#46D9E6',
-  ComponentIndex: '#4596E5', 
-  Table: '#2D5BE6',
-  Query: '#6146E6',
-  Commands: '#9546E5',
-  Allocators: '#E550E6'
-};
+const CategoryColors = [ '#5BE595', '#46D9E6', '#4596E5',  '#2D5BE6', '#6146E6', '#9546E5', '#E550E6' ];
 
 const props = defineProps({
   conn: { type: Object, required: true },
@@ -268,169 +260,85 @@ const memoryStats = computed(() => {
   return worldMemoryData.value.components['flecs.stats.WorldMemory'];
 });
 
+function categoryLabel(name) {
+  let result = name.charAt(0).toUpperCase() + name.slice(1);
+  result = result.replace(/_/g, ' ');
+  return result;
+}
+
+function calculateTotal(data) {
+  let result = 0;
+  for (let key in data) {
+    if (Array.isArray(data[key])) {
+      return data[key];
+    }
+    if (key.startsWith('bytes_')) { 
+      result += data[key];
+    }
+  }
+  return result;
+}
+
 const chartData = computed(() => {
   if (!hasMemoryData.value) return [];
   const stats = memoryStats.value;
-  
-  return [
-    {
-      label: 'Entities',
-      value: calculateEntitiesTotal(stats.entities),
-      color: CategoryColors.EntityIndex
-    },
-    {
-      label: 'Components',
-      value: calculateComponentsTotal(stats.components),
-      color: CategoryColors.Component
-    },
-    {
-      label: 'Component Index',
-      value: calculateComponentIndexTotal(stats.component_index),
-      color: CategoryColors.ComponentIndex
-    },
-    {
-      label: 'Tables',
-      value: calculateTableTotal(stats.table),
-      color: CategoryColors.Table
-    },
-    {
-      label: 'Queries',
-      value: calculateQueryTotal(stats.query),
-      color: CategoryColors.Query
-    },
-    {
-      label: 'Commands',
-      value: calculateCommandTotal(stats.commands),
-      color: CategoryColors.Commands
-    },
-    {
-      label: 'Allocators',
-      value: calculateAllocatorTotal(stats.allocators),
-      color: CategoryColors.Allocators
+
+  let result = [];
+
+  let i = 0;
+  for (let key in stats) {
+    const total = calculateTotal(stats[key]);
+    if (Array.isArray(total)) {
+      continue;
     }
-  ].filter(item => item.value > 0);
+    result.push({
+      name: key,
+      label: categoryLabel(key),
+      value: total,
+      color: CategoryColors[i]
+    });
+    i ++;
+  }
+
+  return result;
 });
 
-const memoryCategories = computed(() => {
+const memoryData = computed(() => {
   if (!hasMemoryData.value) return [];
   const stats = memoryStats.value;
-  
-  // Color mapping to match chart colors
-  const colorMap = {
-    'entities': CategoryColors.EntityIndex,
-    'component_index': CategoryColors.ComponentIndex,
-    'component': CategoryColors.Component,
-    'table': CategoryColors.Table,
-    'query': CategoryColors.Query,
-    'commands': CategoryColors.Commands,
-    'allocators': CategoryColors.Allocators
-  };
-  
-  return [
-    {
-      name: 'entities',
-      title: 'Entities',
-      total: calculateEntitiesTotal(stats.entities),
-      data: stats.entities,
-      color: colorMap.entities
-    },
-    {
-      name: 'component',
-      title: 'Components',
-      total: calculateComponentsTotal(stats.components),
-      data: stats.components,
-      color: colorMap.component
-    },
-    {
-      name: 'component_index',
-      title: 'Component Index',
-      total: calculateComponentIndexTotal(stats.component_index),
-      data: stats.component_index,
-      color: colorMap.component_index
-    },
-    {
-      name: 'table',
-      title: 'Tables',
-      total: calculateTableTotal(stats.table),
-      data: stats.table,
-      color: colorMap.table
-    },
-    {
-      name: 'table_histogram',
-      title: 'Tables by entity count',
-      total: 0,
-      data: stats.table_histogram,
-      color: colorMap.table,
-      hideTitle: true
-    },
-    {
-      name: 'query',
-      title: 'Queries',
-      total: calculateQueryTotal(stats.query),
-      data: stats.query,
-      color: colorMap.query
-    },
-    {
-      name: 'commands',
-      title: 'Commands',
-      total: calculateCommandTotal(stats.commands),
-      data: stats.commands,
-      color: colorMap.commands
-    },
-    {
-      name: 'allocators',
-      title: 'Allocators',
-      total: calculateAllocatorTotal(stats.allocators),
-      data: stats.allocators,
-      color: colorMap.allocators
+
+  let result = [];
+
+  let i = 0;
+  for (let key in stats) {
+    const total = calculateTotal(stats[key]);
+    const hideTitle = Array.isArray(total);
+
+    result.push({
+      name: key,
+      data: stats[key],
+      label: categoryLabel(key),
+      value: total,
+      color: CategoryColors[i],
+      hideTitle: hideTitle
+    });
+
+    if (!hideTitle) {
+      i ++;
     }
-  ];
+  }
+
+  return result;
 });
 
 const totalMemoryUsage = computed(() => {
   return chartData.value.reduce((sum, item) => sum + item.value, 0);
 });
 
-// Helper functions
-function calculateEntitiesTotal(data) {
-  return data.bytes_alive + data.bytes_not_alive + data.bytes_unused + 
-    data.bytes_names + data.bytes_doc_names;
-}
-
-function calculateComponentIndexTotal(data) {
-  return data.bytes_component_record + data.bytes_table_cache + data.bytes_name_index + 
-         data.bytes_ordered_children + data.bytes_reachable_cache;
-}
-
-function calculateComponentsTotal(data) {
-  return data.bytes_table_components + data.bytes_table_components_unused + 
-         data.bytes_sparse_components + data.bytes_sparse_components_unused + 
-         data.bytes_sparse_overhead;
-}
-
-function calculateTableTotal(data) {
-  return data.bytes_table + data.bytes_type + data.bytes_entities +
-         data.bytes_overrides + data.bytes_columns + data.bytes_table_records + 
-         data.bytes_column_map + data.bytes_component_map + 
-         data.bytes_dirty_state + data.bytes_edges;
-}
-
-function calculateQueryTotal(data) {
-  return data.bytes_query + data.bytes_cache + data.bytes_group_by + data.bytes_order_by +
-         data.bytes_plan + data.bytes_terms + data.bytes_misc;
-}
-
-function calculateCommandTotal(data) {
-  return data.bytes_queue + data.bytes_entries + data.bytes_stack;
-}
-
-function calculateAllocatorTotal(data) {
-  return data.bytes_graph_edge + data.bytes_component_record + data.bytes_pair_record + 
-         data.bytes_table_diff + data.bytes_sparse_chunk + data.bytes_hashmap + 
-         data.bytes_allocator + data.bytes_cmd_entry_chunk + data.bytes_query_impl + data.bytes_query_cache;
-}
-
 function formatBytes(bytes) {
+  if (Array.isArray(bytes)) {
+    return "";
+  }
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
