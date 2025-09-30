@@ -78,6 +78,12 @@ input {
   caret-color: var(--secondary-text);
   font-size: inherit;
   font-family: inherit;
+  background-color: var(--bg-input);
+  transition: background-color var(--animation-duration);
+}
+
+input:focus {
+  background-color: var(--bg-input-select) !important;
 }
 
 button {

@@ -242,7 +242,7 @@ div.value input {
 }
 
 div.value-readonly input {
-  background-color: var(--bg-input);
+  /* background-color: var(--bg-input); */
   cursor: default;
   opacity: 0.8;
 }
