@@ -1,9 +1,13 @@
 <template>
-  <div id="page-stats" class="pane page-content">
-    <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
-    <div class="world-stats">
-      <world-stats :conn="conn" :period="period"></world-stats>
-    </div>
+  <div id="page-stats" class="page-content">
+    <edit-tabs :items="items">
+      <template v-slot:world>
+        <world-stats :conn="conn"></world-stats>
+      </template>
+      <template v-slot:systems>
+        <pipeline-stats :conn="conn" v-model:app_params="app_params"></pipeline-stats>
+      </template>
+    </edit-tabs>
   </div>
 </template>
 
@@ -12,41 +16,34 @@ export default { name: "page-stats" };
 </script>
 
 <script setup>
-import { defineProps, ref, computed } from 'vue';
+import { defineProps, computed, defineModel } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}
 });
 
-const periodItems = ref(['1 second', '1 minute', '1 hour', '1 day', '1 week']);
-const periodItem = ref(periodItems.value[1]);
-const period = computed(() => {
-  if (periodItem.value == "1 second") {
-    return "1s";
-  } else if (periodItem.value == "1 minute") {
-    return "1m";
-  } else if (periodItem.value == "1 hour") {
-    return "1h";
-  } else if (periodItem.value == "1 day") {
-    return "1d";
-  } else if (periodItem.value == "1 week") {
-    return "1w";
-  }
+const app_params = defineModel("app_params");
+
+const items = computed(() => {
+  let result = [];
+
+  result.push({
+    label: "World",
+    value: "world",
+    canClose: false
+  });
+
+  result.push({
+    label: "Systems",
+    value: "systems",
+    canClose: false
+  });
+
+  return result;
 });
 
 </script>
 
 <style scoped>
-#page-stats {
-  overflow: auto;
-  border-radius: var(--border-radius-medium);
-  background-color: var(--bg-pane);
-  padding: 8px;
-}
 
-div.world-stats {
-  margin-top: 8px;
-  height: calc(100% - 44px);
-  overflow: auto;
-}
 </style>

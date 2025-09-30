@@ -239,12 +239,10 @@ let components = [
   loadModule('js/components/pages/stats/page.vue', options),
   loadModule('js/components/pages/stats/world-stats.vue', options),
   loadModule('js/components/pages/stats/world-stat.vue', options),
-
-  // Pipeline page
-  loadModule('js/components/pages/pipeline/page.vue', options),
-  loadModule('js/components/pages/pipeline/pipeline.vue', options),
-  loadModule('js/components/pages/pipeline/pipeline-system.vue', options),
-  loadModule('js/components/pages/pipeline/pipeline-segment.vue', options),
+  loadModule('js/components/pages/stats/pipeline-stats.vue', options),
+  loadModule('js/components/pages/stats/pipeline.vue', options),
+  loadModule('js/components/pages/stats/pipeline-system.vue', options),
+  loadModule('js/components/pages/stats/pipeline-segment.vue', options),
 
   // Commands page
   loadModule('js/components/pages/commands/page.vue', options),

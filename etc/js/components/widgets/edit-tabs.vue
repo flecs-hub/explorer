@@ -135,7 +135,7 @@ div.edit-tabs-container {
 
 div.edit-tabs-content {
   grid-row: 2;
-  height: 100%;
+  height: calc(100% - 4px);
   overflow-y: auto;
 }
 

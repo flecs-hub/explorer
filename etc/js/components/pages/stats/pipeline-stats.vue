@@ -1,11 +1,12 @@
 <template>
-  <div id="page-pipeline" class="pane page-content">
-    <div class="controls">
-      <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
-      <dropdown :items="pipelines" v-model:active_item="app_params.pipeline"></dropdown>&nbsp;
-      <dropdown :items="flecsModeItems" v-model:active_item="flecsModeItem"></dropdown>&nbsp;
-      by&nbsp; <dropdown :items="viewModeItems" v-model:active_item="viewModeItem"></dropdown>
-    </div>
+  <div class="top-margin"></div>
+  <div class="controls">
+    <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
+    <dropdown :items="pipelines" v-model:active_item="app_params.pipeline"></dropdown>&nbsp;
+    <dropdown :items="flecsModeItems" v-model:active_item="flecsModeItem"></dropdown>&nbsp;
+    by&nbsp; <dropdown :items="viewModeItems" v-model:active_item="viewModeItem"></dropdown>
+  </div>
+  <div class="pipeline-stats">
     <div class="pipeline-container">
       <pipeline 
         :conn="conn"
@@ -18,7 +19,7 @@
 </template>
 
 <script>
-export default { name: "page-pipeline" };
+export default { name: "pipeline-stats" };
 </script>
 
 <script setup>
@@ -162,6 +163,11 @@ function doPipelineStatsQuery() {
 </script>
 
 <style scoped>
+
+div.top-margin {
+  margin-top: 4px;
+}
+
 #page-pipeline {
   display: grid;
   grid-template-columns: 900px auto;
@@ -187,4 +193,11 @@ div.pipeline-container {
   overflow-y: auto;
 }
 
+div.pipeline-stats {
+  margin-top: 8px;
+  height: calc(100% - 44px);
+  overflow: auto;
+}
+  
 </style>
+  
