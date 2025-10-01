@@ -36,7 +36,11 @@ const headers = computed(() => {
 
 const searchableName = computed(() => {
   return props.components.map((component) => {
-    return component.name.toLowerCase().split(" ").join("");
+    let name = component.name;
+    if (!component.name) {
+      name = component.expr;
+    }
+    return name.toLowerCase().split(" ").join("");
   });
 });
 

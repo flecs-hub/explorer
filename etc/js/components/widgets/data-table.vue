@@ -2,7 +2,7 @@
   <div class="data-table">
     <template v-if="show_filter">
       <div class="data-table-filter">
-        <span class="data-table-page">{{ offset }} - {{ offset + limit }}</span>
+        <span class="data-table-page">{{ offset }} - {{ offset + limit }} of {{ data.length }}</span>
         <icon-button src="chevron-left" @click="onPrev"></icon-button>
         <icon-button src="chevron-right" @click="onNext"></icon-button>
         <search-box v-model="filter"></search-box>
@@ -74,7 +74,7 @@
         </tbody>
         <tfoot>
           <tr>
-            <td class="total-results">{{ data.length }} rows</td>
+            <td class="total-results">Total</td>
             <td v-for="(total, i) in totals">
               <template v-if="headers[i + 1].totals">
                 {{ total }}
@@ -332,7 +332,7 @@ div.data-table-filter {
   justify-content: right;
   gap: 8px;
   position: absolute;
-  width: 350px;
+  width: 450px;
   top: 0;
   right: 16px;
   z-index: 20;
