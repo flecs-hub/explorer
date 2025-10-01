@@ -1,39 +1,5 @@
 <template>
-  <div id="pane-info" class="pane">
-    <p>Build</p>
-    <div class="info-table">
-      <div class="info-table-cell" style="grid-column: 1; grid-row: 1">Name</div>
-      <div class="info-table-cell" style="grid-column: 2; grid-row: 1; border-right-width: 0px;">
-        <span class="info-table-value">{{ app_name }}</span>
-      </div>
-
-      <div class="info-table-cell info-table-cell-alt" style="grid-column: 1; grid-row: 2">Flecs version</div>
-      <div class="info-table-cell info-table-cell-alt" style="grid-column: 2; grid-row: 2; border-right-width: 0px;">
-        <span class="info-table-value">{{ version }}</span>
-      </div>
-
-      <div class="info-table-cell" style="grid-column: 1; grid-row: 3">Debug</div>
-      <div class="info-table-cell" style="grid-column: 2; grid-row: 3; border-right-width: 0px;">
-        <span class="info-table-value">{{ debug }}</span>
-      </div>
-
-      <div class="info-table-cell info-table-cell-alt" style="grid-column: 1; grid-row: 4">Sanitize</div>
-      <div class="info-table-cell info-table-cell-alt" style="grid-column: 2; grid-row: 4; border-right-width: 0px;">
-        <span class="info-table-value">{{ sanitize }}</span>
-      </div>
-
-      <div class="info-table-cell" style="grid-column: 1; grid-row: 5">Perf tracing</div>
-      <div class="info-table-cell" style="grid-column: 2; grid-row: 5; border-right-width: 0px;">
-        <span class="info-table-value">{{ perf_trace }}</span>
-      </div>
-
-      <div class="info-table-cell info-table-cell-alt" style="grid-column: 1; grid-row: 6">Compiler</div>
-      <div class="info-table-cell info-table-cell-alt" style="grid-column: 2; grid-row: 6; border-right-width: 0px;">
-        <span class="info-table-value">{{ compiler }}</span>
-      </div>
-    </div>
-
-    <p>Connection</p>
+  <div id="pane-info">
     <div class="info-table">
       <div class="info-table-cell" style="grid-column: 1; grid-row: 1">Status</div>
       <div class="info-table-cell" style="grid-column: 2; grid-row: 1; border-right-width: 0px;">
@@ -60,27 +26,12 @@
         <span class="info-table-value">{{ bytesReceived }} B</span> 
       </div>
     </div>
-
-    <p>Addons</p>
-    <div class="info-addons">
-      <div v-for="(addon, i) in addons" :class="css_addon(i)">{{ addon }}</div>
-    </div>
-
-    <p>Flags</p>
-    <div class="info-addons">
-      <div v-for="(flag, i) in flags" :class="css_addon(i)">{{ flag }}</div>
-    </div>
-
-    <p>Natvis</p>
-    <div class="info-natvis">
-      <pre>{{ natvisXml }}</pre>
-    </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: "pane-info",
+  name: "internals-connection",
 }
 </script>
 
@@ -222,7 +173,6 @@ const flags = computed(() => {
 
 <style scoped>
 #pane-info {
-  padding: 0.5rem;
   padding-top: 0.0px;
 }
 

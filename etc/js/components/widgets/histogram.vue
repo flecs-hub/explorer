@@ -203,7 +203,6 @@ function getBarColor(value, index) {
   min-height: 200px;
   background-color: var(--bg-content);
   border-radius: var(--border-radius-medium);
-  padding: 4px;
   position: relative;
 }
 
@@ -228,7 +227,7 @@ function getBarColor(value, index) {
   left: 0;
   top: 0;
   bottom: 20px;
-  width: 40px;
+  width: 25px;
   display: flex;
   flex-direction: column;
   justify-content: space-around;

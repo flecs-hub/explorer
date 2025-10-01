@@ -266,19 +266,6 @@ function categoryLabel(name) {
   return result;
 }
 
-function calculateTotal(data) {
-  let result = 0;
-  for (let key in data) {
-    if (Array.isArray(data[key])) {
-      return data[key];
-    }
-    if (key.startsWith('bytes_')) { 
-      result += data[key];
-    }
-  }
-  return result;
-}
-
 const chartData = computed(() => {
   if (!hasMemoryData.value) return [];
   const stats = memoryStats.value;
@@ -287,7 +274,7 @@ const chartData = computed(() => {
 
   let i = 0;
   for (let key in stats) {
-    const total = calculateTotal(stats[key]);
+    const total = explorer.calculateMemoryTotal(stats[key]);
     if (Array.isArray(total)) {
       continue;
     }
@@ -311,7 +298,7 @@ const memoryData = computed(() => {
 
   let i = 0;
   for (let key in stats) {
-    const total = calculateTotal(stats[key]);
+    const total = explorer.calculateMemoryTotal(stats[key]);
     const hideTitle = Array.isArray(total);
 
     result.push({

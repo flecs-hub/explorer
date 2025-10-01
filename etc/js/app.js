@@ -31,6 +31,9 @@ const defaultAppParams = {
     inspector_tab: "Inspect",
     tree_mode: "Entities",
   },
+  internals: {
+    tab: "tables",
+  },
   sidebar: true,
   pipeline: "All systems",
   scripts: [],
@@ -159,6 +162,7 @@ let components = [
   loadModule('js/components/widgets/edit-tabs.vue', options),
   loadModule('js/components/widgets/edit-tabs-close-button.vue', options),
   loadModule('js/components/widgets/histogram.vue', options),
+  loadModule('js/components/widgets/data-table.vue', options),
   loadModule('js/components/icon.vue', options),
   loadModule('js/components/toggle.vue', options),
   loadModule('js/components/search-box.vue', options),
@@ -253,9 +257,13 @@ let components = [
   loadModule('js/components/pages/commands/inspect-cmd-history.vue', options),
   loadModule('js/components/pages/commands/inspect-cmd.vue', options),
 
-  // Info page
-  loadModule('js/components/pages/info/page.vue', options),
-  loadModule('js/components/pages/info/pane-info.vue', options),
+  // Internals page
+  loadModule('js/components/pages/internals/page.vue', options),
+  loadModule('js/components/pages/internals/tables.vue', options),
+  loadModule('js/components/pages/internals/components.vue', options),
+  loadModule('js/components/pages/internals/build.vue', options),
+  loadModule('js/components/pages/internals/connection.vue', options),
+  loadModule('js/components/pages/internals/natvis.vue', options),
 ];
 
 Promise.all(components).then((values) => {

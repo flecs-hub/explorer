@@ -8,11 +8,61 @@ explorer = {
     }
   },
 
+  shortenComponent: function(component) {
+    let result;
+    if (component[0] !== "(") {
+      // Not a pair
+      result = this.shortenEntity(component);
+    } else {
+      let pair = component.slice(1, -1).split(",");
+      let rel = this.shortenEntity(pair[0]);
+      result = "(" + this.shortenEntity(pair[0]) + ", " + pair[1] + ")";
+    }
+    return result;
+  },
+
   entityParent: function(path) {
     path = path.replaceAll("\\\.", "@@");
     const names = path.split(".");
     names.pop();
     return names.join(".").replaceAll("@@", ".");
+  },
+
+  calculateMemoryTotal: function(data) {
+    let result = 0;
+    for (let key in data) {
+      if (Array.isArray(data[key])) {
+        return data[key];
+      }
+      if (key.startsWith('bytes_')) { 
+        result += data[key];
+      }
+    }
+    return result;
+  },
+
+  fmtSize: function(size) {
+    if (typeof size === 'string') {
+      size = parseInt(size);
+    }
+
+    if (typeof size !== 'number') {
+      return "n/a";
+    }
+
+    if (size === 0) {
+      return "0 B";
+    }
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+
+    let i = 0;
+    while (size > 1000) {
+      size /= 1000;
+      i ++;
+    }
+
+    return size.toFixed(2) + ' ' + sizes[i];
   },
 
   fmtDuration: function(seconds) {

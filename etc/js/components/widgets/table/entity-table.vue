@@ -2,10 +2,10 @@
   <div class="entity-table">
     <table>
       <thead>
-        <template v-for="col in tableHeaders">
-          <th class="noselect" @click="toggleOrderBy(col)">
+        <template v-for="(col, i) in tableHeaders">
+          <th class="noselect" @click="toggleOrderBy(col, i)">
             {{ col.name }}
-            <template v-if="orderBy.index === col.index">
+            <template v-if="orderBy.index === i">
               <template v-if="orderBy.mode === 'none'">
               </template>
               <template v-if="orderBy.mode === 'asc'">
@@ -78,15 +78,7 @@ const props = defineProps({
 });
 
 function componentToColumnName(component, schema) {
-  let result;
-  if (component[0] !== "(") {
-    // Not a pair
-    result = explorer.shortenEntity(component);
-  } else {
-    let pair = component.slice(1, -1).split(",");
-    result = "(" + explorer.shortenEntity(pair[0]) + ", " + 
-      explorer.shortenEntity(pair[1]) + ")";
-  }
+  let result = explorer.shortenComponent(component);
 
   // If value is an object with a single member, add the unit symbol to the
   // column name if the schema has one.
@@ -107,7 +99,6 @@ function componentToColumnName(component, schema) {
 const tableHeaders = computed(() => {
   const result = props.result;
   const columns = [];
-  let index = 0;
 
   // Append each variable as column
   const query_info = result.query_info;
@@ -119,7 +110,6 @@ const tableHeaders = computed(() => {
           columns.push({
             name: "Entity",
             schema: ["entity"],
-            index: index++,
             get: (result) => {
               if (result.parent) {
                 return result.parent + "." + result.name;
@@ -133,7 +123,6 @@ const tableHeaders = computed(() => {
         columns.push({
           name: varName,
           schema: ["entity"],
-          index: index++,
           get: (result) => {
             return result.vars[varName];
           }
@@ -154,7 +143,6 @@ const tableHeaders = computed(() => {
       columns.push({
         name: componentToColumnName(field.id, field.schema),
         schema: field.schema,
-        index: index++,
         get: (result) => {
           if (!result.fields.is_set || result.fields.is_set[i]) {
             if (result.fields.values) {
@@ -282,9 +270,9 @@ function trCss(result) {
   }
 }
 
-function toggleOrderBy(col) {
-  if (orderBy.value.index != col.index) {
-    orderBy.value.index = col.index;
+function toggleOrderBy(col, i) {
+  if (orderBy.value.index != i) {
+    orderBy.value.index = i;
     orderBy.value.mode = orderByModes[1];
   } else {
     let orderByIndex = orderByModes.indexOf(orderBy.value.mode);
