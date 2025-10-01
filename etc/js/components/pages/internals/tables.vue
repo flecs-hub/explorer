@@ -25,8 +25,8 @@ const filter = ref("");
 const headers = computed(() => {
   return [
     {name: "ID", schema: ["table-id"], get: (table) => table.id},
-    {name: "Entities", schema: ["int"], get: (table) => table.count},
-    {name: "Capacity", schema: ["int"], get: (table) => table.size},
+    {name: "Entities", schema: ["int"], totals: true, get: (table) => table.count},
+    {name: "Capacity", schema: ["int"], totals: true, get: (table) => table.size},
     {name: "Columns", schema: ["int"], get: (table) => table.type.length},
     {name: "Memory (KB)", schema: ["float"], totals: true, get: (table) => {
       if (!table.memory) {

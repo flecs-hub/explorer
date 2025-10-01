@@ -99,7 +99,7 @@ const orderByModes = ["none", "asc", "desc"];
 const orderBy = ref({});
 const emit = defineEmits(["select"]);
 const offset = ref(0);
-const limit = ref(25);
+const limit = ref(50);
 
 const props = defineProps({
   headers: {type: Array, required: true },
