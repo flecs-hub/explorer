@@ -107,10 +107,6 @@ div.internals-components-table {
 
 <style>
 
-.value-name {
-  min-width: 300px;
-}
-
 .value-hooks {
   min-width: 150px;
   color: var(--secondary-text);

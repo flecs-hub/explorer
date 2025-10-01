@@ -416,6 +416,7 @@ div.data-table-name {
   display: flex;
   flex-direction: column;
   color: var(--primary-text);
+  min-width: 300px;
 }
 
 div.data-table-none {
