@@ -19,7 +19,7 @@ const filter = ref("");
 
 const headers = computed(() => {
   return [
-    {name: "Name", schema: ["name"], get: (component) => component.name},
+    {name: "Name", schema: ["entity"], get: (component) => component.name},
     {name: "Size", schema: ["int"], get: (component) => component.type ? component.type.size : 0},
     {name: "Alignment", schema: ["int"], get: (component) => component.type ? component.type.alignment : 0},
     {name: "Hooks", schema: ["hooks"], get: (component) => formatHooks(component)},

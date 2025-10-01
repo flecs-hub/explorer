@@ -1,11 +1,25 @@
 explorer = {
   shortenEntity: function(entity) {
     if (entity) {
+      if (entity[0] === "(") {
+        let pair = this.parsePair(entity);
+        return "(" + this.shortenEntity(pair[0]) + ", " + pair[1] + ")";
+      }
+
       let escaped = entity.replaceAll("\\.", "@@");
       escaped = escaped.split(".").pop();
       escaped = escaped.replaceAll("@@", ".");
       return escaped;
     }
+  },
+
+  parsePair: function(expr) {
+    if (expr[0] !== "(") {
+      console.error("Invalid pair: " + expr);
+      return undefined;
+    }
+
+    return expr.slice(1, -1).split(",");
   },
 
   shortenComponent: function(component) {
@@ -14,7 +28,7 @@ explorer = {
       // Not a pair
       result = this.shortenEntity(component);
     } else {
-      let pair = component.slice(1, -1).split(",");
+      let pair = this.parsePair(component);
       let rel = this.shortenEntity(pair[0]);
       result = "(" + this.shortenEntity(pair[0]) + ", " + pair[1] + ")";
     }
@@ -23,6 +37,9 @@ explorer = {
 
   entityParent: function(path) {
     path = path.replaceAll("\\\.", "@@");
+    if (path[0] === "(") {
+      path = this.parsePair(path)[0];
+    }
     const names = path.split(".");
     names.pop();
     return names.join(".").replaceAll("@@", ".");
