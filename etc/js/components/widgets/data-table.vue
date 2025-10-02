@@ -250,6 +250,8 @@ function trCss(result) {
 }
 
 function toggleOrderBy(col, i) {
+  offset.value = 0;
+
   if (orderBy.value.index != i) {
     orderBy.value.index = i;
     orderBy.value.mode = orderByModes[1];

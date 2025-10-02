@@ -1,6 +1,5 @@
 <template>
   <div id="pane-info">
-    <p>Build</p>
     <div class="info-table">
       <div class="info-table-cell" style="grid-column: 1; grid-row: 1">Name</div>
       <div class="info-table-cell" style="grid-column: 2; grid-row: 1; border-right-width: 0px;">
