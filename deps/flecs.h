@@ -427,25 +427,25 @@ extern "C" {
 
 #define EcsIdExclusive                 (1u << 9)
 #define EcsIdTraversable               (1u << 10)
-#define EcsIdTag                       (1u << 11)
+#define EcsIdPairIsTag                 (1u << 11)
 #define EcsIdWith                      (1u << 12)
 #define EcsIdCanToggle                 (1u << 13)
 #define EcsIdIsTransitive              (1u << 14)
-#define EcsIdIsInheritable             (1u << 15)
+#define EcsIdInheritable             (1u << 15)
 
 #define EcsIdHasOnAdd                  (1u << 16) /* Same values as table flags */
 #define EcsIdHasOnRemove               (1u << 17) 
 #define EcsIdHasOnSet                  (1u << 18)
 #define EcsIdHasOnTableCreate          (1u << 19)
 #define EcsIdHasOnTableDelete          (1u << 20)
-#define EcsIdIsSparse                  (1u << 21)
+#define EcsIdSparse                  (1u << 21)
 #define EcsIdDontFragment              (1u << 22)
 #define EcsIdMatchDontFragment         (1u << 23) /* For (*, T) wildcards */
 #define EcsIdOrderedChildren           (1u << 24)
 #define EcsIdSingleton                 (1u << 25)
 #define EcsIdEventMask\
     (EcsIdHasOnAdd|EcsIdHasOnRemove|EcsIdHasOnSet|\
-        EcsIdHasOnTableCreate|EcsIdHasOnTableDelete|EcsIdIsSparse|\
+        EcsIdHasOnTableCreate|EcsIdHasOnTableDelete|EcsIdSparse|\
         EcsIdOrderedChildren)
 
 #define EcsIdMarkedForDelete           (1u << 30)
@@ -5124,14 +5124,8 @@ typedef struct ecs_observer_desc_t {
     /** Callback to free run ctx. */
     ecs_ctx_free_t run_ctx_free;
 
-    /** Observable with which to register the observer */
-    ecs_poly_t *observable;
-
-    /** Optional shared last event id for multiple observers. Ensures only one
-     * of the observers with the shared id gets triggered for an event */
+    /** Used for internal purposes. Do not set. */
     int32_t *last_event_id;
-
-    /** Used for internal purposes */
     int8_t term_index_;
     ecs_flags32_t flags_;
 } ecs_observer_desc_t;

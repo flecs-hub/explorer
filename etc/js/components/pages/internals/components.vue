@@ -30,6 +30,12 @@ const headers = computed(() => {
         return 0;
       }
       return (component.memory.storage + explorer.calculateMemoryTotal(component.memory.component_index)) / 1000;
+    }},
+    {name: "Traits", schema: ["traits"],totals: true, get: (component) => {
+      if (!component.traits) {
+        return "";
+      }
+      return component.traits.join(", ");
     }}
   ];
 });
@@ -111,6 +117,10 @@ div.internals-components-table {
   min-width: 150px;
   color: var(--secondary-text);
   white-space: normal !important;
+}
+
+.value-traits {
+  color: var(--secondary-text);
 }
 
 </style>
