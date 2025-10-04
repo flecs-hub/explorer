@@ -15,11 +15,13 @@ explorer = {
 
   parsePair: function(expr) {
     if (expr[0] !== "(") {
-      console.error("Invalid pair: " + expr);
       return undefined;
     }
 
-    return expr.slice(1, -1).split(",");
+    let pair = expr.slice(1, -1).split(",");
+    pair[0] = pair[0].trim();
+    pair[1] = pair[1].trim();
+    return pair;
   },
 
   shortenComponent: function(component) {

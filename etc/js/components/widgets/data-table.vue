@@ -58,6 +58,12 @@
                       fieldClass="table-field">
                     </entity-inspector-preview>
                   </template>
+                  <template v-else-if="col.list">
+                    <template v-for="(item, i) in col.get(row)">
+                      <span class="data-table-list-item-comma" v-if="i > 0">,</span>
+                      <span :class="itemClass(item)" @click.stop="onSelectItem({column: col, item: item})">{{ item }}</span>
+                    </template>
+                  </template>
                   <template v-else>
                     {{ col.get(row) }}
                   </template>
@@ -97,7 +103,7 @@ import { defineProps, defineEmits, defineExpose, defineModel,computed, ref, watc
 
 const orderByModes = ["none", "asc", "desc"];
 const orderBy = ref({});
-const emit = defineEmits(["select"]);
+const emit = defineEmits(["select", "selectItem"]);
 const offset = ref(0);
 const limit = ref(50);
 
@@ -109,6 +115,14 @@ const props = defineProps({
 });
 
 const filter = defineModel("filter");
+
+function itemClass(item) {
+  let result = ["data-table-list-item"];
+  if (!item || item.includes("*")) {
+    result.push("data-table-list-item-highlight");
+  }
+  return result;
+}
 
 const orderByIndices = computed(() => {
   if (!orderBy.value.mode || orderBy.value.mode === 'none') {
@@ -286,6 +300,10 @@ function onSelectEntity(e) {
   return emit("select", e);
 }
 
+function onSelectItem(evt) {
+  return emit("selectItem", evt);
+}
+
 function onPrev() {
   offset.value -= limit.value;
   if (offset.value < 0) {
@@ -437,4 +455,31 @@ tr.data-table-row-selectable:hover td {
 span.entity-link:hover {
   color: var(--green);
 }
+
+span.data-table-list-item {
+  border-radius: var(--border-radius-medium);
+  color: var(--secondary-text);
+  cursor: pointer;
+  transition: color var(--animation-duration);
+}
+
+span.data-table-list-item-comma {
+  color: var(--secondary-text);
+  padding-left: 0px;
+  padding-right: 4px;
+}
+
+span.data-table-list-item-highlight {
+  font-weight: 500;
+  background-color: var(--bg-cell-hover);
+  padding: 4px;
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+}
+
+span.data-table-list-item:hover {
+  color: var(--primary-text);
+  background-color: var(--bg-cell-hover);
+}
+
 </style>
