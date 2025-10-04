@@ -32,7 +32,7 @@
           <tr v-for="(row, i) in pagedData" :class="trCss(row)" @click="onSelect(row)">
             <td v-for="col in headers" :class="tdCss(i)">
               <template v-if="isEntity(col)">
-                <template v-if="col.get(row) === '*' || col.get(row) === undefined">
+                <template v-if="col.get(row) === undefined">
                   <div class="data-table-none">
                     None
                   </div>
@@ -104,7 +104,8 @@ const limit = ref(50);
 const props = defineProps({
   headers: {type: Array, required: true },
   data: {type: Object, required: true },
-  show_filter: {type: Boolean, required: false, default: false}
+  show_filter: {type: Boolean, required: false, default: false},
+  selectable: {type: Boolean, required: false, default: false}
 });
 
 const filter = defineModel("filter");
@@ -242,7 +243,7 @@ function tdCss(i) {
 }
 
 function trCss(result) {
-  if (result.name) {
+  if (props.selectable) {
     return "data-table-row-selectable";
   } else {
     return "";
