@@ -5,7 +5,8 @@
       :data="filteredTables" 
       v-model:filter="filter" 
       show_filter="true"
-      @selectItem="onSelectItem">
+      @selectItem="onSelectItem"
+      @refresh="onRefresh">
     </data-table>
   </div>
 </template>
@@ -15,7 +16,7 @@ export default { name: "internals-tables-table" };
 </script>
 
 <script setup>
-import { defineProps, computed, ref } from 'vue';
+import { defineProps, computed, ref, defineEmits } from 'vue';
 
 const props = defineProps({
   tables: {type: Array, required: true}
@@ -23,6 +24,7 @@ const props = defineProps({
 
 const filter = ref("");
 const group = ref(null);
+const emit = defineEmits(["refresh"]);
 
 const headers = computed(() => {
   let IdHeader = "ID";
@@ -124,6 +126,10 @@ function onSelectItem(evt) {
   }
 
   group.value = pair[0];
+}
+
+function onRefresh() {
+  emit("refresh");
 }
 
 </script>

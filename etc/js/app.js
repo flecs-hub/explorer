@@ -32,6 +32,7 @@ const defaultAppParams = {
     tree_mode: "Entities",
   },
   internals: {
+    path: undefined,
     tab: "tables",
   },
   sidebar: true,
@@ -261,6 +262,7 @@ let components = [
   loadModule('js/components/pages/internals/page.vue', options),
   loadModule('js/components/pages/internals/tables.vue', options),
   loadModule('js/components/pages/internals/components.vue', options),
+  loadModule('js/components/pages/internals/queries.vue', options),
   loadModule('js/components/pages/internals/build.vue', options),
   loadModule('js/components/pages/internals/connection.vue', options),
   loadModule('js/components/pages/internals/natvis.vue', options),

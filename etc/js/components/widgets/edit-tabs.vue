@@ -6,6 +6,9 @@
           <div class="edit-tabs-tabs-line"></div>
           <div :class="editButtonCss(item)" @click="editButtonSelect(item.value)" v-for="item in items">
             <div class="edit-tabs-button-content">
+              <template v-if="item.icon">
+                <icon :src="item.icon" :opacity="0.5"></icon>&nbsp;&nbsp;
+              </template>
               {{ item.label }}
               <div class="edit-tabs-close-button"
                 v-if="activeItem && item.value == activeItem && item.canClose">

@@ -6,6 +6,7 @@
         <icon-button src="chevron-left" @click="onPrev"></icon-button>
         <icon-button src="chevron-right" @click="onNext"></icon-button>
         <search-box v-model="filter"></search-box>
+        <icon-button src="refresh" @click="onRefresh"></icon-button>
       </div>
     </template>
     <div class="data-table-container">
@@ -32,19 +33,24 @@
           <tr v-for="(row, i) in pagedData" :class="trCss(row)" @click="onSelect(row)">
             <td v-for="col in headers" :class="tdCss(i)">
               <template v-if="isEntity(col)">
-                <template v-if="col.get(row) === undefined">
-                  <div class="data-table-none">
-                    None
-                  </div>
-                </template>
-                <template v-else>
-                  <div class="data-table-name">
-                    <entity-parent :path="col.get(row)"></entity-parent>
-                    <span class="entity-link" @click.stop="onSelectEntity(col.get(row))">
-                      <entity-name :path="col.get(row)"></entity-name>
-                    </span>
-                  </div>
-                </template>
+                <div class="data-table-entity">
+                  <template v-if="col.get(row) === undefined">
+                    <div class="data-table-none">
+                      None
+                    </div>
+                  </template>
+                  <template v-else>
+                    <div class="data-table-icon" v-if="col.icon">
+                      <icon :src="col.icon(row)" :opacity="0.5"></icon>&nbsp;&nbsp;
+                    </div>
+                    <div class="data-table-name">
+                      <entity-parent :path="col.get(row)"></entity-parent>
+                      <span class="entity-link" @click.stop="onSelectEntity(col.get(row))">
+                        <entity-name :path="col.get(row)"></entity-name>
+                      </span>
+                    </div>
+                  </template>
+                </div>
               </template>
               <template v-else>
                 <template v-if="col.get(row) !== undefined">
@@ -103,7 +109,7 @@ import { defineProps, defineEmits, defineExpose, defineModel,computed, ref, watc
 
 const orderByModes = ["none", "asc", "desc"];
 const orderBy = ref({});
-const emit = defineEmits(["select", "selectItem"]);
+const emit = defineEmits(["select", "selectItem", "refresh"]);
 const offset = ref(0);
 const limit = ref(50);
 
@@ -240,6 +246,14 @@ const totals = computed(() => {
   return totals;
 });
 
+function isIcon(col) {
+  if (col.schema && Array.isArray(col.schema)) {
+    return col.schema[0] === "icon";
+  } else {
+    return false;
+  }
+}
+
 function isEntity(col) {
   if (col.schema && Array.isArray(col.schema)) {
     return col.schema[0] === "entity";
@@ -321,6 +335,10 @@ function onNext() {
   }
 }
 
+function onRefresh() {
+  emit("refresh");
+}
+
 watch(() => [filter.value], () => {
   offset.value = 0;
 });
@@ -400,6 +418,10 @@ th {
   cursor: pointer;
 }
 
+th.icon {
+  min-width: 12px;
+}
+
 th.squeeze {
   width: 100%;
   background-color: var(--bg-cell);
@@ -431,6 +453,13 @@ td {
 
 td.cell-alt {
   background-color: var(--bg-cell-alt);
+}
+
+div.data-table-entity {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
 }
 
 div.data-table-name {

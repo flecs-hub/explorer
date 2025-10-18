@@ -1,6 +1,8 @@
 <template>
   <div class="internals-components-table">
-    <data-table :headers="headers" :data="filteredComponents" v-model:filter="filter" show_filter="true"></data-table>
+    <data-table :headers="headers" :data="filteredComponents" v-model:filter="filter" show_filter="true"
+      @refresh="onRefresh">
+    </data-table>
   </div>
 </template>
 
@@ -9,14 +11,14 @@ export default { name: "internals-components-table" };
 </script>
 
 <script setup>
-import { defineProps, computed, ref } from 'vue';
+import { defineProps, computed, ref, defineEmits } from 'vue';
 
 const props = defineProps({
   components: {type: Array, required: true}
 });
 
 const filter = ref("");
-
+const emit = defineEmits(["refresh"]);
 const headers = computed(() => {
   return [
     {name: "Name", schema: ["entity"], get: (component) => component.name},
@@ -98,6 +100,10 @@ function formatHooks(component) {
     return "-";
   }
   return result.join(", ");
+}
+
+function onRefresh() {
+  emit("refresh");
 }
 
 </script>

@@ -27,7 +27,7 @@ export default { name: "query-inspect" }
 </script>
 
 <script setup>
-import { defineProps, computed, ref, onMounted, onUnmounted } from 'vue';
+import { defineProps, computed, ref, onMounted, onUnmounted, watch } from 'vue';
 
 const props = defineProps({
   query: {type: Object, required: true},
@@ -82,13 +82,33 @@ const query_name = computed(() => {
 });
 
 const query_icon = computed(() => {
-  if (props.query.kind == "system") {
-    return "code";
-  } else if (props.query.kind == "query") {
-    return "search";
-  } else if (props.query.kind == "observer") {
-    return "bell";
+  return explorer.queryIcon(props.query.kind)
+});
+
+const doRequest = () => {
+  if (localQuery.value) {
+    localQuery.value.abort();
   }
+
+  localQuery.value = props.conn.queryName(props.query, {
+    try: true,
+    rows: true, 
+    full_paths: true,
+    query_info: true, 
+    field_info: true, 
+    query_plan: true, 
+    query_profile: true,
+    managed: true,
+    persist: true
+  }, (reply) => {
+    localResult.value = reply;
+  }, (err) => {
+    // localResult.value = err;
+  });
+};
+
+watch(() => props.query, () => {
+  doRequest();
 });
 
 onMounted(() => {
@@ -98,21 +118,7 @@ onMounted(() => {
       return;
     }
 
-    localQuery.value = props.conn.queryName(props.query, {
-      try: true,
-      rows: true, 
-      full_paths: true,
-      query_info: true, 
-      field_info: true, 
-      query_plan: true, 
-      query_profile: true,
-      managed: true,
-      persist: true
-    }, (reply) => {
-      localResult.value = reply;
-    }, (err) => {
-      // localResult.value = err;
-    });
+    doRequest();
   }
 });
 

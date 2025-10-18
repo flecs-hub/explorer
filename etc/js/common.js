@@ -60,6 +60,16 @@ explorer = {
     return result;
   },
 
+  queryIcon: function(kind) {
+    if (kind.toLowerCase() == "system") {
+      return "code";
+    } else if (kind.toLowerCase() == "query") {
+      return "search";
+    } else if (kind.toLowerCase() == "observer") {
+      return "bell";
+    }
+  },
+
   fmtSize: function(size) {
     if (typeof size === 'string') {
       size = parseInt(size);
