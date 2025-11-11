@@ -120,6 +120,27 @@
 
     --color-accent-emphasis: var(--ui-blue);
     --color-accent-emphasis-translucent: var(--ui-blue-30);
+
+    /* Tree selection background */
+    --tree-select-bg: var(--grey-300);
+  }
+
+  /* Invert icons for light theme so they're visible */
+  span.icon > *,
+  image.entity-tree-icon,
+  div.follow,
+  div.connecting,
+  div.connected,
+  div.error,
+  div.search,
+  div.nav,
+  div.close {
+    filter: invert(1) brightness(0.6);
+  }
+
+  span.icon > *:hover,
+  image.entity-tree-icon:hover {
+    filter: invert(1) brightness(0.4);
   }
 }
 
@@ -172,6 +193,9 @@
 
     --color-accent-emphasis: var(--ui-blue);
     --color-accent-emphasis-translucent: var(--ui-blue-30);
+
+    /* Tree selection background */
+    --tree-select-bg: var(--steel-650);
   }
 }
 
@@ -530,7 +554,7 @@ rect.entity-tree-select {
 }
 
 rect.entity-tree-selected {
-  fill: var(--steel-650);
+  fill: var(--tree-select-bg);
 }
 
 rect.entity-tree-line {

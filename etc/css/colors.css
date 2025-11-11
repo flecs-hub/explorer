@@ -126,6 +126,11 @@
     --chart-primary: #2d7d50;
     --chart-secondary: hsl(222, 8%, 65%);
   }
+
+  /* Invert icons for light theme so they're visible */
+  img[src*="/img/"] {
+    filter: invert(1) brightness(0.6);
+  }
 }
 
 /* Dark theme */
