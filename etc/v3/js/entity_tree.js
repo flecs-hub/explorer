@@ -125,7 +125,7 @@ Vue.component('entity-tree-outline', {
 });
 
 Vue.component('entity-tree-list', {
-  props: ['entities', 'x', 'y', 'selected_entity', 'width'],
+  props: ['entities', 'x', 'y', 'selected_entity', 'width', 'has_ordered_children'],
   data: function() {
     return {
       expand: false
@@ -138,6 +138,15 @@ Vue.component('entity-tree-list', {
         result.push(this.entities[entity]);
       }
 
+      // If parent has OrderedChildren trait, preserve insertion order
+      if (this.has_ordered_children) {
+        result.sort((e1, e2) => {
+          return (e1.insertion_order || 0) - (e2.insertion_order || 0);
+        });
+        return result;
+      }
+
+      // Otherwise, sort by type and name
       result.sort((e1, e2) => {
         if (e1.is_module == e2.is_module) {
           if (e1.is_prefab == e2.is_prefab) {
@@ -235,7 +244,8 @@ Vue.component('entity-tree-list', {
               x: this.x + indent_width,
               y: height + item_height,
               selected_entity: this.selected_entity,
-              width: this.width
+              width: this.width,
+              has_ordered_children: entity_data.has_ordered_children
             },
             on: {
               toggle: this.toggle,
@@ -285,6 +295,7 @@ Vue.component('entity-tree', {
       // Store entities in new scope, so that deleted entities are automatically
       // cleaned up
       let result = {};
+      let insertion_order = 0;
 
       if (data && data.results) {
         for (var r = 0; r < data.results.length; r ++) {
@@ -331,6 +342,7 @@ Vue.component('entity-tree', {
             entity.is_prefab = elem.is_set[3];
             entity.is_disabled = elem.is_set[4];
             entity.prefab = elem.vars[0];
+            entity.insertion_order = insertion_order++;
 
             Vue.set(result, name, entity);
           }
@@ -354,26 +366,46 @@ Vue.component('entity-tree', {
       let path = container.path;
       path = path.replaceAll(" ", "\\ ");
 
-      const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Prefab, ?Disabled, ?ChildOf(_, $this), ?IsA($this, $base:self)";
-      app.request_query('tree-' + container.path, q, (reply) => {
-        if (reply.error) {
-          console.error("treeview: " + reply.error);
-        } else {
-          container.entities = this.update_scope(container.entities, reply);
-          if (onready) {
-            onready();
+      // First check if parent has OrderedChildren trait
+      const parent_check_q = path + ", ?flecs.core.OrderedChildren";
+      app.request_query('tree-ordered-check-' + container.path, parent_check_q, (parent_reply) => {
+        // Check if OrderedChildren component is present
+        let has_ordered_children = false;
+        if (parent_reply && parent_reply.results && parent_reply.results.length > 0) {
+          const result = parent_reply.results[0];
+          // is_set array: index 1 should be for ?flecs.core.OrderedChildren
+          if (result.is_set && result.is_set[1]) {
+            has_ordered_children = true;
           }
         }
+        container.has_ordered_children = has_ordered_children;
+
+        // Then query children
+        const q = "(ChildOf, " + path + "), ?Module, ?Component, ?Prefab, ?Disabled, ?ChildOf(_, $this), ?IsA($this, $base:self)";
+        app.request_query('tree-' + container.path, q, (reply) => {
+          if (reply.error) {
+            console.error("treeview: " + reply.error);
+          } else {
+            container.entities = this.update_scope(container.entities, reply);
+            if (onready) {
+              onready();
+            }
+          }
+        }, undefined, {
+          values: false,
+          ids: false,
+          term_ids: false,
+          sources: false,
+          entity_labels: true,
+          variable_labels: true,
+          colors: true,
+          is_set: true,
+          prefab: undefined
+        });
       }, undefined, {
-        values: false, 
-        ids: false, 
-        term_ids: false, 
-        sources: false,
-        entity_labels: true,
-        variable_labels: true,
-        colors: true,
-        is_set: true,
-        prefab: undefined
+        values: false,
+        ids: false,
+        is_set: true
       });
     },
     update_expanded: function(container) {
@@ -503,12 +535,13 @@ Vue.component('entity-tree', {
   template: `
     <div :class="css">
       <svg :height="tree_height" width="100%">
-        <entity-tree-list 
-          :entities="root.entities" 
+        <entity-tree-list
+          :entities="root.entities"
           :x="0"
-          :y="tree_top_margin" 
+          :y="tree_top_margin"
           :width="width"
           :selected_entity="selected_entity"
+          :has_ordered_children="root.has_ordered_children"
           v-on:toggle="toggle"
           v-on:select="evt_select"
           v-on:select_query="evt_select_query">
