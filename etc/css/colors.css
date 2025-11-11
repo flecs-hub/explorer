@@ -1,4 +1,4 @@
-
+/* Base colors shared across themes */
 :root {
   --steel-200: #e7e9ee;
   --steel-300: #dde0e6;
@@ -15,7 +15,10 @@
   --steel-950: #0a0c0e;
 
   --grey-200: rgb(237, 237, 237);
-  
+  --grey-300: rgb(210, 210, 210);
+  --grey-700: rgb(55, 55, 55);
+  --grey-800: rgb(30, 30, 30);
+
   --dark-blue: #00346E;
   --less-dark-blue: #094a94;
   --darker-blue: hsl(212, 50%, 10%);
@@ -23,62 +26,17 @@
   --dark-green: #30694f;
   --green: #42b983;
   --light-green: #A2D8B4;
-  --blue: rgb(103, 154, 209);
   --purple: #bc89bd;
-  --yellow: #b9a542;
   --red: #B5494B;
   --orange: #B5894B;
 
   --bright-green: #A2D8B4;
   --bright-blue: #56a8f8;
-  
   --bright-red: #EF8784;
   --yellow: #FFE100;
   --cyan: #00AABB;
-  --blue: rgb(73, 129, 181);
 
-  --bg-pane: hsl(210, 12%, 16%);
-
-  --bg-color:     hsl(214, 11%, 11%);
-  --bg-color-alt: hsl(210, 17%, 9%);
-
-  --bg-content-alt:     hsl(210, 11%, 12%);
-  --bg-content: hsl(214, 10%, 13%);
-  --bg-content-hover: hsl(210, 12%, 20%);
-  --bg-content-select: hsl(210, 12%, 10%);
-  
-  --bg-input:     hsl(210, 11%, 12%);
-  --bg-input-select: hsl(210, 12%, 10%);
-
-  --bg-cell: hsl(210, 12%, 16%);
-  --bg-cell-alt: hsl(210, 12%, 15%);
-  --bg-cell-hover: hsl(210, 12%, 20%);
-
-  --bg-button: hsl(210, 12%, 22%);
-  --bg-button-alt: hsl(210, 12%, 19%);
-  --bg-button-hover: hsl(210, 12%, 26%);
-
-  --bg-splitter: rgb(51, 118, 205);
-
-  --bg-auto-complete: rgb(25, 28, 31, 1.0);
-  --bg-error:     var(--red);
-  --bg-ok:        var(--green);
-  --border:       hsl(240, 4%, 23%);
-  --text-color:   rgb(175, 175, 175);
-  --highlight-bg: var(--blue);
-  --highlight-text: white;
-  --dark-text: hsl(210, 17%, 5%);
-
-  --primary-color: var(--green);
-  --secondary-color: var(--blue);
-  --tertiary-color: var(--yellow);
-
-  --primary-text: hsl(195, 15%, 85%);
-  --secondary-text: hsl(198, 9%, 56%);
-  --tertiary-text: hsl(198, 9%, 42%);
-
-  --tab-separator-color: rgba(255,255,255,0.07);
-
+  /* Layout constants */
   --border-radius-large: 8px;
   --border-radius-small: 4px;
   --border-radius-medium: 6px;
@@ -93,12 +51,143 @@
 
   --table-padding: 8px;
 
-  --module-color: var(--yellow);
-  --component-color: var(--blue);
-  --target-color: var(--cyan);
-  --query-color: #DDE0E6;
-  --prefab-color: var(--cyan);
+  /* Ace editor theme constants */
+  --ace-invisible: #52524d;
+  --ace-class-type: #66d9ef;
+  --ace-attribute: #a6e22e;
+  --ace-fold-bg: #a6e22e;
 
-  --chart-primary: #A2D8B4;
-  --chart-secondary: hsl(222, 8%, 35%);
+  /* Tree connector line color */
+  --tree-line-color: #44464D;
+}
+
+/* Light theme */
+@media (prefers-color-scheme: light) {
+  :root {
+    --blue: rgb(73, 129, 181);
+
+    /* Ace editor theme-specific */
+    --ace-active-line-bg: #f5f5f5;
+    --ace-selection-shadow: #e0e0e0;
+    --ace-bracket-border: #c0c0c0;
+    --ace-selected-word-border: #c0c0c0;
+
+    /* Tree connector line */
+    --tree-line-color: #c0c0c0;
+
+    --bg-pane: hsl(0, 0%, 98%);
+
+    --bg-color: hsl(0, 0%, 96%);
+    --bg-color-alt: hsl(0, 0%, 94%);
+
+    --bg-content-alt: hsl(0, 0%, 98%);
+    --bg-content: hsl(0, 0%, 97%);
+    --bg-content-hover: hsl(0, 0%, 92%);
+    --bg-content-select: hsl(0, 0%, 90%);
+
+    --bg-input: hsl(0, 0%, 100%);
+    --bg-input-select: hsl(0, 0%, 95%);
+
+    --bg-cell: hsl(0, 0%, 98%);
+    --bg-cell-alt: hsl(0, 0%, 96%);
+    --bg-cell-hover: hsl(0, 0%, 92%);
+
+    --bg-button: hsl(0, 0%, 90%);
+    --bg-button-alt: hsl(0, 0%, 92%);
+    --bg-button-hover: hsl(0, 0%, 85%);
+
+    --bg-splitter: rgb(51, 118, 205);
+
+    --bg-auto-complete: rgb(255, 255, 255, 1.0);
+    --bg-error: var(--red);
+    --bg-ok: var(--green);
+    --border: hsl(0, 0%, 80%);
+    --text-color: rgb(60, 60, 60);
+    --highlight-bg: var(--blue);
+    --highlight-text: white;
+    --dark-text: hsl(0, 0%, 10%);
+
+    --primary-color: var(--green);
+    --secondary-color: var(--blue);
+    --tertiary-color: var(--yellow);
+
+    --primary-text: hsl(0, 0%, 15%);
+    --secondary-text: hsl(0, 0%, 40%);
+    --tertiary-text: hsl(0, 0%, 50%);
+
+    --tab-separator-color: rgba(0, 0, 0, 0.1);
+
+    --module-color: var(--yellow);
+    --component-color: var(--blue);
+    --target-color: var(--cyan);
+    --query-color: #DDE0E6;
+    --prefab-color: var(--cyan);
+
+    --chart-primary: #2d7d50;
+    --chart-secondary: hsl(222, 8%, 65%);
+  }
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --blue: rgb(103, 154, 209);
+
+    /* Ace editor theme-specific */
+    --ace-active-line-bg: #202020;
+    --ace-selection-shadow: #272822;
+    --ace-bracket-border: #49483e;
+    --ace-selected-word-border: #49483e;
+
+    --bg-pane: hsl(210, 12%, 16%);
+
+    --bg-color: hsl(214, 11%, 11%);
+    --bg-color-alt: hsl(210, 17%, 9%);
+
+    --bg-content-alt: hsl(210, 11%, 12%);
+    --bg-content: hsl(214, 10%, 13%);
+    --bg-content-hover: hsl(210, 12%, 20%);
+    --bg-content-select: hsl(210, 12%, 10%);
+
+    --bg-input: hsl(210, 11%, 12%);
+    --bg-input-select: hsl(210, 12%, 10%);
+
+    --bg-cell: hsl(210, 12%, 16%);
+    --bg-cell-alt: hsl(210, 12%, 15%);
+    --bg-cell-hover: hsl(210, 12%, 20%);
+
+    --bg-button: hsl(210, 12%, 22%);
+    --bg-button-alt: hsl(210, 12%, 19%);
+    --bg-button-hover: hsl(210, 12%, 26%);
+
+    --bg-splitter: rgb(51, 118, 205);
+
+    --bg-auto-complete: rgb(25, 28, 31, 1.0);
+    --bg-error: var(--red);
+    --bg-ok: var(--green);
+    --border: hsl(240, 4%, 23%);
+    --text-color: rgb(175, 175, 175);
+    --highlight-bg: var(--blue);
+    --highlight-text: white;
+    --dark-text: hsl(210, 17%, 5%);
+
+    --primary-color: var(--green);
+    --secondary-color: var(--blue);
+    --tertiary-color: var(--yellow);
+
+    --primary-text: hsl(195, 15%, 85%);
+    --secondary-text: hsl(198, 9%, 56%);
+    --tertiary-text: hsl(198, 9%, 42%);
+
+    --tab-separator-color: rgba(255, 255, 255, 0.07);
+
+    --module-color: var(--yellow);
+    --component-color: var(--blue);
+    --target-color: var(--cyan);
+    --query-color: #DDE0E6;
+    --prefab-color: var(--cyan);
+
+    --chart-primary: #A2D8B4;
+    --chart-secondary: hsl(222, 8%, 35%);
+  }
 }

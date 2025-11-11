@@ -2,39 +2,11 @@
 @import "components/icon-button.css";
 @import "components/entity-hierarchy.css";
 
-/* Color palette variables */
+/* Color palette variables - Base colors shared across themes */
 
 :root {
   --white: #ffffff;
   --black: #000000;
-
-  /* Slate
-  --grey-50: #f8fafc;
-  --grey-100: #f1f5f9;
-  --grey-200: #e2e8f0;
-  --grey-300: #cbd5e1;
-  --grey-400: #94a3b8;
-  --grey-500: #64748b;
-  --grey-600: #475569;
-  --grey-700: #334155;
-  --grey-800: #1e293b;
-  --grey-850: #162032;
-  --grey-900: #0f172a;
-  --grey-950: #050914; */
-
-  /* Zinc
-  --grey-50: #f9fafb;
-  --grey-100: #f3f4f6;
-  --grey-200: #e5e7eb;
-  --grey-300: #d1d5db;
-  --grey-400: #9ca3af;
-  --grey-500: #6b7280;
-  --grey-600: #4b5563;
-  --grey-700: #374151;
-  --grey-800: #1f2937;
-  --grey-850: #18202F;
-  --grey-900: #111827; 
-  --grey-950: #080b17; */
 
   /* Gray */
   --grey-50: #fafafa;
@@ -65,58 +37,13 @@
 
   --light-green: #A2D8B4;
   --green: #47B576;
+  --dark-green: #2d7d50;
   --red: #B5494B;
   --bright-red: #EF8784;
-
-  --alert-error: #b5494b;
-  --alert-warning: #b5894b;
-  --alert-info: #7595b3;
-  --alert-disabled: var(--steel-700);
-  --alert-error-dark: rgb(33, 31, 36);
-  --alert-warning-dark: rgb(33, 33, 36);
-  --alert-info-dark: rgb(30, 34, 41);
+  --dark-red: #8b3638;
 
   --ui-blue: rgba(79, 149, 255, 1.0);
   --ui-blue-30: rgba(79, 149, 255, 0.30);
-
-  --steel-transparent-96: rgb(26, 29, 35, 0.96);
-  --steel-transparent-80: rgb(26, 29, 35, 0.80);
-  
-  --steel-transparent-dark: rgb(46, 50, 60, 0.30);
-  --steel-transparent-light: rgb(46, 50, 60, 0.85);
-
-  /* Color assignments */
-  --app-bg: var(--steel-950);
-  --app-bg-maximized: var(--steel-900);
-  --panel-border: var(--steel-850);
-  --panel-header-bg: var(--steel-700);
-  --panel-header-hover-bg: var(--steel-675);
-  --panel-footer-bg: var(--steel-700);
-  --panel-bg: var(--steel-850);
-  --panel-bg-secondary: var(--steel-800);
-  --panel-select: var(--steel-700);
-  
-  --prop-bg: var(--steel-700);
-  --prop-input-bg: var(--steel-750);
-  --prop-input-border: var(--steel-650);
-  --prop-input-border-focus: var(--green);
-
-  --row-bg: var(--steel-800);
-  --cell-bg: var(--steel-transparent-96);
-  --cell-bg-hover: var(--steel-transparent-light);
-  --cell-header-bg: var(--steel-transparent-dark);
-
-  --primary-text: var(--grey-100);
-  --secondary-text: var(--grey-400);
-  --tertiary-text: var(--grey-500);
-
-  --label: var(--secondary-text);
-  --footer-text: var(--steel-300);
-  --error: var(--bright-red);
-  --light-hover-bg: var(--steel-700);
-
-  --color-accent-emphasis: var(--ui-blue);
-  --color-accent-emphasis-translucent: var(--ui-blue-30);
 
   /* Text sizes */
   --text-fs-xs: 10px;
@@ -130,7 +57,6 @@
   --text-lh-lg: 18px;
 
   /* Paddings */
-
   --p-0: 1px;
   --p-1: 2px;
   --p-2: 4px;
@@ -139,11 +65,114 @@
   --p-5: 16px;
 
   /* Border Radii */
-
   --br-0: 1px;
   --br-1: 2px;
   --br-2: 4px;
   --br-3: 8px;
+}
+
+/* Light theme - default */
+@media (prefers-color-scheme: light) {
+  :root {
+    --alert-error: #b5494b;
+    --alert-warning: #b5894b;
+    --alert-info: #7595b3;
+    --alert-disabled: var(--grey-300);
+    --alert-error-dark: rgb(252, 240, 240);
+    --alert-warning-dark: rgb(252, 248, 240);
+    --alert-info-dark: rgb(240, 246, 252);
+
+    --steel-transparent-96: rgb(245, 245, 247, 0.96);
+    --steel-transparent-80: rgb(245, 245, 247, 0.80);
+
+    --steel-transparent-dark: rgb(228, 228, 231, 0.30);
+    --steel-transparent-light: rgb(228, 228, 231, 0.85);
+
+    /* Color assignments - Light theme */
+    --app-bg: var(--grey-50);
+    --app-bg-maximized: var(--grey-100);
+    --panel-border: var(--grey-200);
+    --panel-header-bg: var(--grey-200);
+    --panel-header-hover-bg: var(--grey-300);
+    --panel-footer-bg: var(--grey-200);
+    --panel-bg: var(--grey-100);
+    --panel-bg-secondary: var(--grey-200);
+    --panel-select: var(--grey-300);
+
+    --prop-bg: var(--grey-200);
+    --prop-input-bg: var(--white);
+    --prop-input-border: var(--grey-300);
+    --prop-input-border-focus: var(--dark-green);
+
+    --row-bg: var(--grey-200);
+    --cell-bg: var(--steel-transparent-96);
+    --cell-bg-hover: var(--steel-transparent-light);
+    --cell-header-bg: var(--steel-transparent-dark);
+
+    --primary-text: var(--grey-900);
+    --secondary-text: var(--grey-600);
+    --tertiary-text: var(--grey-500);
+
+    --label: var(--secondary-text);
+    --footer-text: var(--grey-700);
+    --error: var(--dark-red);
+    --light-hover-bg: var(--grey-200);
+
+    --color-accent-emphasis: var(--ui-blue);
+    --color-accent-emphasis-translucent: var(--ui-blue-30);
+  }
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --alert-error: #b5494b;
+    --alert-warning: #b5894b;
+    --alert-info: #7595b3;
+    --alert-disabled: var(--steel-700);
+    --alert-error-dark: rgb(33, 31, 36);
+    --alert-warning-dark: rgb(33, 33, 36);
+    --alert-info-dark: rgb(30, 34, 41);
+
+    --steel-transparent-96: rgb(26, 29, 35, 0.96);
+    --steel-transparent-80: rgb(26, 29, 35, 0.80);
+
+    --steel-transparent-dark: rgb(46, 50, 60, 0.30);
+    --steel-transparent-light: rgb(46, 50, 60, 0.85);
+
+    /* Color assignments - Dark theme */
+    --app-bg: var(--steel-950);
+    --app-bg-maximized: var(--steel-900);
+    --panel-border: var(--steel-850);
+    --panel-header-bg: var(--steel-700);
+    --panel-header-hover-bg: var(--steel-675);
+    --panel-footer-bg: var(--steel-700);
+    --panel-bg: var(--steel-850);
+    --panel-bg-secondary: var(--steel-800);
+    --panel-select: var(--steel-700);
+
+    --prop-bg: var(--steel-700);
+    --prop-input-bg: var(--steel-750);
+    --prop-input-border: var(--steel-650);
+    --prop-input-border-focus: var(--green);
+
+    --row-bg: var(--steel-800);
+    --cell-bg: var(--steel-transparent-96);
+    --cell-bg-hover: var(--steel-transparent-light);
+    --cell-header-bg: var(--steel-transparent-dark);
+
+    --primary-text: var(--grey-100);
+    --secondary-text: var(--grey-400);
+    --tertiary-text: var(--grey-500);
+
+    --label: var(--secondary-text);
+    --footer-text: var(--steel-300);
+    --error: var(--bright-red);
+    --light-hover-bg: var(--steel-700);
+
+    --color-accent-emphasis: var(--ui-blue);
+    --color-accent-emphasis-translucent: var(--ui-blue-30);
+  }
 }
 
 /* HTML element styling */
@@ -502,6 +531,10 @@ rect.entity-tree-select {
 
 rect.entity-tree-selected {
   fill: var(--steel-650);
+}
+
+rect.entity-tree-line {
+  fill: var(--tree-line-color);
 }
 
 /* -- begin of inspector -- */
