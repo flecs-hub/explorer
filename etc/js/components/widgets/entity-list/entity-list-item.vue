@@ -50,7 +50,8 @@ div.entity-list-item {
   border-left-width: 0px;
   border-color: var(--green);
   color: var(--primary-text);
-  overflow-x: auto;
+  overflow-x: hidden;
+  overflow-wrap: break-word;
   transition: background-color var(--animation-duration), border-left-width var(--animation-duration);
 }
 
