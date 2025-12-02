@@ -77,23 +77,23 @@ Vue.component('entity-tree-item', {
       </rect>
 
       <template v-if="entity_data.has_children">
-        <rect :x="xp" :y="y - 5" :width="5" height="1" fill="#44464D"></rect>
+        <rect :x="xp" :y="y - 5" :width="5" height="1" class="entity-tree-line"></rect>
         <image v-if="!entity_data.expand"
-          class="entity-tree-icon" 
-          href="img/nav-right.png" 
-          :x="xp + 2" :y="y - 12" 
+          class="entity-tree-icon"
+          href="img/nav-right.png"
+          :x="xp + 2" :y="y - 12"
           v-on:click="toggle">
         </image>
         <image v-else
-          class="entity-tree-icon" 
-          href="img/nav-down.png" 
-          :x="xp + 2" 
-          :y="y - 12" 
+          class="entity-tree-icon"
+          href="img/nav-down.png"
+          :x="xp + 2"
+          :y="y - 12"
           v-on:click="toggle">
         </image>
       </template>
       <template v-else>
-        <rect :x="xp" :y="y - 5" :width="15" height="1" fill="#44464D"></rect>
+        <rect :x="xp" :y="y - 5" :width="15" height="1" class="entity-tree-line"></rect>
       </template>
 
       <entity-icon :x="xp + 17" :y="y - 8" :entity_data="entity_data"></entity-icon>
@@ -120,7 +120,7 @@ Vue.component('entity-tree-outline', {
   },
   template: `
     <svg>
-      <rect :x="x + 3" :y="y + 2" :width="1" :height="height()" fill="#44464D"></rect>
+      <rect :x="x + 3" :y="y + 2" :width="1" :height="height()" class="entity-tree-line"></rect>
     </svg>`
 });
 

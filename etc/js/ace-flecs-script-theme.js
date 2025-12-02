@@ -22,7 +22,7 @@ function(require, exports, module) {
             background: var(--dark-blue);
         }
         .ace-flecs-script.ace_multiselect .ace_selection.ace_start {
-            box-shadow: 0 0 3px 0px #272822;
+            box-shadow: 0 0 3px 0px var(--ace-selection-shadow);
             border-radius: 2px;
         }
         .ace-flecs-script .ace_marker-layer .ace_step {
@@ -30,19 +30,19 @@ function(require, exports, module) {
         }
         .ace-flecs-script .ace_marker-layer .ace_bracket {
             margin: -1px 0 0 -1px;
-            border: 1px solid #49483e;
+            border: 1px solid var(--ace-bracket-border);
         }
         .ace-flecs-script .ace_marker-layer .ace_active-line {
-            background: #202020;
+            background: var(--ace-active-line-bg);
         }
         .ace-flecs-script .ace_gutter-active-line {
             color: var(--primary-text);
         }
         .ace-flecs-script .ace_marker-layer .ace_selected-word {
-            border: 1px solid #49483e;
+            border: 1px solid var(--ace-selected-word-border);
         }
         .ace-flecs-script .ace_invisible {
-            color: #52524d;
+            color: var(--ace-invisible);
         }
         .ace-flecs-script .ace_keyword {
         color: var(--purple);
@@ -69,8 +69,8 @@ function(require, exports, module) {
             background-color: #f92672;
         }
         .ace-flecs-script .ace_fold {
-            background-color: #a6e22e;
-            border-color: #f8f8f2;
+            background-color: var(--ace-fold-bg);
+            border-color: var(--primary-text);
         }
         .ace-flecs-script .ace_comment {
             color: var(--tertiary-text);
@@ -82,13 +82,13 @@ function(require, exports, module) {
         }
         .ace-flecs-script .ace_support.ace_class,
         .ace-flecs-script .ace_support.ace_type {
-            color: #66d9ef;
+            color: var(--ace-class-type);
         }
         .ace-flecs-script .ace_string {
             color: var(--orange);
         }
         .ace-flecs-script .ace_entity.ace_other.ace_attribute-name {
-            color: #a6e22e;
+            color: var(--ace-attribute);
         }
         .ace-flecs-script .ace_indent-guide {
             border-style: solid;
