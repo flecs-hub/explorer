@@ -40,7 +40,8 @@ const render = () => {
 span.entity-path {
   font-size: 0.8rem;
   color: var(--secondary-text);
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
 }
 
 span.entity-path-sep {
