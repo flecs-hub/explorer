@@ -10,7 +10,7 @@
 void PlaygroundImport(ecs_world_t *world) {
     ECS_MODULE(world, Playground);
 
-    ECS_IMPORT(world, FlecsUnits);
+    // ECS_IMPORT(world, FlecsUnits);
     ECS_IMPORT(world, FlecsScript);
     ECS_IMPORT(world, FlecsScriptMath);
     ECS_IMPORT(world, FlecsComponentsTransform);
@@ -50,6 +50,6 @@ int main() {
     return ecs_app_run(world, &(ecs_app_desc_t){
         .enable_rest = true,
         .enable_stats = true,
-        .target_fps = 60,
+        .target_fps = 60
     });
 }

@@ -104,6 +104,7 @@ ecs_entity_t generate_tile(
     ecs_entity_t inst = ecs_new_w_pair(world, EcsChildOf, parent);
     ecs_add_pair(world, inst, EcsIsA, slot);
     ecs_set(world, inst, EcsPosition3, {xc, yc, zc});
+    printf("inst = %s\n", ecs_entity_str(world, inst));
     return inst;
 }
 

@@ -32461,6 +32461,15 @@ void sokol_populate_buffers(
             }
         }
 
+        // for (i = 0; i < count; i ++) {
+        //     ecs_entity_t e = qit.entities[i];
+        //     EcsRgb v = {0};
+        //     v.r = (float)(e % 11) / 11.0;
+        //     v.g = (float)(e % 13) / 13.0;
+        //     v.b = (float)(e % 19) / 19.0;
+        //     *ecs_vec_get_t(&buffers->colors_data, ecs_rgb_t, cur + i) = v;
+        // }
+
         if (emissive || specular) {
             SokolMaterial *m = ecs_vec_get_t(
                 &buffers->materials_data, SokolMaterial, cur);
@@ -32990,14 +32999,21 @@ void sokol_gather_lights(ecs_world_t *world, SokolRenderer *r, sokol_render_stat
         EcsPointLight *l = ecs_field(&it, EcsPointLight, 0);
         EcsTransform3 *m = ecs_field(&it, EcsTransform3, 1);
 
+        bool light_is_self = ecs_field_is_self(&it, 0);
+
         for (int i = 0; i < it.count; i ++) {
+            EcsPointLight *lcur = l;
+            if (light_is_self) {
+                lcur = &l[i];
+            }
+
             sokol_light_t *light = ecs_vec_append_t(
                 NULL, &r->lights, sokol_light_t);
-            glm_vec3_copy(l[i].color, light->color);
+            glm_vec3_copy(lcur->color, light->color);
 
-            light->color[0] *= l[i].intensity;
-            light->color[1] *= l[i].intensity;
-            light->color[2] *= l[i].intensity;
+            light->color[0] *= lcur->intensity;
+            light->color[1] *= lcur->intensity;
+            light->color[2] *= lcur->intensity;
 
             vec3 pos = {
                 m[i].value[3][0],
@@ -33009,7 +33025,7 @@ void sokol_gather_lights(ecs_world_t *world, SokolRenderer *r, sokol_render_stat
             light->position[1] = pos[1];
             light->position[2] = pos[2];
 
-            light->distance = l[i].distance;
+            light->distance = lcur->distance;
 
             glm_vec3_sub(light->position, eye_pos, light->position);
         }
