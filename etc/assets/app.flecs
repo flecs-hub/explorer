@@ -8,14 +8,14 @@ light {
 
 $ { 
   TimeOfDay: {
-    t: 0.3
+    t: 0.15
     speed: 0.0
   }
 }
 
 camera {
   CameraController
-  Position3: {25.6, 9, 25.5}
+  Position3: {108, 16, 110}
   Rotation3: {-0.14, 3.93, 0}
   Camera: {
     fov: 20
@@ -36,8 +36,8 @@ canvas {
     ambient_light_ground: {0.8, 0.7, 0.2}
     directional_light: light
     camera: camera
-    fog_density: 3.0
-    shadow_far: 100
+    fog_density: 1.7
+    shadow_far: 300
   }
 }
 

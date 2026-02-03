@@ -3168,6 +3168,13 @@ ecs_table_range_t flecs_range_from_entity(
     const ecs_world_t *world,
     ecs_entity_t e);
 
+ecs_entity_t flecs_set_identifier(
+    ecs_world_t *world,
+    ecs_stage_t *stage,
+    ecs_entity_t entity,
+    ecs_entity_t tag,
+    const char *name);
+
 #endif
 
 /**
@@ -10716,6 +10723,10 @@ ecs_entity_t ecs_new_w_parent(
     ecs_entity_t parent,
     const char *name)
 {
+    ecs_stage_t *stage = flecs_stage_from_world(&world);
+    ecs_assert(!(world->flags & EcsWorldMultiThreaded), ECS_INVALID_OPERATION,
+        "cannot create new entity while world is multithreaded");
+
     ecs_component_record_t *cr = flecs_components_ensure(
         world, ecs_childof(parent));
     ecs_assert(cr != NULL, ECS_INTERNAL_ERROR, NULL);
@@ -10762,7 +10773,10 @@ ecs_entity_t ecs_new_w_parent(
     parent_ptr->value = parent;
 
     if (name) {
-        ecs_set_name(world, entity, name);
+        bool is_deferred = ecs_is_deferred(world);
+        if (is_deferred) ecs_defer_suspend(world);
+        flecs_set_identifier(world, stage, entity, EcsName, name);
+        if (is_deferred) ecs_defer_resume(world);
     }
 
     flecs_add_non_fragmenting_child_w_records(world, parent, entity, cr, r);
@@ -12243,7 +12257,6 @@ const char* ecs_get_symbol(
     }
 }
 
-static
 ecs_entity_t flecs_set_identifier(
     ecs_world_t *world,
     ecs_stage_t *stage,
@@ -45035,7 +45048,7 @@ int flecs_type_find(
         if (ecs_id_match(cur, id)) {
             return i;
         }
-        if (cur > id) {
+        if (!ECS_IS_PAIR(id) && (cur > id)) {
             return -1;
         }
     }
@@ -45961,6 +45974,19 @@ ecs_table_t* flecs_find_table_with(
             ecs_pair(EcsWith, EcsWildcard));
         /* If id has With property, add targets to type */
         flecs_add_with_property(world, cr_with_wildcard, &dst_type, r, o);
+    }
+
+    if (with == ecs_id(EcsParent)) {
+        if (node->flags & EcsTableHasChildOf) {
+            flecs_type_remove(world, &dst_type, 
+                ecs_pair(EcsChildOf, EcsWildcard));
+        }
+    } else if (ECS_PAIR_FIRST(with) == EcsChildOf) {
+        if (node->flags & EcsTableHasParent) {
+            flecs_type_remove(world, &dst_type, ecs_id(EcsParent));
+            flecs_type_remove(world, &dst_type, 
+                ecs_pair(EcsParentDepth, EcsWildcard));
+        }
     }
 
     return flecs_table_ensure(world, &dst_type, true, node);
@@ -64280,9 +64306,9 @@ int flecs_script_function_validate_desc(
         }
 
         if (i == EcsPrimitiveKindLast) {
-            ecs_throw("function '%s' has vector arguments, must implement at"
-                " least one element of .vector_callbacks",
-                desc->name);
+            ecs_throw(ECS_INVALID_PARAMETER, "function '%s' has vector "
+                "arguments, must implement at least one element of "
+                ".vector_callbacks", desc->name);
         }
     }
 
@@ -65324,6 +65350,7 @@ void flecs_script_perlin2(
     ecs_value_t *result) 
 {
     (void)argc;
+    (void)ctx;
     double x = *(double*)argv[0].ptr;
     double y = *(double*)argv[1].ptr;
     *(double*)result->ptr = flecs_perlin2(x, y);
