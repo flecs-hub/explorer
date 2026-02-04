@@ -140,9 +140,9 @@ template City {
       Building(
         width: buildingWidth
         floors: baseY + rng.u(varFloors) + 1
-        windows: rng.u(5) + 2
+        windows: rng.u(5) + 1
         floorThickness: rng.f(0.2) + 0.4
-        windowSpacing: rng.f(0.4) + 0.2
+        windowSpacing: rng.f(0.6) + 0.2
         color: {rgb + rng.f(0.15), rgb, rgb}
       ) {
         Position3: {xP, 0.1, yP} 
