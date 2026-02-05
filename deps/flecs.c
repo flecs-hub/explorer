@@ -64839,22 +64839,6 @@ double flecs_lerp(
     return a + t * (b - a);
 }
 
-static
-double flecs_min(
-    double a, 
-    double b) 
-{
-    return (a < b) ? a : b;
-}
-
-static
-double flecs_max(
-    double a, 
-    double b) 
-{
-    return (a > b) ? a : b;
-}
-
 void flecs_script_min(
     const ecs_function_ctx_t *ctx,
     int32_t argc,
@@ -64865,7 +64849,7 @@ void flecs_script_min(
     (void)argc;
     double a = *(double*)argv[0].ptr;
     double b = *(double*)argv[1].ptr;
-    *(double*)result->ptr = flecs_min(a, b);
+    *(double*)result->ptr = (a < b) ? a : b;
 }
 
 void flecs_script_max(
@@ -64878,7 +64862,7 @@ void flecs_script_max(
     (void)argc;
     double a = *(double*)argv[0].ptr;
     double b = *(double*)argv[1].ptr;
-    *(double*)result->ptr = flecs_max(a, b);
+    *(double*)result->ptr = (a > b) ? a : b;
 }
 
 #define FLECS_SCRIPT_LERP(type)\
@@ -64889,8 +64873,7 @@ void flecs_script_max(
         ecs_value_t *result,\
         int32_t elem_count)\
     {\
-        (void)ctx;\
-        (void)argc;\
+        (void)ctx; (void)argc;\
         type *a = argv[0].ptr;\
         type *b = argv[1].ptr;\
         type t = (type)*(double*)argv[2].ptr;\
@@ -64911,8 +64894,7 @@ FLECS_SCRIPT_LERP(double)
         ecs_value_t *result,\
         int32_t elem_count)\
     {\
-        (void)ctx;\
-        (void)argc;\
+        (void)ctx; (void)argc;\
         type *a = argv[0].ptr;\
         type *b = argv[1].ptr;\
         type t = (type)*(double*)argv[2].ptr;\
@@ -64937,8 +64919,7 @@ FLECS_SCRIPT_SMOOTHSTEP(double)
         ecs_value_t *result,\
         int32_t elem_count)\
     {\
-        (void)ctx;\
-        (void)argc;\
+        (void)ctx; (void)argc;\
         type *v = argv[0].ptr;\
         type min = (type)*(double*)argv[1].ptr;\
         type max = (type)*(double*)argv[2].ptr;\
@@ -64961,6 +64942,122 @@ FLECS_SCRIPT_CLAMP(uint64_t)
 FLECS_SCRIPT_CLAMP(float)
 FLECS_SCRIPT_CLAMP(double)
 
+#define FLECS_SCRIPT_DOT(type)\
+    static void flecs_script_dot_##type(\
+        const ecs_function_ctx_t *ctx,\
+        int32_t argc,\
+        const ecs_value_t *argv,\
+        ecs_value_t *result,\
+        int32_t elem_count)\
+    {\
+        (void)ctx; (void)argc;\
+        type *a = argv[0].ptr;\
+        type *b = argv[1].ptr;\
+        double *r = result->ptr;\
+        for (int i = 0; i < elem_count; i ++) {\
+            double x = (double)a[i], y = (double)b[i];\
+            *r += x * y;\
+        }\
+    }
+
+FLECS_SCRIPT_DOT(int8_t)
+FLECS_SCRIPT_DOT(int16_t)
+FLECS_SCRIPT_DOT(int32_t)
+FLECS_SCRIPT_DOT(int64_t)
+FLECS_SCRIPT_DOT(uint8_t)
+FLECS_SCRIPT_DOT(uint16_t)
+FLECS_SCRIPT_DOT(uint32_t)
+FLECS_SCRIPT_DOT(uint64_t)
+FLECS_SCRIPT_DOT(float)
+FLECS_SCRIPT_DOT(double)
+
+#define FLECS_SCRIPT_LENGTH(type)\
+    static void flecs_script_length_##type(\
+        const ecs_function_ctx_t *ctx,\
+        int32_t argc,\
+        const ecs_value_t *argv,\
+        ecs_value_t *result,\
+        int32_t elem_count)\
+    {\
+        (void)ctx; (void)argc;\
+        type *v = argv[0].ptr;\
+        double *r = result->ptr;\
+        double sum = 0;\
+        for (int i = 0; i < elem_count; i ++) {\
+            double x = (double)v[i];\
+            sum += x * x;\
+        }\
+        *r = sqrt(sum);\
+    }
+
+FLECS_SCRIPT_LENGTH(int8_t)
+FLECS_SCRIPT_LENGTH(int16_t)
+FLECS_SCRIPT_LENGTH(int32_t)
+FLECS_SCRIPT_LENGTH(int64_t)
+FLECS_SCRIPT_LENGTH(uint8_t)
+FLECS_SCRIPT_LENGTH(uint16_t)
+FLECS_SCRIPT_LENGTH(uint32_t)
+FLECS_SCRIPT_LENGTH(uint64_t)
+FLECS_SCRIPT_LENGTH(float)
+FLECS_SCRIPT_LENGTH(double)
+
+#define FLECS_SCRIPT_LENGTH_SQ(type)\
+    static void flecs_script_length_sq_##type(\
+        const ecs_function_ctx_t *ctx,\
+        int32_t argc,\
+        const ecs_value_t *argv,\
+        ecs_value_t *result,\
+        int32_t elem_count)\
+    {\
+        (void)ctx; (void)argc;\
+        type *v = argv[0].ptr;\
+        double *r = result->ptr;\
+        for (int i = 0; i < elem_count; i ++) {\
+            double x = (double)v[i];\
+            *r += x * x;\
+        }\
+    }
+
+FLECS_SCRIPT_LENGTH_SQ(int8_t)
+FLECS_SCRIPT_LENGTH_SQ(int16_t)
+FLECS_SCRIPT_LENGTH_SQ(int32_t)
+FLECS_SCRIPT_LENGTH_SQ(int64_t)
+FLECS_SCRIPT_LENGTH_SQ(uint8_t)
+FLECS_SCRIPT_LENGTH_SQ(uint16_t)
+FLECS_SCRIPT_LENGTH_SQ(uint32_t)
+FLECS_SCRIPT_LENGTH_SQ(uint64_t)
+FLECS_SCRIPT_LENGTH_SQ(float)
+FLECS_SCRIPT_LENGTH_SQ(double)
+
+#define FLECS_SCRIPT_NORMALIZE(type)\
+    static void flecs_script_normalize_##type(\
+        const ecs_function_ctx_t *ctx,\
+        int32_t argc,\
+        const ecs_value_t *argv,\
+        ecs_value_t *result,\
+        int32_t elem_count)\
+    {\
+        (void)ctx; (void)argc;\
+        const type *v = argv[0].ptr;\
+        type *r = result->ptr;\
+        double sum_sq = 0.0;\
+        for (int i = 0; i < elem_count; i++) {\
+            double x = (double)v[i];\
+            sum_sq += x * x;\
+        }\
+        if (ECS_EQZERO(sum_sq)) {\
+            for (int i = 0; i < elem_count; i++) r[i] = (type)0;\
+            return;\
+        }\
+        double inv_len = 1.0 / sqrt(sum_sq);\
+        for (int i = 0; i < elem_count; i++) {\
+            r[i] = (type)((double)v[i] * inv_len);\
+        }\
+    }
+
+FLECS_SCRIPT_NORMALIZE(float)
+FLECS_SCRIPT_NORMALIZE(double)
+
 #define FLECS_MATH_FUNC_F64(name, ...)\
     static\
     void flecs_math_##name(\
@@ -64969,8 +65066,7 @@ FLECS_SCRIPT_CLAMP(double)
         const ecs_value_t *argv,\
         ecs_value_t *result)\
     {\
-        (void)ctx;\
-        (void)argc;\
+        (void)ctx; (void)argc;\
         ecs_assert(argc == 1, ECS_INTERNAL_ERROR, NULL);\
         double x = *(double*)argv[0].ptr;\
         *(double*)result->ptr = __VA_ARGS__;\
@@ -64984,8 +65080,7 @@ FLECS_SCRIPT_CLAMP(double)
         const ecs_value_t *argv,\
         ecs_value_t *result)\
     {\
-        (void)ctx;\
-        (void)argc;\
+        (void)ctx; (void)argc;\
         ecs_assert(argc == 2, ECS_INTERNAL_ERROR, NULL);\
         double x = *(double*)argv[0].ptr;\
         double y = *(double*)argv[1].ptr;\
@@ -65000,8 +65095,7 @@ FLECS_SCRIPT_CLAMP(double)
         const ecs_value_t *argv,\
         ecs_value_t *result)\
     {\
-        (void)ctx;\
-        (void)argc;\
+        (void)ctx; (void)argc;\
         ecs_assert(argc == 2, ECS_INTERNAL_ERROR, NULL);\
         double x = *(double*)argv[0].ptr;\
         ecs_i32_t y = *(ecs_i32_t*)argv[1].ptr;\
@@ -65184,6 +65278,105 @@ void FlecsScriptMathImport(
             { .name = "max", .type = ecs_id(ecs_u64_t) }
         },
         .callback = flecs_script_rng_get_uint
+    });
+
+    ecs_function(world, {
+        .name = "min",
+        .parent = ecs_id(FlecsScriptMath),
+        .return_type = ecs_id(ecs_f64_t),
+        .params = {
+            { .name = "a", .type = ecs_id(ecs_f64_t) },
+            { .name = "b", .type = ecs_id(ecs_f64_t) },
+        },
+        .callback = flecs_script_min
+    });
+
+    ecs_function(world, {
+        .name = "max",
+        .parent = ecs_id(FlecsScriptMath),
+        .return_type = ecs_id(ecs_f64_t),
+        .params = {
+            { .name = "a", .type = ecs_id(ecs_f64_t) },
+            { .name = "b", .type = ecs_id(ecs_f64_t) },
+        },
+        .callback = flecs_script_max
+    });
+
+    ecs_function(world, {
+        .name = "dot",
+        .parent = ecs_id(FlecsScriptMath),
+        .return_type = ecs_id(ecs_f64_t),
+        .params = {
+            { .name = "a", .type = EcsScriptVectorType },
+            { .name = "b", .type = EcsScriptVectorType },
+        },
+        .vector_callbacks = {
+            [EcsI8]  = flecs_script_dot_int8_t,
+            [EcsI16] = flecs_script_dot_int16_t,
+            [EcsI32] = flecs_script_dot_int32_t,
+            [EcsI64] = flecs_script_dot_int64_t,
+            [EcsU8]  = flecs_script_dot_uint8_t,
+            [EcsU16] = flecs_script_dot_uint16_t,
+            [EcsU32] = flecs_script_dot_uint32_t,
+            [EcsU64] = flecs_script_dot_uint64_t,
+            [EcsF32] = flecs_script_dot_float,
+            [EcsF64] = flecs_script_dot_double
+        }
+    });
+
+    ecs_function(world, {
+        .name = "length",
+        .parent = ecs_id(FlecsScriptMath),
+        .return_type = ecs_id(ecs_f64_t),
+        .params = {
+            { .name = "v", .type = EcsScriptVectorType }
+        },
+        .vector_callbacks = {
+            [EcsI8]  = flecs_script_length_int8_t,
+            [EcsI16] = flecs_script_length_int16_t,
+            [EcsI32] = flecs_script_length_int32_t,
+            [EcsI64] = flecs_script_length_int64_t,
+            [EcsU8]  = flecs_script_length_uint8_t,
+            [EcsU16] = flecs_script_length_uint16_t,
+            [EcsU32] = flecs_script_length_uint32_t,
+            [EcsU64] = flecs_script_length_uint64_t,
+            [EcsF32] = flecs_script_length_float,
+            [EcsF64] = flecs_script_length_double
+        }
+    });
+
+    ecs_function(world, {
+        .name = "length_sq",
+        .parent = ecs_id(FlecsScriptMath),
+        .return_type = ecs_id(ecs_f64_t),
+        .params = {
+            { .name = "v", .type = EcsScriptVectorType }
+        },
+        .vector_callbacks = {
+            [EcsI8]  = flecs_script_length_sq_int8_t,
+            [EcsI16] = flecs_script_length_sq_int16_t,
+            [EcsI32] = flecs_script_length_sq_int32_t,
+            [EcsI64] = flecs_script_length_sq_int64_t,
+            [EcsU8]  = flecs_script_length_sq_uint8_t,
+            [EcsU16] = flecs_script_length_sq_uint16_t,
+            [EcsU32] = flecs_script_length_sq_uint32_t,
+            [EcsU64] = flecs_script_length_sq_uint64_t,
+            [EcsF32] = flecs_script_length_sq_float,
+            [EcsF64] = flecs_script_length_sq_double
+        }
+    });
+
+    ecs_function(world, {
+        .name = "normalize",
+        .parent = ecs_id(FlecsScriptMath),
+        .return_type = EcsScriptVectorType,
+        .params = {
+            { .name = "v", .type = EcsScriptVectorType }
+        },
+        .vector_callbacks = {
+            [EcsF32] = flecs_script_normalize_float,
+            [EcsF64] = flecs_script_normalize_double
+        }
     });
 
     ecs_function(world, {
@@ -92158,17 +92351,24 @@ int flecs_expr_binary_visit_eval(
     } else {
         ecs_entity_t vector_type = node->vector_type;
         ecs_value_t left_value = { .ptr = left->value.ptr, .type = vector_type };
+        ecs_value_t right_value = { .ptr = right->value.ptr, .type = vector_type };
         ecs_value_t out_value = { .ptr = out->value.ptr, .type = vector_type };
         ecs_size_t size = flecs_expr_storage_size(vector_type);
+        ecs_size_t right_offset = 0;
+
+        if (left->value.type == right->value.type) {
+            right_offset = size;
+        }
 
         for (i = 0; i < vector_count; i ++) {
-            if (flecs_value_binary(
-                ctx->script, &left_value, &right->value, &out_value, node->operator)) 
+            if (flecs_value_binary(ctx->script, &left_value, &right_value, 
+                &out_value, node->operator)) 
             {
                 goto error;
             }
 
             left_value.ptr = ECS_OFFSET(left_value.ptr, size);
+            right_value.ptr = ECS_OFFSET(right_value.ptr, right_offset);
             out_value.ptr = ECS_OFFSET(out_value.ptr, size);
         }
     }
@@ -94830,36 +95030,41 @@ int flecs_expr_type_for_operator(
             }
         }
 
-        if (!ltype_ptr && rtype_ptr) {
+        if (!ltype_ptr) {
             ecs_entity_t vector_type = 0;
             int32_t elem_count = flecs_script_get_vector_type_data(
                 world, left_type, &vector_type);
             if (elem_count) {
-                *result_type = left_type;
-                *operand_type = vector_type;
-                if (vector_elem_count) {
-                    *vector_elem_count = elem_count;
-                } else {
-                    char *lname = ecs_get_path(world, left->type);
-                    char *rname = ecs_get_path(world, right->type);
+                /* For vector operations the right operand type must be either a 
+                 * primitive type or the same type as the left operand. */
+                if (!rtype_ptr && (left_type != right->type)) {
                     flecs_expr_visit_error(script, node, 
-                        "binary vector operation is not allowed here (%s, %s)", 
-                        lname, rname);
-                    ecs_os_free(lname);
-                    ecs_os_free(rname);
+                        "invalid types for binary expression (%s, %s)", 
+                        flecs_errstr(ecs_get_path(world, left->type)),
+                        flecs_errstr_1(ecs_get_path(world, right->type)));
                     goto error;
                 }
+
+                /* This is a binary vector operation, check if it's allowed */
+                if (!vector_elem_count) {
+                    flecs_expr_visit_error(script, node, 
+                        "binary vector operation is not allowed here (%s, %s)", 
+                        flecs_errstr(ecs_get_path(world, left->type)),
+                        flecs_errstr_1(ecs_get_path(world, right->type)));
+                    goto error;
+                }
+
+                *result_type = left_type;
+                *operand_type = vector_type;
+                *vector_elem_count = elem_count;
                 goto done;
             }
         }
 
-        char *lname = ecs_get_path(world, left->type);
-        char *rname = ecs_get_path(world, right->type);
         flecs_expr_visit_error(script, node, 
-            "invalid non-primitive type in expression (%s, %s)", 
-            lname, rname);
-        ecs_os_free(lname);
-        ecs_os_free(rname);
+            "invalid types for binary expression (%s, %s)", 
+            flecs_errstr(ecs_get_path(world, left->type)),
+            flecs_errstr_1(ecs_get_path(world, right->type)))
         goto error;
     }
 
@@ -95455,10 +95660,14 @@ int flecs_expr_binary_visit_type(
     }
 
     if (operand_type != node->right->type) {
-        node->right = (ecs_expr_node_t*)flecs_expr_cast(
-            script, node->right, operand_type);
-        if (!node->right) {
-            goto error;
+        if (!vector_elem_count || (node->right->type != node->left->type)) {
+            /* If this is a vector operation between the same types, don't try
+             * to cast the right hand to the vector type. */
+            node->right = (ecs_expr_node_t*)flecs_expr_cast(
+                script, node->right, operand_type);
+            if (!node->right) {
+                goto error;
+            }
         }
     }
 
@@ -95731,10 +95940,10 @@ int flecs_expr_arguments_visit_type(
     ecs_script_t *script,
     ecs_expr_initializer_t *node,
     const ecs_expr_eval_desc_t *desc,
-    const ecs_vec_t *param_vec,
+    const struct ecs_script_function_t *func_data,
     ecs_entity_t *vector_type_out)
 {
-    ecs_script_parameter_t *params = ecs_vec_first(param_vec);
+    ecs_script_parameter_t *params = ecs_vec_first(&func_data->params);
     ecs_expr_initializer_element_t *elems = ecs_vec_first(&node->elements);
     int32_t i, count = ecs_vec_count(&node->elements);
     ecs_entity_t vector_type = 0;
@@ -95764,6 +95973,26 @@ int flecs_expr_arguments_visit_type(
             }
 
             argtype = vector_type;
+
+            /* Check if function provides implementation for type if argument
+             * is of a primitive type. If it doesn't, try to cast. */
+            const EcsPrimitive *p = ecs_get(
+                script->world, argtype, EcsPrimitive);
+            if (p) {
+                if (!func_data->vector_callbacks[p->kind]) {
+                    /* Fallback to types with max expressiveness */
+                    if (func_data->vector_callbacks[EcsF64]) {
+                        vector_type = argtype = ecs_id(ecs_f64_t);
+                    } else if (func_data->vector_callbacks[EcsI64]) {
+                        vector_type = argtype = ecs_id(ecs_i64_t);
+                    } else if (func_data->vector_callbacks[EcsU64]) {
+                        vector_type = argtype = ecs_id(ecs_u64_t);
+                    } else {
+                        /* No matching implementation. Error will be caught 
+                         * later in the code. */
+                    }
+                }
+            }
         }
 
         if (elem->value->type != argtype) {
@@ -95806,9 +96035,9 @@ int flecs_expr_populate_primitive_vector_calldata(
     ecs_vector_function_callback_t cb = func_data->vector_callbacks[ptype->kind];
     if (!cb) {
         flecs_expr_visit_error(script, node, "function '%s' does not implement "
-            "vector operation for primitive kind '%s'",
+            "matching vector operation for type '%s'",
             node->function_name,
-            flecs_primitive_type_kind_str(ptype->kind));
+            flecs_errstr(ecs_get_path(script->world, elem_type)));
         goto error;
     }
 
@@ -96048,7 +96277,7 @@ try_function:
 
     ecs_entity_t vector_type = 0;
     if (flecs_expr_arguments_visit_type(
-        script, node->args, desc, params, &vector_type)) 
+        script, node->args, desc, func_data, &vector_type)) 
     {
         goto error;
     }
