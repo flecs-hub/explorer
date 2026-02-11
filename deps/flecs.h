@@ -5424,6 +5424,7 @@ typedef struct EcsParent {
 typedef struct {
     const char *child_name; /* Name of prefab child */
     ecs_table_t *table;     /* Table in which child will be stored */
+    uint32_t child;         /* Prefab child entity (without generation) */
     int32_t parent_index;   /* Index into children vector */
 } ecs_tree_spawner_child_t;
 
@@ -8976,6 +8977,35 @@ FLECS_API
 void ecs_iter_set_group(
     ecs_iter_t *it,
     uint64_t group_id);
+
+/** Return map with query groups.
+ * This map can be used to iterate the active group identifiers of a query. The
+ * payload of the map is opaque. The map can be used as follows:
+ * 
+ * @code
+ * const ecs_map_t *keys = ecs_query_get_groups(q);
+ * ecs_map_iter_t kit = ecs_map_iter(keys);
+ * while (ecs_map_next(&kit)) {
+ *   uint64_t group_id = ecs_map_key(&kit);
+ * 
+ *   // Iterate query for group
+ *   ecs_iter_t it = ecs_query_iter(world, q);
+ *   ecs_iter_set_group(&it, group_id);
+ *   while (ecs_query_next(&it)) {
+ *     // Iterate as usual
+ *   }
+ * }
+ * @endcode
+ * 
+ * This operation is not valid for queries that do not use group_by. The 
+ * returned map pointer will remain valid for as long as the query exists.
+ *
+ * @param query The query.
+ * @return The map with query groups.
+ */
+FLECS_API
+const ecs_map_t* ecs_query_get_groups(
+    const ecs_query_t *query);
 
 /** Get context of query group.
  * This operation returns the context of a query group as returned by the
@@ -13045,6 +13075,10 @@ typedef struct ecs_system_desc_t {
     /** System query parameters */
     ecs_query_desc_t query;
 
+    /** Optional pipeline phase for the system to run in. When set, it will be
+     * added to the system both as a tag and as a (DependsOn, phase) pair. */
+    ecs_entity_t phase;
+
     /** Callback that is ran for each result returned by the system's query. This
      * means that this callback can be invoked multiple times per system per
      * frame, typically once for each matching table. */
@@ -13186,20 +13220,15 @@ const ecs_system_t* ecs_system_get(
  * ECS_SYSTEM_DEFINE(world, Move, EcsOnUpdate, Position, Velocity);
  * @endcode
  */
-#define ECS_SYSTEM_DEFINE(world, id_, phase, ...) \
+#define ECS_SYSTEM_DEFINE(world, id_, phase_, ...) \
     { \
         ecs_system_desc_t desc = {0}; \
         ecs_entity_desc_t edesc = {0}; \
-        ecs_id_t add_ids[3] = {\
-            ((phase) ? ecs_pair(EcsDependsOn, (phase)) : 0), \
-            (phase), \
-            0 \
-        };\
         edesc.id = ecs_id(id_);\
         edesc.name = #id_;\
-        edesc.add = add_ids;\
         desc.entity = ecs_entity_init(world, &edesc);\
         desc.query.expr = #__VA_ARGS__; \
+        desc.phase = phase_; \
         desc.callback = id_; \
         ecs_id(id_) = ecs_system_init(world, &desc); \
     } \
@@ -14826,6 +14855,8 @@ typedef struct ecs_iter_to_json_desc_t {
     bool serialize_alerts;          /**< Serialize active alerts for entity */
     ecs_entity_t serialize_refs;    /**< Serialize references (incoming edges) for relationship */
     bool serialize_matches;         /**< Serialize which queries entity matches with */
+    bool serialize_parents_before_children; /** If query matches both children and parent, serialize parent before children */
+    
     /** Callback for if the component should be serialized */
     bool (*component_filter)
         (const ecs_world_t *, ecs_entity_t);
@@ -14852,6 +14883,7 @@ typedef struct ecs_iter_to_json_desc_t {
     .serialize_alerts =          false, \
     .serialize_refs =            false, \
     .serialize_matches =         false, \
+    .serialize_parents_before_children = false,\
     .component_filter =          NULL, \
     .query =                     NULL \
 }
@@ -14863,6 +14895,7 @@ typedef struct ecs_iter_to_json_desc_t {
     false, \
     true, \
     true, \
+    false, \
     false, \
     false, \
     false, \
@@ -18055,7 +18088,7 @@ int ecs_meta_from_desc(
 
 /* ECS_STRUCT implementation */
 #define ECS_STRUCT_TYPE(name, ...)\
-    typedef struct __VA_ARGS__ name
+    typedef struct name __VA_ARGS__ name
 
 #define ECS_STRUCT_ECS_META_IMPL ECS_STRUCT_IMPL
 
@@ -18075,7 +18108,7 @@ int ecs_meta_from_desc(
 
 /* ECS_ENUM implementation */
 #define ECS_ENUM_TYPE(name, ...)\
-    typedef enum __VA_ARGS__ name
+    typedef enum name __VA_ARGS__ name
 
 #define ECS_ENUM_ECS_META_IMPL ECS_ENUM_IMPL
 
@@ -18095,7 +18128,7 @@ int ecs_meta_from_desc(
 
 /* ECS_BITMASK implementation */
 #define ECS_BITMASK_TYPE(name, ...)\
-    typedef enum __VA_ARGS__ name
+    typedef enum name __VA_ARGS__ name
 
 #define ECS_BITMASK_ECS_META_IMPL ECS_BITMASK_IMPL
 
@@ -25407,6 +25440,134 @@ struct ref : public untyped_ref {
 #pragma once
 
 /**
+ * @file addons/cpp/entity_component_tuple.hpp
+ * @brief Utilities to fetch component as tuples from entities.
+ */
+
+#pragma once
+
+/**
+ * @ingroup cpp_entities
+ * @{
+ */
+
+namespace flecs
+{
+
+    template<std::size_t size, typename... Args>
+    struct tuple_builder {};
+
+    // Size 2
+
+    template<typename T, typename U>
+    struct tuple_2 {
+        T val1; U val2;
+    };
+
+    template<typename... Args>
+    struct tuple_builder<2, Args...> {
+        using type = tuple_2<Args&...>;
+        using type_ptr = tuple_2<Args*...>;
+        using type_const = tuple_2<const Args&...>;
+        using type_const_ptr = tuple_2<const Args*...>;
+    };
+
+    // Size 3
+
+    template<typename T, typename U, typename V>
+    struct tuple_3 {
+        T val1; U val2; V val3;
+    };
+
+    template<typename... Args>
+    struct tuple_builder<3, Args...> {
+        using type = tuple_3<Args&...>;
+        using type_ptr = tuple_3<Args*...>;
+        using type_const = tuple_3<const Args&...>;
+        using type_const_ptr = tuple_3<const Args*...>;
+    };
+
+    // Size 4
+
+    template<typename T, typename U, typename V, typename W>
+    struct tuple_4 {
+        T val1; U val2; V val3; W val4;
+    };
+
+    template<typename... Args>
+    struct tuple_builder<4, Args...> {
+        using type = tuple_4<Args&...>;
+        using type_ptr = tuple_4<Args*...>;
+        using type_const = tuple_4<const Args&...>;
+        using type_const_ptr = tuple_4<const Args*...>;
+    };
+
+    // Size 5
+
+    template<typename T, typename U, typename V, typename W, typename X>
+    struct tuple_5 {
+        T val1; U val2; V val3; W val4; X val5;
+    };
+
+    template<typename... Args>
+    struct tuple_builder<5, Args...> {
+        using type = tuple_5<Args&...>;
+        using type_ptr = tuple_5<Args*...>;
+        using type_const = tuple_5<const Args&...>;
+        using type_const_ptr = tuple_5<const Args*...>;
+    };
+
+    // Size 6
+
+    template<typename T, typename U, typename V, typename W, typename X, typename Y>
+    struct tuple_6 {
+        T val1; U val2; V val3; W val4; X val5; Y val6;
+    };
+
+    template<typename... Args>
+    struct tuple_builder<6, Args...> {
+        using type = tuple_6<Args&...>;
+        using type_ptr = tuple_6<Args*...>;
+        using type_const = tuple_6<const Args&...>;
+        using type_const_ptr = tuple_6<const Args*...>;
+    };
+
+    // Size 7
+
+    template<typename T, typename U, typename V, typename W, typename X, typename Y, typename Z>
+    struct tuple_7 {
+        T val1; U val2; V val3; W val4; X val5; Y val6; Z val7;
+    };
+
+    template<typename... Args>
+    struct tuple_builder<7, Args...> {
+        using type = tuple_7<Args&...>;
+        using type_ptr = tuple_7<Args*...>;
+        using type_const = tuple_7<const Args&...>;
+        using type_const_ptr = tuple_7<const Args*...>;
+    };
+
+    // Size 8
+
+    template<typename T, typename U, typename V, typename W, typename X, typename Y, typename Z, typename A>
+    struct tuple_8 {
+        T val1; U val2; V val3; W val4; X val5; Y val6; Z val7; A val8;
+    };
+
+    template<typename... Args>
+    struct tuple_builder<8, Args...> {
+        using type = tuple_8<Args&...>;
+        using type_ptr = tuple_8<Args*...>;
+        using type_const = tuple_8<const Args&...>;
+        using type_const_ptr = tuple_8<const Args*...>;
+    };
+
+}
+
+/** @} */
+
+
+/**
  * @ingroup cpp_entities
  * @{
  */
@@ -25745,6 +25906,13 @@ struct entity_view : public id {
         return ecs_get_id(world_, id_, ecs_pair(first, second));
     }
 
+    template<typename... Ts>
+    auto try_get_n() const {
+        flecs_static_assert(sizeof...(Ts) > 1, "try_get_n requires at least two components");
+        flecs_static_assert(sizeof...(Ts) < 9, "try_get_n cannot fetch more than eight components");
+        return typename tuple_builder<sizeof...(Ts), Ts...>::type_const_ptr {try_get<Ts>()...};
+    }
+
     /** Get the second part for a pair.
      * This operation gets the value for a pair from the entity. The first
      * part of the pair should not be a component.
@@ -25925,6 +26093,13 @@ struct entity_view : public id {
     template <typename Func, if_t< is_callable<Func>::value > = 0>
     bool get(const Func& func) const;
 
+    template<typename... Ts>
+    auto get_n() const {
+        flecs_static_assert(sizeof...(Ts) > 1, "get_n requires at least two components");
+        flecs_static_assert(sizeof...(Ts) < 9, "get_n cannot fetch more than eight components");
+        return typename tuple_builder<sizeof...(Ts), Ts...>::type_const {get<Ts>()...};
+    }
+
     /** Get the second part for a pair.
      * This operation gets the value for a pair from the entity. The first
      * part of the pair should not be a component.
@@ -26049,6 +26224,13 @@ struct entity_view : public id {
      */
     void* try_get_mut(flecs::entity_t first, flecs::entity_t second) const {
         return ecs_get_mut_id(world_, id_, ecs_pair(first, second));
+    }
+
+    template<typename... Ts>
+    auto try_get_mut_n() const {
+        flecs_static_assert(sizeof...(Ts) > 1, "try_get_mut_n requires at least two components");
+        flecs_static_assert(sizeof...(Ts) < 9, "try_get_mut_n cannot fetch more than eight components");
+        return typename tuple_builder<sizeof...(Ts), Ts...>::type_ptr {try_get_mut<Ts>()...};
     }
 
     /** Get the second part for a pair.
@@ -26185,6 +26367,13 @@ struct entity_view : public id {
         ecs_assert(r != nullptr, ECS_INVALID_OPERATION, 
             "invalid get_mut: entity does not have component (use try_get_mut)");
         return r;
+    }
+
+    template<typename... Ts>
+    auto get_mut_n() const {
+        flecs_static_assert(sizeof...(Ts) > 1, "get_mut_n requires at least two components");
+        flecs_static_assert(sizeof...(Ts) < 9, "get_mut_n cannot fetch more than eight components");
+        return typename tuple_builder<sizeof...(Ts), Ts...>::type {get_mut<Ts>()...};
     }
 
     /** Get the second part for a pair.

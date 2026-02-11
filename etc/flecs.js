@@ -336,7 +336,6 @@ const flecs = {
         // Update script code
         scriptUpdate: function(path, code, params, recv, err) {
           if (!params) params = {};
-          params.pay
           params.payload = code;
           path = this._.escapePath(path);
           return this._.request(this, "PUT", "script/" + path, params, 

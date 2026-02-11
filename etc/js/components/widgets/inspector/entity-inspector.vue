@@ -54,7 +54,8 @@
             <flecs-script
               :conn="conn"
               :script="path"
-              v-if="entityQueryResult && isScript">
+              v-if="entityQueryResult && isScript"
+              @onUpdate="onScriptUpdate">
             </flecs-script>
           </template>
         </entity-inspector-container>
@@ -164,6 +165,7 @@ const isQuery = ref(false);
 const componentFilter = ref();
 const loading = ref(true);
 const firstRequest = ref(true);
+const scriptChanged = ref(false);
 
 const inspectorMode = computed(() => {
   return appParams.value.inspector_tab;
@@ -190,7 +192,8 @@ const items = computed(() => {
     result.push({
       label: "Script",
       value: "Script",
-      canClose: false
+      canClose: false,
+      changed: scriptChanged.value
     });
   }
 
@@ -424,8 +427,8 @@ function inspectQuery() {
   emit("queryOpen");
 }
 
-function onScriptOpen(evt) {
-  emit("scriptOpen", evt ? evt.path : undefined);
+function onScriptUpdate(evt) {
+  scriptChanged.value = evt.changed;
 }
 
 function onAddComponent(component) {
@@ -442,7 +445,6 @@ function onAddScript() {
     entityQuery.value.now();
   });
 }
-
 
 function onRemoveComponent(component) {
   loading.value = true;

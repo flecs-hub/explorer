@@ -45,7 +45,7 @@ export default { name: "pane-scripts" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, defineEmits, computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}

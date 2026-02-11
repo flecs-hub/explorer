@@ -12,17 +12,18 @@ export default { name: "edit-tabs-close-button" }
 
 <script setup>
 
-import { defineProps, defineEmits, computed, ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const props = defineProps({
-  changed: {type: Boolean, required: false, default: false}
+  changed: {type: Boolean, required: false, default: false},
+  canClose: {type: Boolean, required: false, default: false}
 });
 
 const emit = defineEmits(["onClose"]);
 const hover = ref(false);
 
 const iconImage = computed(() => {
-  if (hover.value) {
+  if (hover.value && props.canClose) {
     return "close";
   }
   if (props.changed) {
@@ -40,7 +41,9 @@ function onLeave() {
 }
 
 function onClose() {
-  emit("onClose");
+  if (props.canClose) {
+    emit("onClose");
+  }
 }
 
 </script>

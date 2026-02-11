@@ -11,7 +11,7 @@ export default { name: "flecs-script" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, defineEmits, onMounted, computed, ref, watch } from 'vue';
+import { onMounted, computed, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -41,9 +41,7 @@ function loadScript() {
     isLoading = false;
     error.value = reply.error;
 
-    // TODO: this was causing scripts to be reparsed when opening an editor.
-    // Find better way to get changed state.
-    // scriptUpdate(reply.code);
+    emit("onUpdate", reply);
   });
 }
 
@@ -60,7 +58,6 @@ function onScriptChange(editorObj) {
 function scriptUpdate(code, save = false) {
   props.conn.scriptUpdate(props.script, code, {
     try: true,
-    check_file: true,
     save_file: save
   }, (msg) => {
     if (msg.error) {

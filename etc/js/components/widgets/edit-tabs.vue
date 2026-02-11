@@ -5,15 +5,16 @@
         <div class="edit-tabs-tabs">
           <div class="edit-tabs-tabs-line"></div>
           <div :class="editButtonCss(item)" @click="editButtonSelect(item.value)" v-for="item in items">
-            <div class="edit-tabs-button-content">
+            <div :class="editButtonContentCss(item)">
               <template v-if="item.icon">
                 <icon :src="item.icon" :opacity="0.5"></icon>&nbsp;&nbsp;
               </template>
               {{ item.label }}
               <div class="edit-tabs-close-button"
-                v-if="activeItem && item.value == activeItem && item.canClose">
+                v-if="activeItem && item.value == activeItem && (item.canClose || item.changed)">
                 <edit-tabs-close-button
-                  :changed="changed"
+                  :changed="item.changed"
+                  :canClose="item.canClose"
                   @onClose="editButtonClose(item)">
                 </edit-tabs-close-button>
               </div>
@@ -40,7 +41,7 @@ export default { name: "edit-tabs" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, defineEmits, onMounted } from 'vue';
+import { onMounted } from 'vue';
 
 const props = defineProps({
   items: {type: Array, required: true},
@@ -78,8 +79,14 @@ function editButtonCss(item) {
     }
   }
 
-  if (item.canClose) {
-    classes.push("edit-tabs-button-can-close");
+  return classes;
+}
+
+function editButtonContentCss(item) {
+  let classes = ["noselect", "edit-tabs-button-content"];
+
+  if (item.canClose || item.changed) {
+    classes.push("edit-tabs-button-content-can-close");
   }
 
   return classes;
@@ -192,16 +199,12 @@ div.edit-tabs-button {
   overflow: hidden;
 }
 
-div.edit-tabs-button-can-close {
-  padding-right: 28px;
+div.edit-tabs-button-content-can-close {
+  padding-right: 30px !important;
 }
 
 div.edit-tabs-button:nth-child(2) {
   border-left-width: 0px;
-}
-
-div.edit-tabs-button-active:last-child {
-  border-right-width: 1px;
 }
 
 div.edit-tabs-button:last-child {
@@ -222,7 +225,6 @@ div.edit-tabs-button-content {
 div.edit-tabs-button-active {
   background-color: var(--bg-pane);
   border-bottom-color: rgba(0, 0, 0, 0);
-  border-top-color: var(--green);
   border-top-left-radius: var(--border-radius-small);
   border-top-right-radius: var(--border-radius-small);
   border-right-width: 1px;
@@ -234,7 +236,7 @@ div.edit-tabs-button-active + div.edit-tabs-button {
 }
 
 div.edit-tabs-button-active .edit-tabs-button-content {
-  border-color: var(--green);
+  border-top-color: var(--green);
 }
 
 div.edit-tabs-button:hover {
