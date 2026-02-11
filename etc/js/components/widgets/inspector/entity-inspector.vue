@@ -55,6 +55,7 @@
               :conn="conn"
               :script="path"
               v-if="entityQueryResult && isScript"
+              @onChange="onCodeChange"
               @onUpdate="onScriptUpdate">
             </flecs-script>
           </template>
@@ -143,7 +144,7 @@ export default { name: "entity-inspector" }
 <script setup>
 import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 
-const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close"]);
+const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close", "onCodeChange"]);
 
 const props = defineProps({
   conn: {type: Object, required: false},
@@ -429,6 +430,10 @@ function inspectQuery() {
 
 function onScriptUpdate(evt) {
   scriptChanged.value = evt.changed;
+}
+
+function onCodeChange(code) {
+  emit("onCodeChange", code);
 }
 
 function onAddComponent(component) {

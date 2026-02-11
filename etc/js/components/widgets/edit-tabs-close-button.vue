@@ -12,7 +12,7 @@ export default { name: "edit-tabs-close-button" }
 
 <script setup>
 
-import { computed, ref } from 'vue';
+import { defineProps, defineEmits, computed, ref } from 'vue';
 
 const props = defineProps({
   changed: {type: Boolean, required: false, default: false},

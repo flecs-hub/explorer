@@ -40,6 +40,7 @@
         :path="appParams.entities.path"
         v-model:app_params="appParams.entities"
         @close="onClose"
+        @onCodeChange="onCodeChange"
         @scriptOpen="onScriptOpen"
         @queryOpen="onQueryOpen"
         @selectEntity="onSelectEntity">

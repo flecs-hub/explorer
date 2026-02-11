@@ -41,7 +41,7 @@ export default { name: "edit-tabs" }
 </script>
 
 <script setup>
-import { onMounted } from 'vue';
+import { defineProps, defineModel, defineEmits, onMounted } from 'vue';
 
 const props = defineProps({
   items: {type: Array, required: true},

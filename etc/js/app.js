@@ -43,6 +43,8 @@ const defaultAppParams = {
   refresh: "auto"
 }
 
+const defaultCodeScript = "etc.assets.scene\\.flecs";
+
 function newAppParams() {
   let result = structuredClone(defaultAppParams);
 
@@ -274,6 +276,14 @@ Promise.all(components).then((values) => {
       // Load URL parameters
       this.fromUrlParams();
 
+      // If code is provided, open the script inspector for it.
+      if (this.app_params.code !== undefined) {
+        if (!this.app_params.entities.path) {
+          this.app_params.entities.path = this.getCodeScriptPath();
+        }
+        this.app_params.entities.inspector_tab = "Script";
+      }
+
       let explicitHost = true;
       if (!this.app_params.host) {
         this.app_params.host = "localhost";
@@ -302,7 +312,7 @@ Promise.all(components).then((values) => {
           if (status == flecs.ConnectionStatus.Connected) {
             if (this.conn.mode == flecs.ConnectionMode.Wasm) {
               if (this.app_params.code) {
-                this.conn.scriptUpdate("etc.assets.scene\\.flecs", this.app_params.code, {
+                this.conn.scriptUpdate(this.getCodeScriptPath(), this.app_params.code, {
                   try: true
                 }, () => {});
               }
@@ -368,6 +378,15 @@ Promise.all(components).then((values) => {
     },
 
     methods: {
+      getCodeScriptPath() {
+        if (this.app_params.entities && this.app_params.entities.path) {
+          return this.app_params.entities.path;
+        }
+        if (this.app_params.script) {
+          return this.app_params.script;
+        }
+        return defaultCodeScript;
+      },
       convertTo(type, value) {
         if (type === "undefined") {
           return value;

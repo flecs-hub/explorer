@@ -11,7 +11,7 @@ export default { name: "flecs-script" }
 </script>
 
 <script setup>
-import { onMounted, computed, ref, watch } from 'vue';
+import { defineProps, defineModel, defineEmits, onMounted, computed, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},

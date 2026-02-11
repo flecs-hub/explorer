@@ -22,10 +22,10 @@
         <div class="script-editor">
           <flecs-script 
             :conn="conn"
-            :script="activeScript"
+            :script="activeScript.path"
             v-model:error="scriptError"
-            v-model:changed="scriptChanged"
             @onChange="onCodeChange"
+            @onUpdate="onScriptUpdate"
             v-if="activeScript">
           </flecs-script>
         </div>
@@ -45,7 +45,7 @@ export default { name: "pane-scripts" }
 </script>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { defineProps, defineModel, defineEmits, computed, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}
@@ -155,6 +155,10 @@ function paneScriptsCss() {
 
 function onCodeChange(evt) {
   emit("onCodeChange", evt);
+}
+
+function onScriptUpdate(msg) {
+  scriptChanged.value = msg.changed;
 }
 
 defineExpose({openScript, closeScripts});
