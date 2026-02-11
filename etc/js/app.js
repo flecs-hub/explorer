@@ -40,6 +40,7 @@ const defaultAppParams = {
   scripts: [],
   script: undefined,
   code: undefined,
+  code_url: undefined,
   refresh: "auto"
 }
 
@@ -277,12 +278,14 @@ Promise.all(components).then((values) => {
       this.fromUrlParams();
 
       // If code is provided, open the script inspector for it.
-      if (this.app_params.code !== undefined) {
+      if (this.getStartupCode()) {
         if (!this.app_params.entities.path) {
           this.app_params.entities.path = this.getCodeScriptPath();
         }
         this.app_params.entities.inspector_tab = "Script";
       }
+
+      this.loadCodeFromUrl();
 
       let explicitHost = true;
       if (!this.app_params.host) {
@@ -310,13 +313,7 @@ Promise.all(components).then((values) => {
           this.app_state.status = status;
 
           if (status == flecs.ConnectionStatus.Connected) {
-            if (this.conn.mode == flecs.ConnectionMode.Wasm) {
-              if (this.app_params.code) {
-                this.conn.scriptUpdate(this.getCodeScriptPath(), this.app_params.code, {
-                  try: true
-                }, () => {});
-              }
-            }
+            this.applyStartupCode();
           }
         }.bind(this),
 
@@ -378,6 +375,53 @@ Promise.all(components).then((values) => {
     },
 
     methods: {
+      getStartupCode() {
+        if (this.app_params.code !== undefined) {
+          return this.app_params.code;
+        }
+        return this.code_from_url;
+      },
+      applyStartupCode() {
+        if (!this.conn || this.conn.mode != flecs.ConnectionMode.Wasm) {
+          return;
+        }
+        if (this.app_state.status != flecs.ConnectionStatus.Connected) {
+          return;
+        }
+
+        const startupCode = this.getStartupCode();
+        if (startupCode === undefined) {
+          return;
+        }
+
+        const scriptPath = this.getCodeScriptPath();
+        this.conn.scriptUpdate(scriptPath, startupCode, {
+          try: true
+        }, () => {});
+      },
+      loadCodeFromUrl() {
+        if (this.app_params.code_url === undefined) {
+          return;
+        }
+        if (this.app_params.code !== undefined) {
+          return; // explicit code parameter takes precedence
+        }
+
+        fetch(this.app_params.code_url)
+          .then((reply) => {
+            if (!reply.ok) {
+              throw new Error(`HTTP ${reply.status}`);
+            }
+            return reply.text();
+          })
+          .then((text) => {
+            this.code_from_url = text;
+            this.applyStartupCode();
+          })
+          .catch((err) => {
+            console.error(`failed to load code-url '${this.app_params.code_url}': ${err}`);
+          });
+      },
       getCodeScriptPath() {
         if (this.app_params.entities && this.app_params.entities.path) {
           return this.app_params.entities.path;
@@ -411,6 +455,11 @@ Promise.all(components).then((values) => {
             continue;
           }
 
+          let urlKey = key;
+          if (key == "code_url") {
+            urlKey = "code-url";
+          }
+
           const value = obj[key];
           if (typeof value === "object") {
             if (!Array.isArray(value)) {
@@ -418,7 +467,7 @@ Promise.all(components).then((values) => {
                 for (let value_key in value) { // max 1 lvl of nesting
                   const nested = value[value_key];
                   if (nested !== defaultAppParams[key][value_key]) {
-                    result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
+                    result += `${first ? "?" : "&"}${urlKey + '.' + value_key}=${encodeURIComponent(nested)}`;
                     first = false;
                   }
                 }
@@ -426,12 +475,12 @@ Promise.all(components).then((values) => {
             } else {
                 for (let value_key in value) { // max 1 lvl of nesting
                   const nested = value[value_key];
-                  result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
+                  result += `${first ? "?" : "&"}${urlKey + '.' + value_key}=${encodeURIComponent(nested)}`;
                   first = false;
                 }
             }
           } else if (value !== defaultAppParams[key]) {
-            result += `${first ? "?" : "&"}${key}=${encodeURIComponent(value)}`;
+            result += `${first ? "?" : "&"}${urlKey}=${encodeURIComponent(value)}`;
             first = false;
           }
         }
@@ -448,6 +497,9 @@ Promise.all(components).then((values) => {
           let paramValuePos = url.indexOf("=", paramNamePos);
           let paramValueEnd = url.indexOf("&", paramValuePos);
           const key = url.slice(paramNamePos + 1, paramValuePos).split(".");
+          if (key[0] == "code-url") {
+            key[0] = "code_url";
+          }
           let value;
           if (paramValueEnd !== -1) {
             value = url.slice(paramValuePos + 1, paramValueEnd);
@@ -531,6 +583,7 @@ Promise.all(components).then((values) => {
           command_counts: new Array(120).fill(0),
         },
         app_params: newAppParams(), // Populated by user
+        code_from_url: undefined,
         conn: undefined,
         lastWord: "",
         prev_command_count: -1,
