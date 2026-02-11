@@ -145,8 +145,8 @@ div.edit-tabs-container {
 
 div.edit-tabs-content {
   grid-row: 2;
-  height: calc(100% - 4px);
-  overflow-y: auto;
+  height: 100%;
+  overflow-y: none;
 }
 
 div.edit-tabs-tabs {

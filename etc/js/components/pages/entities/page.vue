@@ -23,7 +23,7 @@
 
     <pane-content :conn="conn" :app_state="app_state"
       ref="pane_content"
-      v-model:active_tab="appParams.entities.active_tab"
+      v-model:tab="appParams.entities.tab"
       v-model:scripts="appParams.scripts"
       @onCodeChange="onCodeChange">
     </pane-content>

@@ -27,7 +27,7 @@ const defaultAppParams = {
   },
   entities: {
     path: undefined,
-    active_tab: "Overview",
+    tab: "Overview",
     inspector_tab: "Inspect",
     tree_mode: "Entities",
   },
@@ -50,7 +50,7 @@ function newAppParams() {
   let result = structuredClone(defaultAppParams);
 
   result.run_playground = function() { 
-    this.entities.active_tab = "Scene";
+    this.entities.tab = "Scene";
     this.entities.inspector_tab = "Script";
     this.entities.path = "etc.assets.scene\\.flecs";
     this.host = "flecs_explorer.wasm";
@@ -523,6 +523,9 @@ Promise.all(components).then((values) => {
           } else {
             value = url.slice(paramValuePos + 1);
           }
+
+          // medium links encode spaces as +
+          value = value.replaceAll("+", "%20");
 
           if (key.length == 1) {
             const type = typeof this.app_params[key[0]];

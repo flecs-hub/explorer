@@ -84,7 +84,7 @@ function onConnect() {
     app_params.value.scripts = [];
     app_params.value.code = undefined;
     app_params.value.code_url = undefined;
-    app_params.value.entities.active_tab = "Overview";
+    app_params.value.entities.tab = "Overview";
     app_params.value.entities.inspector_tab = "Inspect";
     app_params.value.entities.path = undefined;
     app_params.value.host = "localhost";

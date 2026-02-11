@@ -52,7 +52,7 @@ onUnmounted(() => {
 });
 
 watch(() => [props.app_state.has3DCanvas, props.app_params.page, 
-             props.app_params.sidebar, props.app_params.entities.active_tab,
+             props.app_params.sidebar, props.app_params.entities.tab,
              props.app_params.script], () => 
 {
   handleResize();

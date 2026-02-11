@@ -35,7 +35,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(["onCodeChange"]);
-const activeTab = defineModel("active_tab");
+const activeTab = defineModel("tab");
 const scripts = defineModel("scripts");
 const changed = ref(false);
 
