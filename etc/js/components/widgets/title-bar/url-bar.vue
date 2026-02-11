@@ -72,6 +72,8 @@ const setFocus = (value) => {
 function onChange() {
   app_params.value.script = undefined;
   app_params.value.scripts = [];
+  app_params.code = undefined;
+  app_params.code_url = undefined;
   app_params.value.host = urlBox.value.value;
   urlBox.value.blur();
 }
@@ -80,6 +82,8 @@ function onConnect() {
   if (props.app_state.mode == flecs.ConnectionMode.Wasm) {
     app_params.value.script = undefined;
     app_params.value.scripts = [];
+    app_params.value.code = undefined;
+    app_params.value.code_url = undefined;
     app_params.value.entities.active_tab = "Overview";
     app_params.value.entities.inspector_tab = "Inspect";
     app_params.value.entities.path = undefined;

@@ -27,7 +27,7 @@ const defaultAppParams = {
   },
   entities: {
     path: undefined,
-    active_tab: undefined,
+    active_tab: "Overview",
     inspector_tab: "Inspect",
     tree_mode: "Entities",
   },
@@ -275,14 +275,16 @@ Promise.all(components).then((values) => {
   let app = Vue.createApp({
     created() {
       // Load URL parameters
-      this.fromUrlParams();
+      const keys = this.fromUrlParams();
 
       // If code is provided, open the script inspector for it.
       if (this.getStartupCode()) {
-        if (!this.app_params.entities.path) {
+        this.app_params.host = "flecs_explorer.wasm";
+
+        if (keys.indexOf("entities.path") == -1) {
           this.app_params.entities.path = this.getCodeScriptPath();
+          this.app_params.entities.inspector_tab = "Script";
         }
-        this.app_params.entities.inspector_tab = "Script";
       }
 
       this.loadCodeFromUrl();
@@ -419,7 +421,7 @@ Promise.all(components).then((values) => {
             this.applyStartupCode();
           })
           .catch((err) => {
-            console.error(`failed to load code-url '${this.app_params.code_url}': ${err}`);
+            console.error(`failed to load code_url '${this.app_params.code_url}': ${err}`);
           });
       },
       getCodeScriptPath() {
@@ -450,14 +452,19 @@ Promise.all(components).then((values) => {
       toUrlParams(obj) {
         let result = "";
         let first = true;
+
+        const hideCodeDrivenEntitiesParams =
+          this.app_params.code !== undefined &&
+          this.app_params.entities.inspector_tab === "Script";
+        const hideHostParam = this.getStartupCode() !== undefined;
+
         for (let key in obj) {
           if (key == "run_playground") {
             continue;
           }
 
-          let urlKey = key;
-          if (key == "code_url") {
-            urlKey = "code-url";
+          if (key == "host" && hideHostParam) {
+            continue;
           }
 
           const value = obj[key];
@@ -465,9 +472,16 @@ Promise.all(components).then((values) => {
             if (!Array.isArray(value)) {
               if (key === obj.page) { // only add params for current page
                 for (let value_key in value) { // max 1 lvl of nesting
+                  if (hideCodeDrivenEntitiesParams &&
+                    key === "entities" &&
+                    (value_key === "path" || value_key === "inspector_tab"))
+                  {
+                    continue;
+                  }
+
                   const nested = value[value_key];
                   if (nested !== defaultAppParams[key][value_key]) {
-                    result += `${first ? "?" : "&"}${urlKey + '.' + value_key}=${encodeURIComponent(nested)}`;
+                    result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
                     first = false;
                   }
                 }
@@ -475,18 +489,21 @@ Promise.all(components).then((values) => {
             } else {
                 for (let value_key in value) { // max 1 lvl of nesting
                   const nested = value[value_key];
-                  result += `${first ? "?" : "&"}${urlKey + '.' + value_key}=${encodeURIComponent(nested)}`;
+                  result += `${first ? "?" : "&"}${key + '.' + value_key}=${encodeURIComponent(nested)}`;
                   first = false;
                 }
             }
           } else if (value !== defaultAppParams[key]) {
-            result += `${first ? "?" : "&"}${urlKey}=${encodeURIComponent(value)}`;
+            result += `${first ? "?" : "&"}${key}=${encodeURIComponent(value)}`;
             first = false;
           }
         }
+
         return result;
       },
       fromUrlParams(url = window.location.search) {
+        let keys = [];
+
         if (window.location.search === undefined) {
           return;
         }
@@ -496,10 +513,10 @@ Promise.all(components).then((values) => {
         while ((paramNamePos = url.indexOf(first ? "?" : "&", paramNamePos + 1)) !== -1) {
           let paramValuePos = url.indexOf("=", paramNamePos);
           let paramValueEnd = url.indexOf("&", paramValuePos);
-          const key = url.slice(paramNamePos + 1, paramValuePos).split(".");
-          if (key[0] == "code-url") {
-            key[0] = "code_url";
-          }
+          let key = url.slice(paramNamePos + 1, paramValuePos);
+          keys.push(key);
+          key = key.split(".");
+
           let value;
           if (paramValueEnd !== -1) {
             value = url.slice(paramValuePos + 1, paramValueEnd);
@@ -522,6 +539,8 @@ Promise.all(components).then((values) => {
           
           first = false;
         }
+
+        return keys;
       }
     },
 
