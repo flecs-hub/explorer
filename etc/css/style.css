@@ -1,5 +1,9 @@
 @import "colors.css";
 
+html, body {
+  overscroll-behavior: none;
+}
+
 body {
   display: flex;
   flex-direction: column;
