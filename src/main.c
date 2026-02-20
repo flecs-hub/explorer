@@ -22,6 +22,22 @@ void PlaygroundImport(ecs_world_t *world) {
     ECS_IMPORT(world, FlecsGame);
 }
 
+#ifdef __EMSCRIPTEN__
+EM_JS(bool, has_startup_script_param, (), {
+    if (typeof window === "undefined" || typeof URLSearchParams === "undefined") {
+        return false;
+    }
+
+    const params = new URLSearchParams(window.location.search || "");
+    return params.has("code") || params.has("code_url");
+});
+#else
+static
+bool has_startup_script_param(void) {
+    return false;
+}
+#endif
+
 EMSCRIPTEN_KEEPALIVE
 int main() {
     // ecs_log_set_level(1);
@@ -42,10 +58,19 @@ int main() {
     // contents of this file in the explorer.
     ecs_script_run_file(world, "etc/assets/app.flecs");
 
-    // Load as managed script, so it can be modified at runtime.
-    ecs_script(world, {
-        .filename = "etc/assets/scene.flecs"
-    });
+    // When code/code_url is provided in URL params, startup code will be
+    // injected by the frontend. Skip loading the default scene first.
+    if (!has_startup_script_param()) {
+        // Load as managed script, so it can be modified at runtime.
+        ecs_script(world, {
+            .filename = "etc/assets/scene.flecs"
+        });
+    } else {
+        ecs_script(world, {
+            .entity = ecs_entity(world, { .name = "etc.assets.scene\\.flecs"}),
+            .code = ""
+        });
+    }
 
     return ecs_app_run(world, &(ecs_app_desc_t){
         .enable_rest = true,
