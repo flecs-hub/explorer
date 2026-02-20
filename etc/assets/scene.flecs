@@ -5,11 +5,12 @@
 
 using flecs.script.*
 using flecs.components.*
+using flecs.game
 
 const rng = Rng: {} // Random number generator
 
 @tree Parent
-template Tree {  
+template Tree {
   prop height: 1
 
   const trunkY = 0.5
@@ -153,3 +154,19 @@ template City {
 
 // Create the city with default values
 City city()
+
+// Set scene parameters
+canvas {
+  Atmosphere
+}
+
+camera {
+  Position3: {108, 16, 110}
+  Rotation3: {-0.14, 3.93, 0}
+}
+
+$ { 
+  TimeOfDay: {
+    t: 0.2
+  }
+}

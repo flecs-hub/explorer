@@ -8,15 +8,15 @@ light {
 
 $ { 
   TimeOfDay: {
-    t: 0.15
+    t: 0.6
     speed: 0.0
   }
 }
 
 camera {
   CameraController
-  Position3: {108, 16, 110}
-  Rotation3: {-0.14, 3.93, 0}
+  Position3: {0, 3, -10}
+  Rotation3: {-0.25}
   Camera: {
     fov: 20
     up: [0, 1, 0]
@@ -26,23 +26,16 @@ camera {
 }
 
 canvas {
-  Atmosphere
   Canvas: {
-    title: "Flecs City"
+    title: "Flecs Playground"
     width: 1200
     height: 900
-    background_color: {0.3, 0.6, 0.9}
+    background_color: {0.01, 0.01, 0.01}
     ambient_light: {0.03, 0.06, 0.09}
     ambient_light_ground: {0.8, 0.7, 0.2}
     directional_light: light
     camera: camera
-    fog_density: 1.7
+    fog_density: 1.5
     shadow_far: 300
   }
-}
-
-ground_plane {
-  Position3: {0, -0.5, 0}
-  Box: {5000, 1.0, 5000}
-  Rgb: {0.11, 0.15, 0.1}
 }

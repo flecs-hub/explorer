@@ -4053,6 +4053,7 @@ typedef enum ecs_journal_kind_t {
     EcsJournalMove,
     EcsJournalClear,
     EcsJournalDelete,
+    EcsJournalSetParent,
     EcsJournalDeleteWith,
     EcsJournalRemoveAll,
     EcsJournalTableEvents
@@ -5863,6 +5864,45 @@ bool flecs_defer_remove(
         cmd->kind = EcsCmdRemove;
         cmd->id = id;
         cmd->entity = entity;
+
+        /* If an override is removed, restore to the component to the value of 
+         * the overridden component. This serves to purposes:
+         *
+         * - the application immediately sees the correct component value
+         * - if a remove command is followed up by an add command, the override
+         *   will still be applied vs. getting cancelled out because of
+         *   command batching.
+         */
+        ecs_world_t *world = stage->world;
+        ecs_record_t *r = flecs_entities_get(world, entity);
+        ecs_table_t *table = r->table;
+        ecs_table_overrides_t *o = table->data.overrides;
+        if (o) {
+            ecs_component_record_t *cr = flecs_components_get(world, id);
+            const ecs_type_info_t *ti;
+            if (cr && (ti = cr->type_info)) {
+                const ecs_table_record_t *tr = flecs_component_get_table(
+                    cr, table);
+                if (tr) {
+                    ecs_assert(tr->column != -1, ECS_INTERNAL_ERROR, NULL);
+                    ecs_ref_t *ref = &o->refs[tr->column];
+                    if (ref->entity) {
+                        void *dst = ECS_OFFSET(
+                            table->data.columns[tr->column].data, 
+                            ti->size * ECS_RECORD_TO_ROW(r->row));
+                        const void *src = ecs_ref_get_id(
+                            world, &o->refs[tr->column], id);
+                        ecs_copy_t copy = ti->hooks.copy;
+                        if (copy) {
+                            copy(dst, src, 1, ti);
+                        } else {
+                            ecs_os_memcpy(dst, src, ti->size);
+                        }
+                    }
+                }
+            }
+        }
+
         return true;
     }
     return false;
@@ -6030,6 +6070,13 @@ void* flecs_defer_set(
     flecs_component_ptr_t ptr = flecs_defer_get_existing(
         world, entity, r, id, size);
 
+    if (world->stage_count != 1) {
+        /* If world has multiple stages we need to insert a set command
+         * with temporary storage, as the value could be lost otherwise
+         * by a command in another stage. */
+        ptr.ptr = NULL;
+    }
+
     const ecs_type_info_t *ti = ptr.ti;
     ecs_check(ti != NULL, ECS_INVALID_PARAMETER, 
         "provided component is not a type");
@@ -6050,8 +6097,8 @@ void* flecs_defer_set(
                 cmd->is._1.value = ptr.ptr;
             } else {
                 /* No OnSet observers, so only thing we need to do is make sure
-                 * that a preceding remove command doesn't cause the entity to
-                 * end up without the component. */
+                * that a preceding remove command doesn't cause the entity to
+                * end up without the component. */
                 cmd->kind = EcsCmdAdd;
             }
 
@@ -6471,22 +6518,7 @@ void flecs_cmd_batch_for_entity(
              * the constructor is not invoked for the component */
             break;
         case EcsCmdRemove: {
-            ecs_table_t *next =
-                flecs_find_table_remove(world, table, id, diff);
-            if ((table != next) && (table->flags & EcsTableHasIsA)) {
-                /* Abort batch. It's possible that we removed an override, and
-                 * if we're reading the component in the same batch we need to
-                 * reapply the override. If we do nothing here, an add for the
-                 * same component would cancel out the remove and we'd won't get
-                 * the override for the component. */
-                next_for_entity = 0;
-                
-                /* Make sure that if we have to do any processing we don't go 
-                 * beyond the current command. */
-                cmd->next_for_entity = 0;
-            }
-
-            table = next;
+            table = flecs_find_table_remove(world, table, id, diff);
             world->info.cmd.batched_command_count ++;
             cmd->kind = EcsCmdSkip;
             break;
@@ -6575,6 +6607,10 @@ void flecs_cmd_batch_for_entity(
                         flecs_invoke_replace_hook(world, prev_table, entity, 
                             cmd->id, dst.ptr, ptr, ti);
                         if (prev_table != r->table) {
+                            if (!r->table) {
+                                /* Entity was deleted */
+                                goto done;
+                            }
                             dst = flecs_get_mut(
                                 world, entity, cmd->id, r, cmd->is._1.size);
                         }
@@ -6662,9 +6698,9 @@ void flecs_cmd_batch_for_entity(
         flecs_defer_end(world, world->stages[0]);
     }
 
+done:
     diff->added.array = added.array;
     diff->added.count = added.count;
-
     flecs_table_diff_builder_clear(diff);
 }
 
@@ -10700,7 +10736,13 @@ ecs_entity_t ecs_get_target(
         goto look_in_base;
     }
 
-    return ecs_pair_second(world, table->type.array[tr->index + index]);
+    ecs_id_t pair_id = table->type.array[tr->index + index];
+    if (!ECS_IS_VALUE_PAIR(pair_id)) {
+        return flecs_entities_get_alive(world, pair_id);
+    } else {
+        return ECS_PAIR_SECOND(pair_id);
+    }
+
 look_in_base:
     if (table->flags & EcsTableHasIsA) {
         const ecs_table_record_t *tr_isa = flecs_component_get_table(
@@ -10744,7 +10786,9 @@ ecs_entity_t ecs_get_parent(
         EcsParent *p = ecs_table_get_column(
             table, column - 1, ECS_RECORD_TO_ROW(r->row));
         ecs_assert(ecs_is_valid(world, p->value), ECS_INTERNAL_ERROR, 
-            "Parent component points to invalid parent");
+            "Parent component points to invalid parent %s for child %s",
+                flecs_errstr(ecs_id_str(world, p->value)), 
+                flecs_errstr_2(ecs_get_path(world, entity)));
         return p->value;
     }
 
@@ -15650,6 +15694,7 @@ void flecs_emit_forward_table_up(
             if (id == ecs_id(EcsParent)) {
                 const EcsParent *parent = ecs_get(world, tgt, EcsParent);
                 ecs_assert(parent != NULL, ECS_INTERNAL_ERROR, NULL);
+                ecs_assert(parent->value != 0, ECS_INTERNAL_ERROR, NULL);
                 cr = flecs_components_get(world, ecs_childof(parent->value));
                 ecs_assert(cr != NULL, ECS_INTERNAL_ERROR, NULL);
             }
@@ -16177,7 +16222,9 @@ repeat_event:
         }
 
         /* Forward events for Parent component as ChildOf pairs. */
-        if (id == ecs_id(EcsParent) && !table_event) {
+        if (id == ecs_id(EcsParent) && !table_event && 
+            (table->flags & EcsTableHasParent)) 
+        {
             ecs_event_desc_t pdesc = *desc;
 
             pdesc.event = event;
@@ -16194,7 +16241,8 @@ repeat_event:
 
             for (p = 0; p < parent_count; p ++) {
                 ecs_entity_t parent = parents[p].value;
-                if (parent && ecs_is_alive(world, parent)) {
+                ecs_assert(parent != 0, ECS_INTERNAL_ERROR, NULL);
+                if (flecs_entities_is_alive(world, parent)) {
                     ecs_id_t pair = ecs_childof(parent);
                     ecs_type_t type = { .count = 1, .array = &pair };
                     pdesc.ids = &type;
@@ -25738,7 +25786,14 @@ char* flecs_journal_idstr(
     ecs_world_t *world,
     ecs_id_t id)
 {
-    if (ECS_IS_PAIR(id)) {
+    if (ECS_IS_VALUE_PAIR(id)) {
+        char *first_path = flecs_journal_entitystr(world, 
+            ecs_pair_first(world, id));
+        char *result = flecs_asprintf("#[cyan]ecs_value_pair#[normal](%s, %u)",
+            first_path, ECS_PAIR_SECOND(id));
+        ecs_os_free(first_path);
+        return result;
+    } else if (ECS_IS_PAIR(id)) {
         char *first_path = flecs_journal_entitystr(world, 
             ecs_pair_first(world, id));
         char *second_path = flecs_journal_entitystr(world, 
@@ -25755,6 +25810,7 @@ char* flecs_journal_idstr(
     }
 }
 
+static int flecs_journal_counter = 0;
 static int flecs_journal_sp = 0;
 
 void flecs_journal_begin(
@@ -25765,6 +25821,7 @@ void flecs_journal_begin(
     ecs_type_t *remove)
 {
     flecs_journal_sp ++;
+    flecs_journal_counter ++;
 
     if (ecs_os_api.log_level_ < FLECS_JOURNAL_LOG_LEVEL) {
         return;
@@ -25783,48 +25840,59 @@ void flecs_journal_begin(
     }
 
     if (kind == EcsJournalNew) {
-        ecs_print(4, "#[magenta]#ifndef #[normal]_var_%s", var_id);
-        ecs_print(4, "#[magenta]#define #[normal]_var_%s", var_id);
-        ecs_print(4, "#[green]ecs_entity_t %s;", var_id);
-        ecs_print(4, "#[magenta]#endif");
-        ecs_print(4, "%s = #[cyan]ecs_new_id#[reset](world); "
-            "#[grey] // %s = new()", var_id, path);
+        ecs_print(4, "%d: #[magenta]#ifndef #[normal]_var_%s", flecs_journal_counter, var_id);
+        ecs_print(4, "%d: #[magenta]#define #[normal]_var_%s", flecs_journal_counter, var_id);
+        ecs_print(4, "%d: #[green]ecs_entity_t %s;", flecs_journal_counter, var_id);
+        ecs_print(4, "%d: #[magenta]#endif", flecs_journal_counter);
+        ecs_print(4, "%d: %s = #[cyan]ecs_new#[reset](world); "
+            "#[grey] // %s = new()", flecs_journal_counter, var_id, path);
     }
-    if (add) {
-        for (int i = 0; i < add->count; i ++) {
-            char *jidstr = flecs_journal_idstr(world, add->array[i]);
-            char *idstr = ecs_id_str(world, add->array[i]);
-            ecs_print(4, "#[cyan]ecs_add_id#[reset](world, %s, %s); "
-                "#[grey] // add(%s, %s)", var_id, jidstr, 
-                    path, idstr);
-            ecs_os_free(idstr);
-            ecs_os_free(jidstr);
+    if (kind == EcsJournalSetParent) {
+        ecs_entity_t parent = add->array[0];
+        char *parentstr = flecs_journal_entitystr(world, parent);
+        ecs_print(4, "%d: #[cyan]ecs_set#[reset](world, %s, EcsParent, {%s}); "
+            "#[grey] // set(%s, EcsParent, %s)", flecs_journal_counter, var_id, parentstr, 
+                path, parentstr);
+        ecs_os_free(parentstr);
+    } else {
+        if (add) {
+            for (int i = 0; i < add->count; i ++) {
+                char *jidstr = flecs_journal_idstr(world, add->array[i]);
+                char *idstr = ecs_id_str(world, add->array[i]);
+                ecs_print(4, "%d: #[cyan]ecs_add_id#[reset](world, %s, %s); "
+                    "#[grey] // add(%s, %s)", flecs_journal_counter, var_id, jidstr, 
+                        path, idstr);
+                ecs_os_free(idstr);
+                ecs_os_free(jidstr);
+            }
+        }
+        if (remove) {
+            for (int i = 0; i < remove->count; i ++) {
+                char *jidstr = flecs_journal_idstr(world, remove->array[i]);
+                char *idstr = ecs_id_str(world, remove->array[i]);
+                ecs_print(4, "%d: #[cyan]ecs_remove_id#[reset](world, %s, %s); "
+                    "#[grey] // remove(%s, %s)", flecs_journal_counter, var_id, jidstr, 
+                        path, idstr);
+                ecs_os_free(idstr);
+                ecs_os_free(jidstr);
+            }
+        }
+
+        if (kind == EcsJournalClear) {
+            ecs_print(4, "%d: #[cyan]ecs_clear#[reset](world, %s); "
+                "#[grey] // clear(%s)", flecs_journal_counter, var_id, path);
+        } else if (kind == EcsJournalDelete) {
+            ecs_print(4, "%d: #[cyan]ecs_delete#[reset](world, %s); "
+                "#[grey] // delete(%s)", flecs_journal_counter, var_id, path);
+        } else if (kind == EcsJournalDeleteWith) {
+            ecs_print(4, "%d: #[cyan]ecs_delete_with#[reset](world, %s); "
+                "#[grey] // delete_with(%s)", flecs_journal_counter, var_id, path);
+        } else if (kind == EcsJournalRemoveAll) {
+            ecs_print(4, "%d: #[cyan]ecs_remove_all#[reset](world, %s); "
+                "#[grey] // remove_all(%s)", flecs_journal_counter, var_id, path);
         }
     }
-    if (remove) {
-        for (int i = 0; i < remove->count; i ++) {
-            char *jidstr = flecs_journal_idstr(world, remove->array[i]);
-            char *idstr = ecs_id_str(world, remove->array[i]);
-            ecs_print(4, "#[cyan]ecs_remove_id#[reset](world, %s, %s); "
-                "#[grey] // remove(%s, %s)", var_id, jidstr, 
-                    path, idstr);
-            ecs_os_free(idstr);
-            ecs_os_free(jidstr);
-        }
-    }
-    if (kind == EcsJournalClear) {
-        ecs_print(4, "#[cyan]ecs_clear#[reset](world, %s); "
-            "#[grey] // clear(%s)", var_id, path);
-    } else if (kind == EcsJournalDelete) {
-        ecs_print(4, "#[cyan]ecs_delete#[reset](world, %s); "
-            "#[grey] // delete(%s)", var_id, path);
-    } else if (kind == EcsJournalDeleteWith) {
-        ecs_print(4, "#[cyan]ecs_delete_with#[reset](world, %s); "
-            "#[grey] // delete_with(%s)", var_id, path);
-    } else if (kind == EcsJournalRemoveAll) {
-        ecs_print(4, "#[cyan]ecs_remove_all#[reset](world, %s); "
-            "#[grey] // remove_all(%s)", var_id, path);
-    }
+
     ecs_os_free(var_id);
     ecs_os_free(path);
     ecs_log_push();
@@ -25834,6 +25902,10 @@ void flecs_journal_end(void) {
     flecs_journal_sp --;
     ecs_assert(flecs_journal_sp >= 0, ECS_INTERNAL_ERROR, NULL);
     ecs_log_pop();
+}
+
+int flecs_journal_get_counter(void) {
+    return flecs_journal_counter;
 }
 
 #endif
@@ -28660,6 +28732,10 @@ bool flecs_rest_script(
         script = ecs_entity(world, { .name = path });
     }
 
+    /* If true, check if file changed */
+    bool check_file = false;
+    flecs_rest_bool_param(req, "check_file", &check_file);
+
     /* If true, save code to file */
     bool save_file = false;
     flecs_rest_bool_param(req, "save_file", &save_file);
@@ -28676,6 +28752,8 @@ bool flecs_rest_script(
         code = "";
     }
 
+    ecs_strbuf_appendlit(&reply->body, "{");
+
     const EcsScript *s = ecs_get(world, script, EcsScript);
 
     if (s && s->filename && save_file) {
@@ -28683,6 +28761,24 @@ bool flecs_rest_script(
         ecs_os_fopen(&f, s->filename, "w");
         fwrite(code, strlen(code), 1, f);
         fclose(f);
+    }
+
+    if (s && check_file) {
+        ecs_strbuf_appendlit(&reply->body, "\"changed\": ");
+        if (s->filename) {
+            bool file_is_same;
+            char *file_code = flecs_load_from_file(s->filename);
+            if (!file_code) {
+                file_is_same = code[0] == '\0';
+            } else {
+                file_is_same = !ecs_os_strcmp(code, file_code);
+                ecs_os_free(file_code);
+            }
+
+            ecs_strbuf_appendstr(&reply->body, file_is_same ? "false" : "true");
+        } else {
+            ecs_strbuf_appendstr(&reply->body, "false");
+        }
     }
 
     /* Update script code */
@@ -28694,17 +28790,22 @@ bool flecs_rest_script(
     /* Refetch in case it moved around */
     s = ecs_get(world, script, EcsScript);
 
-    if (s) {
-        ecs_ptr_to_json_buf(world, ecs_id(EcsScript), s, &reply->body);
-    } else {
-        ecs_strbuf_appendlit(&reply->body, "{}");
-    }
-
     if (!s || s->error) {
+        if (check_file) {
+            ecs_strbuf_appendlit(&reply->body, ", ");
+        }
+
+        char *escaped_err = flecs_astresc('"', s->error);
+        ecs_strbuf_append(&reply->body, 
+            "\"error\": \"%s\"", escaped_err);
+        ecs_os_free(escaped_err);
+
         if (!try) {
             reply->code = 400;
         }
     }
+
+    ecs_strbuf_appendlit(&reply->body, "}");
 
     return true;
 #else
@@ -30196,7 +30297,6 @@ ecs_http_server_t* ecs_rest_server_init(
     srv_ctx->world = world;
     srv_ctx->srv = srv;
     srv_ctx->rc = 1;
-    srv_ctx->srv = srv;
 
     /* Set build info on world so clients know which version they're using */
     ecs_id_t build_info = ecs_lookup(world, "flecs.core.BuildInfo");
@@ -40642,9 +40742,8 @@ void flecs_add_non_fragmenting_child_to_table(
     /* Encode id of first entity in table + the total number of entities in the
      * table for this parent in a single uint64 so everything fits in a map
      * element without having to allocate. */
-    if (!elem->entity) {
+    if (!elem->count) {
         elem->entity = (uint32_t)entity;
-        elem->count = 1;
 
         if (table->flags & EcsTableIsDisabled) {
             cr->pair->disabled_tables ++;
@@ -40653,9 +40752,10 @@ void flecs_add_non_fragmenting_child_to_table(
             cr->pair->prefab_tables ++;
         }
     } else {
-        elem->count ++;
         elem->entity = 0;
     }
+
+    elem->count ++;
 }
 
 static
@@ -40819,6 +40919,19 @@ void flecs_on_replace_parent(ecs_iter_t *it) {
         ecs_entity_t e = it->entities[i];
         ecs_entity_t old_parent = old[i].value;
         ecs_entity_t new_parent = new[i].value;
+
+        /* This can happen when a child is parented to a parent that is deleted
+         * in the same command queue. */
+        if (!flecs_entities_is_alive(world, new_parent)) {
+            /* So cleanup code can see this is child of deleted parent */
+            old[i].value = new_parent;
+            ecs_delete(world, e);
+            continue;
+        }
+
+        flecs_journal_begin(world, EcsJournalSetParent, e, &(ecs_type_t){
+            .count = 1, .array = &new_parent
+        }, NULL);
         
         flecs_remove_non_fragmenting_child(world, old_parent, e);
 
@@ -40852,6 +40965,8 @@ void flecs_on_replace_parent(ecs_iter_t *it) {
                 &(ecs_type_t){ .count = 1, .array = &added },
                 &(ecs_type_t) { .count = 1, .array = &removed });
         }
+
+        flecs_journal_end();
     }
 }
 
@@ -49914,6 +50029,11 @@ ecs_expr_value_node_t* flecs_expr_value_from(
     ecs_entity_t type);
 
 ecs_expr_variable_t* flecs_expr_variable_from(
+    ecs_script_t *script,
+    ecs_expr_node_t *node,
+    const char *name);
+
+ecs_expr_member_t* flecs_expr_member_from(
     ecs_script_t *script,
     ecs_expr_node_t *node,
     const char *name);
@@ -60928,6 +61048,11 @@ const char* flecs_tokenizer_identifier(
 
     do {
         char c = pos[0];
+
+        if ((c == '.') && (pos[1] == '.')) {
+            break;
+        }
+
         bool is_ident = flecs_script_is_identifier(c) || isdigit(c);
 
         if (!is_var) {
@@ -67003,6 +67128,7 @@ int ecs_script_update(
     s->script = ecs_script_parse(world, name, code, NULL, &eval_result);
     if (s->script == NULL) {
         s->error = eval_result.error;
+        ecs_log_(-3, NULL, 0, "%s: %s", name ? name : "script", s->error);
         return -1;
     }
 
@@ -67165,25 +67291,6 @@ int EcsScript_serialize(
         ser->member(ser, "ast");
         ser->value(ser, ecs_id(ecs_string_t), &nullString);
     }
-
-    ser->member(ser, "changed");
-
-    if (!data->filename) {
-        bool changed = false;
-        ser->value(ser, ecs_id(ecs_bool_t), &changed);
-    } else {
-        bool changed;
-        char *file_code = flecs_load_from_file(data->filename);
-        if (!file_code) {
-            changed = data->code[0] != '\0';
-        } else {
-            changed = ecs_os_strcmp(data->code, file_code) != 0;
-            ecs_os_free(file_code);
-        }
-
-        ser->value(ser, ecs_id(ecs_bool_t), &changed);
-    }
-
     return 0;
 }
 
@@ -67215,8 +67322,7 @@ void FlecsScriptImport(
             { .name = "filename", .type = ecs_id(ecs_string_t) },
             { .name = "code", .type = ecs_id(ecs_string_t) },
             { .name = "error", .type = ecs_id(ecs_string_t) },
-            { .name = "ast", .type = ecs_id(ecs_string_t) },
-            { .name = "changed", .type = ecs_id(ecs_bool_t) }
+            { .name = "ast", .type = ecs_id(ecs_string_t) }
         }
     });
 
@@ -90487,6 +90593,20 @@ ecs_expr_variable_t* flecs_expr_variable_from(
     return result;
 }
 
+ecs_expr_member_t* flecs_expr_member_from(
+    ecs_script_t *script,
+    ecs_expr_node_t *node,
+    const char *name)
+{
+    ecs_expr_member_t *result = flecs_calloc_t(
+        &flecs_script_impl(script)->allocator, ecs_expr_member_t);
+    result->node.kind = EcsExprMember;
+    result->node.pos = node->pos;
+    result->left = node;
+    result->member_name =name;
+    return result;
+}
+
 ecs_expr_value_node_t* flecs_expr_bool(
     ecs_parser_t *parser,
     bool value)
@@ -95915,6 +96035,52 @@ bool flecs_expr_is_entity_type(
 }
 
 static
+int flecs_expr_identifier_variable_member_visit_type(
+    ecs_script_t *script,
+    ecs_expr_identifier_t *node,
+    const ecs_expr_eval_desc_t *desc)
+{
+    char *member_sep = strchr(node->value, '.');
+    while (member_sep) {
+        if (member_sep != node->value && member_sep[-1] == '\\') {
+            member_sep = strchr(member_sep + 1, '.');
+            continue;
+        }
+        break;
+    }
+
+    if (!member_sep) {
+        return 1;
+    }
+
+    member_sep[0] = '\0';
+
+    if (!flecs_script_find_var(desc->vars, node->value, NULL)) {
+        member_sep[0] = '.';
+        return 1;
+    }
+
+    ecs_expr_variable_t *var_node = flecs_expr_variable_from(
+        script, (ecs_expr_node_t*)node, node->value);
+    ecs_expr_member_t *member_node = flecs_expr_member_from(
+        script, (ecs_expr_node_t*)var_node, &member_sep[1]);
+
+    node->expr = (ecs_expr_node_t*)member_node;
+
+    ecs_meta_cursor_t tmp_cur; ecs_os_zeromem(&tmp_cur);
+    if (flecs_expr_visit_type_priv(script, node->expr, &tmp_cur, desc)) {
+        goto error;
+    }
+
+    node->node.type = node->expr->type;
+    return 0;
+error:
+    flecs_expr_visit_free(script, node->expr);
+    node->expr = NULL;
+    return -1;
+}
+
+static
 int flecs_expr_identifier_visit_type(
     ecs_script_t *script,
     ecs_expr_identifier_t *node,
@@ -96024,6 +96190,14 @@ int flecs_expr_identifier_visit_type(
             }
 
             return 0;
+        }
+
+        int var_member_result = flecs_expr_identifier_variable_member_visit_type(
+            script, node, desc);
+        if (var_member_result == 0) {
+            return 0;
+        } else if (var_member_result == -1) {
+            goto error;
         }
 
         /* If unresolved identifiers aren't allowed here, throw error */
