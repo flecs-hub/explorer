@@ -143,139 +143,179 @@ function fmtDuration(seconds) {
   return result;
 }
 
-let components = [
+const BASE_COMPONENTS = [
   // Common components
-  loadModule('js/components/widgets/title-bar/title-bar.vue', options),
-  loadModule('js/components/widgets/title-bar/layout-control.vue', options),
-  loadModule('js/components/widgets/title-bar/play-control.vue', options),
-  loadModule('js/components/widgets/title-bar/url-bar.vue', options),
-  loadModule('js/components/widgets/title-bar/connecting-indicator.vue', options),
-  loadModule('js/components/widgets/info-bar/info-bar.vue', options),
-  loadModule('js/components/widgets/info-bar/info-connected.vue', options),
-  loadModule('js/components/widgets/info-bar/info-build-version.vue', options),
-  loadModule('js/components/widgets/info-bar/info-build-config.vue', options),
-  loadModule('js/components/widgets/menu-bar/menu-bar.vue', options),
-  loadModule('js/components/widgets/menu-bar/menu-button.vue', options),
-  loadModule('js/components/widgets/stat-chart.vue', options),
-  loadModule('js/components/widgets/dropdown.vue', options),
-  loadModule('js/components/widgets/detail-toggle.vue', options),
-  loadModule('js/components/widgets/scene-canvas.vue', options),
-  loadModule('js/components/widgets/splitter.vue', options),
-  loadModule('js/components/widgets/pane-container.vue', options),
-  loadModule('js/components/widgets/terminal-color-pre.vue', options),
-  loadModule('js/components/widgets/edit-tabs.vue', options),
-  loadModule('js/components/widgets/edit-tabs-close-button.vue', options),
-  loadModule('js/components/widgets/histogram.vue', options),
-  loadModule('js/components/widgets/data-table.vue', options),
-  loadModule('js/components/icon.vue', options),
-  loadModule('js/components/toggle.vue', options),
-  loadModule('js/components/search-box.vue', options),
-  loadModule('js/components/widgets/tabs.vue', options),
-  loadModule('js/components/app-menu.vue', options),
-  loadModule('js/components/code-editor.vue', options),
-  loadModule('js/components/prop-browser.vue', options),
-  loadModule('js/components/entity-path.vue', options),
-  loadModule('js/components/entity-parent.vue', options),
-  loadModule('js/components/entity-name.vue', options),
-  loadModule('js/components/color-preview.vue', options),
+  'js/components/widgets/title-bar/title-bar.vue',
+  'js/components/widgets/title-bar/layout-control.vue',
+  'js/components/widgets/title-bar/play-control.vue',
+  'js/components/widgets/title-bar/url-bar.vue',
+  'js/components/widgets/title-bar/connecting-indicator.vue',
+  'js/components/widgets/info-bar/info-bar.vue',
+  'js/components/widgets/info-bar/info-connected.vue',
+  'js/components/widgets/info-bar/info-build-version.vue',
+  'js/components/widgets/info-bar/info-build-config.vue',
+  'js/components/widgets/menu-bar/menu-bar.vue',
+  'js/components/widgets/menu-bar/menu-button.vue',
+  'js/components/widgets/stat-chart.vue',
+  'js/components/widgets/dropdown.vue',
+  'js/components/widgets/detail-toggle.vue',
+  'js/components/widgets/scene-canvas.vue',
+  'js/components/widgets/splitter.vue',
+  'js/components/widgets/pane-container.vue',
+  'js/components/widgets/terminal-color-pre.vue',
+  'js/components/widgets/edit-tabs.vue',
+  'js/components/widgets/edit-tabs-close-button.vue',
+  'js/components/widgets/histogram.vue',
+  'js/components/widgets/data-table.vue',
+  'js/components/icon.vue',
+  'js/components/toggle.vue',
+  'js/components/search-box.vue',
+  'js/components/widgets/tabs.vue',
+  'js/components/app-menu.vue',
+  'js/components/code-editor.vue',
+  'js/components/prop-browser.vue',
+  'js/components/entity-path.vue',
+  'js/components/entity-parent.vue',
+  'js/components/entity-name.vue',
+  'js/components/color-preview.vue',
 
-  // Widgets
-  loadModule('js/components/widgets/icon-button.vue', options),
-  loadModule('js/components/widgets/expand-button.vue', options),
+  // Shared widgets
+  'js/components/widgets/icon-button.vue',
+  'js/components/widgets/expand-button.vue',
+  'js/components/widgets/flecs-script.vue',
 
-  // Entities page
-  loadModule('js/components/pages/entities/page.vue', options),
-  loadModule('js/components/pages/entities/pane-tree.vue', options),
-  loadModule('js/components/pages/entities/pane-content.vue', options),
-  loadModule('js/components/pages/entities/entities-overview.vue', options),
+  // Shared tree widget
+  'js/components/widgets/tree/entity-tree.vue',
+  'js/components/widgets/tree/entity-subtree.vue',
+  'js/components/widgets/tree/entity-tree-item.vue',
+  'js/components/widgets/tree/entity-tree-icon.vue',
 
-  // Script widget
-  loadModule('js/components/widgets/flecs-script.vue', options),
+  // Shared inspector widget
+  'js/components/widgets/inspector/entity-inspector.vue',
+  'js/components/widgets/inspector/entity-inspector-container.vue',
+  'js/components/widgets/inspector/entity-inspector-module.vue',
+  'js/components/widgets/inspector/entity-inspector-components.vue',
+  'js/components/widgets/inspector/entity-inspector-matched-by.vue',
+  'js/components/widgets/inspector/entity-inspector-refs.vue',
+  'js/components/widgets/inspector/entity-inspector-alerts.vue',
+  'js/components/widgets/inspector/entity-inspector-component.vue',
+  'js/components/widgets/inspector/entity-inspector-value.vue',
+  'js/components/widgets/inspector/entity-inspector-kv.vue',
+  'js/components/widgets/inspector/entity-inspector-field.vue',
+  'js/components/widgets/inspector/entity-inspector-preview.vue',
+  'js/components/widgets/inspector/entity-inspector-add-component.vue',
+  'js/components/widgets/inspector/entity-inspector-script-ast.vue',
+  'js/components/widgets/inspector/entity-link.vue',
 
-  // Tree widget
-  loadModule('js/components/widgets/tree/entity-tree.vue', options),
-  loadModule('js/components/widgets/tree/entity-subtree.vue', options),
-  loadModule('js/components/widgets/tree/entity-tree-item.vue', options),
-  loadModule('js/components/widgets/tree/entity-tree-icon.vue', options),
+  // Shared entity list widget
+  'js/components/widgets/entity-list/entity-list.vue',
+  'js/components/widgets/entity-list/entity-list-item.vue',
 
-  // Inspector widget
-  loadModule('js/components/widgets/inspector/entity-inspector.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-container.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-module.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-components.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-matched-by.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-refs.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-alerts.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-component.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-value.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-kv.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-field.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-preview.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-add-component.vue', options),
-  loadModule('js/components/widgets/inspector/entity-inspector-script-ast.vue', options),
-  loadModule('js/components/widgets/inspector/entity-link.vue', options),
-
-  // Entity list widget
-  loadModule('js/components/widgets/entity-list/entity-list.vue', options),
-  loadModule('js/components/widgets/entity-list/entity-list-item.vue', options),
-
-  // Table widget
-  loadModule('js/components/widgets/table/entity-table.vue', options),
-
-  // Queries page
-  loadModule('js/components/pages/queries/page.vue', options),
-  loadModule('js/components/pages/queries/pane-query.vue', options),
-  loadModule('js/components/pages/queries/pane-inspect.vue', options),
-  loadModule('js/components/pages/queries/query-editor.vue', options),
-  loadModule('js/components/pages/queries/query-browser.vue', options),
-  loadModule('js/components/pages/queries/query-json.vue', options),
-  loadModule('js/components/pages/queries/query-status.vue', options),
-  loadModule('js/components/pages/queries/query-plan.vue', options),
-  loadModule('js/components/pages/queries/query-profile.vue', options),
-  loadModule('js/components/pages/queries/query-expr.vue', options),
-  loadModule('js/components/pages/queries/query-schema.vue', options),
-  loadModule('js/components/pages/queries/query-inspect.vue', options),
-  loadModule('js/components/pages/queries/query-c.vue', options),
-  loadModule('js/components/pages/queries/query-cpp.vue', options),
-  loadModule('js/components/pages/queries/query-js.vue', options),
-  loadModule('js/components/pages/queries/query-rest.vue', options),
-  loadModule('js/components/pages/queries/query-api.vue', options),
-  loadModule('js/components/pages/queries/query-error.vue', options),
-  loadModule('js/components/pages/queries/query-list-item.vue', options),
-
-  // Stats page
-  loadModule('js/components/pages/stats/page.vue', options),
-  loadModule('js/components/pages/stats/world-stats.vue', options),
-  loadModule('js/components/pages/stats/world-stat.vue', options),
-  loadModule('js/components/pages/stats/pipeline-stats.vue', options),
-  loadModule('js/components/pages/stats/pipeline.vue', options),
-  loadModule('js/components/pages/stats/pipeline-system.vue', options),
-  loadModule('js/components/pages/stats/pipeline-segment.vue', options),
-
-  // Commands page
-  loadModule('js/components/pages/commands/page.vue', options),
-  loadModule('js/components/pages/commands/pane-header.vue', options),
-  loadModule('js/components/pages/commands/pane-inspect.vue', options),
-  loadModule('js/components/pages/commands/inspect-sync.vue', options),
-  loadModule('js/components/pages/commands/inspect-cmd-header.vue', options),
-  loadModule('js/components/pages/commands/inspect-cmd-history.vue', options),
-  loadModule('js/components/pages/commands/inspect-cmd.vue', options),
-
-  // Internals page
-  loadModule('js/components/pages/internals/page.vue', options),
-  loadModule('js/components/pages/internals/tables.vue', options),
-  loadModule('js/components/pages/internals/components.vue', options),
-  loadModule('js/components/pages/internals/queries.vue', options),
-  loadModule('js/components/pages/internals/build.vue', options),
-  loadModule('js/components/pages/internals/connection.vue', options),
-  loadModule('js/components/pages/internals/natvis.vue', options),
+  // Shared table widget
+  'js/components/widgets/table/entity-table.vue',
 ];
 
-Promise.all(components).then((values) => {
+const PAGE_COMPONENTS = {
+  entities: [
+    'js/components/pages/entities/page.vue',
+    'js/components/pages/entities/pane-tree.vue',
+    'js/components/pages/entities/pane-content.vue',
+    'js/components/pages/entities/entities-overview.vue',
+  ],
+  queries: [
+    'js/components/pages/queries/page.vue',
+    'js/components/pages/queries/pane-query.vue',
+    'js/components/pages/queries/pane-inspect.vue',
+    'js/components/pages/queries/query-editor.vue',
+    'js/components/pages/queries/query-browser.vue',
+    'js/components/pages/queries/query-json.vue',
+    'js/components/pages/queries/query-status.vue',
+    'js/components/pages/queries/query-plan.vue',
+    'js/components/pages/queries/query-profile.vue',
+    'js/components/pages/queries/query-expr.vue',
+    'js/components/pages/queries/query-schema.vue',
+    'js/components/pages/queries/query-inspect.vue',
+    'js/components/pages/queries/query-c.vue',
+    'js/components/pages/queries/query-cpp.vue',
+    'js/components/pages/queries/query-js.vue',
+    'js/components/pages/queries/query-rest.vue',
+    'js/components/pages/queries/query-api.vue',
+    'js/components/pages/queries/query-error.vue',
+    'js/components/pages/queries/query-list-item.vue',
+  ],
+  stats: [
+    'js/components/pages/stats/page.vue',
+    'js/components/pages/stats/world-stats.vue',
+    'js/components/pages/stats/world-stat.vue',
+    'js/components/pages/stats/pipeline-stats.vue',
+    'js/components/pages/stats/pipeline.vue',
+    'js/components/pages/stats/pipeline-system.vue',
+    'js/components/pages/stats/pipeline-segment.vue',
+  ],
+  commands: [
+    'js/components/pages/commands/page.vue',
+    'js/components/pages/commands/pane-header.vue',
+    'js/components/pages/commands/pane-inspect.vue',
+    'js/components/pages/commands/inspect-sync.vue',
+    'js/components/pages/commands/inspect-cmd-header.vue',
+    'js/components/pages/commands/inspect-cmd-history.vue',
+    'js/components/pages/commands/inspect-cmd.vue',
+  ],
+  internals: [
+    'js/components/pages/internals/page.vue',
+    'js/components/pages/internals/tables.vue',
+    'js/components/pages/internals/components.vue',
+    'js/components/pages/internals/queries.vue',
+    'js/components/pages/internals/build.vue',
+    'js/components/pages/internals/connection.vue',
+    'js/components/pages/internals/natvis.vue',
+  ]
+};
+
+const pageNames = Object.keys(PAGE_COMPONENTS);
+const loadedComponentModules = new Map();
+const registeredComponents = new Set();
+
+function normalizePage(page) {
+  if (PAGE_COMPONENTS[page]) {
+    return page;
+  }
+  return undefined;
+}
+
+function loadComponents(paths, app) {
+  const uniquePaths = [...new Set(paths)];
+
+  return Promise.all(uniquePaths.map((path) => {
+    let component = loadedComponentModules.get(path);
+    if (!component) {
+      component = loadModule(path, options);
+      loadedComponentModules.set(path, component);
+    }
+    return component;
+  })).then((values) => {
+    if (app) {
+      for (const component of values) {
+        if (!component || !component.name || registeredComponents.has(component.name)) {
+          continue;
+        }
+        app.component(component.name, component);
+        registeredComponents.add(component.name);
+      }
+    }
+
+    return values;
+  });
+}
+
+const startupPage = normalizePage(getParameterByName("page")) || defaultAppParams.page;
+const startupComponents = BASE_COMPONENTS.concat(PAGE_COMPONENTS[startupPage]);
+
+loadComponents(startupComponents).then(() => {
   let app = Vue.createApp({
     created() {
       // Load URL parameters
-      const keys = this.fromUrlParams();
+      const keys = this.fromUrlParams() || [];
 
       // If code is provided, open the script inspector for it.
       if (this.getStartupCode()) {
@@ -377,6 +417,30 @@ Promise.all(components).then((values) => {
     },
 
     methods: {
+      pageReady(page) {
+        const normalized = normalizePage(page);
+        if (!normalized) {
+          return true;
+        }
+        return this.page_components_ready[normalized];
+      },
+      ensurePageComponents(page) {
+        const normalized = normalizePage(page);
+        if (!normalized) {
+          return Promise.resolve();
+        }
+        if (this.page_components_ready[normalized]) {
+          return Promise.resolve();
+        }
+
+        return loadComponents(PAGE_COMPONENTS[normalized], app)
+          .then(() => {
+            this.page_components_ready[normalized] = true;
+          })
+          .catch((err) => {
+            console.error(`failed to load components for page '${normalized}':`, err);
+          });
+      },
       getStartupCode() {
         if (this.app_params.code !== undefined) {
           return this.app_params.code;
@@ -548,6 +612,16 @@ Promise.all(components).then((values) => {
     },
 
     watch: {
+      "app_params.page": {
+        handler(value) {
+          const normalized = normalizePage(value);
+          if (!normalized) {
+            return;
+          }
+          this.ensurePageComponents(normalized);
+        },
+        immediate: true
+      },
       app_params: {
         handler(value) {
           let reload = false;
@@ -605,6 +679,10 @@ Promise.all(components).then((values) => {
           command_counts: new Array(120).fill(0),
         },
         app_params: newAppParams(), // Populated by user
+        page_components_ready: pageNames.reduce((result, page) => {
+          result[page] = (page === startupPage);
+          return result;
+        }, {}),
         code_from_url: undefined,
         conn: undefined,
         lastWord: "",
@@ -614,9 +692,7 @@ Promise.all(components).then((values) => {
     }
   });
 
-  for (let c of values) {
-    app.component(c.name, c);
-  }
-  
-  app.mount("#app");
+  loadComponents(startupComponents, app).then(() => {
+    app.mount("#app");
+  });
 });
