@@ -46,6 +46,7 @@ const props = defineProps({
   label: {type: String, required: false},
   postfix: {type: String, required: false},
   transparent: {type: Boolean, required: false, default: false},
+  auto_select_first: {type: Boolean, required: false, default: true},
 });
 
 const activeItem = defineModel("active_item");
@@ -53,7 +54,7 @@ const showList = ref(false);
 const dropdown = ref(null);
 
 onMounted(() => {
-  if (!activeItem.value) {
+  if (props.auto_select_first && !activeItem.value) {
     activeItem.value = props.items[0];
   }
 
@@ -77,6 +78,10 @@ function onClick() {
 }
 
 function onWindowClick(event) {
+  if (!dropdown.value) {
+    return;
+  }
+
   // Close if the dropdown doesn't contain the clicked element
   if (!dropdown.value.contains(event.target)) {
     showList.value = false;

@@ -4,15 +4,27 @@
   </template>
   <template v-else>
     <div :class="css">
-      <input 
-        type="text" 
-        ref="editEl"
-        @click.stop
-        @focus="onFocus"
-        @blur="onBlur"
-        @mousedown.stop="onMouseDown"
-        @keydown.enter="onSubmit"
-        @keydown.esc="onCancel">
+      <template v-if="isEnumType">
+        <dropdown
+          class="enum-field-dropdown"
+          :items="enumItems"
+          :auto_select_first="false"
+          v-model:active_item="localValue"
+          @update:active_item="onEnumSelect"
+          @click.stop>
+        </dropdown>
+      </template>
+      <template v-else>
+        <input 
+          type="text" 
+          ref="editEl"
+          @click.stop
+          @focus="onFocus"
+          @blur="onBlur"
+          @mousedown.stop="onMouseDown"
+          @keydown.enter="onSubmit"
+          @keydown.esc="onCancel">
+      </template>
     </div>
   </template>
 </template>
@@ -53,6 +65,9 @@ let dragging = {
 const css = computed(() => {
   let classes = ["input-wrapper", props.class];
   classes.push(`value-${props.type[0]}`);
+  if (isEnumType.value) {
+    classes.push("value-dropdown");
+  }
   
   if (props.readonly) {
     classes.push(`${props.class}-readonly`);
@@ -68,8 +83,20 @@ const isNumberType = computed(() => {
   return props.type[0] === "float" || props.type[0] === "int";
 });
 
+const isEnumType = computed(() => {
+  return Array.isArray(props.type) && props.type[0] === "enum";
+});
+
+const enumItems = computed(() => {
+  if (!isEnumType.value) {
+    return [];
+  }
+  return props.type.slice(1).filter((item) => typeof item === "string");
+});
+
 const unit = computed(() => {
-  if (props.type.length > 1) {
+  if (Array.isArray(props.type) && props.type.length > 1 &&
+      typeof props.type[1] === "object") {
     return props.type[1];
   }
 });
@@ -162,6 +189,13 @@ function onSubmit() {
   emit("setValue", {value: localValue.value});
 }
 
+function onEnumSelect(value) {
+  if (isEnumType.value) {
+    localValue.value = value;
+    emit("setValue", {value: value});
+  }
+}
+
 function onCancel() {
   editMode.value = "default";
   dragging.instance = null;
@@ -241,13 +275,59 @@ div.value input {
   cursor: text;
 }
 
+div.value :deep(div.enum-field-dropdown) {
+  width: 100%;
+  display: block;
+  box-sizing: border-box;
+  background-color: var(--bg-input);
+  position: relative;
+  z-index: 10;
+}
+
+div.value :deep(div.enum-field-dropdown:hover) {
+  background-color: var(--bg-button-hover);
+}
+
+div.value-dropdown {
+  overflow: visible;
+}
+
+div.value :deep(div.enum-field-dropdown div.dropdown-container) {
+  grid-template-columns: 1fr 32px;
+}
+
+div.value :deep(div.enum-field-dropdown div.dropdown-text) {
+  padding: 4px;
+  padding-left: 8px;
+}
+
+div.value :deep(div.enum-field-dropdown div.dropdown-button) {
+  padding: 4px;
+  text-align: right;
+}
+
+div.value :deep(div.enum-field-dropdown div.dropdown-list) {
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 999;
+}
+
 div.value-readonly input {
   /* background-color: var(--bg-input); */
   cursor: default;
   opacity: 0.8;
 }
 
+div.value-readonly :deep(div.enum-field-dropdown) {
+  cursor: default;
+  opacity: 0.8;
+}
+
 div.value-compact input {
+  white-space: nowrap;
+}
+
+div.value-compact :deep(div.enum-field-dropdown div.dropdown-text) {
   white-space: nowrap;
 }
 
@@ -272,7 +352,15 @@ div.value-entity, div.value-entity input {
 }
 
 div.value-enum, div.value-enum input, div.value-bitmask, div.value-bitmask input {
-  color: #7D67B5;
+  color: var(--light-green);
+}
+
+div.value-enum :deep(span.dropdown-text-active) {
+  color: var(--light-green);
+}
+
+div.value-enum :deep(li.dropdown-item) {
+  color: var(--primary-text);
 }
 
 </style>

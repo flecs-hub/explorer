@@ -310,7 +310,7 @@ div.component-name-inherited {
 div.component-value {
   padding-left: 20px;
   padding-right: 24px;
-  overflow-x: hidden;
+  overflow: visible;
   overflow-wrap: break-word;
 }
 
