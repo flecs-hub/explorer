@@ -1,10 +1,12 @@
 <template>
-  <div class="key noselect" @click.stop="toggle">
+  <div class="chevron noselect" @click.stop="toggle">
     <template v-if="typeof value === 'object' && value !== null">
       <expand-button
         :expand="expand">
       </expand-button>
     </template>
+  </div>
+  <div class="key noselect" @click.stop="toggle">
     {{  keyname }}
   </div>
   <div class="value noselect" @click.stop="toggle">
@@ -16,15 +18,6 @@
         :readonly="readonly"
         @setValue="(evt) => setValue(evt, keyname)">
       </entity-inspector-preview>
-      <template v-if="expand">
-        <entity-inspector-value
-          :path="path"
-          :value="value"
-          :type="type"
-          :readonly="readonly"
-          @setValue="(evt) => setValue(evt, keyname)">
-        </entity-inspector-value>
-      </template>
     </template>
     <template v-else>
       <entity-inspector-field
@@ -35,6 +28,17 @@
       </entity-inspector-field>
     </template>
   </div>
+  <template v-if="typeof value === 'object' && expand">
+    <div class="nested-value">
+      <entity-inspector-value
+        :path="path"
+        :value="value"
+        :type="type"
+        :readonly="readonly"
+        @setValue="(evt) => setValue(evt, keyname)">
+      </entity-inspector-value>
+    </div>
+  </template>
 </template>
 
 <script>
@@ -76,8 +80,15 @@ onMounted(() => {
 
 <style scoped>
 
-div.key {
+div.chevron {
   grid-column: 1;
+  width: 16px;
+  padding-top: 4px;
+  cursor: pointer;
+}
+
+div.key {
+  grid-column: 2;
   text-align: right;
   padding: 4px;
   padding-bottom: 0px;
@@ -88,8 +99,15 @@ div.key {
 }
 
 div.value {
-  grid-column: 2;
+  grid-column: 3;
   cursor: pointer;
+}
+
+div.nested-value {
+  grid-column: 1 / -1;
+  padding-left: 5px;
+  margin-left: 7px; /* Align with chevron */
+  border-left: 1px solid var(--steel-650);
 }
 
 </style>

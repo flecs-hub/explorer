@@ -75,7 +75,7 @@ function isObject(type, value) {
 
 div.prop-grid {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 16px auto 1fr;
 }
 
 div.array-list {
