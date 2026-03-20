@@ -4,7 +4,16 @@
   </template>
   <template v-else>
     <div :class="css">
-      <template v-if="isEnumType">
+      <template v-if="isBoolType">
+        <label class="bool-checkbox" @click.stop>
+          <input
+            type="checkbox"
+            :checked="localValue"
+            :disabled="props.readonly"
+            @change="onBoolToggle">
+        </label>
+      </template>
+      <template v-else-if="isEnumType">
         <dropdown
           class="enum-field-dropdown"
           :items="enumItems"
@@ -81,6 +90,10 @@ const css = computed(() => {
 
 const isNumberType = computed(() => {
   return props.type[0] === "float" || props.type[0] === "int";
+});
+
+const isBoolType = computed(() => {
+  return props.type[0] === "bool";
 });
 
 const isEnumType = computed(() => {
@@ -187,6 +200,12 @@ function onSubmit() {
   }
   editEl.value.blur();
   emit("setValue", {value: localValue.value});
+}
+
+function onBoolToggle(event) {
+  const value = event.target.checked;
+  localValue.value = value;
+  emit("setValue", {value: value});
 }
 
 function onEnumSelect(value) {
@@ -331,8 +350,49 @@ div.value-compact :deep(div.enum-field-dropdown div.dropdown-text) {
   white-space: nowrap;
 }
 
-div.value-bool, div.value-bool input {
+div.value-bool {
   color: #4981B5;
+  display: flex;
+  align-items: center;
+}
+
+div.value-bool::after {
+  display: none;
+}
+
+div.value-bool label.bool-checkbox {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  padding-left: 8px;
+}
+
+div.value-bool label.bool-checkbox input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(--bg-input);
+  width: 16px;
+  height: 16px;
+  border-radius: var(--border-radius-medium);
+  cursor: pointer;
+  position: relative;
+}
+
+div.value-bool label.bool-checkbox input[type="checkbox"]:checked::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 3px;
+  width: 5px;
+  height: 10px;
+  border: solid #4981B5;
+  border-width: 0 5px 5px 0;
+  transform: rotate(45deg);
+}
+
+div.value-bool-readonly label.bool-checkbox input[type="checkbox"] {
+  cursor: default;
+  opacity: 0.8;
 }
 
 div.value-int, div.value-int input {
