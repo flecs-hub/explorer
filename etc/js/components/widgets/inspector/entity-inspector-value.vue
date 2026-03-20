@@ -1,17 +1,22 @@
 <template>
   <div>
     <template v-if="isArray(type, value)">
-      <div class="array-list">
+      <div class="prop-grid" :class="{'no-chevron': !hasComplexChildren}">
         <template v-for="(item, index) in value">
-          <div class="array-item">
-            <span class="array-index">{{ index }}:</span>
-            <span class="array-value">{{ item }}</span>
-          </div>
+          <entity-inspector-kv
+            :path="path + '[' + index + ']'"
+            :keyname="String(index)"
+            :value="item"
+            :type="type[1]"
+            :readonly="readonly"
+            :showChevron="hasComplexChildren"
+            @setValue="(evt) => emitArrayValue(evt, index)">
+          </entity-inspector-kv>
         </template>
       </div>
     </template>
     <template v-else-if="isObject(type, value)">
-      <div class="prop-grid">
+      <div class="prop-grid" :class="{'no-chevron': !hasComplexChildren}">
         <template v-for="(value, key) in value">
           <entity-inspector-kv
             :path="path + '.' + key"
@@ -19,6 +24,7 @@
             :value="value"
             :type="type[key]"
             :readonly="readonly"
+            :showChevron="hasComplexChildren"
             @setValue="(evt) => emit('setValue', evt)">
           </entity-inspector-kv>
         </template>
@@ -40,7 +46,7 @@ export default { name: "entity-inspector-value" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue';
+import { defineProps, defineEmits, computed } from 'vue';
 
 const props = defineProps({
   path: {type: String, required: true},
@@ -51,11 +57,38 @@ const props = defineProps({
 
 const emit = defineEmits(["setValue"]);
 
-function isArray(type, value) {
-  if (type) {
-    return Array.isArray(type);
+const hasComplexChildren = computed(() => {
+  if (Array.isArray(props.value)) {
+    return props.value.some(v => typeof v === 'object' && v !== null);
+  } else if (typeof props.value === 'object' && props.value !== null) {
+    return Object.values(props.value).some(v => typeof v === 'object' && v !== null);
   }
+  return false;
+});
+
+function emitArrayValue(evt, index) {
+  const prefix = String(index);
+  if (evt.hasOwnProperty("key")) {
+    let subkey = evt.key;
+    if (subkey === prefix) {
+      emit('setValue', { key: `[${index}]`, value: evt.value });
+    } else if (subkey.startsWith(prefix + '.')) {
+      emit('setValue', { key: `[${index}].${subkey.slice(prefix.length + 1)}`, value: evt.value });
+    }
+  } else {
+    emit('setValue', { key: `[${index}]`, value: evt.value });
+  }
+}
+
+function isArray(type, value) {
   return Array.isArray(value);
+}
+
+function arrayElementType(type) {
+  if (Array.isArray(type) && type[0] === "array") {
+    return type[1];
+  }
+  return type;
 }
 
 function isObject(type, value) {
@@ -78,30 +111,9 @@ div.prop-grid {
   grid-template-columns: 16px auto 1fr;
 }
 
-div.array-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+div.prop-grid.no-chevron {
+  grid-template-columns: auto 1fr;
 }
 
-div.array-item {
-  display: flex;
-  gap: 8px;
-  padding: 4px;
-  background-color: var(--bg-content);
-  border-radius: var(--border-radius-small);
-}
-
-span.array-index {
-  color: var(--secondary-text);
-  font-weight: 500;
-  min-width: 2em;
-}
-
-span.array-value {
-  color: var(--orange);
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
 
 </style>

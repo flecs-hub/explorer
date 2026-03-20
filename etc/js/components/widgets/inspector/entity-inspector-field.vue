@@ -363,16 +363,14 @@ div.value-bool::after {
 div.value-bool label.bool-checkbox {
   display: flex;
   align-items: center;
-  padding: 4px;
-  padding-left: 8px;
 }
 
 div.value-bool label.bool-checkbox input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
   background-color: var(--bg-input);
-  width: 16px;
-  height: 16px;
+  width: 15.5px;
+  height: 19.5px;
   border-radius: var(--border-radius-medium);
   cursor: pointer;
   position: relative;
@@ -382,7 +380,7 @@ div.value-bool label.bool-checkbox input[type="checkbox"]:checked::after {
   content: '';
   position: absolute;
   left: 9px;
-  top: 3px;
+  top: 5px;
   width: 5px;
   height: 10px;
   border: solid #4981B5;

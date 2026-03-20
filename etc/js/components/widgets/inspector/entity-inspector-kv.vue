@@ -1,15 +1,15 @@
 <template>
-  <div class="chevron noselect" @click.stop="toggle">
+  <div v-if="showChevron" class="chevron noselect" @click.stop="toggle">
     <template v-if="typeof value === 'object' && value !== null">
       <expand-button
         :expand="expand">
       </expand-button>
     </template>
   </div>
-  <div class="key noselect" @click.stop="toggle">
+  <div class="key noselect" :class="{'no-chevron': !showChevron}" @click.stop="toggle">
     {{  keyname }}
   </div>
-  <div class="value noselect" @click.stop="toggle">
+  <div class="value noselect" :class="{'no-chevron': !showChevron}" @click.stop="toggle">
     <template v-if="typeof value === 'object'">
       <entity-inspector-preview
         :value="value"
@@ -54,6 +54,7 @@ const props = defineProps({
   value: {required: true},
   type: {type: Object, required: true},
   readonly: {type: Boolean, required: true},
+  showChevron: {type: Boolean, required: false, default: true},
 });
 
 const emit = defineEmits(["setValue"]);
@@ -66,7 +67,11 @@ function toggle() {
 
 function setValue(evt, key) {
   if (evt.hasOwnProperty("key")) {
-    emit('setValue', { key: `${key}.${evt.key}`, value: evt.value });
+    if (evt.key.startsWith('[')) {
+      emit('setValue', { key: `${key}${evt.key}`, value: evt.value });
+    } else {
+      emit('setValue', { key: `${key}.${evt.key}`, value: evt.value });
+    }
   } else {
     emit('setValue', { key: key, value: evt.value });
   }
@@ -98,9 +103,17 @@ div.key {
   min-height: 28px;
 }
 
+div.key.no-chevron {
+  grid-column: 1;
+}
+
 div.value {
   grid-column: 3;
   cursor: pointer;
+}
+
+div.value.no-chevron {
+  grid-column: 2;
 }
 
 div.nested-value {
