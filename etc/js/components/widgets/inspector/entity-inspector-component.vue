@@ -74,7 +74,8 @@
           :value="value"
           :type="type"
           :readonly="isReadonly"
-          @setValue="setValue">
+          @setValue="setValue"
+          @selectEntity="onEntity">
         </entity-inspector-value>
       </div>
     </template>

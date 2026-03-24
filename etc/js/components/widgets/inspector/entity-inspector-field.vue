@@ -24,8 +24,30 @@
         </dropdown>
       </template>
       <template v-else>
-        <input 
-          type="text" 
+        <div v-if="isEntityType" class="entity-field-wrapper">
+          <div
+            v-if="editMode !== 'edit'"
+            class="entity-link-icon"
+            @click.stop="onEntityNavigate">
+            <icon
+              src="link-external"
+              :size="14"
+              :opacity="0.5">
+            </icon>
+          </div>
+          <input
+            type="text"
+            ref="editEl"
+            :class="{'has-entity-icon': editMode !== 'edit'}"
+            @click.stop
+            @focus="onFocus"
+            @blur="onBlur"
+            @mousedown.stop="onMouseDown"
+            @keydown.enter="onSubmit"
+            @keydown.esc="onCancel">
+        </div>
+        <input v-else
+          type="text"
           ref="editEl"
           @click.stop
           @focus="onFocus"
@@ -54,7 +76,7 @@ const props = defineProps({
   shrink_to_content: {type: Boolean, required: false, default: false}
 });
 
-const emit = defineEmits(["setValue"]);
+const emit = defineEmits(["setValue", "selectEntity"]);
 const editMode = ref("default");
 const editEl = ref(null);
 const localValue = ref();
@@ -94,6 +116,10 @@ const isNumberType = computed(() => {
 
 const isBoolType = computed(() => {
   return props.type[0] === "bool";
+});
+
+const isEntityType = computed(() => {
+  return props.type[0] === "entity";
 });
 
 const isEnumType = computed(() => {
@@ -220,6 +246,12 @@ function onCancel() {
   dragging.instance = null;
   localValue.value = props.value;
   editEl.value.blur();
+}
+
+function onEntityNavigate() {
+  if (localValue.value) {
+    emit("selectEntity", localValue.value);
+  }
 }
 
 function onMouseDown(event) {
@@ -407,6 +439,30 @@ div.value-text, div.value-text input {
 
 div.value-entity, div.value-entity input {
   color: var(--primary-text);
+}
+
+div.entity-field-wrapper {
+  position: relative;
+  width: calc(100% - 18px);
+}
+
+div.entity-field-wrapper input.has-entity-icon {
+  padding-left: 26px;
+}
+
+div.entity-link-icon {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+div.entity-link-icon:hover :deep(img) {
+  opacity: 1.0 !important;
 }
 
 div.value-enum, div.value-enum input, div.value-bitmask, div.value-bitmask input {

@@ -10,7 +10,8 @@
             :type="type[1]"
             :readonly="readonly"
             :showChevron="hasComplexChildren"
-            @setValue="(evt) => emitArrayValue(evt, index)">
+            @setValue="(evt) => emitArrayValue(evt, index)"
+            @selectEntity="(evt) => emit('selectEntity', evt)">
           </entity-inspector-kv>
         </template>
       </div>
@@ -25,7 +26,8 @@
             :type="type[key]"
             :readonly="readonly"
             :showChevron="hasComplexChildren"
-            @setValue="(evt) => emit('setValue', evt)">
+            @setValue="(evt) => emit('setValue', evt)"
+            @selectEntity="(evt) => emit('selectEntity', evt)">
           </entity-inspector-kv>
         </template>
       </div>
@@ -35,7 +37,8 @@
         :value="value"
         :type="type"
         :readonly="readonly"
-        @setValue="(evt) => emit('setValue', evt)">
+        @setValue="(evt) => emit('setValue', evt)"
+        @selectEntity="(evt) => emit('selectEntity', evt)">
       </entity-inspector-field>
     </template>
   </div>
@@ -55,7 +58,7 @@ const props = defineProps({
   readonly: {type: Boolean, required: true}
 });
 
-const emit = defineEmits(["setValue"]);
+const emit = defineEmits(["setValue", "selectEntity"]);
 
 const hasComplexChildren = computed(() => {
   if (Array.isArray(props.value)) {

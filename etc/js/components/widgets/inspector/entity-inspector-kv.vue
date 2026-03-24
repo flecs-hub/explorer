@@ -24,7 +24,8 @@
         :value="value"
         :type="type"
         :readonly="readonly"
-        @setValue="(evt) => setValue(evt, keyname)">
+        @setValue="(evt) => setValue(evt, keyname)"
+        @selectEntity="(evt) => emit('selectEntity', evt)">
       </entity-inspector-field>
     </template>
   </div>
@@ -35,7 +36,8 @@
         :value="value"
         :type="type"
         :readonly="readonly"
-        @setValue="(evt) => setValue(evt, keyname)">
+        @setValue="(evt) => setValue(evt, keyname)"
+        @selectEntity="(evt) => emit('selectEntity', evt)">
       </entity-inspector-value>
     </div>
   </template>
@@ -57,7 +59,7 @@ const props = defineProps({
   showChevron: {type: Boolean, required: false, default: true},
 });
 
-const emit = defineEmits(["setValue"]);
+const emit = defineEmits(["setValue", "selectEntity"]);
 const expand = ref(false);
 
 function toggle() {
