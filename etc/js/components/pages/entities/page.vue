@@ -18,6 +18,7 @@
       v-if="app_params.sidebar"
       :parent="rootEl"
       :column="sidebarSplitterColumn"
+      :active="rootEl?.dragging === 'leftPane'"
       @mousedown="rootEl.startDragging('leftPane')"
     ></splitter>
 
@@ -32,6 +33,7 @@
     <splitter
       :parent="rootEl"
       :column="inspectorSplitterColumn"
+      :active="rootEl?.dragging === 'rightPane'"
       @mousedown="rootEl.startDragging('rightPane')"
     ></splitter>
 

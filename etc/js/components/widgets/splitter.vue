@@ -1,6 +1,6 @@
 <template>
 
-<div class="vsplitter" :style="`grid-column: ${column}`"></div>
+<div class="vsplitter" :class="{active: active}" :style="`grid-column: ${column}`"></div>
 
 </template>
 
@@ -12,7 +12,8 @@ export default { name: "splitter" };
 import { defineProps } from 'vue';
 
 const props = defineProps({
-    column: {type: Number, required: true, default: 0}
+    column: {type: Number, required: true, default: 0},
+    active: {type: Boolean, required: false, default: false}
 });
 
 </script>
@@ -34,7 +35,8 @@ div.vsplitter {
   box-sizing: border-box;
 }
 
-div.vsplitter:hover {
+div.vsplitter:hover,
+div.vsplitter.active {
   opacity: 0.7;
 }
 

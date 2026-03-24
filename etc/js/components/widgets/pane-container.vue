@@ -36,7 +36,7 @@ const containerWidth = ref(0);
 const leftPaneWidth = ref(Number(localStorage.getItem(`${props.id}.leftPaneWidth`)) || defaultLeftPaneWidth);
 const rightPaneWidth = ref(Number(localStorage.getItem(`${props.id}.rightPaneWidth`)) || defaultRightPaneWidth);
 
-let dragging = null; // 'sidebar' | 'inspector' | null
+const dragging = ref(null); // 'leftPane' | 'rightPane' | null
 let containerRect = null;
 
 function clampLeftPane(width, totalInnerWidth) {
@@ -50,33 +50,35 @@ function clampRightPane(width, totalInnerWidth) {
 }
 
 function onWindowMouseMove(e) {
-  if (!dragging || !containerRect) return;
+  if (!dragging.value || !containerRect) return;
   const totalInnerWidth = containerRect.width; // grid area width
   containerWidth.value = totalInnerWidth;
-  if (dragging === 'leftPane') {
+  if (dragging.value === 'leftPane') {
     const newWidth = clampLeftPane(e.clientX - containerRect.left, totalInnerWidth);
     leftPaneWidth.value = Math.round(newWidth);
     localStorage.setItem(`${props.id}.leftPaneWidth`, String(leftPaneWidth.value));
-  } else if (dragging === 'rightPane') {
+  } else if (dragging.value === 'rightPane') {
     const newWidth = clampRightPane(containerRect.right - e.clientX - 4, totalInnerWidth);
     rightPaneWidth.value = Math.round(newWidth);
     localStorage.setItem(`${props.id}.rightPaneWidth`, String(rightPaneWidth.value));
   }
-  updateCenterHidden(dragging === 'rightPane');
+  updateCenterHidden(dragging.value === 'rightPane');
   // Notify canvas to resize while dragging
   window.dispatchEvent(new Event('resize'));
 }
 
 function onWindowMouseUp() {
-  if (dragging) {
-    dragging = null;
+  if (dragging.value) {
+    dragging.value = null;
     containerRect = null;
+    document.body.style.cursor = '';
   }
 }
 
 function startDragging(which) {
-  dragging = which;
+  dragging.value = which;
   containerRect = rootEl.value.getBoundingClientRect();
+  document.body.style.cursor = 'col-resize';
 }
 
 // Attach listeners on mount, remove on unmount
@@ -175,7 +177,7 @@ const gridStyle = computed(() => {
   }
 });
 
-defineExpose({startDragging, centerPaneHidden});
+defineExpose({startDragging, centerPaneHidden, dragging});
 
 </script>
 
