@@ -16,7 +16,8 @@
         :type="type"
         :expand="expand"
         :readonly="readonly"
-        @setValue="(evt) => setValue(evt, keyname)">
+        @setValue="(evt) => setValue(evt, keyname)"
+        @selectEntity="(evt) => emit('selectEntity', evt)">
       </entity-inspector-preview>
     </template>
     <template v-else>

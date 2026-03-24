@@ -2,14 +2,15 @@
   <div>
     <template v-if="!expand">
       <template v-if="previewTypeKind === 'scalar'">
-        <entity-inspector-field 
+        <entity-inspector-field
           :value="value"
           :type="type"
           :readonly="readonly"
           :class="fieldClass"
           :compact="true"
           :shrink_to_content="compact"
-          @setValue="(evt) => setValue(evt, key)">
+          @setValue="(evt) => setValue(evt, key)"
+          @selectEntity="(evt) => emit('selectEntity', evt)">
         </entity-inspector-field>
       </template>
       <template v-else-if="previewTypeKind === 'vector'">
@@ -17,14 +18,15 @@
           <template v-for="(field, key, i) in value">
             <div class="component-preview-vector-comma" v-if="i && compact">,&nbsp;</div>
             <div :class="vectorElemClass()">
-              <entity-inspector-field 
+              <entity-inspector-field
                 :value="field"
                 :type="type[key]"
                 :readonly="readonly"
                 :class="fieldClass"
                 :compact="true"
                 :shrink_to_content="compact"
-                @setValue="(evt) => setValue(evt, key)">
+                @setValue="(evt) => setValue(evt, key)"
+                @selectEntity="(evt) => emit('selectEntity', evt)">
               </entity-inspector-field>
             </div>
           </template>
@@ -32,14 +34,15 @@
       </template>
       <template v-else-if="previewTypeKind === 'single'">
         <div class="component-preview-single">
-          <entity-inspector-field 
+          <entity-inspector-field
             :value="firstProp(value)"
             :type="firstProp(type)"
             :readonly="readonly"
             :class="fieldClass"
             :compact="true"
             :shrink_to_content="compact"
-            @setValue="(evt) => setValue(evt, firstKey(type))">
+            @setValue="(evt) => setValue(evt, firstKey(type))"
+            @selectEntity="(evt) => emit('selectEntity', evt)">
           </entity-inspector-field>
         </div>
       </template>
@@ -98,7 +101,7 @@ const props = defineProps({
   fieldClass: {type: String, required: false, default: "value"}
 });
 
-const emit = defineEmits(["setValue"]);
+const emit = defineEmits(["setValue", "selectEntity"]);
 
 const propCount = computed(() => {
   let result = Object.keys(props.type).length;

@@ -46,7 +46,8 @@
           :targets="targets"
           :expand="expand"
           :readonly="isReadonly"
-          @setValue="setValue">
+          @setValue="setValue"
+          @selectEntity="onEntity">
         </entity-inspector-preview>
 
         <template v-if="base">
