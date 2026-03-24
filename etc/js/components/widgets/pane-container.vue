@@ -2,6 +2,8 @@
 
 <div :id="id" :class="class" :style="gridStyle" ref="rootEl">
   <slot></slot>
+  <div v-if="centerPaneHidden" class="center-collapsed-separator"
+    :style="`grid-column: ${separatorColumn}; grid-row: 1;`"></div>
 </div>
 
 </template>
@@ -143,6 +145,11 @@ function updateCenterHidden(canUncollapse) {
   }
 }
 
+// Grid column index of the center pane (used for the collapsed separator)
+const separatorColumn = computed(() => {
+  return props.showLeftPane ? 3 : 1;
+});
+
 const gridStyle = computed(() => {
   // Use split columns as the visual gaps/handles; container gap is 0
   const split = `var(--gap)`;
@@ -150,7 +157,7 @@ const gridStyle = computed(() => {
   if (props.showLeftPane && props.showRightPane) {
     const left = `${leftPaneWidth.value}px`;
     if (hideCenter) {
-      return `grid-template-columns: ${left} ${split} 0px ${split} 1fr;`;
+      return `grid-template-columns: ${left} ${split} 1px ${split} 1fr;`;
     }
     const right = `${rightPaneWidth.value}px`;
     return `grid-template-columns: ${left} ${split} 1fr ${split} ${right};`;
@@ -159,7 +166,7 @@ const gridStyle = computed(() => {
     return `grid-template-columns: ${left} ${split} 1fr;`;
   } else if (!props.showLeftPane && props.showRightPane) {
     if (hideCenter) {
-      return `grid-template-columns: 0px ${split} 1fr;`;
+      return `grid-template-columns: 1px ${split} 1fr;`;
     }
     const right = `${rightPaneWidth.value}px`;
     return `grid-template-columns: 1fr ${split} ${right};`;
@@ -173,5 +180,12 @@ defineExpose({startDragging, centerPaneHidden});
 </script>
 
 <style scoped>
+
+.center-collapsed-separator {
+  width: 1px;
+  background: var(--border);
+  justify-self: center;
+  align-self: stretch;
+}
 
 </style>
