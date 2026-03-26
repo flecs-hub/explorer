@@ -40,12 +40,22 @@ const dragging = ref(null); // 'leftPane' | 'rightPane' | null
 let containerRect = null;
 
 function clampLeftPane(width, totalInnerWidth) {
-  const max = totalInnerWidth - (props.showRightPane ? rightPaneWidth.value : 0);
+  // When center is collapsed, the right pane uses 1fr so only its minimum
+  // constrains the left pane, not its stored width.
+  const rightConstraint = props.showRightPane
+    ? (centerPaneHidden.value ? minRightPaneWidth : rightPaneWidth.value)
+    : 0;
+  const max = totalInnerWidth - rightConstraint;
   return Math.max(minLeftPaneWidth, Math.min(width, max));
 }
 
 function clampRightPane(width, totalInnerWidth) {
-  const max = totalInnerWidth - (props.showLeftPane ? leftPaneWidth.value : 0);
+  // When center is collapsed, the left pane's stored width doesn't block —
+  // only its minimum matters, since the grid gives the right pane 1fr.
+  const leftConstraint = props.showLeftPane
+    ? (centerPaneHidden.value ? minLeftPaneWidth : leftPaneWidth.value)
+    : 0;
+  const max = totalInnerWidth - leftConstraint;
   return Math.max(minRightPaneWidth, Math.min(width, max));
 }
 
@@ -61,6 +71,16 @@ function onWindowMouseMove(e) {
     const newWidth = clampRightPane(containerRect.right - e.clientX - 4, totalInnerWidth);
     rightPaneWidth.value = Math.round(newWidth);
     localStorage.setItem(`${props.id}.rightPaneWidth`, String(rightPaneWidth.value));
+    // When center is collapsed, allow dragging further left to shrink the
+    // treeview. Only shrink, never grow — so dragging back right decreases
+    // rightPaneWidth without touching leftPaneWidth, letting center uncollapse.
+    if (centerPaneHidden.value && props.showLeftPane) {
+      const newLeftWidth = Math.round(clampLeftPane(e.clientX - containerRect.left, totalInnerWidth));
+      if (newLeftWidth < leftPaneWidth.value) {
+        leftPaneWidth.value = newLeftWidth;
+        localStorage.setItem(`${props.id}.leftPaneWidth`, String(leftPaneWidth.value));
+      }
+    }
   }
   updateCenterHidden(dragging.value === 'rightPane');
   // Notify canvas to resize while dragging

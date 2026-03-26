@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div :class="itemClass" :style="itemIndent" @click="selectItem">
+    <div ref="itemEl" :class="itemClass" :style="itemIndent" @click="selectItem">
       <template v-if="item.isParent">
         <div class="entity-tree-item-chevron" @click.stop="toggleItem">
           <icon class="noselect" src="chevron-right" :size="16" :rotate="chevronRotation"></icon>
@@ -33,7 +33,7 @@ export default { name: "entity-tree-item" }
 </script>
 
 <script setup>
-import { defineProps, computed, ref, defineEmits, watch } from 'vue';
+import { defineProps, computed, ref, defineEmits, watch, inject, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -45,6 +45,20 @@ const props = defineProps({
 const emit = defineEmits(["select"]);
 
 const expand = ref(false);
+const itemEl = ref(null);
+const itemRegistry = inject('itemRegistry');
+
+onMounted(() => {
+  if (itemEl.value && itemRegistry) {
+    itemRegistry.set(itemEl.value, { item: props.item, toggleExpand: toggleItem });
+  }
+});
+
+onUnmounted(() => {
+  if (itemEl.value && itemRegistry) {
+    itemRegistry.delete(itemEl.value);
+  }
+});
 
 function toggleItem() {
   expand.value = !expand.value;
