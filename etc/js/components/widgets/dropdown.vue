@@ -1,5 +1,5 @@
 <template>
-  <div :class="css" ref="dropdown">
+  <div :class="css" :style="showList ? { zIndex: 1000 } : {}" ref="dropdown">
     <div class="dropdown-container" @click="onClick">
       <div class="dropdown-text noselect">
         <template v-if="label">
