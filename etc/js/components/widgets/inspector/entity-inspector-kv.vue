@@ -6,7 +6,7 @@
       </expand-button>
     </template>
   </div>
-  <div class="key noselect" :class="{'no-chevron': !showChevron}" @click.stop="toggle">
+  <div class="key noselect" :class="{'no-chevron': !showChevron, 'complex': isComplex}" @click.stop="toggle">
     {{  keyname }}
   </div>
   <div class="value noselect" :class="{'no-chevron': !showChevron}" @click.stop="toggle">
@@ -49,7 +49,7 @@ export default { name: "entity-inspector-kv" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, ref, onMounted } from 'vue';
+import { defineProps, defineEmits, ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
   path: {type: String, required: true},
@@ -62,6 +62,7 @@ const props = defineProps({
 
 const emit = defineEmits(["setValue", "selectEntity"]);
 const expand = ref(false);
+const isComplex = computed(() => typeof props.value === 'object' && props.value !== null);
 
 function toggle() {
   expand.value = !expand.value;
@@ -108,6 +109,11 @@ div.key {
 
 div.key.no-chevron {
   grid-column: 1;
+}
+
+div.key.complex {
+  text-align: left;
+  padding-left: 6px;
 }
 
 div.value {
