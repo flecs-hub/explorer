@@ -1,5 +1,6 @@
 .bake_cache
 .DS_Store
 .vscode
+.claude
 gcov
 bin
