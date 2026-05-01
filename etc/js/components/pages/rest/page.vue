@@ -24,15 +24,19 @@
     <div class="rest-center">
     <div class="rest-request pane">
       <div class="rest-toolbar">
-        <select class="rest-select" v-model="method">
-          <option v-for="m in methods" :key="m" :value="m">{{ m }}</option>
-        </select>
+        <dropdown
+          class="rest-method-dropdown"
+          :items="methods"
+          :auto_select_first="false"
+          v-model:active_item="method">
+        </dropdown>
 
-        <select class="rest-select rest-select-endpoint" v-model="endpointId">
-          <option v-for="ep in availableEndpoints" :key="ep.id" :value="ep.id">
-            {{ endpointDisplay(ep) }}
-          </option>
-        </select>
+        <dropdown
+          class="rest-endpoint-dropdown"
+          :items="endpointDisplayItems"
+          :auto_select_first="false"
+          v-model:active_item="activeEndpointDisplay">
+        </dropdown>
 
         <input
           v-if="endpoint && endpoint.pathParam"
@@ -378,6 +382,18 @@ const availableEndpoints = computed(() =>
 function endpointDisplay(ep) {
   return ep.path.replace(/\/\{[^}]+\}$/, "");
 }
+
+const endpointDisplayItems = computed(() =>
+  availableEndpoints.value.map(endpointDisplay)
+);
+
+const activeEndpointDisplay = computed({
+  get: () => (endpoint.value ? endpointDisplay(endpoint.value) : ""),
+  set: (display) => {
+    const ep = availableEndpoints.value.find((e) => endpointDisplay(e) === display);
+    if (ep) endpointId.value = ep.id;
+  },
+});
 
 const endpoint = computed(() => endpoints.find((e) => e.id === endpointId.value));
 
@@ -931,13 +947,14 @@ div.rest-toolbar {
   flex-wrap: wrap;
 }
 
-div.rest-toolbar > .rest-select {
+div.rest-toolbar > .rest-method-dropdown {
   flex: 0 0 auto;
-  min-width: 90px;
+  min-width: 100px;
 }
 
-div.rest-toolbar > .rest-select-endpoint {
-  min-width: 200px;
+div.rest-toolbar > .rest-endpoint-dropdown {
+  flex: 0 0 auto;
+  min-width: 160px;
 }
 
 div.rest-toolbar > .rest-input {
@@ -954,7 +971,6 @@ div.rest-description {
   font-size: 0.85rem;
 }
 
-select.rest-select,
 input.rest-input,
 textarea.rest-textarea {
   font-family: inherit;
@@ -973,7 +989,6 @@ input.rest-input:disabled {
   cursor: not-allowed;
 }
 
-select.rest-select:focus,
 input.rest-input:focus,
 textarea.rest-textarea:focus {
   background-color: var(--bg-input-select);

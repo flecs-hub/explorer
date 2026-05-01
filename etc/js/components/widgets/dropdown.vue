@@ -19,18 +19,23 @@
       </div>
     </div>
 
-    <template v-if="showList">
-      <div class="dropdown-list">
-        <ul>
-          <li class="dropdown-item noselect" v-for="item in items" @click="onSelect(item)">
-            {{ item }}
-            <template v-if="postfix">
-              {{ postfix }}
-            </template>
-          </li>
-        </ul>
-      </div>
-    </template>
+    <Teleport to="body">
+      <template v-if="showList">
+        <div
+          class="dropdown-list"
+          ref="listEl"
+          :style="listStyle">
+          <ul>
+            <li class="dropdown-item noselect" v-for="item in items" @click="onSelect(item)">
+              {{ item }}
+              <template v-if="postfix">
+                {{ postfix }}
+              </template>
+            </li>
+          </ul>
+        </div>
+      </template>
+    </Teleport>
   </div>
 </template>
 
@@ -39,7 +44,7 @@ export default { name: "dropdown" };
 </script>
 
 <script setup>
-import { computed, defineProps, defineModel, onMounted, onBeforeUnmount, ref } from 'vue';
+import { computed, defineProps, defineModel, onMounted, onBeforeUnmount, ref, watch, nextTick } from 'vue';
 
 const props = defineProps({
   items: {type: Array, required: true},
@@ -52,18 +57,41 @@ const props = defineProps({
 const activeItem = defineModel("active_item");
 const showList = ref(false);
 const dropdown = ref(null);
+const listEl = ref(null);
+const listStyle = ref({});
 
 onMounted(() => {
   if (props.auto_select_first && !activeItem.value) {
     activeItem.value = props.items[0];
   }
 
-  window.addEventListener('click', onWindowClick)
+  window.addEventListener('click', onWindowClick);
+  window.addEventListener('resize', updateListPosition);
+  window.addEventListener('scroll', updateListPosition, true);
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener('click', onWindowClick)
+  window.removeEventListener('click', onWindowClick);
+  window.removeEventListener('resize', updateListPosition);
+  window.removeEventListener('scroll', updateListPosition, true);
 });
+
+watch(showList, (val) => {
+  if (val) {
+    nextTick(updateListPosition);
+  }
+});
+
+function updateListPosition() {
+  if (!showList.value || !dropdown.value) return;
+  const rect = dropdown.value.getBoundingClientRect();
+  listStyle.value = {
+    position: 'fixed',
+    top: `${rect.bottom}px`,
+    left: `${rect.left}px`,
+    minWidth: `${rect.width}px`,
+  };
+}
 
 const css = computed(() => {
   let classes = ["dropdown"];
@@ -82,10 +110,13 @@ function onWindowClick(event) {
     return;
   }
 
-  // Close if the dropdown doesn't contain the clicked element
-  if (!dropdown.value.contains(event.target)) {
-    showList.value = false;
+  if (dropdown.value.contains(event.target)) {
+    return;
   }
+  if (listEl.value && listEl.value.contains(event.target)) {
+    return;
+  }
+  showList.value = false;
 }
 
 function onSelect(item) {
@@ -138,10 +169,8 @@ div.dropdown-button {
 }
 
 div.dropdown-list {
-  position: absolute;
-  top: 0px;
-  left: 0px;
-  z-index: 99;
+  position: fixed;
+  z-index: 1000;
   border-style: solid;
   border-width: 1px;
   border-radius: var(--border-radius-medium);
@@ -163,6 +192,7 @@ li.dropdown-item {
   border-radius: var(--border-radius-medium);
   white-space: nowrap;
   color: var(--primary-text);
+  cursor: pointer;
 }
 
 li.dropdown-item:hover {
