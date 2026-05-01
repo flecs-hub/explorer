@@ -276,6 +276,7 @@ const PAGE_COMPONENTS = {
   ],
   rest: [
     'js/components/pages/rest/page.vue',
+    'js/components/pages/entities/pane-tree.vue',
   ]
 };
 

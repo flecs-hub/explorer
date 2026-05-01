@@ -1,5 +1,27 @@
 <template>
-  <div id="page-rest" class="page-content">
+  <pane-container
+    id="page-rest"
+    class="page-content"
+    :showLeftPane="app_params.sidebar"
+    :showRightPane="false"
+    ref="rootEl">
+
+    <pane-tree
+      v-if="app_params.sidebar"
+      :conn="conn"
+      v-model:app_params="app_params"
+      @selectEntity="onSelectEntity">
+    </pane-tree>
+
+    <splitter
+      v-if="app_params.sidebar"
+      :parent="rootEl"
+      :column="2"
+      :active="rootEl?.dragging === 'leftPane'"
+      @mousedown="rootEl.startDragging('leftPane')">
+    </splitter>
+
+    <div class="rest-center">
     <div class="rest-request pane">
       <div class="rest-toolbar">
         <select class="rest-select" v-model="method">
@@ -135,7 +157,8 @@
         </template>
       </tabs>
     </div>
-  </div>
+    </div>
+  </pane-container>
 </template>
 
 <script>
@@ -151,6 +174,7 @@ const props = defineProps({
 });
 
 const app_params = defineModel("app_params");
+const rootEl = ref(null);
 
 const endpoints = [
   {
@@ -641,6 +665,7 @@ function cycleTriState(name) {
   } else {
     paramValues.value[name] = undefined;
   }
+  onSend();
 }
 
 watch(method, (newMethod) => {
@@ -823,16 +848,40 @@ function onClear() {
   hasError.value = false;
 }
 
+function onSelectEntity(path) {
+  if (!path) return;
+  const ep = endpoint.value;
+  if (!ep) return;
+  if (ep.id === "query") {
+    paramValues.value.name = path;
+    onSend();
+  } else if (ep.pathParam) {
+    pathValue.value = path;
+    onSend();
+  }
+}
+
 </script>
 
 <style scoped>
 
 #page-rest {
   display: grid;
-  grid-template-rows: auto 1fr;
-  gap: var(--gap);
+  grid-template-rows: 100%;
   height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
   overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+div.rest-center {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--gap);
+  height: 100%;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
 }
 
 div.rest-request {
