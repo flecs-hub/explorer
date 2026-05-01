@@ -105,6 +105,10 @@ div.key {
   color: var(--secondary-text);
   cursor: pointer;
   min-height: 28px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 div.key.no-chevron {
@@ -119,6 +123,7 @@ div.key.complex {
 div.value {
   grid-column: 3;
   cursor: pointer;
+  min-width: 0;
 }
 
 div.value.no-chevron {

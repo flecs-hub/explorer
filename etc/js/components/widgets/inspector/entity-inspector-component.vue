@@ -262,7 +262,7 @@ div.component-expand {
 
 div.component-header {
   display: grid;
-  grid-template-columns: 0px 16px auto 1fr 16px 0px;
+  grid-template-columns: 0px 16px minmax(0, max-content) minmax(0, 1fr) 16px 0px;
   gap: 4px;
   min-height: 28px;
   padding: 4px;
@@ -270,6 +270,7 @@ div.component-header {
   padding-right: 0px;
   background-color: rgba(0,0,0,0);
   color: var(--primary-text);
+  min-width: 0;
 }
 
 div.component-can-expand {
@@ -280,6 +281,8 @@ div.component-preview {
   grid-column: 4;
   text-align: right;
   padding-left: 4px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 div.component-delete-icon {
@@ -303,6 +306,10 @@ div.component-name {
   grid-column: 3;
   padding-left: 2px;
   padding-top: 4px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 div.component-name-inherited {

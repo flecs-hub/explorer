@@ -111,11 +111,12 @@ function isObject(type, value) {
 
 div.prop-grid {
   display: grid;
-  grid-template-columns: 16px auto 1fr;
+  grid-template-columns: 16px minmax(0, max-content) minmax(60px, 1fr);
+  min-width: 0;
 }
 
 div.prop-grid.no-chevron {
-  grid-template-columns: auto 1fr;
+  grid-template-columns: minmax(0, max-content) minmax(60px, 1fr);
 }
 
 

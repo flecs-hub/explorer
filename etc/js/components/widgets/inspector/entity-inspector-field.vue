@@ -308,10 +308,13 @@ div.value {
   min-height: 1rem;
 
   text-align: left;
-  overflow: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   display: block;
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
 }
 
@@ -320,7 +323,9 @@ div.value input {
   background-color: var(--bg-input);
   padding: 4px;
   padding-left: 8px;
-  width: calc(100% - 12px);
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   height: 100%;
   color: var(--secondary-text);
   cursor: text;
@@ -344,12 +349,16 @@ div.value-dropdown {
 }
 
 div.value :deep(div.enum-field-dropdown div.dropdown-container) {
-  grid-template-columns: 1fr 32px;
+  grid-template-columns: minmax(0, 1fr) 32px;
 }
 
 div.value :deep(div.enum-field-dropdown div.dropdown-text) {
   padding: 4px;
   padding-left: 8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 div.value :deep(div.enum-field-dropdown div.dropdown-button) {
