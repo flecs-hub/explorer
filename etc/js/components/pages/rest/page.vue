@@ -148,7 +148,10 @@
         <template v-slot:API>
           <div class="rest-api-pane">
             <p>URL</p>
-            <pre class="rest-api-block"><a v-if="restUrl" :href="restUrlAbs" target="_blank">{{ restUrl }}</a></pre>
+            <div class="rest-api-url">
+              <div class="rest-api-method">{{ requestMethod }}</div>
+              <pre class="rest-api-block rest-api-url-pre"><a v-if="restUrlAbs" :href="restUrlAbs" target="_blank">{{ restUrlAbs }}</a></pre>
+            </div>
             <p>curl</p>
             <pre class="rest-api-block">{{ curlSnippet }}</pre>
             <p>JavaScript</p>
@@ -591,6 +594,11 @@ const restUrlAbs = computed(() => {
   return "/" + restUrl.value;
 });
 
+const requestMethod = computed(() => {
+  const plan = requestPlan.value;
+  return plan ? plan.method : "";
+});
+
 const curlSnippet = computed(() => {
   const plan = requestPlan.value;
   if (!plan) return "";
@@ -670,6 +678,14 @@ function cycleTriState(name) {
 
 watch(method, (newMethod) => {
   if (endpoint.value && endpoint.value.method === newMethod) {
+    return;
+  }
+  const currentPath = endpoint.value ? endpoint.value.path : null;
+  const samePath = currentPath
+    ? endpoints.find((e) => e.method === newMethod && e.path === currentPath)
+    : null;
+  if (samePath) {
+    endpointId.value = samePath.id;
     return;
   }
   const first = endpoints.find((e) => e.method === newMethod);
@@ -1115,6 +1131,34 @@ pre.rest-api-block a {
 
 pre.rest-api-block a:hover {
   text-decoration: underline;
+}
+
+div.rest-api-url {
+  display: flex;
+  align-items: stretch;
+  margin-top: 0.5rem;
+}
+
+div.rest-api-method {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  background-color: var(--bg-content-hover);
+  color: var(--primary-text);
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-top-left-radius: var(--border-radius-medium);
+  border-bottom-left-radius: var(--border-radius-medium);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+pre.rest-api-url-pre {
+  margin: 0;
+  flex: 1 1 auto;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
 }
 
 label.rest-toggle-button {
