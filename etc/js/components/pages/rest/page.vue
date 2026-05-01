@@ -649,18 +649,20 @@ function highlightJson(json) {
   });
 }
 
-function resetParams() {
+const formState = {};
+
+function defaultParamsForEndpoint(ep) {
   const next = {};
-  if (endpoint.value && endpoint.value.params) {
-    for (const p of endpoint.value.params) {
-      if (p.type === "boolean") {
-        next[p.name] = undefined;
-      } else {
-        next[p.name] = "";
-      }
+  if (ep && ep.params) {
+    for (const p of ep.params) {
+      next[p.name] = p.type === "boolean" ? undefined : "";
     }
   }
-  paramValues.value = next;
+  return next;
+}
+
+function resetParams() {
+  paramValues.value = defaultParamsForEndpoint(endpoint.value);
   pathValue.value = "";
 }
 
@@ -694,17 +696,31 @@ watch(method, (newMethod) => {
   }
 });
 
-watch(endpointId, (value) => {
-  resetParams();
+watch(endpointId, (newId, oldId) => {
+  if (oldId) {
+    formState[oldId] = {
+      pathValue: pathValue.value,
+      paramValues: { ...paramValues.value },
+    };
+  }
+  const saved = formState[newId];
+  if (saved) {
+    pathValue.value = saved.pathValue;
+    paramValues.value = { ...saved.paramValues };
+  } else {
+    const ep = endpoints.find((e) => e.id === newId);
+    paramValues.value = defaultParamsForEndpoint(ep);
+    pathValue.value = "";
+  }
   responseText.value = "";
   status.value = "";
   hasError.value = false;
-  const ep = endpoints.find((e) => e.id === value);
+  const ep = endpoints.find((e) => e.id === newId);
   if (ep && ep.method !== method.value) {
     method.value = ep.method;
   }
   if (app_params.value && app_params.value.rest) {
-    app_params.value.rest.endpoint = value;
+    app_params.value.rest.endpoint = newId;
   }
 });
 
