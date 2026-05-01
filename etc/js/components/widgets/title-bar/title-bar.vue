@@ -24,13 +24,12 @@
     <div class="title-bar-buttons">
       <button class="refresh-toggle" @click="toggle">{{ buttonText }}</button>
       <button :class="refreshButtonCss()">
-        <icon 
-          :src="buttonIcon" 
-          :opacity="buttonIconOpacity" 
+        <icon
+          :src="buttonIcon"
+          :opacity="buttonIconOpacity"
           @click="request"></icon>
       </button>
-      <button @click="worldJsonEndpoint"><icon src="arrow-down"></icon></button>
-      <layout-control 
+      <layout-control
         v-model:app_params="app_params">
       </layout-control>
     </div>
@@ -50,10 +49,6 @@ const props = defineProps({
 });
 
 const app_params = defineModel("app_params");
-
-function worldJsonEndpoint() {
-  window.open(props.conn.url + "/world", "_blank");
-}
 
 const autoRefresh = computed(() => {
   return app_params.value.refresh === "auto";

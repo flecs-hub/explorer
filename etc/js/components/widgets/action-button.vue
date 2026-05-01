@@ -3,7 +3,7 @@
 </template>
 
 <script>
-export default { name: "icon-button" };
+export default { name: "action-button" };
 </script>
 
 <script setup>

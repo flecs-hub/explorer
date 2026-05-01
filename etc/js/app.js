@@ -35,6 +35,9 @@ const defaultAppParams = {
     path: undefined,
     tab: "tables",
   },
+  rest: {
+    endpoint: "world",
+  },
   sidebar: true,
   pipeline: "All systems",
   scripts: [],
@@ -181,6 +184,7 @@ const BASE_COMPONENTS = [
 
   // Shared widgets
   'js/components/widgets/icon-button.vue',
+  'js/components/widgets/action-button.vue',
   'js/components/widgets/expand-button.vue',
   'js/components/widgets/flecs-script.vue',
 
@@ -269,6 +273,9 @@ const PAGE_COMPONENTS = {
     'js/components/pages/internals/build.vue',
     'js/components/pages/internals/connection.vue',
     'js/components/pages/internals/natvis.vue',
+  ],
+  rest: [
+    'js/components/pages/rest/page.vue',
   ]
 };
 
