@@ -410,6 +410,7 @@ div.value-bool label.bool-checkbox input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
   background-color: var(--bg-input);
+  box-sizing: content-box;
   width: 15.5px;
   height: 19.5px;
   border-radius: var(--border-radius-medium);
