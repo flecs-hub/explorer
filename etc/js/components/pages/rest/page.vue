@@ -452,8 +452,8 @@ const responseText = ref("");
 const status = ref("");
 const hasError = ref(false);
 const copyFeedback = ref("");
-const syntaxHighlight = ref(loadBool("rest.syntaxHighlight", false));
-const pretty = ref(loadBool("rest.pretty", false));
+const syntaxHighlight = ref(loadBool("rest.syntaxHighlight", true));
+const pretty = ref(loadBool("rest.pretty", true));
 const responseTab = ref("Response");
 let copyFeedbackTimer;
 
