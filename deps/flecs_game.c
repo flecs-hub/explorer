@@ -731,8 +731,7 @@ void FlecsGameLightControllerImport(ecs_world_t *world) {
     ecs_add_pair(world, EcsSun, EcsWith, ecs_id(EcsRgb));
     ecs_add_pair(world, EcsSun, EcsWith, ecs_id(EcsLightIntensity));
 
-    ecs_system(world, {
-        .entity = ecs_id(TimeOfDayUpdate),
+    ecs_system_update(world, ecs_id(TimeOfDayUpdate), &(ecs_system_desc_t){
         .interval = 1.0
     });
 }

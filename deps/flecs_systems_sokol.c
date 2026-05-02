@@ -33283,7 +33283,7 @@ void FlecsSystemsSokolRendererImport(
 
     /* Configure immediate for SokolInitRenderer as it needs direct access to
      * the world for creating queries */
-    ecs_system(world, {
+    ecs_system_update(world, SokolInitRenderer, &(ecs_system_desc_t){
         .entity = SokolInitRenderer,
         .immediate = true
     });
