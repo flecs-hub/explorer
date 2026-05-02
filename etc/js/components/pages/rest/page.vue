@@ -173,7 +173,7 @@ export default { name: "page-rest" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, ref, computed, watch, nextTick } from 'vue';
+import { defineProps, defineModel, ref, computed, watch, nextTick, onMounted } from 'vue';
 
 const props = defineProps({
   conn: { type: Object, required: true },
@@ -189,7 +189,11 @@ const endpoints = [
     method: "GET",
     path: "/world",
     description: "Retrieve all serializable world data.",
-    call: (conn, ctx) => conn.world(ctx.recv, ctx.err),
+    params: [
+      { name: "builtin", type: "boolean", description: "Serialize Flecs built-in modules and contents" },
+      { name: "modules", type: "boolean", description: "Serialize modules and contents" },
+    ],
+    call: (conn, ctx) => conn.request("world", ctx.params, ctx.recv, ctx.err),
   },
   {
     id: "entity_get",
@@ -208,7 +212,6 @@ const endpoints = [
       { name: "matches", type: "boolean", description: "Serialize query matches" },
       { name: "alerts", type: "boolean", description: "Include active alerts for entity & descendants" },
       { name: "refs", type: "string", description: "Serialize relationship back references for entity" },
-      { name: "try", type: "boolean", description: "Suppress HTTP errors on failure" },
     ],
     call: (conn, ctx) => conn.entity(ctx.path, ctx.params, ctx.recv, ctx.err),
   },
@@ -301,16 +304,19 @@ const endpoints = [
     description: "Execute a query and retrieve matching results.",
     params: [
       { name: "expr", type: "string", description: "Query expression to evaluate", placeholder: "Position, Velocity" },
-      { name: "name", type: "string", description: "Evaluate a named query (alternative to expr)" },
-      { name: "entity_id", type: "boolean", description: "Include numeric entity identifiers" },
-      { name: "doc", type: "boolean", description: "Serialize documentation components" },
+      { name: "name", type: "string", description: "Evaluate an existing named query" },
+      { name: "vars", type: "string", description: "Bind values to query variables (named queries)" },
+      { name: "offset", type: "string", description: "Skip the first N results", placeholder: "0" },
+      { name: "limit", type: "string", description: "Limit the number of returned results (default 1000)", placeholder: "1000" },
+      { name: "entity_ids", type: "boolean", description: "Serialize numeric entity ids" },
+      { name: "doc", type: "boolean", description: "Serialize flecs doc components" },
       { name: "full_paths", type: "boolean", description: "Use complete paths" },
       { name: "inherited", type: "boolean", description: "Include inherited components" },
       { name: "values", type: "boolean", description: "Serialize component values" },
       { name: "builtin", type: "boolean", description: "Include builtin components" },
       { name: "fields", type: "boolean", description: "Serialize query fields" },
       { name: "table", type: "boolean", description: "Include all components for each match" },
-      { name: "result", type: "boolean", description: "Include query results (uncheck for metadata-only)" },
+      { name: "results", type: "boolean", description: "Serialize results (uncheck for metadata-only)" },
       { name: "type_info", type: "boolean", description: "Include component schemas" },
       { name: "field_info", type: "boolean", description: "Serialize field metadata" },
       { name: "query_info", type: "boolean", description: "Serialize query structure information" },
@@ -338,7 +344,9 @@ const endpoints = [
     pathParam: { name: "path", required: true, placeholder: "my.script" },
     params: [
       { name: "code", type: "textarea", required: true, description: "New script code to parse" },
-      { name: "try", type: "boolean", description: "Suppress HTTP errors on failure" },
+      { name: "check_file", type: "boolean", description: "Report whether the code differs from the file on disk" },
+      { name: "save_file", type: "boolean", description: "Save the code to the script's file on disk" },
+      { name: "try", type: "boolean", description: "Suppress HTTP errors on parse failure" },
     ],
     call: (conn, ctx) => {
       const params = Object.assign({}, ctx.params);
@@ -352,8 +360,79 @@ const endpoints = [
     method: "PUT",
     path: "/action/{action}",
     description: "Invoke a named action.",
-    pathParam: { name: "action", required: true, placeholder: "action_name" },
+    pathParam: { name: "action", required: true, placeholder: "shrink_memory" },
     call: (conn, ctx) => conn.action(ctx.path, ctx.recv, ctx.err),
+  },
+  {
+    id: "type_info_get",
+    method: "GET",
+    path: "/type_info/{path}",
+    description: "Retrieve the reflection schema for a component type as JSON.",
+    pathParam: { name: "path", required: true, placeholder: "Position" },
+    call: (conn, ctx) => {
+      const path = conn._.escapePath(ctx.path);
+      return conn.request("type_info/" + path, ctx.params, ctx.recv, ctx.err);
+    },
+  },
+  {
+    id: "components_get",
+    method: "GET",
+    path: "/components",
+    description: "Retrieve a list of components and their reflection metadata.",
+    call: (conn, ctx) => conn.request("components", ctx.params, ctx.recv, ctx.err),
+  },
+  {
+    id: "queries_get",
+    method: "GET",
+    path: "/queries",
+    description: "Retrieve a list of named queries in the world.",
+    call: (conn, ctx) => conn.request("queries", ctx.params, ctx.recv, ctx.err),
+  },
+  {
+    id: "tables_get",
+    method: "GET",
+    path: "/tables",
+    description: "Retrieve table information for all tables in the world.",
+    call: (conn, ctx) => conn.request("tables", ctx.params, ctx.recv, ctx.err),
+  },
+  {
+    id: "stats_world_get",
+    method: "GET",
+    path: "/stats/world",
+    description: "Retrieve aggregated world statistics. Requires FlecsStats module.",
+    params: [
+      { name: "period", type: "string", description: "Sampling period suffix (1s, 1m, 1h, 1d, 1w). Defaults to 1s.", placeholder: "1s" },
+    ],
+    call: (conn, ctx) => conn.request("stats/world", ctx.params, ctx.recv, ctx.err),
+  },
+  {
+    id: "stats_pipeline_get",
+    method: "GET",
+    path: "/stats/pipeline",
+    description: "Retrieve aggregated pipeline and system statistics. Requires FlecsStats module.",
+    params: [
+      { name: "period", type: "string", description: "Sampling period suffix (1s, 1m, 1h, 1d, 1w). Defaults to 1s.", placeholder: "1s" },
+      { name: "name", type: "string", description: "Pipeline entity name. Use 'all' or omit for all systems.", placeholder: "all" },
+    ],
+    call: (conn, ctx) => conn.request("stats/pipeline", ctx.params, ctx.recv, ctx.err),
+  },
+  {
+    id: "commands_capture_get",
+    method: "GET",
+    path: "/commands/capture",
+    description: "Start capturing deferred commands so they can be retrieved per frame.",
+    call: (conn, ctx) => conn.request("commands/capture", ctx.params, ctx.recv, ctx.err),
+  },
+  {
+    id: "commands_frame_get",
+    method: "GET",
+    path: "/commands/frame/{frame}",
+    description: "Retrieve captured deferred commands for a specific frame. Requires capture to have started.",
+    pathParam: { name: "frame", required: true, placeholder: "0" },
+    call: (conn, ctx) => {
+      const frame = encodeURIComponent(ctx.path);
+      return conn.request("commands/frame/" + frame, ctx.params, ctx.recv, ctx.err);
+    },
   },
 ];
 
@@ -515,7 +594,10 @@ const requestPlan = computed(() => {
   switch (ep.id) {
     case "world": {
       urlPath = "world";
-      js = jsCallback("conn.world", []);
+      js = jsCallback("conn.request", [
+        jsonLiteral("world"),
+        jsObjectLiteral(params),
+      ]);
       break;
     }
     case "entity_get": {
@@ -626,6 +708,70 @@ const requestPlan = computed(() => {
     case "action_put": {
       urlPath = "action/" + escapePath(path);
       js = jsCallback("conn.action", [jsonLiteral(path)]);
+      break;
+    }
+    case "type_info_get": {
+      urlPath = "type_info/" + escapePath(path);
+      js = jsCallback("conn.request", [
+        jsonLiteral("type_info/" + path),
+        jsObjectLiteral(params),
+      ]);
+      break;
+    }
+    case "components_get": {
+      urlPath = "components";
+      js = jsCallback("conn.request", [
+        jsonLiteral("components"),
+        jsObjectLiteral(params),
+      ]);
+      break;
+    }
+    case "queries_get": {
+      urlPath = "queries";
+      js = jsCallback("conn.request", [
+        jsonLiteral("queries"),
+        jsObjectLiteral(params),
+      ]);
+      break;
+    }
+    case "tables_get": {
+      urlPath = "tables";
+      js = jsCallback("conn.request", [
+        jsonLiteral("tables"),
+        jsObjectLiteral(params),
+      ]);
+      break;
+    }
+    case "stats_world_get": {
+      urlPath = "stats/world";
+      js = jsCallback("conn.request", [
+        jsonLiteral("stats/world"),
+        jsObjectLiteral(params),
+      ]);
+      break;
+    }
+    case "stats_pipeline_get": {
+      urlPath = "stats/pipeline";
+      js = jsCallback("conn.request", [
+        jsonLiteral("stats/pipeline"),
+        jsObjectLiteral(params),
+      ]);
+      break;
+    }
+    case "commands_capture_get": {
+      urlPath = "commands/capture";
+      js = jsCallback("conn.request", [
+        jsonLiteral("commands/capture"),
+        jsObjectLiteral(params),
+      ]);
+      break;
+    }
+    case "commands_frame_get": {
+      urlPath = "commands/frame/" + encodeURIComponent(path || "");
+      js = jsCallback("conn.request", [
+        jsonLiteral("commands/frame/" + (path || "")),
+        jsObjectLiteral(params),
+      ]);
       break;
     }
     default: {
@@ -964,6 +1110,12 @@ function onClear() {
   status.value = "";
   hasError.value = false;
 }
+
+onMounted(() => {
+  if (pathValue.value && endpoint.value && endpoint.value.pathParam) {
+    onSend();
+  }
+});
 
 function onSelectEntity(path) {
   if (!path) return;
@@ -1359,5 +1511,3 @@ pre.rest-response-body :deep(.rest-json-punct) {
 }
 
 </style>
-</content>
-</invoke>
