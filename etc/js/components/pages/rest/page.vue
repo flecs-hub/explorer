@@ -173,7 +173,7 @@ export default { name: "page-rest" };
 </script>
 
 <script setup>
-import { defineProps, defineModel, ref, computed, watch } from 'vue';
+import { defineProps, defineModel, ref, computed, watch, nextTick } from 'vue';
 
 const props = defineProps({
   conn: { type: Object, required: true },
@@ -359,21 +359,60 @@ const endpoints = [
 
 const methods = Array.from(new Set(endpoints.map((e) => e.method)));
 
-const initialEndpointId = (app_params.value && app_params.value.rest && app_params.value.rest.endpoint) || endpoints[0].id;
+const initialUrlState = (app_params.value && app_params.value.rest) || {};
+const initialEndpointId = initialUrlState.endpoint || endpoints[0].id;
 const validInitial = endpoints.find((e) => e.id === initialEndpointId) || endpoints[0];
+const initialMethod = validInitial.method;
+const initialPath = initialUrlState.path || "";
 
-const method = ref(validInitial.method);
+const method = ref(initialMethod);
 const endpointId = ref(validInitial.id);
-const pathValue = ref("");
+const pathValue = ref(initialPath);
 const paramValues = ref({});
 const responseText = ref("");
 const status = ref("");
 const hasError = ref(false);
 const copyFeedback = ref("");
-const syntaxHighlight = ref(false);
-const pretty = ref(false);
+const syntaxHighlight = ref(loadBool("rest.syntaxHighlight", false));
+const pretty = ref(loadBool("rest.pretty", false));
 const responseTab = ref("Response");
 let copyFeedbackTimer;
+
+function loadBool(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    if (v === null) return fallback;
+    return v === "true";
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function loadFormState() {
+  try {
+    const v = localStorage.getItem("rest.formState");
+    if (!v) return {};
+    return JSON.parse(v);
+  } catch (e) {
+    return {};
+  }
+}
+
+function persistFormState() {
+  try {
+    localStorage.setItem("rest.formState", JSON.stringify(formState));
+  } catch (e) {
+    // ignore
+  }
+}
+
+watch(syntaxHighlight, (v) => {
+  try { localStorage.setItem("rest.syntaxHighlight", String(v)); } catch (e) {}
+});
+
+watch(pretty, (v) => {
+  try { localStorage.setItem("rest.pretty", String(v)); } catch (e) {}
+});
 
 const availableEndpoints = computed(() =>
   endpoints.filter((e) => e.method === method.value)
@@ -665,7 +704,7 @@ function highlightJson(json) {
   });
 }
 
-const formState = {};
+const formState = loadFormState();
 
 function defaultParamsForEndpoint(ep) {
   const next = {};
@@ -677,9 +716,23 @@ function defaultParamsForEndpoint(ep) {
   return next;
 }
 
+function applySavedState(id) {
+  const saved = formState[id];
+  if (saved) {
+    pathValue.value = saved.pathValue || "";
+    paramValues.value = { ...saved.paramValues };
+  } else {
+    const ep = endpoints.find((e) => e.id === id);
+    paramValues.value = defaultParamsForEndpoint(ep);
+    pathValue.value = "";
+  }
+}
+
 function resetParams() {
   paramValues.value = defaultParamsForEndpoint(endpoint.value);
   pathValue.value = "";
+  delete formState[endpointId.value];
+  persistFormState();
 }
 
 function cycleTriState(name) {
@@ -718,16 +771,9 @@ watch(endpointId, (newId, oldId) => {
       pathValue: pathValue.value,
       paramValues: { ...paramValues.value },
     };
+    persistFormState();
   }
-  const saved = formState[newId];
-  if (saved) {
-    pathValue.value = saved.pathValue;
-    paramValues.value = { ...saved.paramValues };
-  } else {
-    const ep = endpoints.find((e) => e.id === newId);
-    paramValues.value = defaultParamsForEndpoint(ep);
-    pathValue.value = "";
-  }
+  applySavedState(newId);
   responseText.value = "";
   status.value = "";
   hasError.value = false;
@@ -740,7 +786,30 @@ watch(endpointId, (newId, oldId) => {
   }
 });
 
-resetParams();
+watch([pathValue, paramValues], () => {
+  formState[endpointId.value] = {
+    pathValue: pathValue.value,
+    paramValues: { ...paramValues.value },
+  };
+  persistFormState();
+}, { deep: true });
+
+watch(method, (v) => {
+  if (app_params.value && app_params.value.rest) {
+    app_params.value.rest.method = v;
+  }
+});
+
+watch(pathValue, (v) => {
+  if (app_params.value && app_params.value.rest) {
+    app_params.value.rest.path = v;
+  }
+});
+
+applySavedState(endpointId.value);
+if (initialPath) {
+  pathValue.value = initialPath;
+}
 
 function buildParams() {
   const ep = endpoint.value;
@@ -898,12 +967,13 @@ function onClear() {
 
 function onSelectEntity(path) {
   if (!path) return;
-  const ep = endpoint.value;
-  if (!ep) return;
-  if (ep.id === "query") {
-    paramValues.value.name = path;
-    onSend();
-  } else if (ep.pathParam) {
+  if (endpointId.value !== "entity_get") {
+    endpointId.value = "entity_get";
+    nextTick(() => {
+      pathValue.value = path;
+      onSend();
+    });
+  } else {
     pathValue.value = path;
     onSend();
   }

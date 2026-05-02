@@ -37,6 +37,8 @@ const defaultAppParams = {
   },
   rest: {
     endpoint: "world",
+    method: "GET",
+    path: "",
   },
   sidebar: true,
   pipeline: "All systems",
