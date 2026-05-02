@@ -360,7 +360,7 @@ const endpoints = [
     method: "PUT",
     path: "/action/{action}",
     description: "Invoke a named action.",
-    pathParam: { name: "action", required: true, placeholder: "shrink_memory" },
+    pathParam: { name: "action", required: true, placeholder: "shrink_memory", entity: false },
     call: (conn, ctx) => conn.action(ctx.path, ctx.recv, ctx.err),
   },
   {
@@ -428,7 +428,7 @@ const endpoints = [
     method: "GET",
     path: "/commands/frame/{frame}",
     description: "Retrieve captured deferred commands for a specific frame. Requires capture to have started.",
-    pathParam: { name: "frame", required: true, placeholder: "0" },
+    pathParam: { name: "frame", required: true, placeholder: "0", entity: false },
     call: (conn, ctx) => {
       const frame = encodeURIComponent(ctx.path);
       return conn.request("commands/frame/" + frame, ctx.params, ctx.recv, ctx.err);
@@ -890,7 +890,9 @@ function cycleTriState(name) {
   } else {
     paramValues.value[name] = undefined;
   }
-  onSend();
+  if (method.value === "GET") {
+    onSend();
+  }
 }
 
 watch(method, (newMethod) => {
@@ -1112,22 +1114,27 @@ function onClear() {
 }
 
 onMounted(() => {
-  if (pathValue.value && endpoint.value && endpoint.value.pathParam) {
+  if (pathValue.value && endpoint.value && endpoint.value.pathParam && method.value === "GET") {
     onSend();
   }
 });
 
 function onSelectEntity(path) {
   if (!path) return;
-  if (endpointId.value !== "entity_get") {
+  const ep = endpoint.value;
+  const acceptsEntity = ep && ep.pathParam && ep.pathParam.entity !== false;
+  const sendIfGet = () => {
+    if (method.value === "GET") onSend();
+  };
+  if (acceptsEntity) {
+    pathValue.value = path;
+    sendIfGet();
+  } else {
     endpointId.value = "entity_get";
     nextTick(() => {
       pathValue.value = path;
-      onSend();
+      sendIfGet();
     });
-  } else {
-    pathValue.value = path;
-    onSend();
   }
 }
 
@@ -1155,7 +1162,7 @@ div.rest-center {
 }
 
 div.rest-request {
-  padding: 1rem;
+  padding: 0.5rem;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
