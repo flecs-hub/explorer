@@ -848,13 +848,15 @@ function escapeHtml(s) {
 function highlightJs(code) {
   if (!code) return "";
   const escaped = escapeHtml(code);
-  const re = /(\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|\b(const|let|var|function|return|if|else|for|while|new|class|import|export|default|async|await|true|false|null|undefined)\b|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_$][\w$]*)(?=\s*\()/g;
-  return escaped.replace(re, (match, comment, str, kw, num, fn) => {
-    if (comment !== undefined) return `<span class="code-comment">${comment}</span>`;
-    if (str !== undefined) return `<span class="code-string">${str}</span>`;
-    if (kw !== undefined) return `<span class="code-keyword">${kw}</span>`;
-    if (num !== undefined) return `<span class="code-number">${num}</span>`;
-    if (fn !== undefined) return `<span class="code-function">${fn}</span>`;
+  const re = /(\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|\b(const|let|var|function|return|if|else|for|while|new|class|import|export|default|async|await|true|false|null|undefined)\b|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_$][\w$]*)(?=\s*:)|\b([A-Za-z_$][\w$]*)(?=\s*\()|([\{\}\[\]])/g;
+  return escaped.replace(re, (match, comment, str, kw, num, prop, fn, punct) => {
+    if (comment !== undefined) return `<span class="rest-code-comment">${comment}</span>`;
+    if (str !== undefined) return `<span class="rest-code-string">${str}</span>`;
+    if (kw !== undefined) return `<span class="rest-code-keyword">${kw}</span>`;
+    if (num !== undefined) return `<span class="rest-code-number">${num}</span>`;
+    if (prop !== undefined) return `<span class="rest-code-attr">${prop}</span>`;
+    if (fn !== undefined) return `<span class="rest-code-function">${fn}</span>`;
+    if (punct !== undefined) return `<span class="rest-code-punct">${punct}</span>`;
     return match;
   });
 }
@@ -868,14 +870,14 @@ function highlightHtml(code) {
       attrHtml = attrs.replace(
         /([\w-]+)(=)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g,
         (m2, name, eq, val) =>
-          `<span class="code-variable">${name}</span><span class="code-operator">${eq}</span><span class="code-string">${val}</span>`
+          `<span class="rest-code-attr">${name}</span><span class="rest-code-punct">${eq}</span><span class="rest-code-string">${val}</span>`
       );
     }
     return (
-      `<span class="code-operator">${open}</span>` +
-      `<span class="code-keyword">${tag}</span>` +
+      `<span class="rest-code-punct">${open}</span>` +
+      `<span class="rest-code-keyword">${tag}</span>` +
       attrHtml +
-      `<span class="code-operator">${close}</span>`
+      `<span class="rest-code-punct">${close}</span>`
     );
   });
 }
@@ -1445,6 +1447,35 @@ pre.rest-api-block a {
 
 pre.rest-api-block a:hover {
   text-decoration: underline;
+}
+
+pre.rest-api-block :deep(.rest-code-keyword) {
+  color: #e06c75;
+}
+
+pre.rest-api-block :deep(.rest-code-string) {
+  color: #61afef;
+}
+
+pre.rest-api-block :deep(.rest-code-number) {
+  color: #d19a66;
+}
+
+pre.rest-api-block :deep(.rest-code-function) {
+  color: #98c379;
+}
+
+pre.rest-api-block :deep(.rest-code-attr) {
+  color: #98c379;
+}
+
+pre.rest-api-block :deep(.rest-code-punct) {
+  color: #c678dd;
+}
+
+pre.rest-api-block :deep(.rest-code-comment) {
+  color: var(--tertiary-text);
+  font-style: italic;
 }
 
 div.rest-api-url {
