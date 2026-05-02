@@ -159,7 +159,7 @@
             <p>curl</p>
             <pre class="rest-api-block">{{ curlSnippet }}</pre>
             <p>JavaScript</p>
-            <pre class="rest-api-block">{{ jsSnippet }}</pre>
+            <pre class="rest-api-block" v-html="jsExample"></pre>
           </div>
         </template>
       </tabs>
@@ -817,6 +817,25 @@ const jsSnippet = computed(() => {
   return plan ? plan.js : "";
 });
 
+const jsExample = computed(() => {
+  const plan = requestPlan.value;
+  if (!plan) return "";
+  const host = (props.conn && props.conn.params && props.conn.params.host) || "localhost";
+  const closeTag = '<\/script>';
+  const include = '<script src="flecs.js" type="text/javascript" charset="utf-8">' + closeTag;
+  const setup = `const conn = flecs.connect(${JSON.stringify(host)});`;
+  const body = `${setup}\n\n${plan.js}`;
+  return (
+    highlightHtml(include) +
+    "\n\n" +
+    highlightHtml('<script>') +
+    "\n" +
+    highlightJs(body) +
+    "\n" +
+    highlightHtml(closeTag)
+  );
+});
+
 const highlightedResponse = computed(() => highlightJson(responseText.value));
 
 function escapeHtml(s) {
@@ -824,6 +843,41 @@ function escapeHtml(s) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+function highlightJs(code) {
+  if (!code) return "";
+  const escaped = escapeHtml(code);
+  const re = /(\/\/[^\n]*)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|\b(const|let|var|function|return|if|else|for|while|new|class|import|export|default|async|await|true|false|null|undefined)\b|\b(\d+(?:\.\d+)?)\b|\b([A-Za-z_$][\w$]*)(?=\s*\()/g;
+  return escaped.replace(re, (match, comment, str, kw, num, fn) => {
+    if (comment !== undefined) return `<span class="code-comment">${comment}</span>`;
+    if (str !== undefined) return `<span class="code-string">${str}</span>`;
+    if (kw !== undefined) return `<span class="code-keyword">${kw}</span>`;
+    if (num !== undefined) return `<span class="code-number">${num}</span>`;
+    if (fn !== undefined) return `<span class="code-function">${fn}</span>`;
+    return match;
+  });
+}
+
+function highlightHtml(code) {
+  if (!code) return "";
+  const escaped = escapeHtml(code);
+  return escaped.replace(/(&lt;\/?)([a-zA-Z][\w-]*)([^&]*?)(\/?&gt;)/g, (m, open, tag, attrs, close) => {
+    let attrHtml = "";
+    if (attrs) {
+      attrHtml = attrs.replace(
+        /([\w-]+)(=)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g,
+        (m2, name, eq, val) =>
+          `<span class="code-variable">${name}</span><span class="code-operator">${eq}</span><span class="code-string">${val}</span>`
+      );
+    }
+    return (
+      `<span class="code-operator">${open}</span>` +
+      `<span class="code-keyword">${tag}</span>` +
+      attrHtml +
+      `<span class="code-operator">${close}</span>`
+    );
+  });
 }
 
 function highlightJson(json) {
