@@ -75,7 +75,7 @@ const prop_name = () => {
   const name = props.prop.name;
   const expr_elems = props.expr.split(".");
   const expr = expr_elems[expr_elems.length - 1];
-  const indexOf = name.indexOf(expr);
+  const indexOf = name.toLowerCase().indexOf(expr.toLowerCase());
   if (indexOf == -1) {
     return name;
   }

@@ -2,7 +2,7 @@
   <div id="prop-browser" :style="posStyle">
     <template v-for="(el, i) in prop_query.results">
       <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="false"
-        :highlight="i == 0"
+        :highlight="i == selected"
         v-on:click="selectProp(el)">
       </query-list-item>
     </template>
@@ -29,6 +29,7 @@ const props = defineProps({
 let prop_query = ref({results: []});
 let oneof = ref("");
 const showWidget = ref(true);
+const selected = ref(0);
 
 let selectProp = (prop) => {
   emit('select', { value: prop, kind: "select" });
@@ -39,11 +40,29 @@ function select(kind) {
     return false;
   }
 
-  if (prop_query.value.results && prop_query.value.results.length) {
-    emit('select', { value: prop_query.value.results[0], kind: kind });
+  const results = prop_query.value.results;
+  if (results && results.length) {
+    const idx = Math.min(selected.value, results.length - 1);
+    emit('select', { value: results[idx], kind: kind });
     return true;
   }
   return false;
+}
+
+function moveUp() {
+  if (!showWidget.value) return false;
+  const results = prop_query.value.results;
+  if (!results || !results.length) return false;
+  selected.value = (selected.value - 1 + results.length) % results.length;
+  return true;
+}
+
+function moveDown() {
+  if (!showWidget.value) return false;
+  const results = prop_query.value.results;
+  if (!results || !results.length) return false;
+  selected.value = (selected.value + 1) % results.length;
+  return true;
 }
 
 function propToExpr(prop) {
@@ -61,17 +80,26 @@ function equalsUpTo(result) {
 }
 
 function sortResults(results) {
+  const userExpr = props.expr;
+  const userHasDot = userExpr.includes('.');
+
   return results.sort((a, b) => {
     const aExpr = propToExpr(a);
     const bExpr = propToExpr(b);
 
-    const aEq = equalsUpTo(aExpr);
-    const bEq = equalsUpTo(bExpr);
+    const aExact = userHasDot ? (aExpr === userExpr) : (a.name === userExpr);
+    const bExact = userHasDot ? (bExpr === userExpr) : (b.name === userExpr);
+    if (aExact != bExact) {
+      return bExact - aExact;
+    }
+
+    const aEq = userHasDot ? equalsUpTo(aExpr) : a.name.startsWith(userExpr);
+    const bEq = userHasDot ? equalsUpTo(bExpr) : b.name.startsWith(userExpr);
 
     if (aEq != bEq) {
       return bEq - aEq;
     } else {
-      return aExpr.length - bExpr.length;
+      return a.name.length - b.name.length;
     }
   });
 }
@@ -103,6 +131,7 @@ watch(() => props.first, () => {
 watch(() => [props.expr, oneof.value], () => {
   if (!props.expr.length && (!oneof.value.length || !props.first.length)) {
     prop_query.value.results.length = 0;
+    selected.value = 0;
   } else {
     let queryObj = nameQueryFromExpr(props.expr, oneof.value);
     let query = queryObj.query;
@@ -117,10 +146,12 @@ watch(() => [props.expr, oneof.value], () => {
           let result = reply.results[0];
           if (propToExpr(result) == props.expr) {
             prop_query.value.results = [];
+            selected.value = 0;
             return;
           }
         }
         prop_query.value.results = sortResults(reply.results);
+        selected.value = 0;
       }
     });
   }
@@ -152,7 +183,9 @@ const show = () => {
 defineExpose({
   hide,
   show,
-  select
+  select,
+  moveUp,
+  moveDown
 });
 
 </script>

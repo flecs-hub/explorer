@@ -68,6 +68,18 @@ document.addEventListener('keydown', function(event) {
   }
 });
 
+document.addEventListener('keydown', function(event) {
+  if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+  if (!browser.value) return;
+  const handled = event.key === 'ArrowDown'
+    ? browser.value.moveDown()
+    : browser.value.moveUp();
+  if (handled) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, true);
+
 </script>
 
 <style scoped>
