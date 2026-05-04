@@ -5,19 +5,17 @@
         <template v-for="(col, i) in tableHeaders">
           <th class="noselect" @click="toggleOrderBy(col, i)">
             {{ col.name }}
-            <template v-if="orderBy.index === i">
-              <template v-if="orderBy.mode === 'none'">
-              </template>
-              <template v-if="orderBy.mode === 'asc'">
+            <template v-if="orderByIndex === i">
+              <template v-if="sortMode === 'asc'">
                 <icon src="arrow-down"></icon>
               </template>
-              <template v-if="orderBy.mode === 'desc'">
+              <template v-if="sortMode === 'desc'">
                 <icon src="arrow-up"></icon>
               </template>
-              <template v-if="orderBy.mode === 'group'">
+              <template v-if="sortMode === 'group'">
                 <icon src="diff-added"></icon>
               </template>
-              <template v-if="orderBy.mode === 'group_min'">
+              <template v-if="sortMode === 'group_min'">
                 <icon src="diff-removed"></icon>
               </template>
             </template>
@@ -100,12 +98,22 @@ export default { name: "entity-table" }
 import { defineProps, defineEmits, defineExpose, computed, ref } from 'vue';
 
 const orderByModes = ["none", "asc", "desc", "group", "group_min"];
-const orderBy = ref({});
 const groupCollapsed = ref({});
-const emit = defineEmits(["select"]);
+const emit = defineEmits(["select", "update:sort_col", "update:sort_mode"]);
 
 const props = defineProps({
-  result: {type: Object, required: true }
+  result: {type: Object, required: true },
+  sort_col: {type: String, default: undefined },
+  sort_mode: {type: String, default: undefined }
+});
+
+const sortMode = computed(() => props.sort_mode || 'none');
+
+const orderByIndex = computed(() => {
+  if (!props.sort_col) {
+    return -1;
+  }
+  return tableHeaders.value.findIndex(c => c.name === props.sort_col);
 });
 
 function componentToColumnName(component, schema) {
@@ -196,12 +204,15 @@ const tableHeaders = computed(() => {
 });
 
 const orderByIndices = computed(() => {
-  const mode = orderBy.value.mode;
+  const mode = sortMode.value;
   if (!mode || mode === 'none') {
     return undefined;
   }
 
-  let orderByIndex = orderBy.value.index;
+  const colIndex = orderByIndex.value;
+  if (colIndex < 0) {
+    return undefined;
+  }
   let orderByValues = [];
 
   const result = props.result;
@@ -211,7 +222,7 @@ const orderByIndices = computed(() => {
 
   let resultIndex = 0;
   for (let r of result.results) {
-    const value = tableHeaders.value[orderByIndex].get(r);
+    const value = tableHeaders.value[colIndex].get(r);
     orderByValues.push({value: value, resultIndex: resultIndex});
     resultIndex ++;
   }
@@ -310,7 +321,7 @@ function groupLabelOf(value, col) {
 }
 
 const groups = computed(() => {
-  const mode = orderBy.value.mode;
+  const mode = sortMode.value;
   if (mode !== 'group' && mode !== 'group_min') {
     return undefined;
   }
@@ -318,7 +329,7 @@ const groups = computed(() => {
   if (!indices) {
     return [];
   }
-  const col = tableHeaders.value[orderBy.value.index];
+  const col = tableHeaders.value[orderByIndex.value];
   if (!col) {
     return [];
   }
@@ -380,7 +391,7 @@ const displayedRows = computed(() => {
 });
 
 function isGroupCollapsed(key) {
-  if (orderBy.value.mode === 'group_min') {
+  if (sortMode.value === 'group_min') {
     return groupCollapsed.value[key] !== false;
   }
   return groupCollapsed.value[key] === true;
@@ -433,19 +444,25 @@ function trCss(result) {
 }
 
 function toggleOrderBy(col, i) {
-  if (orderBy.value.index != i) {
-    orderBy.value.index = i;
-    orderBy.value.mode = orderByModes[1];
+  if (orderByIndex.value !== i) {
+    emit("update:sort_col", col.name);
+    emit("update:sort_mode", "asc");
     groupCollapsed.value = {};
   } else {
-    let orderByIndex = orderByModes.indexOf(orderBy.value.mode);
-    if (orderByIndex == -1) {
-      orderByIndex = 0;
+    let modeIndex = orderByModes.indexOf(sortMode.value);
+    if (modeIndex == -1) {
+      modeIndex = 0;
     } else {
-      orderByIndex = (orderByIndex + 1) % orderByModes.length;
+      modeIndex = (modeIndex + 1) % orderByModes.length;
     }
 
-    orderBy.value.mode = orderByModes[orderByIndex];
+    const newMode = orderByModes[modeIndex];
+    if (newMode === "none") {
+      emit("update:sort_col", undefined);
+      emit("update:sort_mode", undefined);
+    } else {
+      emit("update:sort_mode", newMode);
+    }
     groupCollapsed.value = {};
   }
 }
@@ -471,7 +488,8 @@ function onSelectEntity(e) {
 }
 
 function resetQuery() {
-  orderBy.value = {};
+  emit("update:sort_col", undefined);
+  emit("update:sort_mode", undefined);
   groupCollapsed.value = {};
 }
 
@@ -594,7 +612,7 @@ div.entity-table-group-content {
   align-items: center;
   gap: 4px;
   padding: var(--table-padding);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.4);
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.45);
   position: relative;
   z-index: 1;

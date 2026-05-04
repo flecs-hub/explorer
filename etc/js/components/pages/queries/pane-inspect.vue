@@ -6,7 +6,10 @@
         class="inspect-tab-content">
     <template v-slot:table>
       <div :class="visibleClass">
-        <entity-table :result="result" @select="onSelectEntity" ref="queryTable"></entity-table>
+        <entity-table :result="result"
+            v-model:sort_col="app_params.queries.sort_col"
+            v-model:sort_mode="app_params.queries.sort_mode"
+            @select="onSelectEntity" ref="queryTable"></entity-table>
       </div>
       <template v-if="result.error">
         <query-error :error="result.error"></query-error>

@@ -23,7 +23,9 @@ const defaultAppParams = {
     name: undefined,
     use_name: false,
     query_tab: "editor",
-    inspect_tab: "table"
+    inspect_tab: "table",
+    sort_col: undefined,
+    sort_mode: undefined
   },
   entities: {
     path: undefined,
