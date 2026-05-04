@@ -21,7 +21,7 @@
       </thead>
       <tbody>
         <tr v-for="(result, i) in results" :class="trCss(result)" @click="onSelect(result)">
-          <td v-for="col in tableHeaders" :class="tdCss(i)">
+          <td v-for="col in tableHeaders" :class="tdCss(i)" :title="isEntity(col) ? null : cellTitle(col.get(result))">
             <template v-if="isEntity(col)">
               <template v-if="col.get(result) === '*' || col.get(result) === undefined">
                 <div class="entity-table-none">
@@ -257,6 +257,21 @@ function isEntity(col) {
   }
 }
 
+function cellTitle(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value === "object") {
+    const parts = [];
+    for (const k in value) {
+      const v = value[k];
+      parts.push(typeof v === "object" ? JSON.stringify(v) : String(v));
+    }
+    return parts.join(", ");
+  }
+  return String(value);
+}
+
 function tdCss(i) {
   if (!(i % 2)) {
     return "cell-alt"
@@ -377,6 +392,13 @@ td {
   padding-top: calc(var(--table-padding) * 0.5);
   padding-bottom: calc(var(--table-padding) * 0.5);
   background-color: var(--bg-cell);
+}
+
+td :deep(div.input-wrapper) {
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 td.cell-alt {
