@@ -14,49 +14,80 @@
               <template v-if="orderBy.mode === 'desc'">
                 <icon src="arrow-up"></icon>
               </template>
+              <template v-if="orderBy.mode === 'group'">
+                <icon src="diff-added"></icon>
+              </template>
+              <template v-if="orderBy.mode === 'group_min'">
+                <icon src="diff-removed"></icon>
+              </template>
             </template>
           </th>
         </template>
         <th class="squeeze"></th>
       </thead>
       <tbody>
-        <tr v-for="(result, i) in results" :class="trCss(result)" @click="onSelect(result)">
-          <td v-for="col in tableHeaders" :class="tdCss(i)" :title="isEntity(col) ? null : cellTitle(col.get(result))">
-            <template v-if="isEntity(col)">
-              <template v-if="col.get(result) === '*' || col.get(result) === undefined">
-                <div class="entity-table-none">
-                  None
-                </div>
+        <template v-for="row in displayedRows">
+          <tr v-if="row.type === 'group'"
+              class="entity-table-group-row noselect"
+              @click="toggleGroup(row.key)">
+            <td :colspan="tableHeaders.length + 1" class="entity-table-group-cell">
+              <div :class="['entity-table-group-content', { 'entity-table-group-content-collapsed': orderBy.mode === 'group_min' || isGroupCollapsed(row.key) }]">
+                <span class="entity-table-group-chevron">
+                  <icon v-if="orderBy.mode !== 'group_min'"
+                        :src="isGroupCollapsed(row.key) ? 'chevron-right' : 'chevron-down'"
+                        :opacity="0.7">
+                  </icon>
+                </span>
+                <template v-if="row.isEntity && row.value !== undefined && row.value !== '*'">
+                  <div class="entity-table-name">
+                    <entity-parent :path="row.value"></entity-parent>
+                    <span><entity-name :path="row.value"></entity-name>&nbsp;({{ row.count }})</span>
+                  </div>
+                </template>
+                <template v-else>
+                  <span class="entity-table-group-label">{{ row.label }}&nbsp;({{ row.count }})</span>
+                </template>
+              </div>
+            </td>
+          </tr>
+          <tr v-else :class="trCss(row.result)" @click="onSelect(row.result)">
+            <td v-for="col in tableHeaders" :class="tdCss(row.rowIndex)" :title="isEntity(col) ? null : cellTitle(col.get(row.result))">
+              <template v-if="isEntity(col)">
+                <template v-if="col.get(row.result) === '*' || col.get(row.result) === undefined">
+                  <div class="entity-table-none">
+                    None
+                  </div>
+                </template>
+                <template v-else>
+                  <div class="entity-table-name">
+                    <entity-parent :path="col.get(row.result)"></entity-parent>
+                    <span class="entity-link" @click.stop="onSelectEntity(col.get(row.result))">
+                      <entity-name :path="col.get(row.result)"></entity-name>
+                    </span>
+                  </div>
+                </template>
               </template>
               <template v-else>
-                <div class="entity-table-name">
-                  <entity-parent :path="col.get(result)"></entity-parent>
-                  <span class="entity-link" @click.stop="onSelectEntity(col.get(result))">
-                    <entity-name :path="col.get(result)"></entity-name>
-                  </span>
-                </div>
+                <template v-if="col.get(row.result)">
+                  <entity-inspector-preview
+                    :value="col.get(row.result)"
+                    :type="col.schema"
+                    :expand="false"
+                    :readonly="true"
+                    :compact="true"
+                    fieldClass="table-field">
+                  </entity-inspector-preview>
+                </template>
+                <template v-else>
+                  <div class="entity-table-none">
+                    None
+                  </div>
+                </template>
               </template>
-            </template>
-            <template v-else>
-              <template v-if="col.get(result)">
-                <entity-inspector-preview
-                  :value="col.get(result)"
-                  :type="col.schema"
-                  :expand="false"
-                  :readonly="true"
-                  :compact="true"
-                  fieldClass="table-field">
-                </entity-inspector-preview>
-              </template>
-              <template v-else>
-                <div class="entity-table-none">
-                  None
-                </div>
-              </template>
-            </template>
-          </td>
-          <td :class="tdCss(i)"></td>
-        </tr>
+            </td>
+            <td :class="tdCss(row.rowIndex)"></td>
+          </tr>
+        </template>
       </tbody>
     </table>
   </div>
@@ -69,8 +100,9 @@ export default { name: "entity-table" }
 <script setup>
 import { defineProps, defineEmits, defineExpose, computed, ref } from 'vue';
 
-const orderByModes = ["none", "asc", "desc"];
+const orderByModes = ["none", "asc", "desc", "group", "group_min"];
 const orderBy = ref({});
+const groupCollapsed = ref({});
 const emit = defineEmits(["select"]);
 
 const props = defineProps({
@@ -165,7 +197,8 @@ const tableHeaders = computed(() => {
 });
 
 const orderByIndices = computed(() => {
-  if (!orderBy.value.mode || orderBy.value.mode === 'none') {
+  const mode = orderBy.value.mode;
+  if (!mode || mode === 'none') {
     return undefined;
   }
 
@@ -183,6 +216,8 @@ const orderByIndices = computed(() => {
     orderByValues.push({value: value, resultIndex: resultIndex});
     resultIndex ++;
   }
+
+  const sortDir = (mode === 'desc') ? -1 : 1;
 
   orderByValues.sort((a, b) => {
     let aValue = a.value;
@@ -230,11 +265,7 @@ const orderByIndices = computed(() => {
       comp = aValue.localeCompare(bValue);
     }
 
-    if (orderBy.value.mode === 'desc') {
-      comp *= -1;
-    }
-
-    return comp;
+    return comp * sortDir;
   });
 
   return orderByValues;
@@ -251,6 +282,112 @@ const results = computed(() => {
     return results;
   }
 });
+
+function groupKeyOf(value) {
+  if (value === undefined || value === null) {
+    return "\0undefined";
+  }
+  if (typeof value === "object") {
+    return "\0obj:" + JSON.stringify(value);
+  }
+  return "\0" + typeof value + ":" + String(value);
+}
+
+function groupLabelOf(value, col) {
+  if (value === undefined || value === null) {
+    return "None";
+  }
+  if (typeof value === "object") {
+    return cellTitle(value);
+  }
+  return String(value);
+}
+
+const groups = computed(() => {
+  const mode = orderBy.value.mode;
+  if (mode !== 'group' && mode !== 'group_min') {
+    return undefined;
+  }
+  const indices = orderByIndices.value;
+  if (!indices) {
+    return [];
+  }
+  const col = tableHeaders.value[orderBy.value.index];
+  if (!col) {
+    return [];
+  }
+  const out = [];
+  let last;
+  for (let i = 0; i < indices.length; i ++) {
+    const value = indices[i].value;
+    const key = groupKeyOf(value);
+    if (!last || last.key !== key) {
+      last = {
+        key: key,
+        value: value,
+        label: groupLabelOf(value, col),
+        isEntity: isEntity(col),
+        startIndex: i,
+        count: 0,
+      };
+      out.push(last);
+    }
+    last.count ++;
+  }
+  return out;
+});
+
+const displayedRows = computed(() => {
+  const rows = [];
+  const data = results.value;
+  if (!data) {
+    return rows;
+  }
+  const mode = orderBy.value.mode;
+  const grps = groups.value;
+
+  if (!grps) {
+    for (let i = 0; i < data.length; i ++) {
+      rows.push({type: 'data', result: data[i], rowIndex: i});
+    }
+    return rows;
+  }
+
+  const minimized = (mode === 'group_min');
+  let dataIndex = 0;
+  for (const g of grps) {
+    rows.push({
+      type: 'group',
+      key: g.key,
+      value: g.value,
+      label: g.label,
+      isEntity: g.isEntity,
+      count: g.count,
+    });
+    const collapsed = minimized || isGroupCollapsed(g.key);
+    if (!collapsed) {
+      for (let i = 0; i < g.count; i ++) {
+        rows.push({type: 'data', result: data[dataIndex + i], rowIndex: dataIndex + i});
+      }
+    }
+    dataIndex += g.count;
+  }
+  return rows;
+});
+
+function isGroupCollapsed(key) {
+  return groupCollapsed.value[key] === true;
+}
+
+function toggleGroup(key) {
+  if (orderBy.value.mode === 'group_min') {
+    return;
+  }
+  groupCollapsed.value = {
+    ...groupCollapsed.value,
+    [key]: !groupCollapsed.value[key],
+  };
+}
 
 function isEntity(col) {
   if (col.schema && Array.isArray(col.schema)) {
@@ -295,6 +432,7 @@ function toggleOrderBy(col, i) {
   if (orderBy.value.index != i) {
     orderBy.value.index = i;
     orderBy.value.mode = orderByModes[1];
+    groupCollapsed.value = {};
   } else {
     let orderByIndex = orderByModes.indexOf(orderBy.value.mode);
     if (orderByIndex == -1) {
@@ -304,6 +442,9 @@ function toggleOrderBy(col, i) {
     }
 
     orderBy.value.mode = orderByModes[orderByIndex];
+    if (orderBy.value.mode !== 'group' && orderBy.value.mode !== 'group_min') {
+      groupCollapsed.value = {};
+    }
   }
 }
 
@@ -329,6 +470,7 @@ function onSelectEntity(e) {
 
 function resetQuery() {
   orderBy.value = {};
+  groupCollapsed.value = {};
 }
 
 defineExpose({resetQuery});
@@ -428,6 +570,47 @@ tr.entity-table-row-selectable:hover td {
 
 span.entity-link:hover {
   color: var(--green);
+}
+
+tr.entity-table-group-row {
+  cursor: pointer;
+}
+
+td.entity-table-group-cell {
+  padding: 0;
+  background-color: var(--bg-input);
+  color: var(--secondary-text);
+}
+
+td.entity-table-group-cell :deep(*) {
+  color: var(--secondary-text);
+}
+
+div.entity-table-group-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  padding: var(--table-padding);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.45);
+  position: relative;
+  z-index: 1;
+}
+
+div.entity-table-group-content-collapsed {
+  box-shadow: none;
+}
+
+span.entity-table-group-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+}
+
+span.entity-table-group-label {
+  color: var(--secondary-text);
 }
 
 </style>
