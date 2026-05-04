@@ -17,8 +17,8 @@
     </div>
     <template v-if="expand">
       <entity-subtree
-        :conn="conn" 
-        :path="item.path"
+        :conn="conn"
+        :path="item.queryRef"
         :depth="depth + 1"
         :selectedItem="selectedItem"
         @select="selectChild"

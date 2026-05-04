@@ -76,7 +76,7 @@ function updateQuery() {
   if (!nf && !qf) {
     let path = props.path;
     if (path) {
-      const escapedPath = path.replace(/([ ():\-])/g, '\\$1');
+      const escapedPath = path.replace(/([^a-zA-Z0-9_$#.\\])/g, '\\$1');
       q += `, (flecs.core.ChildOf, ${escapedPath})`;
     }
   }
@@ -100,6 +100,7 @@ function updateQuery() {
       limit: 1000,
       doc: true,
       managed: true,
+      entity_ids: true,
       persist: props.path === "0" // persist root query across reconnects
     },
     (reply) => {
@@ -125,6 +126,7 @@ function updateQuery() {
         Object.assign(treeItem, item);
 
         treeItem.path = path;
+        treeItem.queryRef = item.id !== undefined ? "#" + item.id : path;
         treeItem.isModule = item.fields.is_set[0];
         treeItem.isComponent = item.fields.is_set[1] || item.fields.is_set[2] || item.fields.is_set[3];
         treeItem.isTarget = item.fields.is_set[4];
