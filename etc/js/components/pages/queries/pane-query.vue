@@ -1,5 +1,5 @@
 <template>
-  <div id="pane-query" class="queries-left-pane pane">
+  <div id="pane-query" class="pane">
     <tabs :items="['editor', 'browse']"
         v-model:active_tab="app_params.queries.query_tab"
         class="explorer-tab-content"
@@ -55,6 +55,10 @@ const onTab = (evt) => {
 <style scoped>
 #pane-query {
   border-radius: var(--border-radius-medium);
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
 }
 </style>
 

@@ -1,6 +1,6 @@
 <template>
-  <div id="pane-inspect" :class="`queries-right-pane pane ${gridColumnClass}`">
-    <tabs :items="['table', 'json', 'api', 'inspect']" 
+  <div id="pane-inspect" class="pane">
+    <tabs :items="['table', 'json', 'api', 'inspect']"
         v-model:active_tab="app_params.queries.inspect_tab"
         class="inspect-tab-content">
     <template v-slot:table>
@@ -61,14 +61,6 @@ const emit = defineEmits(["selectEntity"]);
 
 const query = computed(() => {
   return props.app_params.queries;
-});
-
-const gridColumnClass = computed(() => {
-  if (props.app_params.sidebar) {
-    return "pane-normal";
-  } else {
-    return "pane-maximized";
-  }
 });
 
 const doRequest = () => {
@@ -142,6 +134,9 @@ function onSelectEntity(entity) {
   position: relative;
   border-radius: var(--border-radius-medium);
   margin: 0px;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
 }
 
 div.pane-inspect {
@@ -150,24 +145,6 @@ div.pane-inspect {
 
 div.pane-inspect-hide {
   display: none;
-}
-
-div.pane-normal {
-  grid-column: 2;
-}
-
-div.pane-maximized {
-  grid-column: 1 / 3;
-}
-
-@media screen and (max-width: 800px) {
-  div.pane-normal {
-    grid-column: 1;
-  }
-
-  div.pane-maximized {
-    grid-column: 1;
-  }
 }
 </style>
 
