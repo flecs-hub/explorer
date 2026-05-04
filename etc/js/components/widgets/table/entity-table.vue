@@ -31,10 +31,9 @@
               class="entity-table-group-row noselect"
               @click="toggleGroup(row.key)">
             <td :colspan="tableHeaders.length + 1" class="entity-table-group-cell">
-              <div :class="['entity-table-group-content', { 'entity-table-group-content-collapsed': orderBy.mode === 'group_min' || isGroupCollapsed(row.key) }]">
+              <div :class="['entity-table-group-content', { 'entity-table-group-content-collapsed': isGroupCollapsed(row.key) }]">
                 <span class="entity-table-group-chevron">
-                  <icon v-if="orderBy.mode !== 'group_min'"
-                        :src="isGroupCollapsed(row.key) ? 'chevron-right' : 'chevron-down'"
+                  <icon :src="isGroupCollapsed(row.key) ? 'chevron-right' : 'chevron-down'"
                         :opacity="0.7">
                   </icon>
                 </span>
@@ -218,6 +217,7 @@ const orderByIndices = computed(() => {
   }
 
   const sortDir = (mode === 'desc') ? -1 : 1;
+  const isGroupMode = (mode === 'group' || mode === 'group_min');
 
   orderByValues.sort((a, b) => {
     let aValue = a.value;
@@ -263,6 +263,12 @@ const orderByIndices = computed(() => {
       if (bValue === undefined) bValue = "";
 
       comp = aValue.localeCompare(bValue);
+    }
+
+    if (comp === 0 && isGroupMode &&
+        typeof a.value === 'object' && a.value !== null &&
+        typeof b.value === 'object' && b.value !== null) {
+      comp = JSON.stringify(a.value).localeCompare(JSON.stringify(b.value));
     }
 
     return comp * sortDir;
@@ -343,7 +349,6 @@ const displayedRows = computed(() => {
   if (!data) {
     return rows;
   }
-  const mode = orderBy.value.mode;
   const grps = groups.value;
 
   if (!grps) {
@@ -353,7 +358,6 @@ const displayedRows = computed(() => {
     return rows;
   }
 
-  const minimized = (mode === 'group_min');
   let dataIndex = 0;
   for (const g of grps) {
     rows.push({
@@ -364,7 +368,7 @@ const displayedRows = computed(() => {
       isEntity: g.isEntity,
       count: g.count,
     });
-    const collapsed = minimized || isGroupCollapsed(g.key);
+    const collapsed = isGroupCollapsed(g.key);
     if (!collapsed) {
       for (let i = 0; i < g.count; i ++) {
         rows.push({type: 'data', result: data[dataIndex + i], rowIndex: dataIndex + i});
@@ -376,16 +380,16 @@ const displayedRows = computed(() => {
 });
 
 function isGroupCollapsed(key) {
+  if (orderBy.value.mode === 'group_min') {
+    return groupCollapsed.value[key] !== false;
+  }
   return groupCollapsed.value[key] === true;
 }
 
 function toggleGroup(key) {
-  if (orderBy.value.mode === 'group_min') {
-    return;
-  }
   groupCollapsed.value = {
     ...groupCollapsed.value,
-    [key]: !groupCollapsed.value[key],
+    [key]: !isGroupCollapsed(key),
   };
 }
 
@@ -442,9 +446,7 @@ function toggleOrderBy(col, i) {
     }
 
     orderBy.value.mode = orderByModes[orderByIndex];
-    if (orderBy.value.mode !== 'group' && orderBy.value.mode !== 'group_min') {
-      groupCollapsed.value = {};
-    }
+    groupCollapsed.value = {};
   }
 }
 
