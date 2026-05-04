@@ -127,7 +127,7 @@ const tableHeaders = computed(() => {
           name: varName,
           schema: ["entity"],
           get: (result) => {
-            return result.vars[varName];
+            return result.vars ? result.vars[varName] : undefined;
           }
         });
       }
@@ -223,6 +223,9 @@ const orderByIndices = computed(() => {
       if (typeof bValue === 'object') {
         bValue = JSON.stringify(bValue);
       }
+
+      if (aValue === undefined) aValue = "";
+      if (bValue === undefined) bValue = "";
 
       comp = aValue.localeCompare(bValue);
     }
