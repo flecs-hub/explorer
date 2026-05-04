@@ -2,6 +2,7 @@
   <div id="pane-inspect" class="pane">
     <tabs :items="['table', 'json', 'api', 'inspect']"
         v-model:active_tab="app_params.queries.inspect_tab"
+        :flushTabs="['table']"
         class="inspect-tab-content">
     <template v-slot:table>
       <div :class="visibleClass">
@@ -152,5 +153,10 @@ div.pane-inspect-hide {
 .inspect-tab-content {
   margin: 0px !important;;
   padding: 0.5rem !important;
+}
+
+.inspect-tab-content .tabs-tab-flush {
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
 }
 </style>

@@ -31,6 +31,7 @@ import { defineProps, defineModel, onMounted, defineEmits } from 'vue';
 const props = defineProps({
   items: {type: Array, required: true},
   class: {type: String, required: false},
+  flushTabs: {type: Array, required: false, default: () => []},
 });
 
 const emit = defineEmits(['changed']);
@@ -57,10 +58,11 @@ function tabCss(item) {
 }
 
 function tabContentCss(item) {
+  const flush = props.flushTabs.includes(item) ? " tabs-tab-flush" : "";
   if (item == active.value) {
-    return "tabs-tab selected";
+    return "tabs-tab selected" + flush;
   } else {
-    return "tabs-tab";
+    return "tabs-tab" + flush;
   }
 }
 
