@@ -69,13 +69,7 @@ const queryFilter = computed(() => {
 
 function selectItem(item) {
   if (item) {
-    let path = item.path;
-    const idStart = path.indexOf("#");
-    if (idStart != -1) {
-      path = path.slice(idStart, path.length);
-    }
-
-    emit("selectEntity", path);
+    emit("selectEntity", item.queryRef || item.path);
   } else {
     emit("selectEntity", undefined);
   }
