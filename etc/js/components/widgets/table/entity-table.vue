@@ -111,10 +111,13 @@ const tableHeaders = computed(() => {
             name: "Entity",
             schema: ["entity"],
             get: (result) => {
-              if (result.parent) {
-                return result.parent + "." + result.name;
+              const name = result.name[0] === '#'
+                ? result.name
+                : result.name.replaceAll(".", "\\.");
+              if (result.parent && result.name[0] !== '#') {
+                return result.parent + "." + name;
               } else {
-                return result.name;
+                return name;
               }
             }
           });
@@ -292,11 +295,13 @@ function onSelect(result) {
       return emit("select", result.name);
     }
 
+    const name = result.name.replaceAll(".", "\\.");
+
     if (result.parent) {
-      return emit("select", result.parent + '.' + result.name);
+      return emit("select", result.parent + '.' + name);
     }
 
-    return emit("select", result.name);
+    return emit("select", name);
   }
 }
 
