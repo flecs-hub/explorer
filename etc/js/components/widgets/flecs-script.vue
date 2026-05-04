@@ -27,6 +27,9 @@ let editorObj = undefined;
 // Script is loading, don't write when editor content changes
 let isLoading = false;
 
+// Pending scriptUpdate request, kept so a new keystroke can supersede it
+let pendingRequest = undefined;
+
 const code = ref("");
 
 function loadScript() {
@@ -56,10 +59,18 @@ function onScriptChange(editorObj) {
 }
 
 function scriptUpdate(code, save = false) {
-  props.conn.scriptUpdate(props.script, code, {
+  if (pendingRequest) {
+    pendingRequest.abort();
+    pendingRequest = undefined;
+  }
+
+  pendingRequest = props.conn.scriptUpdate(props.script, code, {
     try: true,
-    save_file: save
+    save_file: save,
+    latency_budget_ms: save ? undefined : explorer.EDITOR_LATENCY_BUDGET_MS
   }, (msg) => {
+    pendingRequest = undefined;
+
     if (msg.error) {
       error.value = msg.error;
     } else {

@@ -1,4 +1,6 @@
 explorer = {
+  EDITOR_LATENCY_BUDGET_MS: 250,
+
   shortenEntity: function(entity) {
     if (entity) {
       if (entity[0] === "(") {

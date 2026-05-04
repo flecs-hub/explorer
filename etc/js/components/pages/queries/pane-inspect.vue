@@ -85,15 +85,16 @@ const doRequest = () => {
   } else {
     request.value = query_func(q, {
         try: true,
-        rows: true, 
+        rows: true,
         full_paths: true,
-        query_info: true, 
-        field_info: true, 
-        query_plan: true, 
+        query_info: true,
+        field_info: true,
+        query_plan: true,
         query_profile: true,
         managed: true,
-        persist: true
-      }, 
+        persist: true,
+        latency_budget_ms: explorer.EDITOR_LATENCY_BUDGET_MS
+      },
       (reply) => {
         result.value = reply;
       }, (reply) => {

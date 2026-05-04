@@ -418,7 +418,9 @@ const flecs = {
             if (params.managed) {
               poll_interval_ms = conn.params.poll_interval_ms;
             }
-        
+
+            let latency_budget_ms = params.latency_budget_ms;
+
             // Create the request object
             let result = {
               // Properties
@@ -428,12 +430,15 @@ const flecs = {
               request: undefined,
               method: method,
               // relative URL so we can persist requests across connections
-              url: path + flecs._.paramStr(params), 
+              url: path + flecs._.paramStr(params),
               recv: recv,
               err: err,
               on_abort: on_abort,
               poll_interval_ms: poll_interval_ms,
               retry_interval_ms: conn.retry_interval_ms,
+              latency_budget_ms: latency_budget_ms,
+              budgetTimer: undefined,
+              budgetFired: false,
               managed: params.managed,
               persist: params.persist,
               retry_count: 0,
@@ -445,10 +450,23 @@ const flecs = {
                   return;
                 }
 
+                if (this.aborted) {
+                  return;
+                }
+
                 if (!conn._.FlecsHttpRequest) {
                   setTimeout(() => {
                     this.do();
                   }, 100);
+                  return;
+                }
+
+                if (this.latency_budget_ms && !this.budgetFired) {
+                  this.budgetTimer = setTimeout(() => {
+                    this.budgetTimer = undefined;
+                    this.budgetFired = true;
+                    this.do(cache);
+                  }, this.latency_budget_ms);
                   return;
                 }
 
@@ -543,26 +561,33 @@ const flecs = {
 
               // Cancel request
               cancel() {
+                if (this.budgetTimer) {
+                  clearTimeout(this.budgetTimer);
+                  this.budgetTimer = undefined;
+                  this.aborted = true;
+                  return;
+                }
                 if (this.request) {
                   this.status = flecs.RequestStatus.Aborting;
                   this.request.abort();
                   this.aborted = true;
                 }
               },
-  
+
               // Abort request
               abort(keepPersist = false) {
-                if (this.request) {
+                if (this.budgetTimer || this.request) {
+                  const wasInBudget = !!this.budgetTimer;
                   this.cancel();
 
                   if (this.managed) {
                     if (!this.persist || !keepPersist) {
-                      this.conn.managedRequests = 
+                      this.conn.managedRequests =
                         this.conn.managedRequests.filter(item => item !== this);
                     }
                   }
 
-                  if (this.on_abort) {
+                  if (this.on_abort && !wasInBudget) {
                     this.on_abort(this);
                   }
 
@@ -766,6 +791,8 @@ const flecs = {
                   status: 200,
                   readyState: 4,
                   onreadystatechange: undefined,
+                  _timer: undefined,
+                  _aborted: false,
 
                   open(method, url) {
                     this.method = method;
@@ -773,23 +800,35 @@ const flecs = {
                   },
 
                   send(body) {
-                    const reply = nativeRequest(this.method, this.url, body);
-                    this.responseText = reply;
-
-                    // Check for errors, in which case we must set the status
-                    if (reply) {
-                      const replyObj = JSON.parse(reply);
-                      if (replyObj.error) {
-                        this.status = replyObj.status;
+                    this._timer = setTimeout(() => {
+                      this._timer = undefined;
+                      if (this._aborted) {
+                        return;
                       }
-                    }
 
-                    if (this.onreadystatechange) {
-                      this.onreadystatechange(reply);
-                    }
+                      const reply = nativeRequest(this.method, this.url, body);
+                      this.responseText = reply;
+
+                      if (reply) {
+                        const replyObj = JSON.parse(reply);
+                        if (replyObj.error) {
+                          this.status = replyObj.status;
+                        }
+                      }
+
+                      if (this.onreadystatechange) {
+                        this.onreadystatechange(reply);
+                      }
+                    }, 0);
                   },
 
-                  abort() {}
+                  abort() {
+                    this._aborted = true;
+                    if (this._timer) {
+                      clearTimeout(this._timer);
+                      this._timer = undefined;
+                    }
+                  }
                 };
               };
             });
@@ -825,7 +864,7 @@ const flecs = {
       if (params) {
         for (var k in params) {
           // Ignore client-side only parameters
-          if (k === "poll_interval_ms" || k === "host" || k === "managed" || k === "persist") {
+          if (k === "poll_interval_ms" || k === "host" || k === "managed" || k === "persist" || k === "latency_budget_ms") {
             continue;
           }
           if (params[k] !== undefined) {
