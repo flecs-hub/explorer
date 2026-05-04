@@ -616,6 +616,8 @@ div.entity-table-group-content {
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.45);
   position: relative;
   z-index: 1;
+  min-height: 53.5px;
+  box-sizing: border-box;
 }
 
 div.entity-table-group-content-collapsed {
