@@ -461,7 +461,8 @@ const flecs = {
                   return;
                 }
 
-                if (this.latency_budget_ms && !this.budgetFired) {
+                if (this.latency_budget_ms && !this.budgetFired &&
+                    conn.mode === flecs.ConnectionMode.Wasm) {
                   this.budgetTimer = setTimeout(() => {
                     this.budgetTimer = undefined;
                     this.budgetFired = true;

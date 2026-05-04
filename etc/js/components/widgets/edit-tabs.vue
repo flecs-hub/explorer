@@ -23,7 +23,7 @@
         </div>
 
         <div class="edit-tabs-content" :style="`padding: ${padding}; padding-bottom: 0px;`">
-          <ul style="height: inherit; padding: 0px;">
+          <ul style="height: inherit; padding: 0px; margin: 0px;">
             <template v-for="item in items" :key="item.value">
               <li :class="editContentCss(item.value)">
                 <slot :name="item.value"></slot>
@@ -127,7 +127,7 @@ function editContentCss(item) {
 
 div.edit-tabs {
   display: grid;
-  overflow: auto;
+  overflow: hidden;
   grid-template-rows: auto;
   gap: var(--gap);
   background-color: var(--bg-content);
@@ -139,14 +139,17 @@ div.edit-tabs-container {
   display: grid;
   grid-template-rows: 38.5px 1fr;
   border-radius: var(--border-radius-medium);
-  overflow: auto;
+  overflow: hidden;
   height: calc(100% - 2px);
+  min-height: 0;
 }
 
 div.edit-tabs-content {
   grid-row: 2;
   height: 100%;
-  overflow-y: none;
+  min-height: 0;
+  overflow: auto;
+  box-sizing: border-box;
 }
 
 div.edit-tabs-tabs {

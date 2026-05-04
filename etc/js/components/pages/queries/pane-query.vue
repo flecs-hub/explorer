@@ -1,11 +1,10 @@
 <template>
-  <div id="pane-query" class="pane">
-    <tabs :items="['editor', 'browse']"
-        v-model:active_tab="app_params.queries.query_tab"
-        class="explorer-tab-content"
-        v-on:changed="onTab">
+  <div id="pane-query">
+    <edit-tabs :items="items"
+        v-model:active_item="app_params.queries.query_tab"
+        padding="0.5rem;">
       <template v-slot:editor>
-        <query-editor 
+        <query-editor
           :conn="conn"
           v-model:query="query.expr">
         </query-editor>
@@ -17,7 +16,7 @@
           v-model:query_kind="query.kind">
         </query-browser>
       </template>
-    </tabs>
+    </edit-tabs>
   </div>
 </template>
 
@@ -26,7 +25,7 @@ export default { name: "pane-query" }
 </script>
 
 <script setup>
-import { defineProps, defineModel, computed } from 'vue';
+import { defineProps, defineModel, computed, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}
@@ -38,33 +37,26 @@ const query = computed(() => {
   return app_params.value.queries;
 });
 
-const host = computed(() => {
-  return app_params.value.host;
-});
+const items = [
+  { label: "Editor", value: "editor", canClose: false, icon: "edit" },
+  { label: "Browse", value: "browse", canClose: false, icon: "search" }
+];
 
-const onTab = (evt) => {
-  const isBrowse = evt.tab == "browse";
+watch(() => app_params.value.queries.query_tab, (tab) => {
+  const isBrowse = tab == "browse";
   if (!isBrowse) {
     query.value.kind = "query";
   }
-
   query.value.use_name = isBrowse;
-}
+});
 </script>
 
 <style scoped>
 #pane-query {
-  border-radius: var(--border-radius-medium);
   grid-column: 1;
   grid-row: 1;
   min-width: 0;
   min-height: 0;
-}
-</style>
-
-<style>
-.explorer-tab-content {
-  padding: 0.5rem !important;
-  padding-left: 0px !important;
+  height: 100%;
 }
 </style>

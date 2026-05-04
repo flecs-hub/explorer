@@ -10,7 +10,7 @@
         </toggle>
       </div>
     </div>
-    <template v-if="show_filter">
+    <div class="query-browser-filters" v-if="show_filter">
       <toggle class="query-browser-filter-toggle" v-model="show_flecs" :opacity="1.0">
         <div class="flecs-logo show-flecs"></div>
       </toggle>
@@ -23,14 +23,14 @@
       <toggle class="query-browser-filter-toggle" v-model="show_queries" :opacity="1.0">
         <icon src="search"></icon> queries
       </toggle>
-    </template>
-    <div :class="css">
+    </div>
+    <div class="query-browser-list">
       <template v-for="(query, i) in filteredResults">
-        <query-list-item 
+        <query-list-item
           :prop="query"
           :img="itemIcon(query)"
           :expr="nameQuery.expr"
-          :index="i" 
+          :index="i"
           :selected="selected"
           v-on:select="onSelect(i)">
         </query-list-item>
@@ -128,14 +128,6 @@ const nameQuery = computed(() => {
   return nameQueryFromExpr(filter_expr.value);
 });
 
-const css = computed(() => {
-  let result = ['query-browser-list'];
-  if (show_filter.value) {
-    result.push('query-browser-list-show-filter');
-  }
-  return result;
-});
-
 const itemIcon = (item) => {
   if (item.observer) {
     return "bell";
@@ -223,23 +215,27 @@ const onSelect = (index) => {
 <style scoped>
 #query-browser {
   height: 100%;
-  margin-left: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 div.query-browser-list {
   border-radius: var(--border-radius-medium);
   overflow-y: auto;
-  max-height: calc(100% - 2.8rem);
-}
-
-div.query-browser-list-show-filter {
-  max-height: calc(100% - 5.6rem);
+  flex: 1;
+  min-height: 0;
 }
 
 div.query-browser-search-box {
   display: grid;
   grid-template-columns: 1fr 32px;
   gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+div.query-browser-filters {
+  flex-shrink: 0;
 }
 
 div.query-browser-search-input {

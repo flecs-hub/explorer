@@ -1,46 +1,45 @@
 <template>
-  <div id="pane-inspect" class="pane">
-    <tabs :items="['table', 'json', 'api', 'inspect']"
-        v-model:active_tab="app_params.queries.inspect_tab"
-        :flushTabs="['table']"
-        class="inspect-tab-content">
-    <template v-slot:table>
-      <div :class="visibleClass">
-        <entity-table :result="result"
-            v-model:sort_col="app_params.queries.sort_col"
-            v-model:sort_mode="app_params.queries.sort_mode"
-            @select="onSelectEntity" ref="queryTable"></entity-table>
-      </div>
-      <template v-if="result.error">
-        <query-error :error="result.error"></query-error>
+  <div id="pane-inspect">
+    <edit-tabs :items="items"
+        v-model:active_item="app_params.queries.inspect_tab"
+        padding="0.5rem;">
+      <template v-slot:table>
+        <div :class="visibleClass" class="pane-inspect-table-flush">
+          <entity-table :result="result"
+              v-model:sort_col="app_params.queries.sort_col"
+              v-model:sort_mode="app_params.queries.sort_mode"
+              @select="onSelectEntity" ref="queryTable"></entity-table>
+        </div>
+        <template v-if="result.error">
+          <query-error :error="result.error"></query-error>
+        </template>
       </template>
-    </template>
-    <template v-slot:json>
-      <div :class="visibleClass">
-        <query-json :result="result"></query-json>
-      </div>
-      <template v-if="result.error">
-        <query-error :error="result.error"></query-error>
+      <template v-slot:json>
+        <div :class="visibleClass">
+          <query-json :result="result"></query-json>
+        </div>
+        <template v-if="result.error">
+          <query-error :error="result.error"></query-error>
+        </template>
       </template>
-    </template>
-    <template v-slot:api>
-      <div :class="visibleClass">
-        <query-api :conn="conn" :result="result" :query="query"></query-api>
-      </div>
-      <template v-if="result.error">
-        <query-error :error="result.error"></query-error>
+      <template v-slot:api>
+        <div :class="visibleClass">
+          <query-api :conn="conn" :result="result" :query="query"></query-api>
+        </div>
+        <template v-if="result.error">
+          <query-error :error="result.error"></query-error>
+        </template>
       </template>
-    </template>
-    <template v-slot:inspect>
-      <div :class="visibleClass">
-        <query-inspect :query="query" :result="result"></query-inspect>
-      </div>
-      <template v-if="result.error">
-        <query-error :error="result.error"></query-error>
+      <template v-slot:inspect>
+        <div :class="visibleClass">
+          <query-inspect :query="query" :result="result"></query-inspect>
+        </div>
+        <template v-if="result.error">
+          <query-error :error="result.error"></query-error>
+        </template>
       </template>
-    </template>
-  </tabs>
-</div>
+    </edit-tabs>
+  </div>
 </template>
 
 <script>
@@ -66,6 +65,13 @@ const emit = defineEmits(["selectEntity"]);
 const query = computed(() => {
   return props.app_params.queries;
 });
+
+const items = [
+  { label: "Table", value: "table", canClose: false, icon: "table" },
+  { label: "JSON", value: "json", canClose: false, icon: "json" },
+  { label: "API", value: "api", canClose: false, icon: "code" },
+  { label: "Inspect", value: "inspect", canClose: false, icon: "inspect" }
+];
 
 const doRequest = () => {
   if (request.value) {
@@ -137,11 +143,11 @@ function onSelectEntity(entity) {
 <style scoped>
 #pane-inspect {
   position: relative;
-  border-radius: var(--border-radius-medium);
   margin: 0px;
   grid-row: 1;
   min-width: 0;
   min-height: 0;
+  height: 100%;
 }
 
 div.pane-inspect {
@@ -151,15 +157,8 @@ div.pane-inspect {
 div.pane-inspect-hide {
   display: none;
 }
-</style>
 
-<style>
-.inspect-tab-content {
-  margin: 0px !important;;
-  padding: 0.5rem !important;
-}
-
-.inspect-tab-content .tabs-tab-flush {
+div.pane-inspect-table-flush {
   margin-left: -0.5rem;
   margin-right: -0.5rem;
 }
