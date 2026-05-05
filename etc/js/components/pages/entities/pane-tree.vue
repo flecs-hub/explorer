@@ -1,25 +1,23 @@
 <template>
-  <div id="pane-tree" class="pane">
-    <div class="pane-tree-search-box">
-      <div class="pane-tree-select">
-        <dropdown 
-          :items="treeModeItems" 
-          v-model:active_item="appParams.entities.tree_mode">
-        </dropdown>
-      </div>
-      <div class="pane-tree-search">
-        <search-box v-model="nameFilter"></search-box>
-      </div>
-    </div>
-    <div class="pane-tree-entity-tree">
-      <entity-tree 
-        :conn="conn" 
-        :nameFilter="nameFilter"
-        :queryFilter="queryFilter"
-        @select="selectItem"
-        ref="entity_tree">
-      </entity-tree>
-    </div>
+  <div id="pane-tree">
+    <edit-tabs :items="items" v-model:active_item="appParams.entities.tree_mode" padding="0px;">
+      <template v-slot:[appParams.entities.tree_mode]>
+        <div class="pane-tree-content">
+          <div class="pane-tree-search">
+            <search-box v-model="nameFilter"></search-box>
+          </div>
+          <div class="pane-tree-entity-tree">
+            <entity-tree
+              :conn="conn"
+              :nameFilter="nameFilter"
+              :queryFilter="queryFilter"
+              @select="selectItem"
+              ref="entity_tree">
+            </entity-tree>
+          </div>
+        </div>
+      </template>
+    </edit-tabs>
   </div>
 </template>
 
@@ -39,12 +37,17 @@ const appParams = defineModel("app_params");
 const nameFilter = ref();
 const entity_tree = ref(null);
 
-const treeModeItems = computed(() => {
+const items = computed(() => {
+  let result = [
+    { label: "Entities", value: "Entities", canClose: false },
+    { label: "Scripts", value: "Scripts", canClose: false }
+  ];
+
   if (appParams.value.script) {
-    return ['Entities', 'Scripts', 'Outline'];
-  } else {
-    return ['Entities', 'Scripts'];
+    result.push({ label: "Outline", value: "Outline", canClose: false });
   }
+
+  return result;
 });
 
 const queryFilter = computed(() => {
@@ -76,7 +79,9 @@ function selectItem(item) {
 }
 
 const unselect = () => {
-  entity_tree.value.unselect();
+  if (entity_tree.value) {
+    entity_tree.value.unselect();
+  }
 }
 
 defineExpose({
@@ -87,37 +92,27 @@ defineExpose({
 
 <style scoped>
 #pane-tree {
-  display: grid;
   grid-column: 1;
-  grid-template-rows: calc(72px + var(--gap)) 1rem;
-  gap: 0.5rem;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
 }
 
-div.pane-tree-search-box {
+div.pane-tree-content {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  min-height: 0;
+}
+
+div.pane-tree-search {
   grid-row: 1;
   padding: 8px;
-
-  display: grid;
-  grid-template-rows: 36px 36px;
-  gap: var(--gap);
 }
 
 div.pane-tree-entity-tree {
   grid-row: 2;
-  height: calc(100vh - 72px - 8px - var(--header-height) - var(--footer-height) - 4 * var(--gap));
   overflow: auto;
+  min-height: 0;
 }
-
-div.pane-tree-select {
-  grid-row: 1;
-}
-
-div.pane-tree-select div.dropdown {
-  width: 100%;
-}
-
-div.pane-tree-search {
-  grid-row: 2;
-}
-
 </style>
