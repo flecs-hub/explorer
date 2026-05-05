@@ -175,6 +175,7 @@ const BASE_COMPONENTS = [
   'js/components/widgets/histogram.vue',
   'js/components/widgets/data-table.vue',
   'js/components/widgets/json-viewer.vue',
+  'js/components/widgets/json-node.vue',
   'js/components/icon.vue',
   'js/components/toggle.vue',
   'js/components/search-box.vue',

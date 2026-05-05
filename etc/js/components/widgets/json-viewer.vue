@@ -1,6 +1,6 @@
 <template>
   <div class="json-viewer">
-    <div class="json-viewer-actions" v-if="!error && displayText">
+    <div class="json-viewer-actions" v-if="!error && hasContent">
       <span class="json-viewer-feedback" v-if="copyFeedback">{{ copyFeedback }}</span>
       <button
         class="json-viewer-action"
@@ -23,14 +23,14 @@
         <icon src="copy" :size="16"></icon>
       </button>
     </div>
-    <pre
-      v-if="!error && highlight && displayText"
-      class="json-viewer-body"
-      v-html="highlightedText"></pre>
-    <pre
-      v-else
-      class="json-viewer-body"
-      :class="{ 'json-viewer-error': error }">{{ displayText }}</pre>
+    <pre v-if="error" class="json-viewer-body json-viewer-error">{{ rawText }}</pre>
+    <pre v-else-if="parsedValue !== UNPARSEABLE" class="json-viewer-body"><json-node
+        :value="parsedValue"
+        :format="format"
+        :highlight="highlight"
+        :indent="0"
+        :comma="false"></json-node></pre>
+    <pre v-else class="json-viewer-body">{{ rawText }}</pre>
   </div>
 </template>
 
@@ -40,6 +40,8 @@ export default { name: "json-viewer" };
 
 <script setup>
 import { defineProps, defineModel, computed, ref } from 'vue';
+
+const UNPARSEABLE = Symbol("unparseable");
 
 const props = defineProps({
   data: { required: false, default: "" },
@@ -52,62 +54,34 @@ const highlight = defineModel("highlight", { type: Boolean, default: true });
 const copyFeedback = ref("");
 let copyFeedbackTimer;
 
-const displayText = computed(() => {
+const parsedValue = computed(() => {
   const d = props.data;
-  if (d === undefined || d === null || d === "") return "";
+  if (d === undefined || d === null || d === "") return UNPARSEABLE;
   if (typeof d === "string") {
-    if (props.error) return d;
     try {
-      const parsed = JSON.parse(d);
-      return format.value
-        ? JSON.stringify(parsed, null, 2)
-        : JSON.stringify(parsed);
+      return JSON.parse(d);
     } catch (e) {
-      return d;
+      return UNPARSEABLE;
     }
   }
-  if (typeof d === "object") {
-    try {
-      return format.value
-        ? JSON.stringify(d, null, 2)
-        : JSON.stringify(d);
-    } catch (e) {
-      return String(d);
-    }
-  }
-  return String(d);
+  if (typeof d === "object") return d;
+  return UNPARSEABLE;
 });
 
-function escapeHtml(s) {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+const rawText = computed(() => {
+  const d = props.data;
+  if (d === undefined || d === null) return "";
+  if (typeof d === "string") return d;
+  try {
+    return JSON.stringify(d, null, 2);
+  } catch (e) {
+    return String(d);
+  }
+});
 
-const highlightedText = computed(() => {
-  const text = displayText.value;
-  if (!text) return "";
-  const escaped = escapeHtml(text);
-  const re = /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"\s*:?)|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)|([\{\}\[\]])/g;
-  return escaped.replace(re, (match, str, kw, num, punct) => {
-    if (str !== undefined) {
-      if (/:$/.test(str)) {
-        return `<span class="json-viewer-key">${str}</span>`;
-      }
-      return `<span class="json-viewer-string">${str}</span>`;
-    }
-    if (kw !== undefined) {
-      return `<span class="json-viewer-keyword">${kw}</span>`;
-    }
-    if (num !== undefined) {
-      return `<span class="json-viewer-number">${num}</span>`;
-    }
-    if (punct !== undefined) {
-      return `<span class="json-viewer-punct">${punct}</span>`;
-    }
-    return match;
-  });
+const hasContent = computed(() => {
+  if (parsedValue.value !== UNPARSEABLE) return true;
+  return !!rawText.value;
 });
 
 function onToggleFormat() {
@@ -126,8 +100,21 @@ function flashCopyFeedback(msg) {
   }, 1500);
 }
 
+function copyText() {
+  if (parsedValue.value !== UNPARSEABLE) {
+    try {
+      return format.value
+        ? JSON.stringify(parsedValue.value, null, 2)
+        : JSON.stringify(parsedValue.value);
+    } catch (e) {
+      return rawText.value;
+    }
+  }
+  return rawText.value;
+}
+
 function onCopy() {
-  const text = displayText.value;
+  const text = copyText();
   if (!text) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text)
