@@ -16,7 +16,11 @@
       </template>
       <template v-slot:json>
         <div :class="visibleClass">
-          <query-json :result="result"></query-json>
+          <json-viewer
+            :data="json_data"
+            :error="!!result.error"
+            v-model:format="json_format"
+            v-model:highlight="json_highlight"></json-viewer>
         </div>
         <template v-if="result.error">
           <query-error :error="result.error"></query-error>
@@ -59,6 +63,34 @@ const props = defineProps({
 const result = ref({reply: []});
 const request = ref(undefined);
 const queryTable = ref(null);
+
+function loadBool(key, fallback) {
+  try {
+    const v = localStorage.getItem(key);
+    if (v === null) return fallback;
+    return v === "true";
+  } catch (e) {
+    return fallback;
+  }
+}
+
+const json_format = ref(loadBool("queries.json.format", true));
+const json_highlight = ref(loadBool("queries.json.highlight", true));
+
+watch(json_format, (v) => {
+  try { localStorage.setItem("queries.json.format", String(v)); } catch (e) {}
+});
+
+watch(json_highlight, (v) => {
+  try { localStorage.setItem("queries.json.highlight", String(v)); } catch (e) {}
+});
+
+const json_data = computed(() => {
+  if (result.value.error) {
+    return result.value.error.split("\n").join("\n  ");
+  }
+  return { results: result.value.results };
+});
 
 const emit = defineEmits(["selectEntity"]);
 

@@ -117,35 +117,14 @@
     </div>
 
     <div class="rest-response pane">
-      <div class="rest-response-actions" v-show="responseTab === 'Response'">
-        <label class="rest-toggle-button" title="Pretty-print JSON content">
-          <input class="rest-checkbox" type="checkbox" v-model="pretty" />
-          <span>Format</span>
-        </label>
-        <label class="rest-toggle-button" title="Syntax highlight JSON content">
-          <input class="rest-checkbox" type="checkbox" v-model="syntaxHighlight" />
-          <span>Syntax highlight</span>
-        </label>
-        <span class="rest-copy-feedback" v-if="copyFeedback">{{ copyFeedback }}</span>
-        <button
-          class="rest-copy-button"
-          @click="onCopy"
-          :disabled="!responseText"
-          :title="responseText ? 'Copy to clipboard' : ''">
-          <icon src="copy" :size="16"></icon>
-        </button>
-      </div>
       <tabs :items="['Response', 'API']" v-model:active_tab="responseTab" class="rest-response-tabs">
         <template v-slot:Response>
           <div class="rest-response-pane">
-            <pre
-              v-if="syntaxHighlight && responseText && !hasError"
-              class="rest-response-body"
-              v-html="highlightedResponse"></pre>
-            <pre
-              v-else
-              class="rest-response-body"
-              :class="{ 'rest-response-error': hasError }">{{ responseText }}</pre>
+            <json-viewer
+              :data="responseText"
+              :error="hasError"
+              v-model:format="pretty"
+              v-model:highlight="syntaxHighlight"></json-viewer>
             <div :class="footerCss" v-if="status">{{ status }}</div>
           </div>
         </template>
@@ -451,11 +430,9 @@ const paramValues = ref({});
 const responseText = ref("");
 const status = ref("");
 const hasError = ref(false);
-const copyFeedback = ref("");
 const syntaxHighlight = ref(loadBool("rest.syntaxHighlight", true));
 const pretty = ref(loadBool("rest.pretty", true));
 const responseTab = ref("Response");
-let copyFeedbackTimer;
 
 function loadBool(key, fallback) {
   try {
@@ -836,8 +813,6 @@ const jsExample = computed(() => {
   );
 });
 
-const highlightedResponse = computed(() => highlightJson(responseText.value));
-
 function escapeHtml(s) {
   return s
     .replace(/&/g, "&amp;")
@@ -879,30 +854,6 @@ function highlightHtml(code) {
       attrHtml +
       `<span class="rest-code-punct">${close}</span>`
     );
-  });
-}
-
-function highlightJson(json) {
-  if (!json) return "";
-  const escaped = escapeHtml(json);
-  const re = /("(?:\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"\s*:?)|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)|([\{\}\[\]])/g;
-  return escaped.replace(re, (match, str, kw, num, punct) => {
-    if (str !== undefined) {
-      if (/:$/.test(str)) {
-        return `<span class="rest-json-key">${str}</span>`;
-      }
-      return `<span class="rest-json-string">${str}</span>`;
-    }
-    if (kw !== undefined) {
-      return `<span class="rest-json-keyword">${kw}</span>`;
-    }
-    if (num !== undefined) {
-      return `<span class="rest-json-number">${num}</span>`;
-    }
-    if (punct !== undefined) {
-      return `<span class="rest-json-punct">${punct}</span>`;
-    }
-    return match;
   });
 }
 
@@ -1036,9 +987,7 @@ function stringifyPayload(reply) {
     return String(reply);
   }
   try {
-    return pretty.value
-      ? JSON.stringify(reply, null, 2)
-      : JSON.stringify(reply);
+    return JSON.stringify(reply);
   } catch (e) {
     return String(reply);
   }
@@ -1076,51 +1025,6 @@ function showError(reply) {
     responseText.value = String(reply);
   }
 }
-
-watch(pretty, () => {
-  if (!responseText.value) return;
-  try {
-    const parsed = JSON.parse(responseText.value);
-    responseText.value = pretty.value
-      ? JSON.stringify(parsed, null, 2)
-      : JSON.stringify(parsed);
-  } catch (e) {
-    // not JSON, leave as-is
-  }
-});
-
-function flashCopyFeedback(msg) {
-  copyFeedback.value = msg;
-  if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
-  copyFeedbackTimer = setTimeout(() => {
-    copyFeedback.value = "";
-  }, 1500);
-}
-
-function onCopy() {
-  if (!responseText.value) return;
-  const text = responseText.value;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text)
-      .then(() => flashCopyFeedback("Copied"))
-      .catch(() => flashCopyFeedback("Copy failed"));
-    return;
-  }
-  try {
-    const ta = document.createElement("textarea");
-    ta.value = text;
-    ta.style.position = "fixed";
-    ta.style.opacity = "0";
-    document.body.appendChild(ta);
-    ta.select();
-    document.execCommand("copy");
-    document.body.removeChild(ta);
-    flashCopyFeedback("Copied");
-  } catch (e) {
-    flashCopyFeedback("Copy failed");
-  }
-}
-
 
 function onSend() {
   const ep = endpoint.value;
@@ -1372,16 +1276,6 @@ div.rest-response {
   padding: 0;
 }
 
-div.rest-response-actions {
-  position: absolute;
-  top: 0.25rem;
-  right: 0.5rem;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 div.rest-response :deep(.rest-response-tabs) {
   height: 100%;
   display: flex;
@@ -1533,22 +1427,6 @@ label.rest-toggle-button > span {
   white-space: nowrap;
 }
 
-button.rest-copy-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-button.rest-copy-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-span.rest-copy-feedback {
-  color: var(--bright-green);
-  font-size: 0.8rem;
-}
-
 div.rest-response-footer {
   padding: 0.4rem 1rem;
   font-size: 0.85rem;
@@ -1565,41 +1443,6 @@ div.rest-response-footer-ok {
 div.rest-response-footer-error {
   color: var(--bright-red);
   background-color: rgba(181, 73, 75, 0.25);
-}
-
-
-pre.rest-response-body {
-  margin: 0;
-  padding: 1rem;
-  overflow: auto;
-  background-color: var(--bg-content);
-  color: var(--primary-text);
-  font-size: 0.85rem;
-  border-radius: 0;
-}
-
-pre.rest-response-error {
-  color: var(--bright-red);
-}
-
-pre.rest-response-body :deep(.rest-json-key) {
-  color: #98c379;
-}
-
-pre.rest-response-body :deep(.rest-json-string) {
-  color: #61afef;
-}
-
-pre.rest-response-body :deep(.rest-json-number) {
-  color: #d19a66;
-}
-
-pre.rest-response-body :deep(.rest-json-keyword) {
-  color: #e06c75;
-}
-
-pre.rest-response-body :deep(.rest-json-punct) {
-  color: #c678dd;
 }
 
 </style>
