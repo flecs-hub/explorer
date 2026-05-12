@@ -3222,6 +3222,12 @@ void flecs_instantiate_sparse(
     const ecs_entity_t *instance_children,
     int32_t row_offset);
 
+ecs_entity_t flecs_instantiate_alloc_child_id(
+    ecs_world_t *world,
+    ecs_entity_t prefab_child,
+    ecs_entity_t root_prefab,
+    ecs_entity_t root_instance);
+
 #endif
 
 /**
@@ -3525,7 +3531,9 @@ EcsTreeSpawner* flecs_prefab_spawner_build(
 void flecs_spawner_instantiate(
     ecs_world_t *world,
     EcsTreeSpawner *spawner,
-    ecs_entity_t instance);
+    ecs_entity_t base,
+    ecs_entity_t instance,
+    const ecs_instantiate_ctx_t *ctx);
 
 #endif
 
@@ -12874,6 +12882,34 @@ int32_t flecs_child_type_insert(
     return i;
 }
 
+ecs_entity_t flecs_instantiate_alloc_child_id(
+    ecs_world_t *world,
+    ecs_entity_t prefab_child,
+    ecs_entity_t root_prefab,
+    ecs_entity_t root_instance)
+{
+    if ((uint32_t)prefab_child < (uint32_t)root_prefab) {
+        return flecs_new_id(world);
+    }
+
+    ecs_entity_t prefab_offset =
+        (uint32_t)prefab_child - (uint32_t)root_prefab;
+    ecs_assert(prefab_offset != 0, ECS_INTERNAL_ERROR, NULL);
+
+    ecs_entity_t instance_child = (uint32_t)root_instance + prefab_offset;
+    ecs_entity_t alive_id = flecs_entities_get_alive(world, instance_child);
+    if (alive_id && flecs_entities_is_alive(world, alive_id)) {
+        return flecs_new_id(world);
+    }
+
+    instance_child = root_instance + prefab_offset;
+    flecs_entities_make_alive(world, instance_child);
+    flecs_entities_ensure(world, instance_child);
+    ecs_assert(ecs_is_alive(world, instance_child), ECS_INTERNAL_ERROR, NULL);
+
+    return instance_child;
+}
+
 void flecs_instantiate_sparse(
     ecs_world_t *world,
     const ecs_table_range_t *base_child_range,
@@ -13070,33 +13106,8 @@ void flecs_instantiate_children(
 
     for (j = 0; j < child_range.count; j ++) {
         ecs_entity_t prefab_child = children[j + child_range.offset];
-        if ((uint32_t)prefab_child < (uint32_t)ctx_cur.root_prefab) {
-            /* Child id is smaller than root prefab id, can't use offset */
-            child_ids[j] = flecs_new_id(world);
-            continue;
-        }
-
-        /* Get prefab offset, ignore lifecycle generation count */
-        ecs_entity_t prefab_offset =
-            (uint32_t)prefab_child - (uint32_t)ctx_cur.root_prefab;
-        ecs_assert(prefab_offset != 0, ECS_INTERNAL_ERROR, NULL);
-
-        /* First check if any entity with the desired id exists */
-        ecs_entity_t instance_child = (uint32_t)ctx_cur.root_instance + prefab_offset;
-        ecs_entity_t alive_id = flecs_entities_get_alive(world, instance_child);
-        if (alive_id && flecs_entities_is_alive(world, alive_id)) {
-            /* Alive entity with requested id exists, can't use offset id */
-            child_ids[j] = flecs_new_id(world);
-            continue;
-        }
-
-        /* Id is not in use. Make it alive & match the generation of the instance. */
-        instance_child = ctx_cur.root_instance + prefab_offset;
-        flecs_entities_make_alive(world, instance_child);
-        flecs_entities_ensure(world, instance_child);
-        ecs_assert(ecs_is_alive(world, instance_child), ECS_INTERNAL_ERROR, NULL);
-
-        child_ids[j] = instance_child;
+        child_ids[j] = flecs_instantiate_alloc_child_id(
+            world, prefab_child, ctx_cur.root_prefab, ctx_cur.root_instance);
     }
 
     /* Create children */
@@ -13236,7 +13247,7 @@ void flecs_instantiate(
                 }
 
                 if (ts) {
-                    flecs_spawner_instantiate(world, ts, instance);
+                    flecs_spawner_instantiate(world, ts, base, instance, ctx);
                 }
 
                 ecs_os_perf_trace_pop("flecs.instantiate");
@@ -18167,8 +18178,14 @@ void flecs_component_delete_non_fragmenting_childof(
     cr->flags |= EcsIdMarkedForDelete;
 
     ecs_pair_record_t *pr = cr->pair;
-    int32_t i, count = ecs_vec_count(&pr->ordered_children);
-    ecs_entity_t *children = ecs_vec_first(&pr->ordered_children);
+
+    /* Detach ordered_children so observers fired during cleanup don't see
+     * entries for siblings that have already been deleted in the loop. */
+    ecs_vec_t children_vec = pr->ordered_children;
+    pr->ordered_children = (ecs_vec_t){0};
+
+    int32_t i, count = ecs_vec_count(&children_vec);
+    ecs_entity_t *children = ecs_vec_first_t(&children_vec, ecs_entity_t);
 
     for (i = 0; i < count; i ++) {
         ecs_entity_t e = children[i];
@@ -18193,7 +18210,7 @@ void flecs_component_delete_non_fragmenting_childof(
                         world, child_cr);
                 }
             } else {
-                /* Entity is a target but is not a (non-fragmenting) ChildOf 
+                /* Entity is a target but is not a (non-fragmenting) ChildOf
                  * target. Go through regular cleanup path. */
                 flecs_target_mark_for_delete(world, e);
             }
@@ -18201,6 +18218,8 @@ void flecs_component_delete_non_fragmenting_childof(
 
         flecs_simple_delete(world, e, r);
     }
+
+    ecs_vec_fini_t(&world->allocator, &children_vec, ecs_entity_t);
 
     ecs_component_record_t *tgt_wc = pr->second.prev;
     ecs_assert(ECS_PAIR_FIRST(tgt_wc->id) == EcsWildcard, ECS_INTERNAL_ERROR, NULL);
@@ -20909,14 +20928,21 @@ EcsTreeSpawner* flecs_prefab_spawner_build(
 void flecs_spawner_instantiate(
     ecs_world_t *world,
     EcsTreeSpawner *spawner,
-    ecs_entity_t instance)
+    ecs_entity_t base,
+    ecs_entity_t instance,
+    const ecs_instantiate_ctx_t *ctx)
 {
     ecs_record_t *r_instance = flecs_entities_get(world, instance);
     int32_t depth = flecs_relation_depth(world, EcsChildOf, r_instance->table);
     int32_t i, child_count = ecs_vec_count(&spawner->data[0].children);
 
     bool is_prefab = r_instance->table->flags & EcsTableIsPrefab;
-    
+
+    ecs_instantiate_ctx_t ctx_cur = {base, instance};
+    if (ctx) {
+        ctx_cur = *ctx;
+    }
+
     /* Use cached spawner for depth if available. */
     ecs_vec_t *vec, tmp_vec;
     if (depth < FLECS_TREE_SPAWNER_DEPTH_CACHE_SIZE) {
@@ -20932,7 +20958,7 @@ void flecs_spawner_instantiate(
     }
 
     ecs_tree_spawner_child_t *spawn_children = ecs_vec_first(vec);
-    ecs_vec_set_min_count_t(&world->allocator, &world->allocators.tree_spawner, 
+    ecs_vec_set_min_count_t(&world->allocator, &world->allocators.tree_spawner,
         ecs_entity_t, child_count + 1);
     ecs_entity_t *parents = ecs_vec_first(&world->allocators.tree_spawner);
     parents[0] = instance;
@@ -20943,8 +20969,10 @@ void flecs_spawner_instantiate(
     ecs_assert(ecs_vec_count(vec) == child_count, ECS_INTERNAL_ERROR, NULL);
 
     for (i = 0; i < child_count; i ++) {
-        ecs_entity_t entity = parents[i + 1] = flecs_new_id(world);
         ecs_tree_spawner_child_t *spawn_child = &spawn_children[i];
+        ecs_entity_t entity = parents[i + 1] = flecs_instantiate_alloc_child_id(
+            world, spawn_child->child,
+            ctx_cur.root_prefab, ctx_cur.root_instance);
         ecs_table_t *table = spawn_child->table;
         ecs_assert(table != NULL, ECS_INTERNAL_ERROR, NULL);
 
@@ -26236,6 +26264,7 @@ static ecs_os_api_log_t flecs_log_prev_log = NULL;
 static ecs_os_api_log_t flecs_log_prev_fatal_log = NULL;
 static bool flecs_log_prev_color = false;
 static int flecs_log_prev_level = 0;
+static int flecs_log_capture_depth = 0;
 
 static
 void flecs_set_prev_log(
@@ -26292,6 +26321,9 @@ char* flecs_log_get_captured_log(void) {
 }
 
 void ecs_log_start_capture(bool try) {
+    if (flecs_log_capture_depth ++) {
+        return;
+    }
     flecs_log_prev_color = ecs_log_enable_colors(false);
     flecs_log_prev_log = ecs_os_api.log_;
     flecs_log_prev_level = ecs_os_api.log_level_;
@@ -26301,6 +26333,11 @@ void ecs_log_start_capture(bool try) {
 }
 
 char* ecs_log_stop_capture(void) {
+    ecs_assert(flecs_log_capture_depth > 0, ECS_INVALID_OPERATION,
+        "log capture not active");
+    if (-- flecs_log_capture_depth) {
+        return NULL;
+    }
     ecs_os_api.log_ = flecs_log_prev_fatal_log;
     ecs_os_api.log_level_ = flecs_log_prev_level;
     ecs_log_enable_colors(flecs_log_prev_color);
@@ -39642,6 +39679,7 @@ void flecs_component_record_init_dont_fragment(
 
     if (cr->id < FLECS_HI_COMPONENT_ID) {
         world->non_trivial_lookup[cr->id] |= EcsNonTrivialIdNonFragmenting;
+        world->non_trivial_set[cr->id] = true;
     }
 
     flecs_component_init_sparse(world, cr);
@@ -42751,6 +42789,19 @@ void flecs_table_init_flags(
     int32_t i;
     for (i = 0; i < count; i ++) {
         ecs_id_t id = ids[i];
+
+#if !defined(FLECS_NDEBUG) || defined(FLECS_KEEP_ASSERT)
+        {
+            ecs_id_t check_id = ECS_IS_PAIR(id)
+                ? ecs_pair(ECS_PAIR_FIRST(id), EcsWildcard)
+                : id;
+            ecs_component_record_t *id_cr = flecs_components_ensure(
+                world, check_id);
+            ecs_assert(!(id_cr->flags & EcsIdDontFragment),
+                ECS_INVALID_OPERATION,
+                "table type cannot contain DontFragment components");
+        }
+#endif
 
         if (id <= EcsLastInternalComponentId) {
             table->flags |= EcsTableHasModule;
@@ -46737,7 +46788,13 @@ void flecs_add_with_property(
                 a = ecs_pair(ra, o);
             }
 
-            flecs_type_add(world, dst_type, a);
+            ecs_id_t check_id = ECS_IS_PAIR(a)
+                ? ecs_pair(ECS_PAIR_FIRST(a), EcsWildcard)
+                : a;
+            ecs_component_record_t *a_cr = flecs_components_ensure(world, check_id);
+            if (!(a_cr->flags & EcsIdDontFragment)) {
+                flecs_type_add(world, dst_type, a);
+            }
             flecs_add_with_property(world, cr_with_wildcard, dst_type, ra, o);
         }
     }
@@ -49090,6 +49147,7 @@ typedef struct {
     ecs_allocator_t *a;
     ecs_vec_t table_type;
     ecs_vec_t remove_ids;
+    ecs_vec_t dont_fragment_ids;
     ecs_map_t anonymous_ids;
     ecs_map_t missing_reflection;
     const char *expr;
@@ -49103,6 +49161,7 @@ void flecs_from_json_ctx_init(
     ctx->a = a;
     ecs_vec_init_t(a, &ctx->table_type, ecs_id_t, 0);
     ecs_vec_init_t(a, &ctx->remove_ids, ecs_id_t, 0);
+    ecs_vec_init_t(a, &ctx->dont_fragment_ids, ecs_id_t, 0);
     ecs_map_init(&ctx->anonymous_ids, a);
     ecs_map_init(&ctx->missing_reflection, a);
 }
@@ -49113,6 +49172,7 @@ void flecs_from_json_ctx_fini(
 {
     ecs_vec_fini_t(ctx->a, &ctx->table_type, ecs_id_t);
     ecs_vec_fini_t(ctx->a, &ctx->remove_ids, ecs_id_t);
+    ecs_vec_fini_t(ctx->a, &ctx->dont_fragment_ids, ecs_id_t);
     ecs_map_fini(&ctx->anonymous_ids);
     ecs_map_fini(&ctx->missing_reflection);
 }
@@ -49240,16 +49300,23 @@ ecs_entity_t flecs_json_ensure_entity(
 }
 
 static
-bool flecs_json_add_id_to_type(
+void flecs_json_track_id(
+    ecs_world_t *world,
+    ecs_from_json_ctx_t *ctx,
     ecs_id_t id)
 {
     if (id == ecs_pair_t(EcsIdentifier, EcsName)) {
-        return false;
+        return;
     }
     if (ECS_IS_PAIR(id) && ECS_PAIR_FIRST(id) == EcsChildOf) {
-        return false;
+        return;
     }
-    return true;
+    ecs_component_record_t *cr = flecs_components_get(world, id);
+    if (cr && (cr->flags & EcsIdDontFragment)) {
+        ecs_vec_append_t(ctx->a, &ctx->dont_fragment_ids, ecs_id_t)[0] = id;
+    } else {
+        ecs_vec_append_t(ctx->a, &ctx->table_type, ecs_id_t)[0] = id;
+    }
 }
 
 static
@@ -49284,11 +49351,8 @@ const char* flecs_json_deser_tags(
         }
 
         ecs_entity_t tag = flecs_json_lookup(world, 0, str, desc);
-        if (flecs_json_add_id_to_type(tag)) {
-            ecs_vec_append_t(ctx->a, &ctx->table_type, ecs_id_t)[0] = tag;
-        }
-
         ecs_add_id(world, e, tag);
+        flecs_json_track_id(world, ctx, tag);
 
         if (str != token) {
             ecs_os_free(str);
@@ -49361,9 +49425,7 @@ const char* flecs_json_deser_pairs(
                 if (str != token) ecs_os_free(str);
                 ecs_id_t id = ecs_pair(rel, tgt);
                 ecs_add_id(world, e, id);
-                if (flecs_json_add_id_to_type(id)) {
-                    ecs_vec_append_t(ctx->a, &ctx->table_type, ecs_id_t)[0] = id;
-                }
+                flecs_json_track_id(world, ctx, id);
             } else if (token_kind == JsonArrayOpen) {
                 if (multiple_targets) {
                     ecs_parser_error(NULL, expr, json - expr, 
@@ -49527,9 +49589,7 @@ const char* flecs_json_deser_components(
         }
 
         /* Don't add ids that have their own fields in serialized data. */
-        if (flecs_json_add_id_to_type(id)) {
-            ecs_vec_append_t(ctx->a, &ctx->table_type, ecs_id_t)[0] = id;
-        }
+        flecs_json_track_id(world, ctx, id);
 
         json = flecs_json_parse(json, &token_kind, token);
         if (token_kind != JsonComma) {
@@ -49562,6 +49622,7 @@ const char* flecs_entity_from_json(
     const char *expr = ctx->expr, *lah;
 
     ecs_vec_clear(&ctx->table_type);
+    ecs_vec_clear(&ctx->dont_fragment_ids);
 
     ecs_entity_t parent = 0;
 
@@ -49748,60 +49809,96 @@ const char* flecs_entity_from_json(
         goto error;
     }
 
-    ecs_record_t *r = flecs_entities_get(world, e);
-    ecs_table_t *table = r ? r->table : NULL;
-    if (table) {
-        ecs_id_t *ids = ecs_vec_first(&ctx->table_type);
-        int32_t ids_count = ecs_vec_count(&ctx->table_type);
-        qsort(ids, flecs_itosize(ids_count), sizeof(ecs_id_t), flecs_id_qsort_cmp);
+    {
+        ecs_record_t *r = flecs_entities_get(world, e);
+        ecs_table_t *table = r ? r->table : NULL;
+        if (table) {
+            ecs_id_t *ids = ecs_vec_first(&ctx->table_type);
+            int32_t ids_count = ecs_vec_count(&ctx->table_type);
+            qsort(ids, flecs_itosize(ids_count), sizeof(ecs_id_t),
+                flecs_id_qsort_cmp);
 
-        ecs_table_t *dst_table = ecs_table_find(world, 
-            ecs_vec_first(&ctx->table_type), ecs_vec_count(&ctx->table_type));
-        if (dst_table->type.count == 0) {
-            dst_table = NULL;
-        }
-
-        /* Entity had existing components that weren't in the serialized data */
-        if (table != dst_table) {
-            ecs_assert(ecs_get_target(world, e, EcsChildOf, 0) != EcsFlecsCore,
-                ECS_INVALID_OPERATION, "%s\n[%s] => \n[%s]",
-                    ecs_get_path(world, e),
-                    ecs_table_str(world, table),
-                    ecs_table_str(world, dst_table));
-
-            if (!dst_table) {
-                ecs_clear(world, e);
-            } else {
-                ecs_vec_clear(&ctx->remove_ids);
-
-                ecs_type_t *type = &table->type, *dst_type = &dst_table->type;
-                int32_t i = 0, i_dst = 0;
-                for (; (i_dst < dst_type->count) && (i < type->count); ) {
-                    ecs_id_t id = type->array[i], dst_id = dst_type->array[i_dst];
-
-                    if (dst_id > id) {
-                        ecs_vec_append_t(
-                            ctx->a, &ctx->remove_ids, ecs_id_t)[0] = id;
-                    }
-
-                    i_dst += dst_id <= id;
-                    i += dst_id >= id;
-                }
-
-                ecs_type_t removed = {
-                    .array = ecs_vec_first(&ctx->remove_ids),
-                    .count = ecs_vec_count(&ctx->remove_ids)
-                };
-
-                ecs_commit(world, e, r, dst_table, NULL, &removed);
+            ecs_table_t *dst_table = ecs_table_find(world,
+                ecs_vec_first(&ctx->table_type),
+                ecs_vec_count(&ctx->table_type));
+            if (dst_table->type.count == 0) {
+                dst_table = NULL;
             }
 
-            ecs_assert(ecs_get_table(world, e) == dst_table, 
-                ECS_INTERNAL_ERROR, NULL);
+            /* Entity had existing components not present in serialized data */
+            if (table != dst_table) {
+                ecs_assert(ecs_get_target(world, e, EcsChildOf, 0)
+                    != EcsFlecsCore,
+                    ECS_INVALID_OPERATION, "%s\n[%s] => \n[%s]",
+                        ecs_get_path(world, e),
+                        ecs_table_str(world, table),
+                        ecs_table_str(world, dst_table));
+
+                if (!dst_table) {
+                    ecs_clear(world, e);
+                } else {
+                    ecs_vec_clear(&ctx->remove_ids);
+
+                    ecs_type_t *type = &table->type;
+                    ecs_type_t *dst_type = &dst_table->type;
+                    int32_t i = 0, i_dst = 0;
+                    for (; (i_dst < dst_type->count) && (i < type->count); ) {
+                        ecs_id_t id = type->array[i];
+                        ecs_id_t dst_id = dst_type->array[i_dst];
+
+                        if (dst_id > id) {
+                            ecs_vec_append_t(
+                                ctx->a, &ctx->remove_ids, ecs_id_t)[0] = id;
+                        }
+
+                        i_dst += dst_id <= id;
+                        i += dst_id >= id;
+                    }
+
+                    ecs_type_t removed = {
+                        .array = ecs_vec_first(&ctx->remove_ids),
+                        .count = ecs_vec_count(&ctx->remove_ids)
+                    };
+
+                    ecs_commit(world, e, r, dst_table, NULL, &removed);
+                }
+
+                ecs_assert(ecs_get_table(world, e) == dst_table,
+                    ECS_INTERNAL_ERROR, NULL);
+            }
         }
     }
 
 end:
+    if (e) {
+        ecs_record_t *r = flecs_entities_get(world, e);
+        if (r && (r->row & EcsEntityHasDontFragment)) {
+            /* Remove DontFragment components if the deserialized data didn't
+             * have them. */
+            ecs_id_t *df_ids = ecs_vec_first(&ctx->dont_fragment_ids);
+            int32_t df_count = ecs_vec_count(&ctx->dont_fragment_ids);
+            qsort(df_ids, flecs_itosize(df_count), sizeof(ecs_id_t),
+                flecs_id_qsort_cmp);
+
+            ecs_component_record_t *cur = world->cr_non_fragmenting_head;
+            while (cur) {
+                ecs_component_record_t *next = cur->non_fragmenting.next;
+                if (cur->sparse && !ecs_id_is_wildcard(cur->id)) {
+                    if (flecs_sparse_has(cur->sparse, e)) {
+                        ecs_id_t cid = cur->id;
+                        bool keep = df_count && bsearch(&cid, df_ids,
+                            flecs_itosize(df_count), sizeof(ecs_id_t),
+                            flecs_id_qsort_cmp) != NULL;
+                        if (!keep) {
+                            ecs_remove_id(world, e, cid);
+                        }
+                    }
+                }
+                cur = next;
+            }
+        }
+    }
+
     return json;
 error:
     return NULL;
@@ -50051,6 +50148,8 @@ typedef enum ecs_token_kind_t {
     EcsTokKeywordNew = 134,
     EcsTokKeywordExport = 135,
     EcsTokKeywordInclude = 138,
+    EcsTokKeywordFn = 139,
+    EcsTokArrow = 140,
     EcsTokAddAssign = 136,
     EcsTokMulAssign = 137,
 } ecs_token_kind_t;
@@ -50160,7 +50259,8 @@ typedef enum ecs_script_node_kind_t {
     EcsAstPairScope,
     EcsAstIf,
     EcsAstFor,
-    EcsAstInclude
+    EcsAstInclude,
+    EcsAstFunction
 } ecs_script_node_kind_t;
 
 typedef struct ecs_script_node_t {
@@ -50307,6 +50407,21 @@ typedef struct ecs_script_include_t {
     const char *filename;
 } ecs_script_include_t;
 
+typedef struct ecs_script_fn_param_t {
+    const char *name;
+    const char *type;
+} ecs_script_fn_param_t;
+
+typedef struct ecs_script_function_node_t {
+    ecs_script_node_t node;
+    const char *name;
+    const char *return_type;
+    ecs_vec_t params;
+    ecs_script_scope_t *body;
+    ecs_expr_node_t *return_expr;
+    ecs_entity_t eval;
+} ecs_script_function_node_t;
+
 #define ecs_script_node(kind, node)\
     ((ecs_script_##kind##_t*)node)
 
@@ -50380,6 +50495,10 @@ ecs_script_for_range_t* flecs_script_insert_for_range(
 ecs_script_include_t* flecs_script_insert_include(
     ecs_parser_t *parser,
     const char *filename);
+
+ecs_script_function_node_t* flecs_script_insert_function(
+    ecs_parser_t *parser,
+    const char *name);
 
 #endif
 
@@ -51075,6 +51194,8 @@ struct ecs_script_runtime_t {
     ecs_vec_t with;
     ecs_vec_t with_type_info;
     ecs_vec_t annot;
+
+    bool error;
 };
 
 ecs_script_t* flecs_script_new(
@@ -51125,9 +51246,27 @@ int flecs_script_apply_annot(
 
 /* Script functions */
 double flecs_lerp(
-    double a, 
+    double a,
     double b,
     double t);
+
+typedef struct ecs_script_user_function_t {
+    ecs_script_t *script;
+    ecs_script_function_node_t *node;
+} ecs_script_user_function_t;
+
+void flecs_script_user_function_callback(
+    const ecs_function_ctx_t *ctx,
+    int32_t argc,
+    const ecs_value_t *argv,
+    ecs_value_t *result);
+
+void flecs_script_user_function_ctx_free(
+    void *ctx);
+
+int flecs_script_eval_function(
+    ecs_script_eval_visitor_t *v,
+    ecs_script_function_node_t *node);
 
 void FlecsScriptMathPerlinImport(
     ecs_world_t *world);
@@ -51754,9 +51893,7 @@ void flecs_json_string(
     ecs_strbuf_t *buf,
     const char *value)
 {
-    ecs_strbuf_appendch(buf, '"');
-    ecs_strbuf_appendstr(buf, value);
-    ecs_strbuf_appendch(buf, '"');
+    flecs_json_string_escape(buf, value);
 }
 
 void flecs_json_string_escape(
@@ -56369,8 +56506,8 @@ void* flecs_meta_cursor_get_ptr(
 
             if (kind == EcsOpPushVector) {
                 if (parent->elem >= parent->elem_count) {
-                    ecs_vec_t *vec = flecs_meta_cursor_get_ptr(
-                        world, cursor, parent);
+                    ecs_vec_t *vec = cursor->scope[0].ptr ?
+                        flecs_meta_cursor_get_ptr(world, cursor, parent) : NULL;
                     if (vec) {
                         ecs_vec_init_if(vec, elem_size);
                         ecs_vec_set_min_count_w_type_info(
@@ -56851,7 +56988,7 @@ int ecs_meta_push(
             scope->elem_count = pop->elem_size; /* Array count is encoded on pop */
         } else
         if (op->kind == EcsOpPushVector) {
-            ecs_vec_t *vec = ptr;
+            ecs_vec_t *vec = cursor->scope[0].ptr ? ptr : NULL;
 
             next_scope->ptr = vec ? vec->array : NULL;
             next_scope->is_collection = true;
@@ -61724,7 +61861,10 @@ const char* flecs_token_kind_str(
     case EcsTokKeywordNew:
     case EcsTokKeywordExport:
     case EcsTokKeywordInclude:
+    case EcsTokKeywordFn:
         return "keyword ";
+    case EcsTokArrow:
+        return "";
     case EcsTokIdentifier:
         return "identifier ";
     case EcsTokFunction:
@@ -61799,6 +61939,8 @@ const char* flecs_token_str(
     case EcsTokKeywordTemplate: return "template";
     case EcsTokKeywordModule: return "module";
     case EcsTokKeywordInclude: return "include";
+    case EcsTokKeywordFn: return "fn";
+    case EcsTokArrow: return "->";
     case EcsTokIdentifier: return "identifier";
     case EcsTokFunction: return "function";
     case EcsTokString: return "string";
@@ -62437,6 +62579,7 @@ const char* flecs_token(
     Operator          (",",        EcsTokComma)
     Operator          (";",        EcsTokSemiColon)
     Operator          ("+",        EcsTokAdd)
+    OperatorMultiChar ("->",       EcsTokArrow)
     Operator          ("-",        EcsTokSub)
     Operator          ("*",        EcsTokMul)
     Operator          ("/",        EcsTokDiv)
@@ -62478,6 +62621,7 @@ const char* flecs_token(
     Keyword           ("export",   EcsTokKeywordExport)
     Keyword           ("module",   EcsTokKeywordModule)
     Keyword           ("include",  EcsTokKeywordInclude)
+    Keyword           ("fn",       EcsTokKeywordFn)
 
     } else if (pos[0] == '\'') {
         return flecs_script_char(parser, pos, out);
@@ -65516,6 +65660,24 @@ ecs_script_include_t* flecs_script_insert_include(
     return result;
 }
 
+ecs_script_function_node_t* flecs_script_insert_function(
+    ecs_parser_t *parser,
+    const char *name)
+{
+    ecs_script_scope_t *scope = parser->scope;
+    ecs_assert(scope != NULL, ECS_INTERNAL_ERROR, NULL);
+
+    ecs_script_function_node_t *result = flecs_ast_new(
+        parser, ecs_script_function_node_t, EcsAstFunction);
+    result->name = name;
+    result->body = flecs_script_scope_new(parser);
+    ecs_vec_init_t(&parser->script->allocator, &result->params,
+        ecs_script_fn_param_t, 0);
+
+    flecs_ast_append(parser, scope->stmts, ecs_script_function_node_t, result);
+    return result;
+}
+
 #endif
 
 /**
@@ -65617,6 +65779,11 @@ ECS_DTOR(EcsScriptConstVar, ptr, {
 static
 ECS_COPY(EcsScriptFunction, dst, src, {
     ecs_script_params_free(&dst->params);
+    if (dst->binding_ctx && dst->binding_ctx_free) {
+        dst->binding_ctx_free(dst->binding_ctx);
+    }
+    dst->binding_ctx = NULL;
+    dst->binding_ctx_free = NULL;
     dst->return_type = src->return_type;
     dst->callback = src->callback;
     ecs_os_memcpy_n(dst->vector_callbacks, src->vector_callbacks,
@@ -65628,6 +65795,9 @@ ECS_COPY(EcsScriptFunction, dst, src, {
 static
 ECS_MOVE(EcsScriptFunction, dst, src, {
     ecs_script_params_free(&dst->params);
+    if (dst->binding_ctx && dst->binding_ctx_free) {
+        dst->binding_ctx_free(dst->binding_ctx);
+    }
     *dst = *src;
     ecs_os_zeromem(src);
 })
@@ -65635,11 +65805,21 @@ ECS_MOVE(EcsScriptFunction, dst, src, {
 static
 ECS_DTOR(EcsScriptFunction, ptr, {
     ecs_script_params_free(&ptr->params);
+    if (ptr->binding_ctx && ptr->binding_ctx_free) {
+        ptr->binding_ctx_free(ptr->binding_ctx);
+        ptr->binding_ctx = NULL;
+        ptr->binding_ctx_free = NULL;
+    }
 })
 
 static
 ECS_COPY(EcsScriptMethod, dst, src, {
     ecs_script_params_free(&dst->params);
+    if (dst->binding_ctx && dst->binding_ctx_free) {
+        dst->binding_ctx_free(dst->binding_ctx);
+    }
+    dst->binding_ctx = NULL;
+    dst->binding_ctx_free = NULL;
     dst->return_type = src->return_type;
     dst->callback = src->callback;
     ecs_os_memcpy_n(dst->vector_callbacks, src->vector_callbacks,
@@ -65651,6 +65831,9 @@ ECS_COPY(EcsScriptMethod, dst, src, {
 static
 ECS_MOVE(EcsScriptMethod, dst, src, {
     ecs_script_params_free(&dst->params);
+    if (dst->binding_ctx && dst->binding_ctx_free) {
+        dst->binding_ctx_free(dst->binding_ctx);
+    }
     *dst = *src;
     ecs_os_zeromem(src);
 })
@@ -65658,6 +65841,11 @@ ECS_MOVE(EcsScriptMethod, dst, src, {
 static
 ECS_DTOR(EcsScriptMethod, ptr, {
     ecs_script_params_free(&ptr->params);
+    if (ptr->binding_ctx && ptr->binding_ctx_free) {
+        ptr->binding_ctx_free(ptr->binding_ctx);
+        ptr->binding_ctx = NULL;
+        ptr->binding_ctx_free = NULL;
+    }
 })
 
 ecs_entity_t ecs_const_var_init(
@@ -67295,18 +67483,26 @@ const char* flecs_script_if_stmt(
                 Parse(
                     // if expr { } else if
                     case EcsTokKeywordIf: {
-                        Scope(stmt->if_false, 
-                            return flecs_script_if_stmt(parser, pos);
+                        Scope(stmt->if_false,
+                            pos = flecs_script_if_stmt(parser, pos);
                         )
+                        if (!pos) {
+                            goto error;
+                        }
+                        return pos;
                     }
 
                     // if expr { } else\n if
                     case EcsTokNewline: {
                         Parse(
                             case EcsTokKeywordIf: {
-                                Scope(stmt->if_false, 
-                                    return flecs_script_if_stmt(parser, pos);
+                                Scope(stmt->if_false,
+                                    pos = flecs_script_if_stmt(parser, pos);
                                 )
+                                if (!pos) {
+                                    goto error;
+                                }
+                                return pos;
                             }
 
                             // if expr { } else\n {
@@ -67437,10 +67633,123 @@ const char* flecs_script_parse_prop(
     return flecs_script_parse_var(parser, pos, tokenizer, EcsAstProp);
 }
 
+static
+const char* flecs_script_fn_params(
+    ecs_parser_t *parser,
+    ecs_script_function_node_t *fn,
+    const char *pos)
+{
+    ParserBegin;
+
+    bool prev_significant_newline = parser->significant_newline;
+    parser->significant_newline = false;
+
+    Loop(
+        LookAhead(
+            case EcsTokParenClose: {
+                pos = lookahead;
+                parser->significant_newline = prev_significant_newline;
+                return pos;
+            }
+            case EcsTokIdentifier: {
+                LookAhead_Keep();
+
+                Parse_2(EcsTokColon, EcsTokIdentifier, {
+                    ecs_script_fn_param_t *p = ecs_vec_append_t(
+                        &parser->script->allocator, &fn->params,
+                        ecs_script_fn_param_t);
+                    p->name = Token(0);
+                    p->type = Token(2);
+                    parser->token_keep = parser->token_cur;
+
+                    {
+                        LookAhead_1(EcsTokComma,
+                            pos = lookahead;
+                            continue;
+                        )
+                    }
+
+                    {
+                        LookAhead_1(EcsTokParenClose,
+                            pos = lookahead;
+                            parser->significant_newline = prev_significant_newline;
+                            return pos;
+                        )
+                    }
+
+                    Error("expected ',' or ')' after parameter");
+                })
+            }
+        )
+        Error("expected parameter or ')'");
+    )
+
+    ParserEnd;
+}
+
+static
+const char* flecs_script_fn_body(
+    ecs_parser_t *parser,
+    ecs_script_function_node_t *fn,
+    const char *pos)
+{
+    ParserBegin;
+
+    Loop(
+        LookAhead(
+            case EcsTokNewline: {
+                pos = lookahead;
+                continue;
+            }
+            case EcsTokScopeClose: {
+                Error("function body must end with an expression");
+            }
+            case EcsTokKeywordConst: {
+                pos = lookahead;
+                Scope(fn->body,
+                    pos = flecs_script_parse_const(parser, pos, tokenizer);
+                )
+                if (!pos) {
+                    goto error;
+                }
+                parser->token_keep = parser->token_cur;
+                continue;
+            }
+        )
+        break;
+    )
+
+    parser->significant_newline = false;
+    if (!(pos = flecs_script_parse_expr(parser, pos, 0, &fn->return_expr))) {
+        parser->significant_newline = true;
+        goto error;
+    }
+    parser->significant_newline = true;
+    parser->token_keep = parser->token_cur;
+
+    {
+        Loop(
+            LookAhead(
+                case EcsTokNewline: {
+                    pos = lookahead;
+                    continue;
+                }
+                case EcsTokScopeClose: {
+                    pos = lookahead;
+                    return pos;
+                }
+            )
+            Error("expected '}' after function body");
+        )
+    }
+
+    ParserEnd;
+}
+
 /* Parse a single statement */
 const char* flecs_script_stmt(
     ecs_parser_t *parser,
-    const char *pos) 
+    const char *pos)
 {
     ParserBegin;
 
@@ -67462,6 +67771,7 @@ const char* flecs_script_stmt(
         case EcsTokKeywordIf:         goto if_stmt;
         case EcsTokKeywordFor:        goto for_stmt;
         case EcsTokKeywordInclude:    goto include_stmt;
+        case EcsTokKeywordFn:         goto fn_stmt;
         EcsTokEndOfStatement:         EndOfRule;
     );
 
@@ -67673,6 +67983,29 @@ for_stmt: {
         });
 
     });
+}
+
+fn_stmt: {
+    Parse_2(EcsTokIdentifier, '(', {
+        ecs_script_function_node_t *fn = flecs_script_insert_function(
+            parser, Token(1));
+
+        pos = flecs_script_fn_params(parser, fn, pos);
+        if (!pos) {
+            goto error;
+        }
+
+        Parse_3(EcsTokArrow, EcsTokIdentifier, '{', {
+            fn->return_type = Token(4);
+
+            pos = flecs_script_fn_body(parser, fn, pos);
+            if (!pos) {
+                goto error;
+            }
+
+            EndOfRule;
+        })
+    })
 }
 
 // include foo.flecs
@@ -68391,6 +68724,7 @@ int ecs_script_update(
     if (ecs_script_eval(parsed, NULL, &eval_result)) {
         s = ecs_ensure(world, e, EcsScript);
         s->error = eval_result.error;
+        ecs_log_(-3, NULL, 0, "%s: %s", name ? name : "script", s->error);
         ecs_script_free(parsed);
         s->script = NULL;
         ecs_delete_with(world, ecs_pair_t(EcsScript, e));
@@ -68490,6 +68824,7 @@ void ecs_script_runtime_clear(
     ecs_vec_clear(&r->with);
     ecs_vec_clear(&r->with_type_info);
     ecs_vec_clear(&r->using);
+    r->error = false;
 }
 
 ecs_script_runtime_t* flecs_script_runtime_get(
@@ -70753,6 +71088,10 @@ int flecs_script_check_node(
         flecs_script_eval_error(v, node,
             "include is not allowed in template");
         return -1;
+    case EcsAstFunction:
+        flecs_script_eval_error(v, node,
+            "fn is not allowed in template");
+        return -1;
     }
 
     ecs_abort(ECS_INTERNAL_ERROR, "corrupt AST node kind");
@@ -71428,6 +71767,7 @@ void flecs_script_apply_non_fragmenting_childof_to_scope(
         case EcsAstConst:
         case EcsAstExportConst:
         case EcsAstInclude:
+        case EcsAstFunction:
             break;
         }
     }
@@ -72575,6 +72915,287 @@ int flecs_script_eval_annot(
     return 0;
 }
 
+void flecs_script_user_function_callback(
+    const ecs_function_ctx_t *ctx,
+    int32_t argc,
+    const ecs_value_t *argv,
+    ecs_value_t *result)
+{
+    ecs_world_t *world = ctx->world;
+    bool failed = false;
+
+    const EcsScriptFunction *fcomp = ecs_get(
+        world, ctx->function, EcsScriptFunction);
+    if (!fcomp || !fcomp->binding_ctx) {
+        ecs_err("script function entity is missing binding context");
+        flecs_script_runtime_get(world)->error = true;
+        return;
+    }
+
+    ecs_script_user_function_t *uf = fcomp->binding_ctx;
+    ecs_script_function_node_t *node = uf->node;
+    ecs_script_impl_t *impl = flecs_script_impl(uf->script);
+
+    ecs_script_eval_visitor_t v;
+    ecs_script_eval_desc_t desc = {0};
+    flecs_script_eval_visit_init(impl, &v, &desc);
+
+    ecs_allocator_t *a = &v.r->allocator;
+    v.vars = flecs_script_vars_push(v.vars, &v.r->stack, a);
+
+    int32_t i, param_count = ecs_vec_count(&node->params);
+    ecs_script_fn_param_t *params = ecs_vec_first(&node->params);
+
+    for (i = 0; i < argc && i < param_count; i ++) {
+        const ecs_type_info_t *ti = ecs_get_type_info(world, argv[i].type);
+        ecs_script_var_t *var = ecs_script_vars_declare(
+            v.vars, params[i].name);
+        var->value.type = argv[i].type;
+        var->type_info = ti;
+        var->is_const = true;
+
+        if (ti) {
+            var->value.ptr = flecs_stack_calloc(
+                &v.r->stack, ti->size, ti->alignment);
+            flecs_type_info_ctor(var->value.ptr, 1, ti);
+            ecs_value_copy_w_type_info(
+                world, ti, var->value.ptr, argv[i].ptr);
+        } else {
+            var->value.ptr = argv[i].ptr;
+        }
+    }
+
+    int32_t stmt_count = ecs_vec_count(&node->body->stmts);
+    ecs_script_node_t **stmts = ecs_vec_first(&node->body->stmts);
+    for (i = 0; i < stmt_count; i ++) {
+        if (flecs_script_eval_node((ecs_script_visit_t*)&v, stmts[i])) {
+            failed = true;
+            goto done;
+        }
+    }
+
+    if (node->return_expr) {
+        if (flecs_script_eval_expr(&v, &node->return_expr, result)) {
+            failed = true;
+        }
+    }
+
+done:
+    v.vars = ecs_script_vars_pop(v.vars);
+    flecs_script_eval_visit_fini(&v, &desc);
+
+    if (failed) {
+        flecs_script_runtime_get(world)->error = true;
+    }
+}
+
+void flecs_script_user_function_ctx_free(
+    void *ctx)
+{
+    ecs_script_user_function_t *uf = ctx;
+    if (uf->script) {
+        ecs_script_free(uf->script);
+    }
+    ecs_os_free(uf);
+}
+
+static
+int flecs_script_function_type_check(
+    ecs_script_eval_visitor_t *outer_v,
+    ecs_script_function_node_t *node,
+    const ecs_function_desc_t *desc,
+    int32_t param_count)
+{
+    ecs_script_impl_t *impl = outer_v->base.script;
+    ecs_script_t *script = &impl->pub;
+
+    ecs_script_eval_visitor_t v;
+    ecs_script_eval_desc_t eval_desc = {0};
+    flecs_script_eval_visit_init(impl, &v, &eval_desc);
+
+    ecs_allocator_t *a = &v.r->allocator;
+    v.vars = flecs_script_vars_push(v.vars, &v.r->stack, a);
+
+    int32_t i;
+    ecs_script_fn_param_t *params = ecs_vec_first(&node->params);
+    for (i = 0; i < param_count; i ++) {
+        ecs_script_var_t *var = ecs_script_vars_declare(v.vars, params[i].name);
+        if (!var) {
+            flecs_script_eval_error(outer_v, node,
+                "duplicate parameter '%s' in function '%s'",
+                params[i].name, node->name);
+            goto error;
+        }
+        var->value.type = desc->params[i].type;
+        var->value.ptr = NULL;
+        var->type_info = ecs_get_type_info(v.world, desc->params[i].type);
+    }
+
+    int32_t stmt_count = ecs_vec_count(&node->body->stmts);
+    ecs_script_node_t **stmts = ecs_vec_first(&node->body->stmts);
+    for (i = 0; i < stmt_count; i ++) {
+        ecs_script_node_t *stmt = stmts[i];
+        if (stmt->kind != EcsAstConst) {
+            flecs_script_eval_error(outer_v, stmt,
+                "only const declarations are allowed in fn body");
+            goto error;
+        }
+
+        ecs_script_var_node_t *cnode = (ecs_script_var_node_t*)stmt;
+        if (!cnode->expr) {
+            flecs_script_eval_error(outer_v, cnode,
+                "const variable '%s' is missing initializer", cnode->name);
+            goto error;
+        }
+
+        ecs_entity_t expected_type = 0;
+        if (cnode->type) {
+            if (flecs_script_find_entity(&v, 0, cnode->type, NULL, NULL,
+                &expected_type, NULL) || !expected_type)
+            {
+                flecs_script_eval_error(outer_v, cnode,
+                    "unresolved type '%s' for variable '%s'",
+                    cnode->type, cnode->name);
+                goto error;
+            }
+        }
+
+        ecs_expr_eval_desc_t edesc = {
+            .name = script->name,
+            .lookup_action = flecs_script_find_entity_action,
+            .lookup_ctx = &v,
+            .vars = v.vars,
+            .type = expected_type,
+            .runtime = v.r,
+            .script_visitor = &v
+        };
+
+        if (flecs_expr_visit_type(script, cnode->expr, &edesc)) {
+            goto error;
+        }
+        if (flecs_expr_visit_fold(script, &cnode->expr, &edesc)) {
+            goto error;
+        }
+
+        ecs_entity_t var_type = expected_type
+            ? expected_type : cnode->expr->type;
+
+        ecs_script_var_t *var = ecs_script_vars_declare(v.vars, cnode->name);
+        if (!var) {
+            flecs_script_eval_error(outer_v, cnode,
+                "variable '%s' redeclared", cnode->name);
+            goto error;
+        }
+        var->value.type = var_type;
+        var->value.ptr = NULL;
+        var->type_info = ecs_get_type_info(v.world, var_type);
+    }
+
+    if (node->return_expr) {
+        ecs_expr_eval_desc_t edesc = {
+            .name = script->name,
+            .lookup_action = flecs_script_find_entity_action,
+            .lookup_ctx = &v,
+            .vars = v.vars,
+            .type = desc->return_type,
+            .runtime = v.r,
+            .script_visitor = &v
+        };
+
+        if (flecs_expr_visit_type(script, node->return_expr, &edesc)) {
+            goto error;
+        }
+        if (flecs_expr_visit_fold(script, &node->return_expr, &edesc)) {
+            goto error;
+        }
+    }
+
+    v.vars = ecs_script_vars_pop(v.vars);
+    flecs_script_eval_visit_fini(&v, &eval_desc);
+    return 0;
+error:
+    v.vars = ecs_script_vars_pop(v.vars);
+    flecs_script_eval_visit_fini(&v, &eval_desc);
+    return -1;
+}
+
+int flecs_script_eval_function(
+    ecs_script_eval_visitor_t *v,
+    ecs_script_function_node_t *node)
+{
+    ecs_world_t *world = v->world;
+
+    int32_t param_count = ecs_vec_count(&node->params);
+    if (param_count > FLECS_SCRIPT_FUNCTION_ARGS_MAX) {
+        flecs_script_eval_error(v, node,
+            "too many parameters for function '%s' (max %d)",
+            node->name, FLECS_SCRIPT_FUNCTION_ARGS_MAX);
+        return -1;
+    }
+
+    ecs_entity_t return_type = 0;
+    if (flecs_script_find_entity(v, 0, node->return_type, NULL, NULL,
+        &return_type, NULL) || !return_type)
+    {
+        flecs_script_eval_error(v, node,
+            "unresolved return type '%s' for function '%s'",
+            node->return_type, node->name);
+        return -1;
+    }
+
+    ecs_function_desc_t desc = {0};
+    desc.name = node->name;
+    desc.parent = v->parent;
+    desc.return_type = return_type;
+    desc.callback = flecs_script_user_function_callback;
+
+    int32_t i;
+    ecs_script_fn_param_t *params = ecs_vec_first(&node->params);
+    for (i = 0; i < param_count; i ++) {
+        ecs_entity_t ptype = 0;
+        if (flecs_script_find_entity(v, 0, params[i].type, NULL, NULL,
+            &ptype, NULL) || !ptype)
+        {
+            flecs_script_eval_error(v, node,
+                "unresolved type '%s' for parameter '%s' in function '%s'",
+                params[i].type, params[i].name, node->name);
+            return -1;
+        }
+        desc.params[i].name = params[i].name;
+        desc.params[i].type = ptype;
+    }
+
+    ecs_entity_t fn_entity = ecs_function_init(world, &desc);
+    if (!fn_entity) {
+        flecs_script_eval_error(v, node,
+            "failed to register function '%s'", node->name);
+        return -1;
+    }
+
+    if (flecs_script_function_type_check(v, node, &desc, param_count)) {
+        ecs_delete(world, fn_entity);
+        return -1;
+    }
+
+    ecs_script_user_function_t *uf = ecs_os_calloc_t(
+        ecs_script_user_function_t);
+    uf->script = &v->base.script->pub;
+    v->base.script->refcount ++;
+    uf->node = node;
+
+    EcsScriptFunction *fcomp = ecs_ensure(world, fn_entity, EcsScriptFunction);
+    if (fcomp->binding_ctx && fcomp->binding_ctx_free) {
+        fcomp->binding_ctx_free(fcomp->binding_ctx);
+    }
+    fcomp->binding_ctx = uf;
+    fcomp->binding_ctx_free = flecs_script_user_function_ctx_free;
+    ecs_modified(world, fn_entity, EcsScriptFunction);
+
+    node->eval = fn_entity;
+
+    return 0;
+}
+
 int flecs_script_eval_node(
     ecs_script_visit_t *_v,
     ecs_script_node_t *node)
@@ -72646,6 +73267,9 @@ int flecs_script_eval_node(
     case EcsAstInclude:
         return flecs_script_eval_include(
             v, (ecs_script_include_t*)node);
+    case EcsAstFunction:
+        return flecs_script_eval_function(
+            v, (ecs_script_function_node_t*)node);
     }
 
     ecs_abort(ECS_INTERNAL_ERROR, "corrupt AST node kind");
@@ -72717,6 +73341,8 @@ int ecs_script_eval(
     if (!priv_desc.runtime) {
         priv_desc.runtime = flecs_script_runtime_get(script->world);
     }
+
+    flecs_script_runtime_get(script->world)->error = false;
 
     if (result) {
         ecs_log_start_capture(true);
@@ -72936,6 +73562,17 @@ int flecs_script_stmt_free(
     case EcsAstInclude:
         flecs_free_t(a, ecs_script_include_t, node);
         break;
+    case EcsAstFunction: {
+        ecs_script_function_node_t *fn = (ecs_script_function_node_t*)node;
+        flecs_script_scope_free(v, fn->body);
+        if (fn->return_expr) {
+            flecs_expr_visit_free(&v->script->pub, fn->return_expr);
+        }
+        ecs_vec_fini_t(&v->script->allocator, &fn->params,
+            ecs_script_fn_param_t);
+        flecs_free_t(a, ecs_script_function_node_t, node);
+        break;
+    }
     }
 
     return 0;
@@ -73116,6 +73753,7 @@ const char* flecs_script_node_to_str(
     case EcsAstIf:                 return "if";
     case EcsAstFor:                return "for";
     case EcsAstInclude:            return "include";
+    case EcsAstFunction:           return "fn";
     }
     return "???";
 }
@@ -73431,6 +74069,27 @@ int flecs_script_stmt_to_str(
     case EcsAstInclude:
         flecs_script_include_to_str(v, (ecs_script_include_t*)node);
         break;
+    case EcsAstFunction: {
+        ecs_script_function_node_t *fn = (ecs_script_function_node_t*)node;
+        flecs_scriptbuf_node(v, &fn->node);
+        flecs_scriptbuf_append(v, "%s(", fn->name);
+        int32_t i, count = ecs_vec_count(&fn->params);
+        ecs_script_fn_param_t *params = ecs_vec_first(&fn->params);
+        for (i = 0; i < count; i ++) {
+            if (i) {
+                flecs_scriptbuf_appendstr(v, ", ");
+            }
+            flecs_scriptbuf_append(v, "%s: %s",
+                params[i].name, params[i].type);
+        }
+        flecs_scriptbuf_append(v, ") -> %s ", fn->return_type);
+        flecs_script_scope_to_str(v, fn->body);
+        if (fn->return_expr) {
+            flecs_expr_to_str(v, fn->return_expr);
+        }
+        flecs_scriptbuf_appendstr(v, "\n");
+        break;
+    }
     }
 
     return 0;
@@ -93266,6 +93925,8 @@ int ecs_expr_eval(
         priv_desc.lookup_action = flecs_script_default_lookup;
     }
 
+    flecs_script_runtime_get(script->world)->error = false;
+
     if (flecs_expr_visit_eval(script, impl->expr, &priv_desc, value)) {
         goto error;
     }
@@ -93798,6 +94459,8 @@ int flecs_value_binary(
     case EcsTokKeywordProp:
     case EcsTokKeywordConst:
     case EcsTokKeywordInclude:
+    case EcsTokKeywordFn:
+    case EcsTokArrow:
     default:
         ecs_abort(ECS_INTERNAL_ERROR, "invalid operator for binary expression");
     }
@@ -94040,8 +94703,16 @@ int flecs_expr_initializer_eval_static(
         ecs_assert(elem->value != NULL, ECS_INTERNAL_ERROR, NULL);
 
         if (elem->value->kind == EcsExprInitializer) {
-            if (flecs_expr_initializer_eval(ctx, 
-                (ecs_expr_initializer_t*)elem->value, value, NULL, value_size)) 
+            ecs_expr_initializer_t *inner =
+                (ecs_expr_initializer_t*)elem->value;
+            void *inner_value = value;
+            ecs_size_t inner_size = value_size;
+            if (inner->is_dynamic) {
+                inner_value = ECS_OFFSET(value, elem->offset);
+                inner_size = inner->node.type_info->size;
+            }
+            if (flecs_expr_initializer_eval(ctx,
+                inner, inner_value, NULL, inner_size))
             {
                 goto error;
             }
@@ -94621,6 +95292,15 @@ int flecs_expr_function_visit_eval(
         node->calldata.is.callback(&call_ctx, argc, argv, &out->value);
     }
 
+    ecs_script_runtime_t *r = flecs_script_runtime_get(ctx->world);
+    if (r->error) {
+        r->error = false;
+        flecs_expr_visit_error(ctx->script, node,
+            "error in script function '%s'",
+            node->function_name);
+        goto error;
+    }
+
     out->owned = true;
 
     flecs_expr_stack_pop(ctx->stack);
@@ -94673,6 +95353,15 @@ int flecs_expr_method_visit_eval(
                 &call_ctx, argc, argv, &out->value, elem_count);
         } else {
             node->calldata.is.callback(&call_ctx, argc, argv, &out->value);
+        }
+
+        ecs_script_runtime_t *r = flecs_script_runtime_get(ctx->world);
+        if (r->error) {
+            r->error = false;
+            flecs_expr_visit_error(ctx->script, node,
+                "error in script method '%s'",
+                node->function_name);
+            goto error;
         }
 
         out->owned = true;
@@ -96791,6 +97480,8 @@ bool flecs_expr_oper_valid_for_type(
     case EcsTokKeywordProp:
     case EcsTokKeywordConst:
     case EcsTokKeywordInclude:
+    case EcsTokKeywordFn:
+    case EcsTokArrow:
     case EcsTokEnd:
     default:
         ecs_abort(ECS_INTERNAL_ERROR, NULL);
@@ -96940,6 +97631,8 @@ int flecs_expr_type_for_operator(
     case EcsTokKeywordProp:
     case EcsTokKeywordConst:
     case EcsTokKeywordInclude:
+    case EcsTokKeywordFn:
+    case EcsTokArrow:
     case EcsTokEnd:
     default:
         ecs_throw(ECS_INTERNAL_ERROR, "invalid operator");
