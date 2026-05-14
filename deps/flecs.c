@@ -7475,6 +7475,10 @@ void flecs_actions_delete_tree(
             return;
         }
 
+        if (table->flags & EcsTableHasTraversable) {
+            flecs_emit_propagate_invalidate(world, table, row, count);
+        }
+
         flecs_actions_on_remove_intern(
             world, table, NULL, row, count, diff, diff_flags);
     }
@@ -15822,7 +15826,7 @@ void flecs_emit_forward(
         ecs_vec_t stack;
         ecs_vec_init_t(&world->allocator, &stack, ecs_table_t*, 0);
         ecs_vec_reset_t(&world->allocator, &rc->ids, ecs_reachable_elem_t);
-        flecs_emit_forward_up(world, er, er_onset, emit_ids, it, table, 
+        flecs_emit_forward_up(world, er, er_onset, emit_ids, it, table,
             cr, &stack, &rc->ids, 0);
         it->sources[0] = 0;
         ecs_vec_fini_t(&world->allocator, &stack, ecs_table_t*);
@@ -18296,7 +18300,9 @@ void flecs_component_mark_for_delete(
     ecs_id_t id = cr->id;
 
     bool delete_target = flecs_id_is_delete_target(id, action);
-    if (delete_target) {
+    if (delete_target ||
+        (ecs_id_is_pair(id) && ECS_PAIR_FIRST(id) == EcsWildcard))
+    {
         if (flecs_component_mark_non_fragmenting_childof(world, cr)) {
             return;
         }
@@ -53744,7 +53750,8 @@ void flecs_json_serialize_table_tags(
                 continue;
             }
         }
-        if (cr->flags & EcsIdSparse) {
+
+        if ((cr->flags & EcsIdSparse) && cr->type_info) {
             continue;
         }
 
@@ -53882,7 +53889,7 @@ void flecs_json_serialize_table_pairs(
                 continue;
             }
         }
-        if (cr->flags & EcsIdSparse) {
+        if ((cr->flags & EcsIdSparse) && cr->type_info) {
             continue;
         }
 
@@ -54033,7 +54040,7 @@ int flecs_json_serialize_table_components(
             ti = column->ti;
             ptr = ECS_ELEM(column->data, ti->size, row);
         } else {
-            if (!(cr->flags & EcsIdSparse)) {
+            if (!(cr->flags & EcsIdSparse) || !cr->type_info) {
                 continue;
             }
             ecs_entity_t e = ecs_table_entities(table)[row];
