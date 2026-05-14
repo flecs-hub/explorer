@@ -416,8 +416,7 @@ function updateQuery() {
         }, 
         (err) => {
           loading.value = true;
-          entityQueryResult.value = undefined;
-        }, 
+        },
         (request) => {
           loading.value = true;
         });
