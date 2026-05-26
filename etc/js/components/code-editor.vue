@@ -177,6 +177,7 @@ onMounted(() => {
   editor.setValue(value.value);
   editor.setOption("highlightActiveLine", false);
   editor.setOption("tabSize", 2);
+  editor.setOption("cursorStyle", "slim");
   editor.setTheme("ace/theme/flecs-script");
   editor.session.setMode("ace/mode/flecs-query");
 

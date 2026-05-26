@@ -1,9 +1,10 @@
 <template>
-  <div id="prop-browser" :style="posStyle">
+  <div id="prop-browser" :class="{'prop-browser-docked': docked}" :style="posStyle">
     <template v-for="(el, i) in prop_query.results">
       <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="false"
         :highlight="i == selected"
-        v-on:click="selectProp(el)">
+        v-on:click="onClickItem(i)"
+        v-on:dblclick="onDblClickItem(i)">
       </query-list-item>
     </template>
   </div>
@@ -14,7 +15,7 @@ export default { name: "prop-browser" }
 </script>
 
 <script setup>
-import { ref, defineProps, defineExpose, defineEmits, watch, computed } from 'vue';
+import { ref, defineProps, defineExpose, defineEmits, watch, computed, onMounted } from 'vue';
 
 const emit = defineEmits(['select']);
 
@@ -24,15 +25,49 @@ const props = defineProps({
   first: {type: String, required: false },
   x: {type: Number, required: true },
   y: {type: Number, required: true },
+  docked: {type: Boolean, required: false, default: false },
+  builtin_last: {type: Boolean, required: false, default: false },
 });
+
+const builtinModules = [
+  "flecs.core",
+  "flecs.system",
+  "flecs.pipeline",
+  "flecs.timer",
+  "flecs.stats",
+  "flecs.meta",
+  "flecs.script",
+  "flecs.doc",
+  "flecs.rest"
+];
+
+function isBuiltin(prop) {
+  if (!prop.parent) {
+    return false;
+  }
+  for (const module of builtinModules) {
+    if (prop.parent === module || prop.parent.startsWith(module + ".")) {
+      return true;
+    }
+  }
+  return false;
+}
 
 let prop_query = ref({results: []});
 let oneof = ref("");
 const showWidget = ref(true);
 const selected = ref(0);
 
-let selectProp = (prop) => {
-  emit('select', { value: prop, kind: "select" });
+function onClickItem(i) {
+  selected.value = i;
+  if (!props.docked) {
+    emit('select', { value: prop_query.value.results[i], kind: "select" });
+  }
+}
+
+function onDblClickItem(i) {
+  selected.value = i;
+  emit('select', { value: prop_query.value.results[i], kind: "dblclick" });
 }
 
 function select(kind) {
@@ -93,6 +128,14 @@ function sortResults(results) {
       return bExact - aExact;
     }
 
+    if (props.builtin_last) {
+      const aBuiltin = isBuiltin(a);
+      const bBuiltin = isBuiltin(b);
+      if (aBuiltin != bBuiltin) {
+        return aBuiltin - bBuiltin;
+      }
+    }
+
     const aEq = userHasDot ? equalsUpTo(aExpr) : a.name.startsWith(userExpr);
     const bEq = userHasDot ? equalsUpTo(bExpr) : b.name.startsWith(userExpr);
 
@@ -128,10 +171,23 @@ watch(() => props.first, () => {
   }
 });
 
-watch(() => [props.expr, oneof.value], () => {
+function runQuery() {
   if (!props.expr.length && (!oneof.value.length || !props.first.length)) {
-    prop_query.value.results.length = 0;
-    selected.value = 0;
+    if (props.docked) {
+      let query = "Component";
+      query += ", ?(flecs.doc.Description, flecs.doc.Brief)";
+      query += ", ?$this(_)";
+      query += ", ?$this(_, _)";
+      query += ", ?Module";
+
+      props.conn.query(query, {try: true, rows: true, limit: 200}, (reply) => {
+        prop_query.value.results = reply.results ? sortResults(reply.results) : [];
+        selected.value = 0;
+      });
+    } else {
+      prop_query.value.results.length = 0;
+      selected.value = 0;
+    }
   } else {
     let queryObj = nameQueryFromExpr(props.expr, oneof.value);
     let query = queryObj.query;
@@ -142,7 +198,7 @@ watch(() => [props.expr, oneof.value], () => {
 
     props.conn.query(query, {try: true, rows: true, limit: 100}, (reply) => {
       if (reply.results) {
-        if (reply.results.length == 1) {
+        if (!props.docked && reply.results.length == 1) {
           let result = reply.results[0];
           if (propToExpr(result) == props.expr) {
             prop_query.value.results = [];
@@ -155,9 +211,22 @@ watch(() => [props.expr, oneof.value], () => {
       }
     });
   }
+}
+
+watch(() => [props.expr, oneof.value], () => {
+  runQuery();
+});
+
+onMounted(() => {
+  if (props.docked) {
+    runQuery();
+  }
 });
 
 const posStyle = computed(() => {
+  if (props.docked) {
+    return '';
+  }
   let x = props.x + 16;
   let y = props.y + 16;
   let height = 0;
@@ -200,5 +269,14 @@ defineExpose({
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
   border-radius: var(--border-radius-medium);
   z-index: 100;
+}
+
+#prop-browser.prop-browser-docked {
+  position: static;
+  width: 100%;
+  max-height: none;
+  box-shadow: none;
+  border-radius: 0px;
+  z-index: auto;
 }
 </style>

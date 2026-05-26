@@ -21,11 +21,11 @@
                 "rt",
                 "pthread",
                 "m",
+                "dl",
                 "GL",
                 "X11",
                 "Xi",
-                "Xcursor",
-                "dl"
+                "Xcursor"
             ],
             "${cfg debug}": {
                 "export-symbols": true

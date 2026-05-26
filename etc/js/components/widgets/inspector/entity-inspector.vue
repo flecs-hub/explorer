@@ -33,7 +33,7 @@
 
             <div class="pane-inspector-actions" v-if="entityQueryResult">
               <button @click="inspectQuery" v-if="isQuery"><icon src="search"></icon>&nbsp;&nbsp;Inspect Query</button>
-              <entity-inspector-add-component @submit="onAddComponent">
+              <entity-inspector-add-component :conn="conn" @submit="onAddComponent">
               </entity-inspector-add-component>
               <button @click="onAddScript" v-if="!isScript"><icon src="symbol-namespace"></icon>&nbsp;&nbsp;Add Script</button>
             </div>

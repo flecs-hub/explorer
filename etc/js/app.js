@@ -183,6 +183,7 @@ const BASE_COMPONENTS = [
   'js/components/app-menu.vue',
   'js/components/code-editor.vue',
   'js/components/prop-browser.vue',
+  'js/components/pages/queries/query-list-item.vue',
   'js/components/entity-path.vue',
   'js/components/entity-parent.vue',
   'js/components/entity-name.vue',
@@ -214,6 +215,7 @@ const BASE_COMPONENTS = [
   'js/components/widgets/inspector/entity-inspector-field.vue',
   'js/components/widgets/inspector/entity-inspector-preview.vue',
   'js/components/widgets/inspector/entity-inspector-add-component.vue',
+  'js/components/widgets/inspector/entity-inspector-add-component-modal.vue',
   'js/components/widgets/inspector/entity-inspector-script-ast.vue',
   'js/components/widgets/inspector/entity-link.vue',
 

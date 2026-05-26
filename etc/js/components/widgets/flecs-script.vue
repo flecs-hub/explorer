@@ -93,6 +93,7 @@ onMounted(() => {
   editorObj = ace.edit(`editor-${props.script}`);
   editorObj.setOption("highlightActiveLine", false);
   editorObj.setOption("tabSize", 2);
+  editorObj.setOption("cursorStyle", "slim");
   editorObj.setBehavioursEnabled(true);
   editorObj.setTheme("ace/theme/flecs-script");
   editorObj.session.setMode("ace/mode/flecs-script");
