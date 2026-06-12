@@ -32,6 +32,10 @@ const defaultAppParams = {
     tab: "Overview",
     inspector_tab: "Inspect",
     tree_mode: "Entities",
+    split: false,
+    split_path: undefined,
+    split_inspector_tab: "Inspect",
+    active_inspector: "main",
   },
   internals: {
     path: undefined,

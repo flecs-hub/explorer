@@ -1,6 +1,6 @@
 <template>
   <div class="flecs-script">
-    <div :id="`editor-${script}`" class="editor">
+    <div ref="editorEl" class="editor">
     </div>
     <pre class="editor-error"><span v-if="error"><span class="editor-error-text">error</span>: {{ errorMessage }}</span></pre>
   </div>
@@ -20,6 +20,7 @@ const props = defineProps({
 
 const emit = defineEmits(["onChange", "onUpdate"]);
 const error = defineModel("error");
+const editorEl = ref(null);
 
 // Editor object
 let editorObj = undefined;
@@ -168,7 +169,7 @@ const errorMessage = computed(() => {
 });
 
 onMounted(() => {
-  editorObj = ace.edit(`editor-${props.script}`);
+  editorObj = ace.edit(editorEl.value);
   editorObj.setOption("highlightActiveLine", false);
   editorObj.setOption("tabSize", 2);
   editorObj.setOption("cursorStyle", "slim");

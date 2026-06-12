@@ -45,7 +45,13 @@
           </icon-button>
 
           <icon-button
-            src="chrome-close" 
+            src="split-vertical"
+            v-if="canSplit"
+            @click.stop="emit('split')">
+          </icon-button>
+
+          <icon-button
+            src="chrome-close"
             @click.stop="emit('close')">
           </icon-button>
         </div>
@@ -73,10 +79,11 @@ const props = defineProps({
   entityQueryResult: {type: Object, required: false},
   disabled: {type: Boolean, required: true},
   loading: {type: Boolean, required: true},
+  canSplit: {type: Boolean, required: false, default: false},
   padding: {type: String, required: false, default: "padding-left: 8px; padding-right: 8px;"}
 });
 
-const emit = defineEmits(["disable", "delete", "close"]);
+const emit = defineEmits(["disable", "delete", "close", "split"]);
 
 const entityId = computed(() => {
   if (props.entityQueryResult) {

@@ -72,10 +72,9 @@ const queryFilter = computed(() => {
 
 function selectItem(item) {
   if (item) {
-    if (appParams.value.entities.tree_mode === "Scripts") {
-      appParams.value.entities.inspector_tab = "Script";
-    }
-    emit("selectEntity", item.queryRef || item.path);
+    const tab = appParams.value.entities.tree_mode === "Scripts" ?
+      "Script" : undefined;
+    emit("selectEntity", item.queryRef || item.path, tab);
   } else {
     emit("selectEntity", undefined);
   }

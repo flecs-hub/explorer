@@ -38,16 +38,35 @@
     ></splitter>
 
     <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`">
-      <entity-inspector
-        :conn="conn"
-        :path="appParams.entities.path"
-        v-model:app_params="appParams.entities"
-        @close="onClose"
-        @onCodeChange="onCodeChange"
-        @scriptOpen="onScriptOpen"
-        @queryOpen="onQueryOpen"
-        @selectEntity="onSelectEntity">
-      </entity-inspector>
+      <div :class="inspectorPaneCss('main')"
+        @mousedown.capture="setActiveInspector('main')">
+        <entity-inspector
+          :conn="conn"
+          :path="appParams.entities.path"
+          :canSplit="!appParams.entities.split"
+          v-model:app_params="appParams.entities"
+          @close="onCloseInspector('main')"
+          @split="onSplit"
+          @onCodeChange="onCodeChange"
+          @scriptOpen="onScriptOpen"
+          @queryOpen="onQueryOpen"
+          @selectEntity="onSelectEntity">
+        </entity-inspector>
+      </div>
+      <div :class="inspectorPaneCss('split')"
+        v-if="appParams.entities.split"
+        @mousedown.capture="setActiveInspector('split')">
+        <entity-inspector
+          :conn="conn"
+          :path="appParams.entities.split_path"
+          :app_params="splitInspectorParams"
+          @close="onCloseInspector('split')"
+          @onCodeChange="onCodeChange"
+          @scriptOpen="onScriptOpen"
+          @queryOpen="onQueryOpen"
+          @selectEntity="onSelectEntity">
+        </entity-inspector>
+      </div>
     </div>
   </pane-container>
 </template>
@@ -88,7 +107,7 @@ const showCanvas = computed(() => {
 });
 
 const showInspector = computed(() => {
-  if (!appParams.value.entities.path) {
+  if (!appParams.value.entities.path && !appParams.value.entities.split) {
     return false;
   }
   return true;
@@ -101,9 +120,52 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
   });
 });
 
-function onClose(evt) {
-  appParams.value.entities.path = undefined;
-  pane_tree.value.unselect();
+const splitInspectorParams = {
+  get path() { return appParams.value.entities.split_path; },
+  set path(value) { appParams.value.entities.split_path = value; },
+  get inspector_tab() { return appParams.value.entities.split_inspector_tab; },
+  set inspector_tab(value) { appParams.value.entities.split_inspector_tab = value; }
+};
+
+function onSplit() {
+  appParams.value.entities.split = true;
+  appParams.value.entities.split_path = appParams.value.entities.path;
+  appParams.value.entities.split_inspector_tab = "Inspect";
+  appParams.value.entities.active_inspector = "main";
+}
+
+function setActiveInspector(which) {
+  appParams.value.entities.active_inspector = which;
+}
+
+function inspectorPaneCss(which) {
+  let classes = ["page-entities-inspector-pane"];
+  if (appParams.value.entities.split &&
+      appParams.value.entities.active_inspector === which)
+  {
+    classes.push("page-entities-inspector-pane-active");
+  }
+  return classes;
+}
+
+function onCloseInspector(which) {
+  const entities = appParams.value.entities;
+  if (entities.split) {
+    if (which === "main") {
+      entities.path = entities.split_path;
+      entities.inspector_tab = entities.split_inspector_tab;
+    }
+    entities.split = false;
+    entities.split_path = undefined;
+    entities.split_inspector_tab = "Inspect";
+    entities.active_inspector = "main";
+    if (!entities.path) {
+      pane_tree.value.unselect();
+    }
+  } else {
+    entities.path = undefined;
+    pane_tree.value.unselect();
+  }
 }
 
 function onScriptOpen(path) {
@@ -119,8 +181,19 @@ function onScriptOpen(path) {
   }
 }
 
-function onSelectEntity(path) {
-  appParams.value.entities.path = path;
+function onSelectEntity(path, tab) {
+  const entities = appParams.value.entities;
+  if (entities.split && entities.active_inspector === "split") {
+    entities.split_path = path;
+    if (tab) {
+      entities.split_inspector_tab = tab;
+    }
+  } else {
+    entities.path = path;
+    if (tab) {
+      entities.inspector_tab = tab;
+    }
+  }
 }
 
 function onQueryOpen() {
@@ -134,7 +207,7 @@ function onQueryOpen() {
 
 const pageCss = computed(() => {
   let classes = ["page-content"];
-  if (appParams.value.entities.path || showScript.value) {
+  if (showInspector.value || showScript.value) {
     classes.push("page-entities-show-inspector");
   }
   if (appParams.value.sidebar == true) {
@@ -198,9 +271,25 @@ div.page-entities-script {
 
 div.page-entities-inspector {
   grid-row: 1;
-  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
   min-width: 0;
   min-height: 0;
+}
+
+div.page-entities-inspector-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-x: auto;
+  outline: 1px solid transparent;
+  outline-offset: -1px;
+  border-radius: var(--border-radius-medium);
+}
+
+div.page-entities-inspector-pane-active {
+  outline-color: var(--green);
 }
 
 </style>

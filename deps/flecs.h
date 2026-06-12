@@ -16919,6 +16919,8 @@ typedef struct ecs_script_eval_desc_t {
 /** Used to capture error output from script evaluation. */
 typedef struct ecs_script_eval_result_t {
     char *error;       /**< Error message, or NULL if no error. Must be freed by the application. */
+    int32_t line;      /**< Line number (1-based) of first error, or 0 if not available. */
+    int32_t column;    /**< Column number (1-based) of first error, or 0 if not available. */
 } ecs_script_eval_result_t;
 
 /** Parse script.
@@ -17072,41 +17074,6 @@ FLECS_API
 char* ecs_script_ast_to_str(
     ecs_script_t *script,
     bool colors);
-
-/** Used with ecs_script_ast_to_buf_w_desc() and ecs_script_ast_to_str_w_desc(). */
-typedef struct ecs_script_ast_to_str_desc_t {
-    bool colors;       /**< Include ANSI color codes in the output. */
-    bool annotations;  /**< Include incremental update annotations. When set,
-                        * nodes are annotated with the source position, prop
-                        * dependency masks, slots and scope slot ranges used
-                        * for incrementally updating template instances. */
-} ecs_script_ast_to_str_desc_t;
-
-/** Convert script AST to string.
- * Same as ecs_script_ast_to_buf(), but with additional options.
- *
- * @param script The script.
- * @param buf The buffer to write to.
- * @param desc String conversion options.
- * @return Zero if success, non-zero if failed.
- */
-FLECS_API
-int ecs_script_ast_to_buf_w_desc(
-    ecs_script_t *script,
-    ecs_strbuf_t *buf,
-    const ecs_script_ast_to_str_desc_t *desc);
-
-/** Convert script AST to string.
- * Same as ecs_script_ast_to_str(), but with additional options.
- *
- * @param script The script.
- * @param desc String conversion options.
- * @return The string if success, NULL if failed.
- */
-FLECS_API
-char* ecs_script_ast_to_str_w_desc(
-    ecs_script_t *script,
-    const ecs_script_ast_to_str_desc_t *desc);
 
 /* Managed scripts (script associated with entity that outlives the function) */
 

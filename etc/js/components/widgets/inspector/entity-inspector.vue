@@ -1,5 +1,5 @@
 <template>
-  <div id="pane-inspector">
+  <div class="pane-inspector">
     <edit-tabs :items='items' v-model:active_item="appParams.inspector_tab" padding="0px;">
       <template v-slot:Inspect>
         <entity-inspector-container
@@ -7,8 +7,10 @@
           :entityQueryResult="entityQueryResult" 
           :disabled="isDisabled"
           :loading="loading"
+          :canSplit="canSplit"
           @disable="onDisable"
           @delete="onDelete"
+          @split="onSplit"
           @close="onClose">
 
           <template v-slot:header>
@@ -47,8 +49,10 @@
           :disabled="isDisabled"
           :loading="loading"
           padding="padding-left: 0px; padding-right: 0px;"
+          :canSplit="canSplit"
           @disable="onDisable"
           @delete="onDelete"
+          @split="onSplit"
           @close="onClose">
           <template v-slot:content>
             <flecs-script
@@ -67,8 +71,10 @@
           :entityQueryResult="entityQueryResult" 
           :disabled="isDisabled"
           :loading="loading"
+          :canSplit="canSplit"
           @disable="onDisable"
           @delete="onDelete"
+          @split="onSplit"
           @close="onClose">
           <template v-slot:content>
             <query-inspect :query="path" :conn="conn"></query-inspect>
@@ -81,8 +87,10 @@
           :entityQueryResult="entityQueryResult" 
           :disabled="isDisabled"
           :loading="loading"
+          :canSplit="canSplit"
           @disable="onDisable"
           @delete="onDelete"
+          @split="onSplit"
           @close="onClose">
 
           <template v-slot:content>
@@ -100,8 +108,10 @@
           :entityQueryResult="entityQueryResult" 
           :disabled="isDisabled"
           :loading="loading"
+          :canSplit="canSplit"
           @disable="onDisable"
           @delete="onDelete"
+          @split="onSplit"
           @close="onClose">
 
           <template v-slot:content>
@@ -121,8 +131,10 @@
           :entityQueryResult="entityQueryResult" 
           :disabled="isDisabled"
           :loading="loading"
+          :canSplit="canSplit"
           @disable="onDisable"
           @delete="onDelete"
+          @split="onSplit"
           @close="onClose">
           <template v-slot:content>
             <entity-inspector-alerts
@@ -144,11 +156,12 @@ export default { name: "entity-inspector" }
 <script setup>
 import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 
-const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close", "onCodeChange"]);
+const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close", "split", "onCodeChange"]);
 
 const props = defineProps({
   conn: {type: Object, required: false},
-  path: {type: String, required: false}
+  path: {type: String, required: false},
+  canSplit: {type: Boolean, required: false, default: false}
 });
 
 const appParams = defineModel("app_params");
@@ -488,6 +501,10 @@ function onClose() {
   emit("close");
 }
 
+function onSplit() {
+  emit("split");
+}
+
 watch(() => [props.path, inspectorMode.value], () => {  
   updateQuery();
 });
@@ -514,7 +531,7 @@ onUnmounted(() => {
 
 <style scoped>
 
-#pane-inspector {
+div.pane-inspector {
   height: 100%;
 }
 
