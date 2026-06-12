@@ -529,7 +529,10 @@ div.pane-inspector-tab {
   height: inherit;
 }
 
-div.pane-inspector-actions * {
+div.pane-inspector-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   margin-bottom: 8px;
 }
 
