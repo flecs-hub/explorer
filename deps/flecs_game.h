@@ -51,8 +51,6 @@
 
 #endif
 
-
-
 // Reflection system boilerplate
 #undef ECS_META_IMPL
 #ifndef FLECS_GAME_IMPL

@@ -44,8 +44,6 @@
 
 #endif
 
-
-
 // Reflection system boilerplate
 #undef ECS_META_IMPL
 #ifndef FLECS_COMPONENTS_INPUT_IMPL

@@ -45,8 +45,6 @@
 
 #endif
 
-
-
 // Reflection system boilerplate
 #undef ECS_META_IMPL
 #ifndef FLECS_COMPONENTS_GUI_IMPL
@@ -111,7 +109,6 @@ FLECS_COMPONENTS_GUI_API
 ECS_STRUCT(EcsPadding, {
     float value;
 });
-
 
 #ifdef __cplusplus
 extern "C" {

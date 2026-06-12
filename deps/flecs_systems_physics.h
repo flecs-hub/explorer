@@ -48,10 +48,8 @@
 
 #endif
 
-
 #ifndef FLECS_SYSTEMS_PHYSICS_OCTREE_H
 #define FLECS_SYSTEMS_PHYSICS_OCTREE_H
-
 
 #ifdef __cplusplus
 extern "C" {
@@ -105,7 +103,6 @@ int32_t ecs_octree_dump(
 #ifndef FLECS_SYSTEMS_PHYSICS_SQUERY_H
 #define FLECS_SYSTEMS_PHYSICS_SQUERY_H
 
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -138,7 +135,6 @@ void ecs_squery_findn(
 }
 #endif
 #endif
-
 
 // Don't use reflection, but use utility macro's for auto-exporting variables
 #undef ECS_META_IMPL

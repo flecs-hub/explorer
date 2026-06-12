@@ -218,7 +218,6 @@ void FlecsSystemsPhysicsImport(
         SpatialQuery(self, *), ?Prefab);
 }
 
-
 #define MAX_PER_OCTANT (8)
 
 typedef struct cube_t {
@@ -678,7 +677,6 @@ int32_t ecs_octree_dump(
     ecs_assert(ret == ot->count, ECS_INTERNAL_ERROR, NULL);
     return ret;
 }
-
 
 struct ecs_squery_t {
     ecs_query_t *q;

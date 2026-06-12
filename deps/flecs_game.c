@@ -323,7 +323,6 @@ void FlecsGameImport(ecs_world_t *world) {
         ?flecs.components.physics.Velocity3(self));
 }
 
-
 #define CAMERA_DECELERATION 100.0
 #define CAMERA_ANGULAR_DECELERATION 5.0
 
@@ -567,7 +566,6 @@ void FlecsGameCameraControllerImport(ecs_world_t *world) {
     ecs_add_pair(world, ecs_id(EcsCameraController), EcsWith, ecs_id(EcsVelocity3));
     ecs_add_pair(world, ecs_id(EcsCameraController), EcsWith, ecs_id(EcsAngularVelocity));
 }
-
 
 static
 void LightControllerSyncPosition(ecs_iter_t *it) {

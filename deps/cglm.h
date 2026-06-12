@@ -512,7 +512,6 @@ glmm_norm_inf(float32x4_t a) {
 
 #endif /* cglm_intrin_h */
 
-
 #ifndef CGLM_USE_DEFAULT_EPSILON
 #  ifndef GLM_FLT_EPSILON
 #    define GLM_FLT_EPSILON 1e-6
@@ -612,7 +611,6 @@ glmm_norm_inf(float32x4_t a) {
 
 #ifndef cglm_util_h
 #define cglm_util_h
-
 
 #define GLM_MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define GLM_MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -948,7 +946,6 @@ glm_swapf(float * __restrict a, float * __restrict b) {
 #ifndef cglm_vec2_ext_h
 #define cglm_vec2_ext_h
 
-
 /*!
  * @brief fill a vector with specified value
  *
@@ -1108,7 +1105,6 @@ glm_vec2_sqrt(vec2 v, vec2 dest) {
 }
 
 #endif /* cglm_vec2_ext_h */
-
 
 #define GLM_VEC2_ONE_INIT   {1.0f, 1.0f}
 #define GLM_VEC2_ZERO_INIT  {0.0f, 0.0f}
@@ -1874,7 +1870,6 @@ glm_vec2_lerp(vec2 from, vec2 to, float t, vec2 dest) {
 #ifndef cglm_vec3_ext_h
 #define cglm_vec3_ext_h
 
-
 /*!
  * @brief fill a vector with specified value
  *
@@ -2109,7 +2104,6 @@ glm_vec3_sqrt(vec3 v, vec3 dest) {
 }
 
 #endif /* cglm_vec3_ext_h */
-
 
 /*!
  * @brief fill a vector with specified value
@@ -2386,7 +2380,6 @@ glm_vec4_sqrt(vec4 v, vec4 dest) {
 }
 
 #endif /* cglm_vec4_ext_h */
-
 
 /* DEPRECATED! functions */
 #define glm_vec4_dup3(v, dest)         glm_vec4_copy3(v, dest)
@@ -3389,7 +3382,6 @@ glm_vec4_swizzle(vec4 v, int mask, vec4 dest) {
 }
 
 #endif /* cglm_vec4_h */
-
 
 /* DEPRECATED! use _copy, _ucopy versions */
 #define glm_vec3_dup(v, dest)         glm_vec3_copy(v, dest)
@@ -4422,7 +4414,6 @@ glm_normalize_to(vec3 v, vec3 dest) {
 #ifndef cglm_mat_h
 #define cglm_mat_h
 
-
 #ifdef CGLM_SSE_FP
 /*
  * Copyright (c), Recep Aslantas.
@@ -4434,7 +4425,6 @@ glm_normalize_to(vec3 v, vec3 dest) {
 #ifndef cglm_mat_sse_h
 #define cglm_mat_sse_h
 #if defined( __SSE__ ) || defined( __SSE2__ )
-
 
 #define glm_mat4_inv_precise_sse2(mat, dest) glm_mat4_inv_sse2(mat, dest)
 
@@ -4842,7 +4832,6 @@ glm_mat4_inv_sse2(mat4 mat, mat4 dest) {
 #define cglm_mat_simd_avx_h
 #ifdef __AVX__
 
-
 #include <immintrin.h>
 
 CGLM_INLINE
@@ -4909,7 +4898,6 @@ glm_mat4_mul_avx(mat4 m1, mat4 m2, mat4 dest) {
 #ifndef cglm_mat4_neon_h
 #define cglm_mat4_neon_h
 #if defined(__ARM_NEON_FP)
-
 
 CGLM_INLINE
 void
@@ -5704,7 +5692,6 @@ glm_mat4_rmc(vec4 r, mat4 m, vec4 c) {
 #ifndef cglm_mat3_h
 #define cglm_mat3_h
 
-
 #ifdef CGLM_SSE_FP
 /*
  * Copyright (c), Recep Aslantas.
@@ -5716,7 +5703,6 @@ glm_mat4_rmc(vec4 r, mat4 m, vec4 c) {
 #ifndef cglm_mat3_sse_h
 #define cglm_mat3_sse_h
 #if defined( __SSE__ ) || defined( __SSE2__ )
-
 
 CGLM_INLINE
 void
@@ -5772,7 +5758,6 @@ glm_mat3_mul_sse2(mat3 m1, mat3 m2, mat3 dest) {
 #define GLM_MAT3_ZERO_INIT      {{0.0f, 0.0f, 0.0f},                          \
                                  {0.0f, 0.0f, 0.0f},                          \
                                  {0.0f, 0.0f, 0.0f}}
-
 
 /* for C only */
 #define GLM_MAT3_IDENTITY ((mat3)GLM_MAT3_IDENTITY_INIT)
@@ -6182,7 +6167,6 @@ glm_mat3_rmc(vec3 r, mat3 m, vec3 c) {
 #ifndef cglm_mat2_h
 #define cglm_mat2_h
 
-
 #ifdef CGLM_SSE_FP
 /*
  * Copyright (c), Recep Aslantas.
@@ -6194,7 +6178,6 @@ glm_mat3_rmc(vec3 r, mat3 m, vec3 c) {
 #ifndef cglm_mat2_sse_h
 #define cglm_mat2_sse_h
 #if defined( __SSE__ ) || defined( __SSE2__ )
-
 
 CGLM_INLINE
 void
@@ -6571,7 +6554,6 @@ glm_mat2_rmc(vec2 r, mat2 m, vec2 c) {
 #ifndef cglm_affine_mat_h
 #define cglm_affine_mat_h
 
-
 #ifdef CGLM_SSE_FP
 /*
  * Copyright (c), Recep Aslantas.
@@ -6583,7 +6565,6 @@ glm_mat2_rmc(vec2 r, mat2 m, vec2 c) {
 #ifndef cglm_affine_mat_sse2_h
 #define cglm_affine_mat_sse2_h
 #if defined( __SSE__ ) || defined( __SSE2__ )
-
 
 CGLM_INLINE
 void
@@ -6696,7 +6677,6 @@ glm_inv_tr_sse2(mat4 mat) {
 #ifndef cglm_affine_mat_avx_h
 #define cglm_affine_mat_avx_h
 #ifdef __AVX__
-
 
 #include <immintrin.h>
 
@@ -6893,7 +6873,6 @@ glm_inv_tr(mat4 mat) {
 }
 
 #endif /* cglm_affine_mat_h */
-
 
 /*!
  * @brief translate existing transform matrix by v vector
@@ -7400,7 +7379,6 @@ glm_decompose(mat4 m, vec4 t, mat4 r, vec3 s) {
 #ifndef cglm_plane_h
 #define cglm_plane_h
 
-
 /*
  Plane equation:  Ax + By + Cz + D = 0;
 
@@ -7431,7 +7409,6 @@ glm_plane_normalize(vec4 plane) {
 }
 
 #endif /* cglm_plane_h */
-
 
 /*!
  * @brief set up perspective peprojection matrix
@@ -7973,7 +7950,6 @@ glm_persp_sizes(mat4 proj, float fovy, vec4 dest) {
 #ifndef cglm_frustum_h
 #define cglm_frustum_h
 
-
 #define GLM_LBN 0 /* left  bottom near */
 #define GLM_LTN 1 /* left  top    near */
 #define GLM_RTN 2 /* right top    near */
@@ -8268,7 +8244,6 @@ glm_frustum_corners_at(vec4  corners[8],
 #ifndef cglm_quat_h
 #define cglm_quat_h
 
-
 #ifdef CGLM_SSE_FP
 /*
  * Copyright (c), Recep Aslantas.
@@ -8280,7 +8255,6 @@ glm_frustum_corners_at(vec4  corners[8],
 #ifndef cglm_quat_simd_h
 #define cglm_quat_simd_h
 #if defined( __SSE__ ) || defined( __SSE2__ )
-
 
 CGLM_INLINE
 void
@@ -8310,7 +8284,6 @@ glm_quat_mul_sse2(versor p, versor q, versor dest) {
 
   glmm_store(dest, r);
 }
-
 
 #endif
 #endif /* cglm_quat_simd_h */
@@ -9104,7 +9077,6 @@ glm_quat_rotate_atm(mat4 m, versor q, vec3 pivot) {
 #ifndef cglm_euler_h
 #define cglm_euler_h
 
-
 /*!
  * if you have axis order like vec3 orderVec = [0, 1, 2] or [0, 2, 1]...
  * vector then you can convert it to this enum by doing this:
@@ -9255,7 +9227,6 @@ glm_euler_xzy(vec3 angles, mat4 dest) {
   dest[3][2] =  0.0f;
   dest[3][3] =  1.0f;
 }
-
 
 /*!
  * @brief build rotation matrix from euler angles
@@ -9527,7 +9498,6 @@ glm_euler_by_order(vec3 angles, glm_euler_seq ord, mat4 dest) {
 
 #ifndef cglm_box_h
 #define cglm_box_h
-
 
 /*!
  * @brief apply transform to Axis-Aligned Bounding Box
@@ -9804,7 +9774,6 @@ glm_aabb_contains(vec3 box[2], vec3 other[2]) {
 #ifndef cglm_color_h
 #define cglm_color_h
 
-
 /*!
  * @brief averages the color channels into one value
  *
@@ -9858,7 +9827,6 @@ glm_luminance(vec3 rgb) {
 #if defined(DEBUG) || defined(_DEBUG) \
    || defined(CGLM_DEFINE_PRINTS) || defined(CGLM_LIB_SRC) \
    || defined(CGLM_NO_PRINTS_NOOP)
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9920,7 +9888,6 @@ glm_mat4_print(mat4              matrix,
 #undef m
 #undef n
 }
-
 
 CGLM_INLINE
 void
@@ -10107,7 +10074,6 @@ glm_versor_print(versor            vec,
       fprintf(ostream, " % g", vec[i]);
   }
 
-
   fprintf(ostream, "  )" CGLM_PRINT_COLOR_RESET "\n\n");
 
 #undef m
@@ -10144,7 +10110,6 @@ glm_aabb_print(vec3                    bbox[2],
 
 #else
 
-
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -10171,7 +10136,6 @@ glm_aabb_print(vec3                    bbox[2],
 
 #ifndef cglm_project_h
 #define cglm_project_h
-
 
 /*!
  * @brief maps the specified viewport coordinates into specified space [1]
@@ -10287,7 +10251,6 @@ glm_project(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
 #ifndef cglm_sphere_h
 #define cglm_sphere_h
 
-
 /*
   Sphere Representation in cglm: [center.x, center.y, center.z, radii]
 
@@ -10384,7 +10347,6 @@ glm_sphere_point(vec4 s, vec3 point) {
 
 #ifndef cglm_ease_h
 #define cglm_ease_h
-
 
 CGLM_INLINE
 float
@@ -10702,7 +10664,6 @@ glm_ease_bounce_inout(float t) {
 #ifndef cglm_curve_h
 #define cglm_curve_h
 
-
 /*!
  * @brief helper function to calculate S*M*C multiplication for curves
  *
@@ -10739,7 +10700,6 @@ glm_smc(float s, mat4 m, vec4 c) {
 
 #ifndef cglm_bezier_h
 #define cglm_bezier_h
-
 
 #define GLM_BEZIER_MAT_INIT  {{-1.0f,  3.0f, -3.0f,  1.0f},                   \
                               { 3.0f, -6.0f,  3.0f,  0.0f},                   \
@@ -10904,7 +10864,6 @@ glm_decasteljau(float prm, float p0, float c0, float c1, float p1) {
 #ifndef cglm_ray_h
 #define cglm_ray_h
 
-
 /*!
  * @brief Möller–Trumbore ray-triangle intersection algorithm
  * 
@@ -10986,7 +10945,6 @@ glm_ray_triangle(vec3   origin,
 
 #ifndef cglm_affine2d_h
 #define cglm_affine2d_h
-
 
 /*!
  * @brief translate existing 2d transform matrix by v vector
@@ -11226,9 +11184,7 @@ glm_rotate2d_to(mat3 m, float angle, mat3 dest) {
 
 #endif /* cglm_affine2d_h */
 
-
 #endif /* cglm_h */
-
 
 #ifdef __cplusplus
 }

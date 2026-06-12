@@ -32,7 +32,6 @@ extern "C" {
 extern "C" {
 #endif
 
-
 CGLM_EXPORT
 void
 glmc_vec2(float * __restrict v, vec2 dest);
@@ -186,7 +185,6 @@ glmc_vec2_lerp(vec2 from, vec2 to, float t, vec2 dest);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /* DEPRECATED! use _copy, _ucopy versions */
 #define glmc_vec_dup(v, dest)          glmc_vec3_copy(v, dest)
@@ -499,7 +497,6 @@ glmc_vec3_sqrt(vec3 v, vec3 dest);
 extern "C" {
 #endif
 
-
 /* DEPRECATED! use _copy, _ucopy versions */
 #define glmc_vec4_dup3(v, dest)         glmc_vec4_copy3(v, dest)
 #define glmc_vec4_dup(v, dest)          glmc_vec4_copy(v, dest)
@@ -775,7 +772,6 @@ glmc_vec4_sqrt(vec4 v, vec4 dest);
 #endif
 #endif /* cglmc_vec4_h */
 
-
 /*
  * Copyright (c), Recep Aslantas.
  *
@@ -788,7 +784,6 @@ glmc_vec4_sqrt(vec4 v, vec4 dest);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 void
@@ -867,7 +862,6 @@ glmc_mat2_rmc(vec2 r, mat2 m, vec2 c);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /* DEPRECATED! use _copy, _ucopy versions */
 #define glmc_mat3_dup(mat, dest)  glmc_mat3_copy(mat, dest)
@@ -953,7 +947,6 @@ glmc_mat3_rmc(vec3 r, mat3 m, vec3 c);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 /* DEPRECATED! use _copy, _ucopy versions */
 #define glmc_mat4_udup(mat, dest) glmc_mat4_ucopy(mat, dest)
@@ -1081,7 +1074,6 @@ glmc_mat4_rmc(vec4 r, mat4 m, vec4 c);
 extern "C" {
 #endif
 
-
 CGLM_EXPORT
 void
 glmc_translate_make(mat4 m, vec3 v);
@@ -1197,7 +1189,6 @@ glmc_inv_tr(mat4 mat);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 void
@@ -1340,7 +1331,6 @@ glmc_persp_sizes(mat4 proj, float fovy, vec4 dest);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 void
@@ -1500,7 +1490,6 @@ glmc_quat_rotate_atm(mat4 m, versor q, vec3 pivot);
 extern "C" {
 #endif
 
-
 CGLM_EXPORT
 void
 glmc_euler_angles(mat4 m, vec3 dest);
@@ -1555,7 +1544,6 @@ glmc_euler_by_order(vec3 angles, glm_euler_seq axis, mat4 dest);
 extern "C" {
 #endif
 
-
 CGLM_EXPORT
 void
 glmc_plane_normalize(vec4 plane);
@@ -1577,7 +1565,6 @@ glmc_plane_normalize(vec4 plane);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 void
@@ -1618,7 +1605,6 @@ glmc_frustum_corners_at(vec4  corners[8],
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 void
@@ -1684,7 +1670,6 @@ glmc_aabb_sphere(vec3 box[2], vec4 s);
 #endif
 #endif /* cglmc_box_h */
 
-
 /*
  * Copyright (c), Recep Aslantas.
  *
@@ -1698,7 +1683,6 @@ glmc_aabb_sphere(vec3 box[2], vec4 s);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 void
@@ -1743,7 +1727,6 @@ glmc_versor_print(versor vec,
 extern "C" {
 #endif
 
-
 CGLM_EXPORT
 void
 glmc_unprojecti(vec3 pos, mat4 invMat, vec4 vp, vec3 dest);
@@ -1761,8 +1744,6 @@ glmc_project(vec3 pos, mat4 m, vec4 vp, vec3 dest);
 #endif
 #endif /* cglmc_project_h */
 
-
-
 /*
  * Copyright (c), Recep Aslantas.
  *
@@ -1775,7 +1756,6 @@ glmc_project(vec3 pos, mat4 m, vec4 vp, vec3 dest);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 float
@@ -1814,7 +1794,6 @@ glmc_sphere_point(vec4 s, vec3 point);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 float
@@ -1958,7 +1937,6 @@ glmc_ease_bounce_inout(float t);
 extern "C" {
 #endif
 
-
 CGLM_EXPORT
 float
 glmc_smc(float s, mat4 m, vec4 c);
@@ -1980,7 +1958,6 @@ glmc_smc(float s, mat4 m, vec4 c);
 #ifdef __cplusplus
 extern "C" {
 #endif
-
 
 CGLM_EXPORT
 float
@@ -2039,7 +2016,6 @@ glmc_ray_triangle(vec3   origin,
 extern "C" {
 #endif
 
-
 CGLM_EXPORT
 void
 glmc_translate2d_make(mat3 m, vec2 v);
@@ -2093,12 +2069,10 @@ glmc_rotate2d_to(mat3 m, float angle, mat3 dest);
 #endif
 #endif /* cglmc_affine2d_h */
 
-
 #ifdef __cplusplus
 }
 #endif
 #endif /* cglm_call_h */
-
 
 CGLM_EXPORT
 void
@@ -2251,7 +2225,6 @@ glmc_inv_tr(mat4 mat) {
  * Full license can be found in the LICENSE file
  */
 
-
 CGLM_EXPORT
 void
 glmc_translate2d_make(mat3 m, vec2 v) {
@@ -2331,7 +2304,6 @@ glmc_rotate2d_to(mat3 m, float angle, mat3 dest) {
  * Full license can be found in the LICENSE file
  */
 
-
 CGLM_EXPORT
 float
 glmc_bezier(float s, float p0, float c0, float c1, float p1) {
@@ -2356,7 +2328,6 @@ glmc_decasteljau(float prm, float p0, float c0, float c1, float p1) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -2451,7 +2422,6 @@ glmc_aabb_sphere(vec3 box[2], vec4 s) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -2651,7 +2621,6 @@ glmc_persp_sizes(mat4 proj, float fovy, vec4 dest) {
  * Full license can be found in the LICENSE file
  */
 
-
 CGLM_EXPORT
 float
 glmc_smc(float s, mat4 m, vec4 c) {
@@ -2664,7 +2633,6 @@ glmc_smc(float s, mat4 m, vec4 c) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 float
@@ -2859,7 +2827,6 @@ glmc_ease_bounce_inout(float t) {
  * Full license can be found in the LICENSE file
  */
 
-
 CGLM_EXPORT
 void
 glmc_euler_angles(mat4 m, vec3 dest) {
@@ -2921,7 +2888,6 @@ glmc_euler_by_order(vec3 angles, glm_euler_seq axis, mat4 dest) {
  * Full license can be found in the LICENSE file
  */
 
-
 CGLM_EXPORT
 void
 glmc_frustum_planes(mat4 m, vec4 dest[6]) {
@@ -2964,7 +2930,6 @@ glmc_frustum_corners_at(vec4  corners[8],
 
 #define CGLM_LIB_SRC
 
-
 CGLM_EXPORT
 void
 glmc_mat4_print(mat4   matrix,
@@ -3006,7 +2971,6 @@ glmc_versor_print(versor vec,
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -3104,7 +3068,6 @@ glmc_mat2_rmc(vec2 r, mat2 m, vec2 c) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -3208,7 +3171,6 @@ glmc_mat3_rmc(vec3 r, mat3 m, vec3 c) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -3373,7 +3335,6 @@ glmc_mat4_rmc(vec4 r, mat4 m, vec4 c) {
  * Full license can be found in the LICENSE file
  */
 
-
 CGLM_EXPORT
 void
 glmc_plane_normalize(vec4 plane) {
@@ -3386,7 +3347,6 @@ glmc_plane_normalize(vec4 plane) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -3412,7 +3372,6 @@ glmc_project(vec3 pos, mat4 m, vec4 vp, vec3 dest) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -3624,7 +3583,6 @@ glmc_quat_rotate_atm(mat4 m, versor q, vec3 pivot) {
   glm_quat_rotate_atm(m, q, pivot);
 }
 
-
 CGLM_EXPORT
 bool
 glmc_ray_triangle(vec3   origin,
@@ -3642,7 +3600,6 @@ glmc_ray_triangle(vec3   origin,
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 float
@@ -3680,7 +3637,6 @@ glmc_sphere_point(vec4 s, vec3 point) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -3892,7 +3848,6 @@ glmc_vec2_lerp(vec2 from, vec2 to, float t, vec2 dest) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
@@ -4310,7 +4265,6 @@ glmc_vec3_sqrt(vec3 v, vec3 dest) {
  * MIT License (MIT), http://opensource.org/licenses/MIT
  * Full license can be found in the LICENSE file
  */
-
 
 CGLM_EXPORT
 void
