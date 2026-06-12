@@ -188,14 +188,16 @@ div.pane-scripts-empty {
 div.script-editor-container {
   grid-row: 1;
   display: grid;
-  grid-template-rows: 42.5px 1fr;
+  grid-template-rows: 42.5px minmax(0, 1fr);
   border-radius: var(--border-radius-medium);
-  overflow: auto;
+  overflow: hidden;
 }
 
 div.script-editor {
   padding: 4px;
   grid-row: 2;
+  height: calc(100% - 8px);
+  overflow: hidden;
 }
 
 div.script-console {
