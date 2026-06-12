@@ -126,7 +126,7 @@ function updateQuery() {
         Object.assign(treeItem, item);
 
         treeItem.path = path;
-        treeItem.queryRef = item.id !== undefined ? "#" + item.id : path;
+        treeItem.queryRef = (name[0] == '#' && item.id !== undefined) ? "#" + item.id : path;
         treeItem.isModule = item.fields.is_set[0];
         treeItem.isComponent = item.fields.is_set[1] || item.fields.is_set[2] || item.fields.is_set[3];
         treeItem.isTarget = item.fields.is_set[4];
