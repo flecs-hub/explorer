@@ -38,12 +38,13 @@
     ></splitter>
 
     <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`">
-      <div :class="inspectorPaneCss('main')"
+      <div class="page-entities-inspector-pane"
         @mousedown.capture="setActiveInspector('main')">
         <entity-inspector
           :conn="conn"
           :path="appParams.entities.path"
           :canSplit="!appParams.entities.split"
+          :inactive="inspectorInactive('main')"
           v-model:app_params="appParams.entities"
           @close="onCloseInspector('main')"
           @split="onSplit"
@@ -53,13 +54,14 @@
           @selectEntity="onSelectEntity">
         </entity-inspector>
       </div>
-      <div :class="inspectorPaneCss('split')"
+      <div class="page-entities-inspector-pane"
         v-if="appParams.entities.split"
         @mousedown.capture="setActiveInspector('split')">
         <entity-inspector
           :conn="conn"
           :path="appParams.entities.split_path"
           :app_params="splitInspectorParams"
+          :inactive="inspectorInactive('split')"
           @close="onCloseInspector('split')"
           @onCodeChange="onCodeChange"
           @scriptOpen="onScriptOpen"
@@ -138,14 +140,9 @@ function setActiveInspector(which) {
   appParams.value.entities.active_inspector = which;
 }
 
-function inspectorPaneCss(which) {
-  let classes = ["page-entities-inspector-pane"];
-  if (appParams.value.entities.split &&
-      appParams.value.entities.active_inspector === which)
-  {
-    classes.push("page-entities-inspector-pane-active");
-  }
-  return classes;
+function inspectorInactive(which) {
+  return appParams.value.entities.split &&
+    appParams.value.entities.active_inspector !== which;
 }
 
 function onCloseInspector(which) {
@@ -283,13 +280,7 @@ div.page-entities-inspector-pane {
   min-width: 0;
   min-height: 0;
   overflow-x: auto;
-  outline: 1px solid transparent;
-  outline-offset: -1px;
   border-radius: var(--border-radius-medium);
-}
-
-div.page-entities-inspector-pane-active {
-  outline-color: var(--green);
 }
 
 </style>

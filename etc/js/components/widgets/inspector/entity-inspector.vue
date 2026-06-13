@@ -1,13 +1,14 @@
 <template>
   <div class="pane-inspector">
-    <edit-tabs :items='items' v-model:active_item="appParams.inspector_tab" padding="0px;">
+    <edit-tabs :items='items' :inactive="inactive" v-model:active_item="appParams.inspector_tab" padding="0px;">
       <template v-slot:Inspect>
         <entity-inspector-container
           :path="path"
-          :entityQueryResult="entityQueryResult" 
+          :entityQueryResult="entityQueryResult"
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
@@ -68,10 +69,11 @@
       <template v-slot:Query v-if="isQuery">
         <entity-inspector-container
           :path="path"
-          :entityQueryResult="entityQueryResult" 
+          :entityQueryResult="entityQueryResult"
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
@@ -84,10 +86,11 @@
       <template v-slot:Matches>
         <entity-inspector-container
           :path="path"
-          :entityQueryResult="entityQueryResult" 
+          :entityQueryResult="entityQueryResult"
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
@@ -105,10 +108,11 @@
       <template v-slot:References>
         <entity-inspector-container
           :path="path"
-          :entityQueryResult="entityQueryResult" 
+          :entityQueryResult="entityQueryResult"
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
@@ -128,10 +132,11 @@
       <template v-slot:Alerts>
         <entity-inspector-container
           :path="path"
-          :entityQueryResult="entityQueryResult" 
+          :entityQueryResult="entityQueryResult"
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
@@ -161,7 +166,8 @@ const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "cl
 const props = defineProps({
   conn: {type: Object, required: false},
   path: {type: String, required: false},
-  canSplit: {type: Boolean, required: false, default: false}
+  canSplit: {type: Boolean, required: false, default: false},
+  inactive: {type: Boolean, required: false, default: false}
 });
 
 const appParams = defineModel("app_params");

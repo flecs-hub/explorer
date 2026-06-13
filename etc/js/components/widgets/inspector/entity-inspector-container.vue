@@ -6,7 +6,7 @@
       </div>
     </template>
     <template v-else>
-      <div class="entity-inspector-header">
+      <div :class="headerCss">
         <entity-path :path="entityParent"></entity-path>
         <div>
           <template v-if="entityLabel">
@@ -80,6 +80,7 @@ const props = defineProps({
   disabled: {type: Boolean, required: true},
   loading: {type: Boolean, required: true},
   canSplit: {type: Boolean, required: false, default: false},
+  inactive: {type: Boolean, required: false, default: false},
   padding: {type: String, required: false, default: "padding-left: 8px; padding-right: 8px;"}
 });
 
@@ -94,6 +95,14 @@ const entityId = computed(() => {
 
 const disabledIcon = computed(() => {
   return props.disabled ? "circle-large" : "circle-slash";
+});
+
+const headerCss = computed(() => {
+  let classes = ["entity-inspector-header"];
+  if (props.inactive) {
+    classes.push("entity-inspector-header-inactive");
+  }
+  return classes;
 });
 
 const entityLabel = computed(() => {
@@ -161,6 +170,10 @@ div.entity-inspector-header {
   padding-bottom: 8px;
   padding-left: 8px;
   padding-right: 8px;
+}
+
+div.entity-inspector-header-inactive {
+  opacity: 0.7;
 }
 
 div.entity-inspector-header-header {

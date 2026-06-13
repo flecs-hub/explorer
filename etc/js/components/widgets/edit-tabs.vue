@@ -46,7 +46,8 @@ import { defineProps, defineModel, defineEmits, onMounted } from 'vue';
 const props = defineProps({
   items: {type: Array, required: true},
   changed: {type: Boolean, required: false, default: false},
-  padding: {type: String, required: false, default: "4px;"}
+  padding: {type: String, required: false, default: "4px;"},
+  inactive: {type: Boolean, required: false, default: false}
 });
 
 const emit = defineEmits(["onClose"]);
@@ -76,6 +77,9 @@ function editButtonCss(item) {
   if (activeItem.value) {
     if (item.value == activeItem.value) {
       classes.push("edit-tabs-button-active");
+      if (props.inactive) {
+        classes.push("edit-tabs-button-inactive");
+      }
     }
   }
 
@@ -240,6 +244,14 @@ div.edit-tabs-button-active + div.edit-tabs-button {
 
 div.edit-tabs-button-active .edit-tabs-button-content {
   border-top-color: var(--green);
+}
+
+div.edit-tabs-button-active.edit-tabs-button-inactive {
+  color: var(--secondary-text);
+}
+
+div.edit-tabs-button-active.edit-tabs-button-inactive .edit-tabs-button-content {
+  border-top-color: var(--tertiary-text);
 }
 
 div.edit-tabs-button:hover {
