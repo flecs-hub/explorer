@@ -162,10 +162,10 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
 });
 
 const inspectorSlots = {
-  main:   {path: "path",        tab: "inspector_tab"},
-  main2:  {path: "main2_path",  tab: "main2_inspector_tab"},
-  split:  {path: "split_path",  tab: "split_inspector_tab"},
-  split2: {path: "split2_path", tab: "split2_inspector_tab"}
+  main:   {path: "path",        tab: "inspector_tab",        detail: "low_detail"},
+  main2:  {path: "main2_path",  tab: "main2_inspector_tab",  detail: "main2_low_detail"},
+  split:  {path: "split_path",  tab: "split_inspector_tab",  detail: "split_low_detail"},
+  split2: {path: "split2_path", tab: "split2_inspector_tab", detail: "split2_low_detail"}
 };
 
 function makeInspectorParams(which) {
@@ -174,7 +174,9 @@ function makeInspectorParams(which) {
     get path() { return appParams.value.entities[keys.path]; },
     set path(value) { appParams.value.entities[keys.path] = value; },
     get inspector_tab() { return appParams.value.entities[keys.tab]; },
-    set inspector_tab(value) { appParams.value.entities[keys.tab] = value; }
+    set inspector_tab(value) { appParams.value.entities[keys.tab] = value; },
+    get low_detail() { return appParams.value.entities[keys.detail]; },
+    set low_detail(value) { appParams.value.entities[keys.detail] = value; }
   };
 }
 
@@ -210,10 +212,12 @@ function onSplitV(which) {
     entities.split = true;
     entities.split_path = entities.path;
     entities.split_inspector_tab = "Inspect";
+    entities.split_low_detail = false;
   } else {
     entities.split2 = true;
     entities.split2_path = entities.main2_path;
     entities.split2_inspector_tab = "Inspect";
+    entities.split2_low_detail = false;
   }
   entities.active_inspector = which;
 }
@@ -223,6 +227,7 @@ function onSplitH() {
   entities.hsplit_main = true;
   entities.main2_path = entities.path;
   entities.main2_inspector_tab = "Inspect";
+  entities.main2_low_detail = false;
   entities.active_inspector = "main";
 }
 
@@ -238,12 +243,14 @@ function moveInspector(dst, src) {
   const entities = appParams.value.entities;
   entities[inspectorSlots[dst].path] = entities[inspectorSlots[src].path];
   entities[inspectorSlots[dst].tab] = entities[inspectorSlots[src].tab];
+  entities[inspectorSlots[dst].detail] = entities[inspectorSlots[src].detail];
 }
 
 function clearInspector(which) {
   const entities = appParams.value.entities;
   entities[inspectorSlots[which].path] = undefined;
   entities[inspectorSlots[which].tab] = "Inspect";
+  entities[inspectorSlots[which].detail] = false;
 }
 
 function onCloseInspector(which) {

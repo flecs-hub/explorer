@@ -212,7 +212,10 @@ const isScript = ref(false);
 const isQuery = ref(false);
 const componentFilter = ref();
 const loading = ref(true);
-const lowDetail = ref(false);
+
+const lowDetail = computed(() => {
+  return appParams.value.low_detail === true;
+});
 const firstRequest = ref(true);
 const scriptChanged = ref(false);
 
@@ -545,7 +548,7 @@ function onSplitH() {
 }
 
 function onToggleDetail() {
-  lowDetail.value = !lowDetail.value;
+  appParams.value.low_detail = !appParams.value.low_detail;
 }
 
 watch(() => [props.path, inspectorMode.value], () => {  
