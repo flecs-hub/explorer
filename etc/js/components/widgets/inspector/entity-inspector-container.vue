@@ -94,6 +94,7 @@ const props = defineProps({
   canSplitH: {type: Boolean, required: false, default: false},
   inactive: {type: Boolean, required: false, default: false},
   lowDetail: {type: Boolean, required: false, default: false},
+  headerShadow: {type: Boolean, required: false, default: false},
   padding: {type: String, required: false, default: "padding-left: 8px; padding-right: 8px;"}
 });
 
@@ -118,6 +119,9 @@ const headerCss = computed(() => {
   let classes = ["entity-inspector-header"];
   if (props.inactive) {
     classes.push("entity-inspector-header-inactive");
+  }
+  if (props.headerShadow) {
+    classes.push("entity-inspector-header-shadow");
   }
   return classes;
 });
@@ -191,6 +195,11 @@ div.entity-inspector-header {
 
 div.entity-inspector-header-inactive {
   opacity: 0.7;
+}
+
+div.entity-inspector-header-shadow {
+  box-shadow: 0px 4px 8px -2px rgba(0, 0, 0, 0.2);
+  z-index: 10;
 }
 
 div.entity-inspector-header-header {

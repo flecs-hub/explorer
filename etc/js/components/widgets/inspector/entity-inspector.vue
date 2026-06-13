@@ -54,6 +54,7 @@
           :disabled="isDisabled"
           :loading="loading"
           padding="padding-left: 0px; padding-right: 0px;"
+          :headerShadow="true"
           :canSplit="canSplit"
           :canSplitH="canSplitH"
           :inactive="inactive"
@@ -65,13 +66,14 @@
           @toggleDetail="onToggleDetail"
           @close="onClose">
           <template v-slot:content>
-            <flecs-script
-              :conn="conn"
-              :script="path"
-              v-if="entityQueryResult && isScript"
-              @onChange="onCodeChange"
-              @onUpdate="onScriptUpdate">
-            </flecs-script>
+            <div class="pane-inspector-script" v-if="entityQueryResult && isScript">
+              <flecs-script
+                :conn="conn"
+                :script="path"
+                @onChange="onCodeChange"
+                @onUpdate="onScriptUpdate">
+              </flecs-script>
+            </div>
           </template>
         </entity-inspector-container>
       </template>
@@ -585,6 +587,11 @@ div.pane-inspector-tab {
   padding-right: 4px;
   padding-top: 4px;
   height: inherit;
+}
+
+div.pane-inspector-script {
+  margin-top: 8px;
+  height: calc(100% - 8px);
 }
 
 div.pane-inspector-actions {
