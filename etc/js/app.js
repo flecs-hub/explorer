@@ -35,6 +35,12 @@ const defaultAppParams = {
     split: false,
     split_path: undefined,
     split_inspector_tab: "Inspect",
+    hsplit_main: false,
+    main2_path: undefined,
+    main2_inspector_tab: "Inspect",
+    split2: false,
+    split2_path: undefined,
+    split2_inspector_tab: "Inspect",
     active_inspector: "main",
   },
   internals: {

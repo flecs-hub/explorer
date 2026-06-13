@@ -8,10 +8,12 @@
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :canSplitH="canSplitH"
           :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
+          @splitH="onSplitH"
           @close="onClose">
 
           <template v-slot:header>
@@ -51,9 +53,12 @@
           :loading="loading"
           padding="padding-left: 0px; padding-right: 0px;"
           :canSplit="canSplit"
+          :canSplitH="canSplitH"
+          :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
+          @splitH="onSplitH"
           @close="onClose">
           <template v-slot:content>
             <flecs-script
@@ -73,10 +78,12 @@
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :canSplitH="canSplitH"
           :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
+          @splitH="onSplitH"
           @close="onClose">
           <template v-slot:content>
             <query-inspect :query="path" :conn="conn"></query-inspect>
@@ -90,10 +97,12 @@
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :canSplitH="canSplitH"
           :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
+          @splitH="onSplitH"
           @close="onClose">
 
           <template v-slot:content>
@@ -112,10 +121,12 @@
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :canSplitH="canSplitH"
           :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
+          @splitH="onSplitH"
           @close="onClose">
 
           <template v-slot:content>
@@ -136,10 +147,12 @@
           :disabled="isDisabled"
           :loading="loading"
           :canSplit="canSplit"
+          :canSplitH="canSplitH"
           :inactive="inactive"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
+          @splitH="onSplitH"
           @close="onClose">
           <template v-slot:content>
             <entity-inspector-alerts
@@ -161,12 +174,13 @@ export default { name: "entity-inspector" }
 <script setup>
 import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 
-const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close", "split", "onCodeChange"]);
+const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close", "split", "splitH", "onCodeChange"]);
 
 const props = defineProps({
   conn: {type: Object, required: false},
   path: {type: String, required: false},
   canSplit: {type: Boolean, required: false, default: false},
+  canSplitH: {type: Boolean, required: false, default: false},
   inactive: {type: Boolean, required: false, default: false}
 });
 
@@ -509,6 +523,10 @@ function onClose() {
 
 function onSplit() {
   emit("split");
+}
+
+function onSplitH() {
+  emit("splitH");
 }
 
 watch(() => [props.path, inspectorMode.value], () => {  

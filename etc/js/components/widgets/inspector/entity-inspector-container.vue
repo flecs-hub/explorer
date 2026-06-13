@@ -51,6 +51,12 @@
           </icon-button>
 
           <icon-button
+            src="split-horizontal"
+            v-if="canSplitH"
+            @click.stop="emit('splitH')">
+          </icon-button>
+
+          <icon-button
             src="chrome-close"
             @click.stop="emit('close')">
           </icon-button>
@@ -80,11 +86,12 @@ const props = defineProps({
   disabled: {type: Boolean, required: true},
   loading: {type: Boolean, required: true},
   canSplit: {type: Boolean, required: false, default: false},
+  canSplitH: {type: Boolean, required: false, default: false},
   inactive: {type: Boolean, required: false, default: false},
   padding: {type: String, required: false, default: "padding-left: 8px; padding-right: 8px;"}
 });
 
-const emit = defineEmits(["disable", "delete", "close", "split"]);
+const emit = defineEmits(["disable", "delete", "close", "split", "splitH"]);
 
 const entityId = computed(() => {
   if (props.entityQueryResult) {

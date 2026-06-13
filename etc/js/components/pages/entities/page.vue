@@ -38,36 +38,74 @@
     ></splitter>
 
     <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`">
-      <div class="page-entities-inspector-pane"
-        @mousedown.capture="setActiveInspector('main')">
-        <entity-inspector
-          :conn="conn"
-          :path="appParams.entities.path"
-          :canSplit="!appParams.entities.split"
-          :inactive="inspectorInactive('main')"
-          v-model:app_params="appParams.entities"
-          @close="onCloseInspector('main')"
-          @split="onSplit"
-          @onCodeChange="onCodeChange"
-          @scriptOpen="onScriptOpen"
-          @queryOpen="onQueryOpen"
-          @selectEntity="onSelectEntity">
-        </entity-inspector>
+      <div class="page-entities-inspector-column">
+        <div class="page-entities-inspector-pane"
+          @mousedown.capture="setActiveInspector('main')">
+          <entity-inspector
+            :conn="conn"
+            :path="appParams.entities.path"
+            :canSplit="!appParams.entities.split"
+            :canSplitH="!appParams.entities.hsplit_main"
+            :inactive="inspectorInactive('main')"
+            v-model:app_params="appParams.entities"
+            @close="onCloseInspector('main')"
+            @split="onSplitV('main')"
+            @splitH="onSplitH"
+            @onCodeChange="onCodeChange"
+            @scriptOpen="onScriptOpen"
+            @queryOpen="onQueryOpen"
+            @selectEntity="onSelectEntity">
+          </entity-inspector>
+        </div>
+        <div class="page-entities-inspector-pane"
+          v-if="appParams.entities.split"
+          @mousedown.capture="setActiveInspector('split')">
+          <entity-inspector
+            :conn="conn"
+            :path="appParams.entities.split_path"
+            :app_params="splitInspectorParams"
+            :inactive="inspectorInactive('split')"
+            @close="onCloseInspector('split')"
+            @onCodeChange="onCodeChange"
+            @scriptOpen="onScriptOpen"
+            @queryOpen="onQueryOpen"
+            @selectEntity="onSelectEntity">
+          </entity-inspector>
+        </div>
       </div>
-      <div class="page-entities-inspector-pane"
-        v-if="appParams.entities.split"
-        @mousedown.capture="setActiveInspector('split')">
-        <entity-inspector
-          :conn="conn"
-          :path="appParams.entities.split_path"
-          :app_params="splitInspectorParams"
-          :inactive="inspectorInactive('split')"
-          @close="onCloseInspector('split')"
-          @onCodeChange="onCodeChange"
-          @scriptOpen="onScriptOpen"
-          @queryOpen="onQueryOpen"
-          @selectEntity="onSelectEntity">
-        </entity-inspector>
+      <div class="page-entities-inspector-column"
+        v-if="appParams.entities.hsplit_main">
+        <div class="page-entities-inspector-pane"
+          @mousedown.capture="setActiveInspector('main2')">
+          <entity-inspector
+            :conn="conn"
+            :path="appParams.entities.main2_path"
+            :canSplit="!appParams.entities.split2"
+            :app_params="main2InspectorParams"
+            :inactive="inspectorInactive('main2')"
+            @close="onCloseInspector('main2')"
+            @split="onSplitV('main2')"
+            @onCodeChange="onCodeChange"
+            @scriptOpen="onScriptOpen"
+            @queryOpen="onQueryOpen"
+            @selectEntity="onSelectEntity">
+          </entity-inspector>
+        </div>
+        <div class="page-entities-inspector-pane"
+          v-if="appParams.entities.split2"
+          @mousedown.capture="setActiveInspector('split2')">
+          <entity-inspector
+            :conn="conn"
+            :path="appParams.entities.split2_path"
+            :app_params="split2InspectorParams"
+            :inactive="inspectorInactive('split2')"
+            @close="onCloseInspector('split2')"
+            @onCodeChange="onCodeChange"
+            @scriptOpen="onScriptOpen"
+            @queryOpen="onQueryOpen"
+            @selectEntity="onSelectEntity">
+          </entity-inspector>
+        </div>
       </div>
     </div>
   </pane-container>
@@ -109,7 +147,8 @@ const showCanvas = computed(() => {
 });
 
 const showInspector = computed(() => {
-  if (!appParams.value.entities.path && !appParams.value.entities.split) {
+  const entities = appParams.value.entities;
+  if (!entities.path && !entities.split && !entities.hsplit_main) {
     return false;
   }
   return true;
@@ -122,18 +161,69 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
   });
 });
 
-const splitInspectorParams = {
-  get path() { return appParams.value.entities.split_path; },
-  set path(value) { appParams.value.entities.split_path = value; },
-  get inspector_tab() { return appParams.value.entities.split_inspector_tab; },
-  set inspector_tab(value) { appParams.value.entities.split_inspector_tab = value; }
+const inspectorSlots = {
+  main:   {path: "path",        tab: "inspector_tab"},
+  main2:  {path: "main2_path",  tab: "main2_inspector_tab"},
+  split:  {path: "split_path",  tab: "split_inspector_tab"},
+  split2: {path: "split2_path", tab: "split2_inspector_tab"}
 };
 
-function onSplit() {
-  appParams.value.entities.split = true;
-  appParams.value.entities.split_path = appParams.value.entities.path;
-  appParams.value.entities.split_inspector_tab = "Inspect";
-  appParams.value.entities.active_inspector = "main";
+function makeInspectorParams(which) {
+  const keys = inspectorSlots[which];
+  return {
+    get path() { return appParams.value.entities[keys.path]; },
+    set path(value) { appParams.value.entities[keys.path] = value; },
+    get inspector_tab() { return appParams.value.entities[keys.tab]; },
+    set inspector_tab(value) { appParams.value.entities[keys.tab] = value; }
+  };
+}
+
+const main2InspectorParams = makeInspectorParams("main2");
+const splitInspectorParams = makeInspectorParams("split");
+const split2InspectorParams = makeInspectorParams("split2");
+
+function inspectorVisible(which) {
+  const entities = appParams.value.entities;
+  if (which === "main2") return entities.hsplit_main;
+  if (which === "split") return entities.split;
+  if (which === "split2") return entities.hsplit_main && entities.split2;
+  return which === "main";
+}
+
+function activeInspector() {
+  const which = appParams.value.entities.active_inspector;
+  return inspectorVisible(which) ? which : "main";
+}
+
+function inspectorCount() {
+  const entities = appParams.value.entities;
+  let count = 1;
+  if (entities.split) count++;
+  if (entities.hsplit_main) count++;
+  if (entities.hsplit_main && entities.split2) count++;
+  return count;
+}
+
+function onSplitV(which) {
+  const entities = appParams.value.entities;
+  if (which === "main") {
+    entities.split = true;
+    entities.split_path = entities.path;
+    entities.split_inspector_tab = "Inspect";
+  } else {
+    entities.split2 = true;
+    entities.split2_path = entities.main2_path;
+    entities.split2_inspector_tab = "Inspect";
+  }
+  entities.active_inspector = which;
+}
+
+function onSplitH() {
+  const entities = appParams.value.entities;
+  entities.hsplit_main = true;
+  entities.main2_path = entities.path;
+  entities.main2_inspector_tab = "Inspect";
+  entities.active_inspector = "main";
 }
 
 function setActiveInspector(which) {
@@ -141,26 +231,75 @@ function setActiveInspector(which) {
 }
 
 function inspectorInactive(which) {
-  return appParams.value.entities.split &&
-    appParams.value.entities.active_inspector !== which;
+  return inspectorCount() > 1 && activeInspector() !== which;
+}
+
+function moveInspector(dst, src) {
+  const entities = appParams.value.entities;
+  entities[inspectorSlots[dst].path] = entities[inspectorSlots[src].path];
+  entities[inspectorSlots[dst].tab] = entities[inspectorSlots[src].tab];
+}
+
+function clearInspector(which) {
+  const entities = appParams.value.entities;
+  entities[inspectorSlots[which].path] = undefined;
+  entities[inspectorSlots[which].tab] = "Inspect";
 }
 
 function onCloseInspector(which) {
   const entities = appParams.value.entities;
-  if (entities.split) {
-    if (which === "main") {
-      entities.path = entities.split_path;
-      entities.inspector_tab = entities.split_inspector_tab;
+
+  if (which === "main") {
+    if (entities.split) {
+      moveInspector("main", "split");
+      entities.split = false;
+      clearInspector("split");
+      if (entities.active_inspector === "split") {
+        entities.active_inspector = "main";
+      }
+    } else if (entities.hsplit_main) {
+      moveInspector("main", "main2");
+      if (entities.split2) {
+        moveInspector("split", "split2");
+      }
+      entities.split = entities.split2;
+      entities.hsplit_main = false;
+      entities.split2 = false;
+      clearInspector("main2");
+      clearInspector("split2");
+      if (entities.active_inspector === "main2") {
+        entities.active_inspector = "main";
+      } else if (entities.active_inspector === "split2") {
+        entities.active_inspector = "split";
+      }
+    } else {
+      clearInspector("main");
     }
+  } else if (which === "main2") {
+    if (entities.split2) {
+      moveInspector("main2", "split2");
+      entities.split2 = false;
+      clearInspector("split2");
+      if (entities.active_inspector === "split2") {
+        entities.active_inspector = "main2";
+      }
+    } else {
+      entities.hsplit_main = false;
+      clearInspector("main2");
+    }
+  } else if (which === "split") {
     entities.split = false;
-    entities.split_path = undefined;
-    entities.split_inspector_tab = "Inspect";
+    clearInspector("split");
+  } else if (which === "split2") {
+    entities.split2 = false;
+    clearInspector("split2");
+  }
+
+  if (!inspectorVisible(entities.active_inspector)) {
     entities.active_inspector = "main";
-    if (!entities.path) {
-      pane_tree.value.unselect();
-    }
-  } else {
-    entities.path = undefined;
+  }
+
+  if (!entities.path && inspectorCount() === 1) {
     pane_tree.value.unselect();
   }
 }
@@ -180,16 +319,10 @@ function onScriptOpen(path) {
 
 function onSelectEntity(path, tab) {
   const entities = appParams.value.entities;
-  if (entities.split && entities.active_inspector === "split") {
-    entities.split_path = path;
-    if (tab) {
-      entities.split_inspector_tab = tab;
-    }
-  } else {
-    entities.path = path;
-    if (tab) {
-      entities.inspector_tab = tab;
-    }
+  const keys = inspectorSlots[activeInspector()];
+  entities[keys.path] = path;
+  if (tab) {
+    entities[keys.tab] = tab;
   }
 }
 
@@ -268,6 +401,15 @@ div.page-entities-script {
 
 div.page-entities-inspector {
   grid-row: 1;
+  display: flex;
+  flex-direction: row;
+  gap: var(--gap);
+  min-width: 0;
+  min-height: 0;
+}
+
+div.page-entities-inspector-column {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
   gap: var(--gap);
