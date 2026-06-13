@@ -45,6 +45,11 @@
           </icon-button>
 
           <icon-button
+            :src="detailIcon"
+            @click.stop="emit('toggleDetail')">
+          </icon-button>
+
+          <icon-button
             src="split-vertical"
             v-if="canSplit"
             @click.stop="emit('split')">
@@ -62,7 +67,7 @@
           </icon-button>
         </div>
 
-        <div class="entity-inspector-header-header">
+        <div class="entity-inspector-header-header" v-if="!lowDetail">
           <slot name="header" v-if="entityQueryResult"></slot>
         </div>
       </div>
@@ -88,10 +93,11 @@ const props = defineProps({
   canSplit: {type: Boolean, required: false, default: false},
   canSplitH: {type: Boolean, required: false, default: false},
   inactive: {type: Boolean, required: false, default: false},
+  lowDetail: {type: Boolean, required: false, default: false},
   padding: {type: String, required: false, default: "padding-left: 8px; padding-right: 8px;"}
 });
 
-const emit = defineEmits(["disable", "delete", "close", "split", "splitH"]);
+const emit = defineEmits(["disable", "delete", "close", "split", "splitH", "toggleDetail"]);
 
 const entityId = computed(() => {
   if (props.entityQueryResult) {
@@ -102,6 +108,10 @@ const entityId = computed(() => {
 
 const disabledIcon = computed(() => {
   return props.disabled ? "circle-large" : "circle-slash";
+});
+
+const detailIcon = computed(() => {
+  return props.lowDetail ? "unfold" : "fold";
 });
 
 const headerCss = computed(() => {

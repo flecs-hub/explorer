@@ -1,8 +1,8 @@
 <template>
   <div :class="editTabsCss()">
     <template v-if="items.length">
-      <div class="edit-tabs-container pane">
-        <div class="edit-tabs-tabs">
+      <div :class="editTabsContainerCss()">
+        <div class="edit-tabs-tabs" v-if="!hideTabs">
           <div class="edit-tabs-tabs-line"></div>
           <div :class="editButtonCss(item)" @click="editButtonSelect(item.value)" v-for="item in items">
             <div :class="editButtonContentCss(item)">
@@ -47,7 +47,8 @@ const props = defineProps({
   items: {type: Array, required: true},
   changed: {type: Boolean, required: false, default: false},
   padding: {type: String, required: false, default: "4px;"},
-  inactive: {type: Boolean, required: false, default: false}
+  inactive: {type: Boolean, required: false, default: false},
+  hideTabs: {type: Boolean, required: false, default: false}
 });
 
 const emit = defineEmits(["onClose"]);
@@ -67,6 +68,14 @@ function editTabsCss() {
   if (!props.items.length) {
     classes.push("pane");
     classes.push("pane-scripts-empty");
+  }
+  return classes;
+}
+
+function editTabsContainerCss() {
+  let classes = ["edit-tabs-container", "pane"];
+  if (props.hideTabs) {
+    classes.push("edit-tabs-container-no-tabs");
   }
   return classes;
 }
@@ -154,6 +163,14 @@ div.edit-tabs-content {
   min-height: 0;
   overflow: auto;
   box-sizing: border-box;
+}
+
+div.edit-tabs-container-no-tabs {
+  grid-template-rows: 1fr;
+}
+
+div.edit-tabs-container-no-tabs div.edit-tabs-content {
+  grid-row: 1;
 }
 
 div.edit-tabs-tabs {

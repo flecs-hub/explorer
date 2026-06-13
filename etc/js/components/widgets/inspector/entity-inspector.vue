@@ -1,6 +1,6 @@
 <template>
   <div class="pane-inspector">
-    <edit-tabs :items='items' :inactive="inactive" v-model:active_item="appParams.inspector_tab" padding="0px;">
+    <edit-tabs :items='items' :inactive="inactive" :hideTabs="lowDetail" v-model:active_item="appParams.inspector_tab" padding="0px;">
       <template v-slot:Inspect>
         <entity-inspector-container
           :path="path"
@@ -10,10 +10,12 @@
           :canSplit="canSplit"
           :canSplitH="canSplitH"
           :inactive="inactive"
+          :lowDetail="lowDetail"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
           @splitH="onSplitH"
+          @toggleDetail="onToggleDetail"
           @close="onClose">
 
           <template v-slot:header>
@@ -36,7 +38,7 @@
               v-if="entityQueryResult">
             </entity-inspector-components>
 
-            <div class="pane-inspector-actions" v-if="entityQueryResult">
+            <div class="pane-inspector-actions" v-if="entityQueryResult && !lowDetail">
               <button @click="inspectQuery" v-if="isQuery"><icon src="search"></icon>&nbsp;&nbsp;Inspect Query</button>
               <entity-inspector-add-component :conn="conn" @submit="onAddComponent">
               </entity-inspector-add-component>
@@ -55,10 +57,12 @@
           :canSplit="canSplit"
           :canSplitH="canSplitH"
           :inactive="inactive"
+          :lowDetail="lowDetail"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
           @splitH="onSplitH"
+          @toggleDetail="onToggleDetail"
           @close="onClose">
           <template v-slot:content>
             <flecs-script
@@ -80,10 +84,12 @@
           :canSplit="canSplit"
           :canSplitH="canSplitH"
           :inactive="inactive"
+          :lowDetail="lowDetail"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
           @splitH="onSplitH"
+          @toggleDetail="onToggleDetail"
           @close="onClose">
           <template v-slot:content>
             <query-inspect :query="path" :conn="conn"></query-inspect>
@@ -99,10 +105,12 @@
           :canSplit="canSplit"
           :canSplitH="canSplitH"
           :inactive="inactive"
+          :lowDetail="lowDetail"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
           @splitH="onSplitH"
+          @toggleDetail="onToggleDetail"
           @close="onClose">
 
           <template v-slot:content>
@@ -123,10 +131,12 @@
           :canSplit="canSplit"
           :canSplitH="canSplitH"
           :inactive="inactive"
+          :lowDetail="lowDetail"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
           @splitH="onSplitH"
+          @toggleDetail="onToggleDetail"
           @close="onClose">
 
           <template v-slot:content>
@@ -149,10 +159,12 @@
           :canSplit="canSplit"
           :canSplitH="canSplitH"
           :inactive="inactive"
+          :lowDetail="lowDetail"
           @disable="onDisable"
           @delete="onDelete"
           @split="onSplit"
           @splitH="onSplitH"
+          @toggleDetail="onToggleDetail"
           @close="onClose">
           <template v-slot:content>
             <entity-inspector-alerts
@@ -198,6 +210,7 @@ const isScript = ref(false);
 const isQuery = ref(false);
 const componentFilter = ref();
 const loading = ref(true);
+const lowDetail = ref(false);
 const firstRequest = ref(true);
 const scriptChanged = ref(false);
 
@@ -527,6 +540,10 @@ function onSplit() {
 
 function onSplitH() {
   emit("splitH");
+}
+
+function onToggleDetail() {
+  lowDetail.value = !lowDetail.value;
 }
 
 watch(() => [props.path, inspectorMode.value], () => {  
