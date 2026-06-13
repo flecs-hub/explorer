@@ -36,8 +36,9 @@ const containerWidth = ref(0);
 const leftPaneWidth = ref(Number(localStorage.getItem(`${props.id}.leftPaneWidth`)) || defaultLeftPaneWidth);
 const rightPaneWidth = ref(Number(localStorage.getItem(`${props.id}.rightPaneWidth`)) || defaultRightPaneWidth);
 
-const dragging = ref(null); // 'leftPane' | 'rightPane' | null
+const dragging = ref(null); // 'leftPane' | 'rightPane' | custom | null
 let containerRect = null;
+let customDragMove = null;
 
 function clampLeftPane(width, totalInnerWidth) {
   // When center is collapsed, the right pane uses 1fr so only its minimum
@@ -60,7 +61,12 @@ function clampRightPane(width, totalInnerWidth) {
 }
 
 function onWindowMouseMove(e) {
-  if (!dragging.value || !containerRect) return;
+  if (!dragging.value) return;
+  if (customDragMove) {
+    customDragMove(e);
+    return;
+  }
+  if (!containerRect) return;
   const totalInnerWidth = containerRect.width; // grid area width
   containerWidth.value = totalInnerWidth;
   if (dragging.value === 'leftPane') {
@@ -91,13 +97,15 @@ function onWindowMouseUp() {
   if (dragging.value) {
     dragging.value = null;
     containerRect = null;
+    customDragMove = null;
     document.body.style.cursor = '';
   }
 }
 
-function startDragging(which) {
+function startDragging(which, onMove) {
   dragging.value = which;
   containerRect = rootEl.value.getBoundingClientRect();
+  customDragMove = onMove || null;
   document.body.style.cursor = 'col-resize';
 }
 

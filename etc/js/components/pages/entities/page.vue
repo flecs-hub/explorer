@@ -37,8 +37,8 @@
       @mousedown="rootEl.startDragging('rightPane')"
     ></splitter>
 
-    <div class="page-entities-inspector" :style="`grid-column: ${inspectorColumn}`">
-      <div class="page-entities-inspector-column">
+    <div :class="inspectorCss" :style="`grid-column: ${inspectorColumn}`" ref="inspectorEl">
+      <div class="page-entities-inspector-column" :style="inspectorColumnStyle(0)">
         <div class="page-entities-inspector-pane"
           @mousedown.capture="setActiveInspector('main')">
           <entity-inspector
@@ -73,8 +73,14 @@
           </entity-inspector>
         </div>
       </div>
+      <splitter
+        v-if="appParams.entities.hsplit_main"
+        :active="rootEl?.dragging === 'inspectorSplit'"
+        @mousedown="startInspectorDrag">
+      </splitter>
       <div class="page-entities-inspector-column"
-        v-if="appParams.entities.hsplit_main">
+        v-if="appParams.entities.hsplit_main"
+        :style="inspectorColumnStyle(1)">
         <div class="page-entities-inspector-pane"
           @mousedown.capture="setActiveInspector('main2')">
           <entity-inspector
@@ -366,6 +372,37 @@ const inspectorSplitterColumn = computed(() => {
   return appParams.value.sidebar ? 4 : 2;
 });
 
+const inspectorEl = ref(null);
+const inspectorSplitRatio = ref(
+  Number(localStorage.getItem('page-entities.inspectorSplitRatio')) || 0.5);
+
+function startInspectorDrag() {
+  const rect = inspectorEl.value.getBoundingClientRect();
+  rootEl.value.startDragging('inspectorSplit', (e) => {
+    let ratio = (e.clientX - rect.left) / rect.width;
+    ratio = Math.max(0.15, Math.min(0.85, ratio));
+    inspectorSplitRatio.value = ratio;
+    localStorage.setItem('page-entities.inspectorSplitRatio', String(ratio));
+  });
+}
+
+function inspectorColumnStyle(index) {
+  if (!appParams.value.entities.hsplit_main) {
+    return '';
+  }
+  const ratio = index === 0 ?
+    inspectorSplitRatio.value : 1 - inspectorSplitRatio.value;
+  return `flex: ${ratio} 1 0%`;
+}
+
+const inspectorCss = computed(() => {
+  let classes = ["page-entities-inspector"];
+  if (appParams.value.entities.hsplit_main) {
+    classes.push("page-entities-inspector-hsplit");
+  }
+  return classes;
+});
+
 function onCodeChange(evt) {
   if (props.app_state.mode == flecs.ConnectionMode.Wasm) {
     appParams.value.code = evt;
@@ -413,6 +450,14 @@ div.page-entities-inspector {
   gap: var(--gap);
   min-width: 0;
   min-height: 0;
+}
+
+div.page-entities-inspector-hsplit {
+  gap: 0;
+}
+
+div.page-entities-inspector-hsplit > div.vsplitter {
+  margin: 0 1px;
 }
 
 div.page-entities-inspector-column {

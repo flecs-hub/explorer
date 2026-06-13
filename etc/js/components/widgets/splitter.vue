@@ -1,6 +1,6 @@
 <template>
 
-<div class="vsplitter" :class="{active: active}" :style="`grid-column: ${column}`"></div>
+<div class="vsplitter" :class="{active: active}" :style="column ? `grid-column: ${column}` : ''"></div>
 
 </template>
 
@@ -12,7 +12,7 @@ export default { name: "splitter" };
 import { defineProps } from 'vue';
 
 const props = defineProps({
-    column: {type: Number, required: true, default: 0},
+    column: {type: Number, required: false},
     active: {type: Boolean, required: false, default: false}
 });
 
@@ -33,6 +33,7 @@ div.vsplitter {
   justify-self: stretch;
   align-self: stretch;
   box-sizing: border-box;
+  flex: 0 0 auto;
 }
 
 div.vsplitter:hover,
