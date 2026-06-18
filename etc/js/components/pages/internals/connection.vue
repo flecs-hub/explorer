@@ -23,8 +23,18 @@
 
       <div class="info-table-cell" style="grid-column: 1; grid-row: 5">Data received</div>
       <div class="info-table-cell" style="grid-column: 2; grid-row: 5; border-right-width: 0px;">
-        <span class="info-table-value">{{ bytesReceived }} B</span> 
+        <span class="info-table-value">{{ bytesReceived }} B</span>
       </div>
+    </div>
+
+    <div class="connection-refresh">
+      <button class="refresh-toggle" @click="toggle">{{ buttonText }}</button>
+      <button :class="refreshButtonCss()">
+        <icon
+          :src="buttonIcon"
+          :opacity="buttonIconOpacity"
+          @click="request"></icon>
+      </button>
     </div>
   </div>
 </template>
@@ -36,12 +46,59 @@ export default {
 </script>
 
 <script setup>
-import { defineProps, ref, computed, onMounted } from 'vue';
+import { defineProps, defineModel, ref, computed, onMounted } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
   app_state: {type: Object, required: true },
 });
+
+const app_params = defineModel("app_params");
+
+const autoRefresh = computed(() => {
+  return app_params.value.refresh === "auto";
+});
+
+const buttonText = computed(() => {
+  return autoRefresh.value ? "Auto refresh" : "Manual refresh";
+});
+
+const buttonIcon = computed(() => {
+  return autoRefresh.value ? "circle-large" : "refresh";
+});
+
+const buttonIconOpacity = computed(() => {
+  return autoRefresh.value ? 0.5 : 1.0;
+})
+
+function toggle() {
+  if (app_params.value.refresh === "auto") {
+    app_params.value.refresh = "manual";
+  } else {
+    app_params.value.refresh = "auto";
+  }
+
+  let poll_interval_ms = 1000;
+  if (app_params.value.refresh !== "auto") {
+    poll_interval_ms = 0;
+  }
+
+  props.conn.set_managed_params({ poll_interval_ms });
+}
+
+function request() {
+  if (!autoRefresh.value) {
+    props.conn.request_managed();
+  }
+}
+
+function refreshButtonCss() {
+  let classes = ["refresh-button"];
+  if (autoRefresh.value) {
+    classes.push("refresh-button-disabled");
+  }
+  return classes;
+}
 
 const componentQueryResult = ref({results: []});
 
@@ -226,6 +283,15 @@ div.info-addons {
 div.info-natvis {
   display: grid;
   overflow: hidden;
+}
+
+div.connection-refresh {
+  display: flex;
+  margin-top: 0.5rem;
+}
+
+div.connection-refresh button {
+  margin-right: 4px;
 }
 
 </style>

@@ -34,7 +34,7 @@
         <internals-build :conn="conn" :app_state="app_state"></internals-build>
       </template>
       <template v-slot:connection>
-        <internals-connection :conn="conn" :app_state="app_state"></internals-connection>
+        <internals-connection :conn="conn" :app_state="app_state" v-model:app_params="app_params"></internals-connection>
       </template>
       <template v-slot:natvis>
         <internals-natvis :conn="conn" :app_state="app_state"></internals-natvis>
