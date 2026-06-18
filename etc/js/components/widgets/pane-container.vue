@@ -102,11 +102,11 @@ function onWindowMouseUp() {
   }
 }
 
-function startDragging(which, onMove) {
+function startDragging(which, onMove, cursor) {
   dragging.value = which;
   containerRect = rootEl.value.getBoundingClientRect();
   customDragMove = onMove || null;
-  document.body.style.cursor = 'col-resize';
+  document.body.style.cursor = cursor || 'col-resize';
 }
 
 // Attach listeners on mount, remove on unmount

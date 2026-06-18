@@ -38,8 +38,12 @@
     ></splitter>
 
     <div :class="inspectorCss" :style="`grid-column: ${inspectorColumn}`" ref="inspectorEl">
-      <div class="page-entities-inspector-column" :style="inspectorColumnStyle(0)">
+      <div class="page-entities-inspector-column"
+        :class="{'page-entities-inspector-column-vsplit': appParams.entities.split}"
+        :style="inspectorColumnStyle(0)"
+        ref="column0El">
         <div class="page-entities-inspector-pane"
+          :style="inspectorPaneStyle(0, 0)"
           @mousedown.capture="setActiveInspector('main')">
           <entity-inspector
             :conn="conn"
@@ -57,8 +61,15 @@
             @selectEntity="onSelectEntity">
           </entity-inspector>
         </div>
+        <splitter
+          v-if="appParams.entities.split"
+          horizontal
+          :active="rootEl?.dragging === 'inspectorVSplit0'"
+          @mousedown="startInspectorVDrag(0)">
+        </splitter>
         <div class="page-entities-inspector-pane"
           v-if="appParams.entities.split"
+          :style="inspectorPaneStyle(0, 1)"
           @mousedown.capture="setActiveInspector('split')">
           <entity-inspector
             :conn="conn"
@@ -80,8 +91,11 @@
       </splitter>
       <div class="page-entities-inspector-column"
         v-if="appParams.entities.hsplit_main"
-        :style="inspectorColumnStyle(1)">
+        :class="{'page-entities-inspector-column-vsplit': appParams.entities.split2}"
+        :style="inspectorColumnStyle(1)"
+        ref="column1El">
         <div class="page-entities-inspector-pane"
+          :style="inspectorPaneStyle(1, 0)"
           @mousedown.capture="setActiveInspector('main2')">
           <entity-inspector
             :conn="conn"
@@ -97,8 +111,15 @@
             @selectEntity="onSelectEntity">
           </entity-inspector>
         </div>
+        <splitter
+          v-if="appParams.entities.split2"
+          horizontal
+          :active="rootEl?.dragging === 'inspectorVSplit1'"
+          @mousedown="startInspectorVDrag(1)">
+        </splitter>
         <div class="page-entities-inspector-pane"
           v-if="appParams.entities.split2"
+          :style="inspectorPaneStyle(1, 1)"
           @mousedown.capture="setActiveInspector('split2')">
           <entity-inspector
             :conn="conn"
@@ -395,6 +416,34 @@ function inspectorColumnStyle(index) {
   return `flex: ${ratio} 1 0%`;
 }
 
+const column0El = ref(null);
+const column1El = ref(null);
+const inspectorVSplitRatio = ref([
+  Number(localStorage.getItem('page-entities.inspectorVSplitRatio0')) || 0.5,
+  Number(localStorage.getItem('page-entities.inspectorVSplitRatio1')) || 0.5]);
+
+function startInspectorVDrag(index) {
+  const columnEl = index === 0 ? column0El.value : column1El.value;
+  const rect = columnEl.getBoundingClientRect();
+  rootEl.value.startDragging('inspectorVSplit' + index, (e) => {
+    let ratio = (e.clientY - rect.top) / rect.height;
+    ratio = Math.max(0.15, Math.min(0.85, ratio));
+    inspectorVSplitRatio.value[index] = ratio;
+    localStorage.setItem('page-entities.inspectorVSplitRatio' + index, String(ratio));
+  }, 'row-resize');
+}
+
+function inspectorPaneStyle(columnIndex, paneIndex) {
+  const split = columnIndex === 0 ?
+    appParams.value.entities.split : appParams.value.entities.split2;
+  if (!split) {
+    return '';
+  }
+  const ratio = paneIndex === 0 ?
+    inspectorVSplitRatio.value[columnIndex] : 1 - inspectorVSplitRatio.value[columnIndex];
+  return `flex: ${ratio} 1 0%`;
+}
+
 const inspectorCss = computed(() => {
   let classes = ["page-entities-inspector"];
   if (appParams.value.entities.hsplit_main) {
@@ -467,6 +516,14 @@ div.page-entities-inspector-column {
   gap: var(--gap);
   min-width: 0;
   min-height: 0;
+}
+
+div.page-entities-inspector-column-vsplit {
+  gap: 0;
+}
+
+div.page-entities-inspector-column-vsplit > div.hsplitter {
+  margin: 1px 0;
 }
 
 div.page-entities-inspector-pane {
