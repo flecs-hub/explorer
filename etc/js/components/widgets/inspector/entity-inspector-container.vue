@@ -112,7 +112,7 @@ const disabledIcon = computed(() => {
 });
 
 const detailIcon = computed(() => {
-  return props.lowDetail ? "unfold" : "fold";
+  return props.lowDetail ? "screen-normal" : "screen-full";
 });
 
 const headerCss = computed(() => {
