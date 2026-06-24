@@ -27,6 +27,7 @@
     </entity-tree-add-child-modal>
     <template v-if="expand">
       <entity-subtree
+        ref="childSubtree"
         :conn="conn"
         :path="item.queryRef"
         :depth="depth + 1"
@@ -44,7 +45,7 @@ export default { name: "entity-tree-item" }
 </script>
 
 <script setup>
-import { defineProps, computed, ref, defineEmits, watch, inject, onMounted, onUnmounted } from 'vue';
+import { defineProps, computed, ref, defineEmits, watch, inject, nextTick, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -59,6 +60,7 @@ const emit = defineEmits(["select", "remove"]);
 const expand = ref(false);
 const showAddChild = ref(false);
 const itemEl = ref(null);
+const childSubtree = ref(null);
 const itemRegistry = inject('itemRegistry');
 
 onMounted(() => {
@@ -99,7 +101,14 @@ function onAddChildSubmit(evt) {
   const parent = evt.parent;
   const path = parent ? parent + "." + childName : childName;
   props.conn.create(path);
-  expand.value = true;
+  if (parent === props.item.path) {
+    expand.value = true;
+    nextTick(() => {
+      if (childSubtree.value) {
+        childSubtree.value.addEntity(path, evt.name);
+      }
+    });
+  }
 }
 
 function onDelete() {

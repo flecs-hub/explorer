@@ -22,7 +22,7 @@ export default { name: "entity-subtree" }
 </script>
 
 <script setup>
-import { onMounted, onUnmounted, ref, defineProps, defineEmits, computed, watch } from 'vue';
+import { onMounted, onUnmounted, ref, defineProps, defineEmits, defineExpose, computed, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -43,6 +43,30 @@ const lineIndent = computed(() => {
   return `margin-left: ${props.depth * 12 - 8}px;`;
 });
 
+function compareItems(a, b) {
+  if (a.isModule == b.isModule) {
+    if (a.isComponent == b.isComponent) {
+      if (a.isParent == b.isParent) {
+        if (a.label) {
+          return a.label.localeCompare(b.label);
+        } else {
+          return a.name.localeCompare(b.name);
+        }
+      } else if (a.isParent) {
+        return -1;
+      } else {
+        return 1;
+      }
+    } else if (a.isComponent) {
+      return -1;
+    }
+  } else if (a.isModule) {
+    return -1;
+  } else {
+    return 1;
+  }
+}
+
 function selectItem(evt) {
   emit('select', evt);
 }
@@ -55,6 +79,41 @@ function removeItem(item) {
     delete items.value[item.path];
   }
 }
+
+function addEntity(path, name) {
+  let treeItem = items.value[path];
+  if (treeItem === undefined) {
+    treeItem = items.value[path] = {};
+  }
+
+  treeItem.path = path;
+  treeItem.queryRef = path;
+  treeItem.name = name;
+  treeItem.isModule = false;
+  treeItem.isComponent = false;
+  treeItem.isTarget = false;
+  treeItem.isQuery = false;
+  treeItem.isPrefab = false;
+  treeItem.isDisabled = false;
+  treeItem.isParent = false;
+  treeItem.baseEntity = undefined;
+  treeItem.label = undefined;
+  treeItem.color = undefined;
+
+  if (!treeQueryResult.value) {
+    treeQueryResult.value = [];
+  }
+  if (!treeQueryResult.value.includes(treeItem)) {
+    treeQueryResult.value.push(treeItem);
+    treeQueryResult.value.sort(compareItems);
+  }
+
+  emit('select', treeItem);
+}
+
+defineExpose({
+  addEntity
+});
 
 onMounted(() => {
   updateQuery();
@@ -160,29 +219,7 @@ function updateQuery() {
         sortedItems.push(treeItem);
       }
 
-      sortedItems.sort((a, b) => {
-        if (a.isModule == b.isModule) {
-          if (a.isComponent == b.isComponent) {
-            if (a.isParent == b.isParent) {
-              if (a.label) {
-                return a.label.localeCompare(b.label);
-              } else {
-                return a.name.localeCompare(b.name);
-              }
-            } else if (a.isParent) {
-              return -1;
-            } else {
-              return 1;
-            }
-          } else if (a.isComponent) {
-            return -1;
-          }
-        } else if (a.isModule) {
-          return -1;
-        } else {
-          return 1;
-        }
-      });
+      sortedItems.sort(compareItems);
 
       treeQueryResult.value = sortedItems;
     }, (err) => {}, () => {

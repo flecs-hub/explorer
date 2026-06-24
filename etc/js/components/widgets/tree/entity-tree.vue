@@ -1,6 +1,7 @@
 <template>
   <div id="entity-tree" tabindex="0" @keydown="onKeydown">
     <entity-subtree
+      ref="rootSubtree"
       :conn="conn"
       :selectedItem="selectedItem"
       @select="selectItem"
@@ -37,6 +38,7 @@ const props = defineProps({
 
 const selectedItem = ref();
 const showAddEntity = ref(false);
+const rootSubtree = ref(null);
 const itemRegistry = new WeakMap();
 
 provide('itemRegistry', itemRegistry);
@@ -54,6 +56,9 @@ function onAddEntitySubmit(evt) {
   const parent = evt.parent;
   const path = parent ? parent + "." + childName : childName;
   props.conn.create(path);
+  if (!parent && rootSubtree.value) {
+    rootSubtree.value.addEntity(path, evt.name);
+  }
 }
 
 function onKeydown(evt) {
