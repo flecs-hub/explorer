@@ -1,31 +1,26 @@
 <template>
-  <Teleport to="body">
-    <div class="add-component-modal-overlay" @click.self="onCancel">
-      <div class="add-component-modal">
-        <div class="add-component-modal-header noselect">Add Component</div>
-        <div class="add-component-modal-filter" ref="filterWrapper">
-          <search-box v-model="filter"></search-box>
-        </div>
-        <div class="add-component-modal-list">
-          <prop-browser
-            ref="browser"
-            :conn="conn"
-            :expr="filter"
-            :first="''"
-            :x="0"
-            :y="0"
-            docked
-            builtin_last
-            @select="onPropSelect">
-          </prop-browser>
-        </div>
-        <div class="add-component-modal-actions">
-          <button class="add-component-modal-cancel" @click="onCancel">Cancel</button>
-          <button class="add-component-modal-ok" @click="onOk">OK</button>
-        </div>
-      </div>
+  <modal
+    title="Add Component"
+    width="420px"
+    @ok="onOk"
+    @cancel="onCancel">
+    <div class="add-component-filter" ref="filterWrapper">
+      <search-box v-model="filter"></search-box>
     </div>
-  </Teleport>
+    <div class="add-component-list">
+      <prop-browser
+        ref="browser"
+        :conn="conn"
+        :expr="filter"
+        :first="''"
+        :x="0"
+        :y="0"
+        docked
+        builtin_last
+        @select="onPropSelect">
+      </prop-browser>
+    </div>
+  </modal>
 </template>
 
 <script>
@@ -69,9 +64,6 @@ function onKeydown(e) {
     if (browser.value.select("enter")) {
       e.preventDefault();
     }
-  } else if (e.key === "Escape") {
-    e.preventDefault();
-    onCancel();
   } else if (e.key === "ArrowDown") {
     if (browser.value.moveDown()) {
       e.preventDefault();
@@ -103,64 +95,15 @@ onBeforeUnmount(() => {
 
 <style scoped>
 
-div.add-component-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-}
-
-div.add-component-modal {
-  display: flex;
-  flex-direction: column;
-  width: 420px;
-  max-width: calc(100vw - 32px);
-  max-height: 70vh;
-  background-color: var(--bg-content);
-  border-radius: var(--border-radius-medium);
-  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.4);
-  overflow: hidden;
-}
-
-div.add-component-modal-header {
-  padding: 12px 16px;
-  font-size: 1.1em;
-  font-weight: 500;
-  color: var(--primary-text);
-}
-
-div.add-component-modal-filter {
+div.add-component-filter {
   padding: 0px 16px 12px 16px;
 }
 
-div.add-component-modal-list {
+div.add-component-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   border-top: 1px solid var(--bg-content-alt);
-  border-bottom: 1px solid var(--bg-content-alt);
-}
-
-div.add-component-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 16px;
-}
-
-div.add-component-modal-actions button {
-  text-transform: none;
-  min-width: 80px;
-}
-
-button.add-component-modal-ok {
-  background-color: var(--bg-ok);
-  color: var(--primary-text);
 }
 
 </style>

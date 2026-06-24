@@ -204,6 +204,7 @@ const BASE_COMPONENTS = [
   'js/components/color-preview.vue',
 
   // Shared widgets
+  'js/components/widgets/modal.vue',
   'js/components/widgets/icon-button.vue',
   'js/components/widgets/action-button.vue',
   'js/components/widgets/expand-button.vue',
@@ -214,6 +215,7 @@ const BASE_COMPONENTS = [
   'js/components/widgets/tree/entity-subtree.vue',
   'js/components/widgets/tree/entity-tree-item.vue',
   'js/components/widgets/tree/entity-tree-icon.vue',
+  'js/components/widgets/tree/entity-tree-add-child-modal.vue',
 
   // Shared inspector widget
   'js/components/widgets/inspector/entity-inspector.vue',

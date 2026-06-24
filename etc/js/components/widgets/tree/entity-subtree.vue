@@ -5,8 +5,10 @@
       :item="item"
       :depth="depth"
       :selectedItem="selectedItem"
+      :showButtons="showButtons"
       v-for="item in treeQueryResult"
       @select="selectItem"
+      @remove="removeItem"
       :key="item.name">
     </entity-tree-item>
     <template v-if="path !== '#0'">
@@ -28,7 +30,8 @@ const props = defineProps({
   path: {type: String, required: false, default: "#0"},
   depth: {type: Number, required: false, default: 0},
   nameFilter: {type: String, required: false},
-  queryFilter: {type: String, required: false}
+  queryFilter: {type: String, required: false},
+  showButtons: {type: Boolean, required: false, default: true}
 });
 
 const emit = defineEmits(['select']);
@@ -42,6 +45,15 @@ const lineIndent = computed(() => {
 
 function selectItem(evt) {
   emit('select', evt);
+}
+
+function removeItem(item) {
+  if (treeQueryResult.value) {
+    treeQueryResult.value = treeQueryResult.value.filter((i) => i !== item);
+  }
+  if (item.path !== undefined) {
+    delete items.value[item.path];
+  }
 }
 
 onMounted(() => {

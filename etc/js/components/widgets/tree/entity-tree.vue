@@ -5,8 +5,19 @@
       :selectedItem="selectedItem"
       @select="selectItem"
       :nameFilter="nameFilter"
-      :queryFilter="queryFilter">
+      :queryFilter="queryFilter"
+      :showButtons="showButtons">
     </entity-subtree>
+    <div class="entity-tree-new noselect" @click="showAddEntity = true" v-if="showButtons">
+      <icon src="add" :size="14" :opacity="0.7"></icon>
+      <span>New entity</span>
+    </div>
+    <entity-tree-add-child-modal
+      v-if="showAddEntity"
+      :parent="''"
+      @submit="onAddEntitySubmit"
+      @cancel="showAddEntity = false">
+    </entity-tree-add-child-modal>
   </div>
 </template>
 
@@ -20,10 +31,12 @@ import { defineProps, defineEmits, defineExpose, ref, provide } from 'vue';
 const props = defineProps({
   conn: {type: Object, required: true},
   nameFilter: {type: String, required: false},
-  queryFilter: {type: String, required: false}
+  queryFilter: {type: String, required: false},
+  showButtons: {type: Boolean, required: false, default: true}
 });
 
 const selectedItem = ref();
+const showAddEntity = ref(false);
 const itemRegistry = new WeakMap();
 
 provide('itemRegistry', itemRegistry);
@@ -33,6 +46,14 @@ const emit = defineEmits(["select"]);
 function selectItem(evt) {
   selectedItem.value = evt;
   emit("select", evt);
+}
+
+function onAddEntitySubmit(evt) {
+  showAddEntity.value = false;
+  const childName = evt.name.replaceAll(".", "\\.");
+  const parent = evt.parent;
+  const path = parent ? parent + "." + childName : childName;
+  props.conn.create(path);
 }
 
 function onKeydown(evt) {
@@ -101,13 +122,29 @@ defineExpose({
 <style scoped>
 
 #entity-tree {
-  display: grid;
-  grid-template-rows: 1rem;
+  display: flex;
+  flex-direction: column;
   padding-top: 4px;
   padding-left: 8px;
   padding-right: 8px;
-  gap: 0.5rem;
   outline: none;
+}
+
+div.entity-tree-new {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 18px;
+  margin-top: 4px;
+  color: var(--secondary-text);
+  cursor: pointer;
+  border-radius: var(--border-radius-medium);
+}
+
+div.entity-tree-new:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--primary-text);
 }
 
 </style>

@@ -14,13 +14,24 @@
           {{ itemName }}<template v-if="item.baseEntity"><span class="entity-tree-item-base">&nbsp;:&nbsp;{{ shortenEntity(item.baseEntity) }}</span></template>
         </span>
       </div>
+      <div class="entity-tree-item-actions" v-if="showButtons">
+        <icon-button src="add" :size="16" @click.stop="onAddChild"></icon-button>
+        <icon-button src="trash" :size="16" @click.stop="onDelete"></icon-button>
+      </div>
     </div>
+    <entity-tree-add-child-modal
+      v-if="showAddChild"
+      :parent="item.path"
+      @submit="onAddChildSubmit"
+      @cancel="showAddChild = false">
+    </entity-tree-add-child-modal>
     <template v-if="expand">
       <entity-subtree
         :conn="conn"
         :path="item.queryRef"
         :depth="depth + 1"
         :selectedItem="selectedItem"
+        :showButtons="showButtons"
         @select="selectChild"
         :key="item.path">
       </entity-subtree>
@@ -39,12 +50,14 @@ const props = defineProps({
   conn: {type: Object, required: true},
   item: {type: Object, required: true},
   selectedItem: {type: Object, required: false},
-  depth: {type: Number, required: false, default: 0}
+  depth: {type: Number, required: false, default: 0},
+  showButtons: {type: Boolean, required: false, default: true}
 });
 
-const emit = defineEmits(["select"]);
+const emit = defineEmits(["select", "remove"]);
 
 const expand = ref(false);
+const showAddChild = ref(false);
 const itemEl = ref(null);
 const itemRegistry = inject('itemRegistry');
 
@@ -74,6 +87,27 @@ function selectItem() {
 
 function selectChild(evt) {
   emit("select", evt);
+}
+
+function onAddChild() {
+  showAddChild.value = true;
+}
+
+function onAddChildSubmit(evt) {
+  showAddChild.value = false;
+  const childName = evt.name.replaceAll(".", "\\.");
+  const parent = evt.parent;
+  const path = parent ? parent + "." + childName : childName;
+  props.conn.create(path);
+  expand.value = true;
+}
+
+function onDelete() {
+  props.conn.delete(props.item.path);
+  if (isSelected.value) {
+    emit("select", undefined);
+  }
+  emit("remove", props.item);
 }
 
 const itemClass = computed(() => {
@@ -176,6 +210,21 @@ div.entity-tree-item-name {
 
 span.entity-tree-item-base {
   color: var(--secondary-text);
+}
+
+div.entity-tree-item-actions {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+div.entity-tree-item:hover div.entity-tree-item-actions {
+  display: flex;
 }
 
 </style>

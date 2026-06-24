@@ -11,6 +11,7 @@
               :conn="conn"
               :nameFilter="nameFilter"
               :queryFilter="queryFilter"
+              :showButtons="appParams.entities.tree_mode !== 'Scripts'"
               @select="selectItem"
               ref="entity_tree">
             </entity-tree>
