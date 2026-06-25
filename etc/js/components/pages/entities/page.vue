@@ -251,11 +251,23 @@ function onSplitV(which) {
 
 function onSplitH() {
   const entities = appParams.value.entities;
+
+  // Measure the existing inspector so it keeps its size after the split. The
+  // new inspector is added next to it with an equal width, growing the total
+  // area occupied by the inspectors rather than shrinking the existing one.
+  const existingWidth = column0El.value.getBoundingClientRect().width;
+  const gap = parseFloat(getComputedStyle(inspectorEl.value).gap) || 0;
+
+  inspectorSplitRatio.value = 0.5;
+  localStorage.setItem('page-entities.inspectorSplitRatio', '0.5');
+
   entities.hsplit_main = true;
   entities.main2_path = entities.path;
   entities.main2_inspector_tab = "Inspect";
   entities.main2_low_detail = false;
   entities.active_inspector = "main";
+
+  rootEl.value.setRightPaneWidth(existingWidth * 2 + gap);
 }
 
 function setActiveInspector(which) {
@@ -282,6 +294,17 @@ function clearInspector(which) {
 
 function onCloseInspector(which) {
   const entities = appParams.value.entities;
+
+  // When closing a horizontally-split inspector, shrink the total area back to
+  // the remaining column's current width so it keeps its size.
+  let remainingColumn = null;
+  if (which === "main" && !entities.split && entities.hsplit_main) {
+    remainingColumn = column1El.value;
+  } else if (which === "main2" && !entities.split2 && entities.hsplit_main) {
+    remainingColumn = column0El.value;
+  }
+  const remainingWidth = remainingColumn ?
+    remainingColumn.getBoundingClientRect().width : null;
 
   if (which === "main") {
     if (entities.split) {
@@ -331,6 +354,10 @@ function onCloseInspector(which) {
 
   if (!inspectorVisible(entities.active_inspector)) {
     entities.active_inspector = "main";
+  }
+
+  if (remainingWidth != null) {
+    rootEl.value.setRightPaneWidth(remainingWidth);
   }
 
   if (!entities.path && inspectorCount() === 1) {

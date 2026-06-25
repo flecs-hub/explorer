@@ -109,6 +109,30 @@ function startDragging(which, onMove, cursor) {
   document.body.style.cursor = cursor || 'col-resize';
 }
 
+function getRightPaneWidth() {
+  return rightPaneWidth.value;
+}
+
+function setRightPaneWidth(px) {
+  if (!props.showRightPane) return;
+  if (rootEl.value) {
+    containerWidth.value = rootEl.value.getBoundingClientRect().width;
+  }
+  const leftMin = props.showLeftPane ? minLeftPaneWidth : 0;
+  const max = Math.max(minRightPaneWidth, containerWidth.value - leftMin);
+  const w = Math.round(Math.max(minRightPaneWidth, Math.min(px, max)));
+  rightPaneWidth.value = w;
+  localStorage.setItem(`${props.id}.rightPaneWidth`, String(w));
+  updateCenterHidden(true);
+  // Dispatch resize twice: the first lets listeners (e.g. the 3D canvas) update
+  // their display size against the new layout, the second lets the renderer
+  // read that updated size so its framebuffer doesn't end up stretched.
+  nextTick(() => {
+    window.dispatchEvent(new Event('resize'));
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+  });
+}
+
 // Attach listeners on mount, remove on unmount
 onMounted(() => {
   window.addEventListener('mousemove', onWindowMouseMove);
@@ -205,7 +229,7 @@ const gridStyle = computed(() => {
   }
 });
 
-defineExpose({startDragging, centerPaneHidden, dragging});
+defineExpose({startDragging, centerPaneHidden, dragging, getRightPaneWidth, setRightPaneWidth});
 
 </script>
 
