@@ -1605,12 +1605,6 @@ div.edit-tabs-drag-ghost {
 .edit-tabs-tab.selected {
   display: block;
   height: 100%;
-  animation: edit-tabs-tab-in 0.12s ease-out;
-}
-
-@keyframes edit-tabs-tab-in {
-  from { opacity: 0.25; }
-  to { opacity: 1; }
 }
 
 </style>

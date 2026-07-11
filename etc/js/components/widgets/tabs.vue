@@ -91,12 +91,6 @@ function slotLabel(item) {
 .tabs-tab.selected {
   display: block;
   height: 100%;
-  animation: tabs-tab-in 0.12s ease-out;
-}
-
-@keyframes tabs-tab-in {
-  from { opacity: 0.25; }
-  to { opacity: 1; }
 }
 
 .tabs-tab p.startli:first-child {
