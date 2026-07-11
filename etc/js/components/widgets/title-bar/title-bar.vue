@@ -11,10 +11,6 @@
       </a>
     </div>
     <div class="title-bar-controls">
-      <play-control
-        :conn="conn"
-        :app_state="app_state">
-      </play-control>
     </div>
     <url-bar
       :app_state="app_state"
