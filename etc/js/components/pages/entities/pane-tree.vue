@@ -98,6 +98,11 @@ function setTreeRef(tab, el) {
 
 function selectItem(item, tab) {
   if (item) {
+    for (let t in treeRefs) {
+      if (t !== tab) {
+        treeRefs[t].unselect();
+      }
+    }
     const selectedTab = tab === "Scripts" ? "Script" : undefined;
     emit("selectEntity", item.queryRef || item.path, selectedTab);
   } else {

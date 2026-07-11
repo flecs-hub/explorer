@@ -64,7 +64,7 @@
             @onCodeChange="onCodeChange"
             @scriptOpen="onScriptOpen"
             @queryOpen="onQueryOpen"
-            @selectEntity="onSelectEntity">
+            @selectEntity="onInspectorSelectEntity">
           </entity-inspector>
         </div>
         <splitter
@@ -88,7 +88,7 @@
             @onCodeChange="onCodeChange"
             @scriptOpen="onScriptOpen"
             @queryOpen="onQueryOpen"
-            @selectEntity="onSelectEntity">
+            @selectEntity="onInspectorSelectEntity">
           </entity-inspector>
         </div>
       </div>
@@ -118,7 +118,7 @@
             @onCodeChange="onCodeChange"
             @scriptOpen="onScriptOpen"
             @queryOpen="onQueryOpen"
-            @selectEntity="onSelectEntity">
+            @selectEntity="onInspectorSelectEntity">
           </entity-inspector>
         </div>
         <splitter
@@ -142,7 +142,7 @@
             @onCodeChange="onCodeChange"
             @scriptOpen="onScriptOpen"
             @queryOpen="onQueryOpen"
-            @selectEntity="onSelectEntity">
+            @selectEntity="onInspectorSelectEntity">
           </entity-inspector>
         </div>
       </div>
@@ -404,6 +404,13 @@ function onSelectEntity(path, tab) {
   if (tab) {
     entities[keys.tab] = tab;
   }
+}
+
+function onInspectorSelectEntity(path, tab) {
+  if (pane_tree.value) {
+    pane_tree.value.unselect();
+  }
+  onSelectEntity(path, tab);
 }
 
 function onQueryOpen() {
