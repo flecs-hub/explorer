@@ -11,7 +11,7 @@
               :conn="conn"
               :nameFilter="nameFilter"
               :queryFilter="queryFilter"
-              :showButtons="appParams.entities.tree_mode !== 'Scripts'"
+              :showButtons="appParams.entities.tree_mode !== 'Scripts' && appParams.entities.tree_mode !== 'Singletons'"
               @select="selectItem"
               ref="entity_tree">
             </entity-tree>
@@ -41,6 +41,7 @@ const entity_tree = ref(null);
 const items = computed(() => {
   let result = [
     { label: "Entities", value: "Entities", canClose: false },
+    { label: "Singletons", value: "Singletons", canClose: false },
     { label: "Scripts", value: "Scripts", canClose: false }
   ];
 
@@ -66,6 +67,8 @@ const queryFilter = computed(() => {
     }
   } else if (appParams.value.entities.tree_mode === "Scripts") {
     result = `[none] flecs.script.Script, !flecs.core.Component`;
+  } else if (appParams.value.entities.tree_mode === "Singletons") {
+    result = `[none] flecs.core.Singleton, !flecs.core.Module`;
   }
 
   return result;
