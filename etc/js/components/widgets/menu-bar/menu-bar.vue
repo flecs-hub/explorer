@@ -82,8 +82,10 @@ const indicatorCss = computed(() => {
 }
 
 div.menu-bar-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 0.25rem;
-  padding-top: 0px;
   padding-left: 0.2rem;
 }
 

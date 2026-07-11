@@ -55,7 +55,6 @@ div.menu-button {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 0.5rem;
   border-radius: var(--border-radius-medium);
   min-height: 32px;
   cursor: pointer;
