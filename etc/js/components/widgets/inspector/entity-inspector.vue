@@ -1,6 +1,6 @@
 <template>
   <div class="pane-inspector">
-    <edit-tabs :items='items' :inactive="inactive" :hideTabs="lowDetail" v-model:active_item="appParams.inspector_tab" padding="0px;" storageKey="inspector" @visibleChanged="onVisibleChanged">
+    <edit-tabs :items='items' :inactive="inactive" :hideTabs="lowDetail" v-model:active_item="appParams.inspector_tab" padding="0px;" :storageKey="storageKey" @visibleChanged="onVisibleChanged">
       <template v-slot:Inspect>
         <entity-inspector-container
           :path="path"
@@ -195,7 +195,8 @@ const props = defineProps({
   path: {type: String, required: false},
   canSplit: {type: Boolean, required: false, default: false},
   canSplitH: {type: Boolean, required: false, default: false},
-  inactive: {type: Boolean, required: false, default: false}
+  inactive: {type: Boolean, required: false, default: false},
+  storageKey: {type: String, required: false, default: "inspector"}
 });
 
 const appParams = defineModel("app_params");

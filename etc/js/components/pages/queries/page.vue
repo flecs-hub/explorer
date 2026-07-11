@@ -40,6 +40,7 @@
         :conn="conn"
         :path="app_params.queries.path"
         :app_params="app_params.queries"
+        storageKey="inspector-queries"
         @close="onClose"
         @selectEntity="onSelectEntity">
       </entity-inspector>
