@@ -10,17 +10,17 @@
 void PlaygroundImport(ecs_world_t *world) {
     ECS_MODULE(world, Playground);
 
-    // ECS_IMPORT(world, FlecsUnits);
+    ECS_IMPORT(world, FlecsUnits);
     ECS_IMPORT(world, FlecsScript);
     ECS_IMPORT(world, FlecsScriptMath);
-    // ECS_IMPORT(world, FlecsComponentsTransform);
-    // ECS_IMPORT(world, FlecsComponentsGeometry);
-    // ECS_IMPORT(world, FlecsComponentsGui);
-    // ECS_IMPORT(world, FlecsComponentsGraphics);
-    // ECS_IMPORT(world, FlecsSystemsTransform);
-    // ECS_IMPORT(world, FlecsSystemsSokol);
-    // ECS_IMPORT(world, FlecsGame);
-    ECS_IMPORT(world, FlecsEngine);
+    ECS_IMPORT(world, FlecsComponentsTransform);
+    ECS_IMPORT(world, FlecsComponentsGeometry);
+    ECS_IMPORT(world, FlecsComponentsGui);
+    ECS_IMPORT(world, FlecsComponentsGraphics);
+    ECS_IMPORT(world, FlecsSystemsTransform);
+    ECS_IMPORT(world, FlecsSystemsSokol);
+    ECS_IMPORT(world, FlecsGame);
+    // ECS_IMPORT(world, FlecsEngine);
 }
 
 #ifdef __EMSCRIPTEN__
