@@ -1,6 +1,6 @@
 <template>
   <div>
-    <detail-toggle v-if="matchCount > 0">
+    <detail-toggle v-if="matchCount > 0" v-model:expand="expand">
       <template v-slot:summary>
         {{ moduleHeaderName(item.name) }}
       </template>
@@ -68,7 +68,7 @@ export default { name: "entity-inspector-module" }
 </script>
 
 <script setup>
-import { defineEmits, defineProps, defineModel, computed } from 'vue';
+import { defineEmits, defineProps, defineModel, computed, ref, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -81,6 +81,12 @@ const props = defineProps({
 const emit = defineEmits(["selectEntity", "removeComponent"]);
 
 const loading = defineModel("loading");
+
+const expand = ref(localStorage.getItem(`module.${props.item.name}.expand`) !== "false");
+
+watch(expand, () => {
+  localStorage.setItem(`module.${props.item.name}.expand`, String(expand.value));
+});
 
 function moduleHeaderName(name) {
   if (!name || !name.length) {

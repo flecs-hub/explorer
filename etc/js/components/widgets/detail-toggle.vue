@@ -22,13 +22,13 @@ export default { name: "detail-toggle" };
 </script>
 
 <script setup>
-import { defineProps, computed, ref } from 'vue';
+import { defineProps, defineModel, computed, ref } from 'vue';
 
 const props = defineProps({
   padding: { type: String, required: false, default: "4px" },
 });
 
-const showDetail = ref(true);
+const showDetail = defineModel("expand", { type: Boolean, default: true });
 const hover = ref(false);
 const pressed = ref(false);
 
