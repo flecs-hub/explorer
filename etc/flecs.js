@@ -535,8 +535,6 @@ const flecs = {
   
                     // Poll if necessary
                     this._.poll(this);
-
-                    this.aborted = false;
                   }
                 };
   
@@ -562,43 +560,56 @@ const flecs = {
 
               // Cancel request
               cancel() {
+                this.aborted = true;
+                this.status = flecs.RequestStatus.Aborting;
                 if (this.budgetTimer) {
                   clearTimeout(this.budgetTimer);
                   this.budgetTimer = undefined;
-                  this.aborted = true;
-                  return;
+                }
+                if (this.timer) {
+                  clearTimeout(this.timer);
+                  this.timer = undefined;
                 }
                 if (this.request) {
-                  this.status = flecs.RequestStatus.Aborting;
                   this.request.abort();
-                  this.aborted = true;
                 }
               },
 
               // Abort request
               abort(keepPersist = false) {
-                if (this.budgetTimer || this.request) {
-                  const wasInBudget = !!this.budgetTimer;
-                  this.cancel();
-
-                  if (this.managed) {
-                    if (!this.persist || !keepPersist) {
-                      this.conn.managedRequests =
-                        this.conn.managedRequests.filter(item => item !== this);
-                    }
-                  }
-
-                  if (this.on_abort && !wasInBudget) {
-                    this.on_abort(this);
-                  }
-
-                  this.request = undefined;
+                if (this.aborted && !this.request && !this.timer &&
+                    !this.budgetTimer)
+                {
+                  return;
                 }
+
+                const wasInBudget = !!this.budgetTimer;
+                this.cancel();
+
+                if (this.managed) {
+                  if (!this.persist || !keepPersist) {
+                    this.conn.managedRequests =
+                      this.conn.managedRequests.filter(item => item !== this);
+                  }
+                }
+
+                if (this.on_abort && !wasInBudget) {
+                  this.on_abort(this);
+                }
+
+                this.request = undefined;
               },
 
               // Run request now
               now() {
-                this.request.abort();
+                if (this.timer) {
+                  clearTimeout(this.timer);
+                  this.timer = undefined;
+                }
+                if (this.request) {
+                  this.request.onreadystatechange = undefined;
+                  this.request.abort();
+                }
                 this.do(false);
               },
   
@@ -629,7 +640,7 @@ const flecs = {
                 // Handle request error
                 onError(pub) {
                   if (pub.aborted) {
-                    this.status = flecs.RequestStatus.Aborted;
+                    pub.status = flecs.RequestStatus.Aborted;
                     return;
                   }
                 

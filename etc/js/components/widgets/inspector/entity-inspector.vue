@@ -186,7 +186,7 @@ export default { name: "entity-inspector" }
 </script>
 
 <script setup>
-import { defineProps, defineEmits, defineModel, computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { defineProps, defineEmits, defineModel, computed, ref, shallowRef, watch, onMounted, onUnmounted, nextTick } from 'vue';
 
 const emit = defineEmits(["abort", "scriptOpen", "queryOpen","selectEntity", "close", "split", "splitH", "onCodeChange"]);
 
@@ -202,7 +202,7 @@ const props = defineProps({
 
 const appParams = defineModel("app_params");
 
-const entityQuery = ref();
+const entityQuery = shallowRef();
 const entityQueryResult = ref();
 
 const entityModules = ref([]);
@@ -365,22 +365,26 @@ function updateQuery() {
   }
 
   if (props.path) {
-    entityQuery.value = 
+    const query =
       props.conn.entity(props.path,
         {
-          try: true, 
+          try: true,
           managed: true,
           values: true,
           entity_id: true,
-          full_paths: true, 
+          full_paths: true,
           type_info: true,
           private: true,
           inherited: true,
           matches: tabVisible("Matches"),
           refs: tabVisible("References") ? "*" : undefined,
           alerts: tabVisible("More")
-        }, 
+        },
         (reply) => {
+          if (entityQuery.value !== query) {
+            return;
+          }
+
           entityQueryResult.value = reply;
 
           const moduleMap = {};
@@ -474,13 +478,18 @@ function updateQuery() {
           entityModules.value.sort((a, b) => {
             return a.name.localeCompare(b.name);
           });
-        }, 
+        },
         (err) => {
+          if (entityQuery.value !== query) {
+            return;
+          }
           loading.value = true;
         },
         (request) => {
           loading.value = true;
         });
+
+    entityQuery.value = query;
   }
 }
 
