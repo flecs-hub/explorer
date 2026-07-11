@@ -58,22 +58,22 @@
   --bg-button-alt: hsl(210, 12%, 19%);
   --bg-button-hover: hsl(210, 12%, 26%);
 
-  --bg-splitter: rgb(51, 118, 205);
+  --bg-splitter: var(--accent);
 
   --bg-auto-complete: rgb(25, 28, 31, 1.0);
   --bg-error:     var(--red);
   --bg-ok:        var(--green);
   --border:       hsl(220, 7%, 23%);
   --text-color:   hsl(210, 12%, 78%);
-  --highlight-bg: var(--blue);
+  --highlight-bg: var(--accent);
   --highlight-text: white;
   --dark-text: hsl(210, 17%, 5%);
 
   --accent: var(--green);
   --accent-muted: rgba(66, 185, 131, 0.15);
   --focus-ring: rgba(66, 185, 131, 0.4);
-  --selected-bg: hsla(212, 60%, 42%, 0.28);
-  --selected-border: hsla(212, 65%, 58%, 0.45);
+  --selected-bg: rgba(66, 185, 131, 0.22);
+  --selected-border: rgba(66, 185, 131, 0.5);
   --hover-bg: rgba(255, 255, 255, 0.06);
 
   --primary-color: var(--green);

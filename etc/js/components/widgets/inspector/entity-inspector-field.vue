@@ -392,7 +392,7 @@ div.value-compact :deep(div.enum-field-dropdown div.dropdown-text) {
 }
 
 div.value-bool {
-  color: #4981B5;
+  color: var(--blue);
   display: flex;
   align-items: center;
 }
@@ -425,7 +425,7 @@ div.value-bool label.bool-checkbox input[type="checkbox"]:checked::after {
   top: 5px;
   width: 5px;
   height: 10px;
-  border: solid #4981B5;
+  border: solid var(--accent);
   border-width: 0 5px 5px 0;
   transform: rotate(45deg);
 }

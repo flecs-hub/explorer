@@ -19,7 +19,7 @@ function(require, exports, module) {
             color: var(--green);
         }
         .ace-flecs-script .ace_marker-layer .ace_selection {
-            background: var(--dark-blue);
+            background: var(--darker-green);
         }
         .ace-flecs-script.ace_multiselect .ace_selection.ace_start {
             box-shadow: 0 0 3px 0px #272822;

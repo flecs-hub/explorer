@@ -69,7 +69,7 @@ div.entity-list-item-selected, div.entity-list-item-selected:hover {
 }
 
 div.entity-list-item-highlight {
-  background-color: var(--darker-blue);
+  background-color: var(--darker-green);
 }
 
 </style>

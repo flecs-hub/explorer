@@ -1261,7 +1261,7 @@ input.rest-checkbox:checked::after {
   top: 2px;
   width: 4px;
   height: 9px;
-  border: solid #4981B5;
+  border: solid var(--accent);
   border-width: 0 3px 3px 0;
   transform: rotate(45deg);
 }

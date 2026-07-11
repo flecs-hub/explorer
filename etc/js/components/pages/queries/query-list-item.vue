@@ -158,7 +158,7 @@ div.query-list-item-selected, div.query-list-item-selected:hover {
 }
 
 div.query-list-item-highlight {
-  background-color: var(--darker-blue);
+  background-color: var(--darker-green);
 }
 
 span.usage-header {
@@ -192,7 +192,7 @@ span.prop-name {
 
 span.prop-name-selected {
   font-weight: 600;
-  color: var(--bright-blue);
+  color: var(--bright-green);
 }
 
 span.prop-brief {
