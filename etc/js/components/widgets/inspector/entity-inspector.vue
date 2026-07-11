@@ -98,7 +98,7 @@
           </template>
         </entity-inspector-container>
       </template>
-      <template v-slot:Matches>
+      <template v-slot:Info>
         <entity-inspector-container
           :path="path"
           :entityQueryResult="entityQueryResult"
@@ -114,65 +114,34 @@
           @splitH="onSplitH"
           @toggleDetail="onToggleDetail"
           @close="onClose">
+
+          <template v-slot:header>
+            <div class="info-mode-select">
+              <dropdown
+                :items="infoModes"
+                v-model:active_item="infoMode">
+              </dropdown>
+            </div>
+          </template>
 
           <template v-slot:content>
             <entity-inspector-matched-by
               :entityQueryResult="entityQueryResult"
               @selectEntity="onSelectEntity"
-              v-if="entityQueryResult">
+              v-if="infoMode == 'Matches'">
             </entity-inspector-matched-by>
-          </template>
-        </entity-inspector-container>
-      </template>
-      <template v-slot:References>
-        <entity-inspector-container
-          :path="path"
-          :entityQueryResult="entityQueryResult"
-          :disabled="isDisabled"
-          :loading="loading"
-          :canSplit="canSplit"
-          :canSplitH="canSplitH"
-          :inactive="inactive"
-          :lowDetail="lowDetail"
-          @disable="onDisable"
-          @delete="onDelete"
-          @split="onSplit"
-          @splitH="onSplitH"
-          @toggleDetail="onToggleDetail"
-          @close="onClose">
-
-          <template v-slot:content>
             <entity-inspector-refs
               :conn="conn"
               :path="path"
               :entityQueryResult="entityQueryResult"
               @selectEntity="onSelectEntity"
-              v-if="entityQueryResult">
+              v-if="infoMode == 'References'">
             </entity-inspector-refs>
-          </template>
-        </entity-inspector-container>
-      </template>
-      <template v-slot:Alerts>
-        <entity-inspector-container
-          :path="path"
-          :entityQueryResult="entityQueryResult"
-          :disabled="isDisabled"
-          :loading="loading"
-          :canSplit="canSplit"
-          :canSplitH="canSplitH"
-          :inactive="inactive"
-          :lowDetail="lowDetail"
-          @disable="onDisable"
-          @delete="onDelete"
-          @split="onSplit"
-          @splitH="onSplitH"
-          @toggleDetail="onToggleDetail"
-          @close="onClose">
-          <template v-slot:content>
             <entity-inspector-alerts
               :conn="conn"
               :path="path"
-              :entityQueryResult="entityQueryResult">
+              :entityQueryResult="entityQueryResult"
+              v-if="infoMode == 'Alerts'">
             </entity-inspector-alerts>
           </template>
         </entity-inspector-container>
@@ -215,6 +184,33 @@ const isQuery = ref(false);
 const componentFilter = ref();
 const loading = ref(true);
 const visibleTabs = ref([]);
+
+const infoModes = ["Matches", "References", "Alerts"];
+
+function infoModeStorageId() {
+  return "flecs-explorer-inspector-info-" + props.storageKey;
+}
+
+function loadInfoMode() {
+  const stored = window.localStorage.getItem(infoModeStorageId());
+  if (infoModes.includes(stored)) {
+    return stored;
+  }
+  return "Matches";
+}
+
+const infoMode = ref(loadInfoMode());
+
+watch(infoMode, (value) => {
+  try {
+    window.localStorage.setItem(infoModeStorageId(), value);
+  } catch (e) {}
+});
+
+if (appParams.value && infoModes.includes(appParams.value.inspector_tab)) {
+  infoMode.value = appParams.value.inspector_tab;
+  appParams.value.inspector_tab = "Info";
+}
 
 const lowDetail = computed(() => {
   return appParams.value.low_detail === true;
@@ -268,20 +264,8 @@ const items = computed(() => {
   }
 
   result.push({
-    label: "Matches",
-    value: "Matches",
-    canClose: false
-  });
-
-  result.push({
-    label: "References",
-    value: "References",
-    canClose: false
-  });
-
-  result.push({
-    label: "Alerts",
-    value: "Alerts",
+    label: "Info",
+    value: "Info",
     canClose: false
   });
 
@@ -376,9 +360,9 @@ function updateQuery() {
           type_info: true,
           private: true,
           inherited: true,
-          matches: tabVisible("Matches"),
-          refs: tabVisible("References") ? "*" : undefined,
-          alerts: tabVisible("More")
+          matches: tabVisible("Info") && infoMode.value == "Matches",
+          refs: tabVisible("Info") && infoMode.value == "References" ? "*" : undefined,
+          alerts: tabVisible("Info") && infoMode.value == "Alerts"
         },
         (reply) => {
           if (entityQuery.value !== query) {
@@ -581,7 +565,7 @@ function onToggleDetail() {
   appParams.value.low_detail = !appParams.value.low_detail;
 }
 
-watch(() => [props.path, visibleKey.value], () => {
+watch(() => [props.path, visibleKey.value, infoMode.value], () => {
   updateQuery();
 });
 
@@ -613,6 +597,15 @@ div.pane-inspector {
 
 div.component-filter {
   padding-top: 4px;
+}
+
+div.info-mode-select {
+  padding-top: 4px;
+}
+
+div.info-mode-select div.dropdown {
+  display: block;
+  width: 100%;
 }
 
 div.pane-inspector-tab {
