@@ -6,9 +6,12 @@
           @click="onBarClick($event, false)"
           @pointerdown="onBarPointerDown($event, false)">
           <div class="edit-tabs-tabs-line"></div>
+          <div v-if="topIndicator" :class="indicatorCss(topIndicator)"
+            :style="indicatorStyle(topIndicator)"></div>
           <div :class="editButtonCss(item, false)"
             @click="editButtonSelect(item.value, false)"
             @pointerdown="onTabPointerDown($event, item, false)"
+            :ref="el => setTabEl(item.value, false, el)"
             v-for="item in topItems">
             <div :class="editButtonContentCss(item)">
               <template v-if="item.icon">
@@ -56,9 +59,12 @@
           @click="onBarClick($event, true)"
           @pointerdown="onBarPointerDown($event, true)">
           <div class="edit-tabs-tabs-line"></div>
+          <div v-if="bottomIndicator" :class="indicatorCss(bottomIndicator)"
+            :style="indicatorStyle(bottomIndicator)"></div>
           <div :class="editButtonCss(item, true)"
             @click="editButtonSelect(item.value, true)"
             @pointerdown="onTabPointerDown($event, item, true)"
+            :ref="el => setTabEl(item.value, true, el)"
             v-for="item in bottomItems">
             <div :class="editButtonContentCss(item)">
               <template v-if="item.icon">
@@ -222,6 +228,9 @@ const resizing = ref(false);
 const topMinimized = ref(false);
 const bottomMinimized = ref(false);
 const hostSlotEls = shallowReactive({});
+const tabEls = shallowReactive({});
+const topIndicator = ref(null);
+const bottomIndicator = ref(null);
 let resizeCtx = null;
 
 const borrowedAway = computed(() => {
@@ -523,14 +532,26 @@ onMounted(() => {
       activeBottom.value = firstValue(bottomItems.value);
     }
   }
+  updateIndicators();
+  window.addEventListener("resize", updateIndicators);
 });
 
 onUnmounted(() => {
   stopDrag();
   stopResize();
+  window.removeEventListener("resize", updateIndicators);
   dockWidgets.delete(dockKey);
   releaseDockKey(dockKey);
 });
+
+watch(() => [
+  displayedTop.value,
+  activeBottom.value,
+  topMinimized.value,
+  bottomMinimized.value,
+  props.inactive,
+  JSON.stringify(effectiveItems.value.map(i => i.value + (i.changed ? "*" : "")))
+], updateIndicators);
 
 function firstValue(items) {
   return items.length ? items[0].value : undefined;
@@ -556,6 +577,67 @@ function setHostSlot(value, el) {
   } else {
     delete hostSlotEls[value];
   }
+}
+
+function tabElKey(value, bottom) {
+  return (bottom ? "b:" : "t:") + value;
+}
+
+function setTabEl(value, bottom, el) {
+  const key = tabElKey(value, bottom);
+  if (el) {
+    tabEls[key] = el;
+  } else {
+    delete tabEls[key];
+  }
+}
+
+function measureIndicator(bottom) {
+  if (bottom ? bottomMinimized.value : topMinimized.value) {
+    return null;
+  }
+  const active = bottom ? activeBottom.value : displayedTop.value;
+  if (active === undefined) {
+    return null;
+  }
+  const el = tabEls[tabElKey(active, bottom)];
+  if (!el) {
+    return null;
+  }
+  return { left: el.offsetLeft, width: el.offsetWidth };
+}
+
+function updateIndicators() {
+  nextTick(() => {
+    for (const bottom of [false, true]) {
+      const target = bottom ? bottomIndicator : topIndicator;
+      const pos = measureIndicator(bottom);
+      if (!pos) {
+        target.value = null;
+        continue;
+      }
+      target.value = {
+        left: pos.left,
+        width: pos.width,
+        animate: target.value !== null
+      };
+    }
+  });
+}
+
+function indicatorStyle(ind) {
+  return `left: ${ind.left}px; width: ${ind.width}px;`;
+}
+
+function indicatorCss(ind) {
+  let classes = ["edit-tabs-indicator"];
+  if (ind.animate) {
+    classes.push("edit-tabs-indicator-animate");
+  }
+  if (props.inactive) {
+    classes.push("edit-tabs-indicator-inactive");
+  }
+  return classes;
 }
 
 function collapse(active) {
@@ -1318,7 +1400,7 @@ div.edit-tabs-tabs {
   border-bottom-left-radius: 0px;
   border-bottom-right-radius: 0px;
   overflow: auto;
-  background-color: var(--bg-color);
+  background-color: var(--bg-color-alt);
   grid-row: 1;
   display: flex;
   flex-wrap: nowrap;
@@ -1399,7 +1481,8 @@ div.edit-tabs-button {
   border-bottom-width: 1px;
   border-color: var(--border);
   border-top-color: rgba(0, 0, 0, 0);
-  transition: background-color var(--animation-duration) ease-in-out;
+  transition: background-color var(--animation-duration) ease-in-out,
+              color var(--animation-duration) ease-in-out;
   color: var(--secondary-text);
   white-space: nowrap;
   overflow: hidden;
@@ -1441,20 +1524,36 @@ div.edit-tabs-button-active + div.edit-tabs-button {
   border-left-width: 0px;
 }
 
-div.edit-tabs-button-active .edit-tabs-button-content {
-  border-top-color: var(--green);
-}
-
 div.edit-tabs-button-active.edit-tabs-button-inactive {
   color: var(--secondary-text);
 }
 
-div.edit-tabs-button-active.edit-tabs-button-inactive .edit-tabs-button-content {
-  border-top-color: var(--tertiary-text);
+div.edit-tabs-indicator {
+  position: absolute;
+  top: 0px;
+  height: 2px;
+  z-index: 2;
+  pointer-events: none;
+  background-color: var(--green);
+  border-radius: 0 0 2px 2px;
 }
 
-div.edit-tabs-button:hover {
-  background-color: var(--bg-pane);
+div.edit-tabs-indicator-animate {
+  transition: left 0.12s cubic-bezier(0.4, 0, 0.2, 1),
+              width 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+div.edit-tabs-indicator-inactive {
+  background-color: var(--tertiary-text);
+}
+
+div.edit-tabs-tabs-minimized div.edit-tabs-indicator {
+  display: none;
+}
+
+div.edit-tabs-button:not(.edit-tabs-button-active):hover {
+  background-color: var(--hover-bg);
+  color: var(--primary-text);
 }
 
 div.edit-tabs-button-dragging {
@@ -1506,6 +1605,12 @@ div.edit-tabs-drag-ghost {
 .edit-tabs-tab.selected {
   display: block;
   height: 100%;
+  animation: edit-tabs-tab-in 0.12s ease-out;
+}
+
+@keyframes edit-tabs-tab-in {
+  from { opacity: 0.25; }
+  to { opacity: 1; }
 }
 
 </style>

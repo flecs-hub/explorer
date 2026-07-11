@@ -126,10 +126,19 @@ div.url-bar-connect {
   cursor: pointer;
 }
 
+#url-bar {
+  transition: border-color var(--animation-duration), color var(--animation-duration);
+}
+
+#url-bar:hover {
+  border-color: hsl(220, 7%, 32%);
+  color: var(--primary-text);
+}
+
 #url-bar:focus {
   color: var(--highlight-text);
-  border-color: var(--dark-blue);
-  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-muted);
   cursor: text;
 }
 

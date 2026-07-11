@@ -68,11 +68,19 @@ div.modal-overlay {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  animation: modal-overlay-in 0.15s ease-out;
+}
+
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 div.modal {
@@ -81,9 +89,22 @@ div.modal {
   max-width: calc(100vw - 32px);
   max-height: 70vh;
   background-color: var(--bg-pane);
-  border-radius: var(--border-radius-medium);
-  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: var(--border-radius-large);
+  box-shadow: 0px 12px 32px rgba(0, 0, 0, 0.5);
   overflow: hidden;
+  animation: modal-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 div.modal-header {

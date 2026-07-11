@@ -115,6 +115,14 @@ function onReset() {
 div.layout-control {
   display: flex;
   flex-direction: row;
-  gap: 8px;
+  gap: 4px;
+}
+
+div.layout-control button {
+  background-color: transparent;
+}
+
+div.layout-control button:hover {
+  background-color: var(--bg-button) !important;
 }
 </style>

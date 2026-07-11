@@ -1,5 +1,5 @@
 <template>
-  <div class="menu-button" v-on:click="onClick">
+  <div :class="buttonCss" v-on:click="onClick">
     <icon :src="img" :size="22" :opacity="iconOpacity"></icon>
   </div>
 </template>
@@ -31,6 +31,14 @@ const iconOpacity = computed(() => {
   }
 });
 
+const buttonCss = computed(() => {
+  if (isActive.value) {
+    return "menu-button menu-button-active";
+  } else {
+    return "menu-button";
+  }
+});
+
 const onClick = () => {
   if (props.href) {
     window.open(props.href, '_blank');
@@ -43,18 +51,23 @@ const onClick = () => {
 
 <style scoped>
 div.menu-button {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 0.5rem;
   border-radius: var(--border-radius-medium);
-  /* background-color: var(--bg-content); */
   min-height: 32px;
   cursor: pointer;
+  transition: background-color var(--animation-duration);
 }
 
 div.menu-button:hover {
-  background-color: var(--tab-separator-color);
+  background-color: var(--hover-bg);
+}
+
+div.menu-button-active {
+  background-color: var(--accent-muted);
 }
 
 </style>

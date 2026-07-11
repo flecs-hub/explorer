@@ -95,13 +95,16 @@ div.detail-toggle {
 }
 
 div.detail-toggle-header {
-  padding: 4px;
+  padding: 5px 8px;
   background-color: var(--bg-button-alt);
   border-radius: var(--border-radius-small);
   border-bottom-left-radius: 0px;
   border-bottom-right-radius: 0px;
-  color: var(--tertiary-text);
-  font-size: 0.9rem;
+  color: var(--secondary-text);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition: background-color var(--animation-duration), color var(--animation-duration);
 }
@@ -117,7 +120,7 @@ div.detail-toggle-hover {
 
 div.detail-toggle-hover div.detail-toggle-header {
   background-color: var(--bg-button-hover);
-  color: var(--secondary-text);
+  color: var(--primary-text);
 }
 
 div.detail-toggle-pressed {

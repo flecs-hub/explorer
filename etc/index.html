@@ -10,7 +10,8 @@
   <body spellcheck="false">
     <div id="app">
       <menu-bar
-        :items="['entities', 'queries', 'stats', 'commands', 'rest', 'internals', 'info', 'docs']">
+        :items="['entities', 'queries', 'stats', 'commands', 'rest', 'internals', 'info', 'docs']"
+        :page="app_params.page">
         <template v-slot:docs>
           <menu-button 
             name="docs" 

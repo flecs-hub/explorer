@@ -178,13 +178,17 @@ div.entity-tree-item {
   border-style: solid;
 }
 
+div.entity-tree-item {
+  transition: background-color var(--animation-duration-fast);
+}
+
 div.entity-tree-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--hover-bg);
 }
 
 div.entity-tree-item-selected {
-  background-color: var(--dark-blue);
-  border-color: var(--less-dark-blue);
+  background-color: var(--selected-bg);
+  border-color: var(--selected-border);
 }
 
 div.entity-tree-item-disabled .entity-tree-item-name {
@@ -193,8 +197,8 @@ div.entity-tree-item-disabled .entity-tree-item-name {
 }
 
 div.entity-tree-item-selected:hover {
-  background-color: var(--dark-blue);
-  border-color: var(--less-dark-blue);
+  background-color: var(--selected-bg);
+  border-color: var(--selected-border);
 }
 
 div.entity-tree-item-chevron {

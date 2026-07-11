@@ -446,6 +446,18 @@ loadComponents(startupComponents).then(() => {
           this.app_state.command_counts.pop();
         }
       }.bind(this), 1000);
+
+      const idle = window.requestIdleCallback ?
+        window.requestIdleCallback.bind(window) :
+        function(cb) { setTimeout(cb, 200); };
+      setTimeout(function() {
+        idle(function() {
+          let preload = Promise.resolve();
+          for (const page of pageNames) {
+            preload = preload.then(() => this.ensurePageComponents(page));
+          }
+        }.bind(this));
+      }.bind(this), 2000);
     },
 
     methods: {

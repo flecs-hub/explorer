@@ -15,7 +15,13 @@ body {
   margin: 0.0rem;
   background: var(--bg-color);
   font-family: Inter, Helvetica, sans-serif;
-  color: black;
+  color: var(--primary-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background-color: rgba(66, 185, 131, 0.25);
 }
 
 #app {
@@ -43,6 +49,23 @@ div.page-content {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  animation: fade-in 0.1s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @media screen and (max-width: 800px) {
@@ -117,6 +140,12 @@ button:hover {
 
 button:active {
   opacity: 0.8;
+  transform: translateY(0.5px);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
 }
 
 input:focus {
@@ -139,6 +168,7 @@ div.pane, input.pane {
   border-width: 1px;
   border-style: solid;
   border-radius: var(--border-radius-medium);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
 }
 
 div.input-wrapper {
@@ -187,19 +217,22 @@ div.pane-alt {
 
 /* Customizes the scrollbar's thumb */
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.2);
-  border-radius: var(--border-radius-medium);
+  background-color: rgba(255, 255, 255, 0.14);
+  border: 2.5px solid transparent;
+  background-clip: padding-box;
+  border-radius: 8px;
 }
 
 /* Customizes the scrollbar thumb on hover */
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(255, 255, 255, 0.32);
+  border-width: 2px;
 }
 
 /* Sets the scrollbar width */
 ::-webkit-scrollbar {
-  width: 8.5px;
-  height: 8.5px;
+  width: 11px;
+  height: 11px;
 }
 
 span.code-function {

@@ -177,7 +177,8 @@ div.dropdown-list {
   border-color: var(--border);
   color: var(--primary-text);
   background-color: var(--bg-content);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: rise-in 0.12s ease-out;
 }
 
 ul {
@@ -187,16 +188,16 @@ ul {
 }
 
 li.dropdown-item {
-  padding: 4px;
-  padding-right: 32px;
-  border-radius: var(--border-radius-medium);
+  padding: 6px 32px 6px 8px;
+  border-radius: var(--border-radius-small);
   white-space: nowrap;
   color: var(--primary-text);
   cursor: pointer;
+  transition: background-color var(--animation-duration-fast);
 }
 
 li.dropdown-item:hover {
-  background-color: var(--dark-green);
+  background-color: var(--accent-muted);
 }
 
 </style>

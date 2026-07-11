@@ -237,6 +237,18 @@ onUnmounted(() => {
 
 div.entity-subtree {
   position: relative;
+  animation: subtree-in 0.12s ease-out;
+}
+
+@keyframes subtree-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 div.entity-tree-vertical-line {

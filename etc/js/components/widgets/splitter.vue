@@ -45,9 +45,13 @@ div.vsplitter {
   flex: 0 0 auto;
 }
 
-div.vsplitter:hover,
+div.vsplitter:hover {
+  opacity: 0.4;
+  transition-delay: 0.1s;
+}
+
 div.vsplitter.active {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 div.hsplitter {
@@ -66,9 +70,13 @@ div.hsplitter {
   flex: 0 0 auto;
 }
 
-div.hsplitter:hover,
+div.hsplitter:hover {
+  opacity: 0.4;
+  transition-delay: 0.1s;
+}
+
 div.hsplitter.active {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 </style>

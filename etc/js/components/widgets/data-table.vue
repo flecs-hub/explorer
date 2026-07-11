@@ -449,10 +449,15 @@ td {
   padding-top: calc(var(--table-padding));
   padding-bottom: calc(var(--table-padding));
   background-color: var(--bg-cell);
+  transition: background-color var(--animation-duration-fast);
 }
 
 td.cell-alt {
   background-color: var(--bg-cell-alt);
+}
+
+tbody tr:hover td {
+  background-color: var(--bg-cell-hover);
 }
 
 div.data-table-entity {
