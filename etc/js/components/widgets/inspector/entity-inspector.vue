@@ -1,6 +1,6 @@
 <template>
   <div class="pane-inspector">
-    <edit-tabs :items='items' :inactive="inactive" :hideTabs="lowDetail" v-model:active_item="appParams.inspector_tab" padding="0px;">
+    <edit-tabs :items='items' :inactive="inactive" :hideTabs="lowDetail" v-model:active_item="appParams.inspector_tab" padding="0px;" storageKey="inspector" @visibleChanged="onVisibleChanged">
       <template v-slot:Inspect>
         <entity-inspector-container
           :path="path"
@@ -212,6 +212,7 @@ const isScript = ref(false);
 const isQuery = ref(false);
 const componentFilter = ref();
 const loading = ref(true);
+const visibleTabs = ref([]);
 
 const lowDetail = computed(() => {
   return appParams.value.low_detail === true;
@@ -221,6 +222,13 @@ const scriptChanged = ref(false);
 
 const inspectorMode = computed(() => {
   return appParams.value.inspector_tab;
+});
+
+const visibleKey = computed(() => {
+  if (visibleTabs.value.length) {
+    return visibleTabs.value.join(",");
+  }
+  return inspectorMode.value;
 });
 
 const path = computed(() => {
@@ -366,9 +374,9 @@ function updateQuery() {
           type_info: true,
           private: true,
           inherited: true,
-          matches: inspectorMode.value == "Matches",
-          refs: inspectorMode.value == "References" ? "*" : undefined,
-          alerts: inspectorMode.value == "More"
+          matches: tabVisible("Matches"),
+          refs: tabVisible("References") ? "*" : undefined,
+          alerts: tabVisible("More")
         }, 
         (reply) => {
           entityQueryResult.value = reply;
@@ -478,6 +486,17 @@ function inspectQuery() {
   emit("queryOpen");
 }
 
+function tabVisible(tab) {
+  if (visibleTabs.value.length) {
+    return visibleTabs.value.includes(tab);
+  }
+  return inspectorMode.value == tab;
+}
+
+function onVisibleChanged(tabs) {
+  visibleTabs.value = tabs;
+}
+
 function onScriptUpdate(evt) {
   scriptChanged.value = evt.changed;
 }
@@ -551,7 +570,7 @@ function onToggleDetail() {
   appParams.value.low_detail = !appParams.value.low_detail;
 }
 
-watch(() => [props.path, inspectorMode.value], () => {  
+watch(() => [props.path, visibleKey.value], () => {
   updateQuery();
 });
 

@@ -1,6 +1,6 @@
 <template>
   <div id="pane-inspect">
-    <edit-tabs :items="items"
+    <edit-tabs :items="items" storageKey="query-inspect"
         v-model:active_item="app_params.queries.inspect_tab"
         padding="0.5rem;">
       <template v-slot:table>

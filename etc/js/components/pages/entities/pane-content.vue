@@ -1,5 +1,5 @@
 <template>
-  <edit-tabs :items='items' padding="0px;" v-model:active_item="activeTab" :changed="changed" @onClose="onItemClose">
+  <edit-tabs :items='items' padding="0px;" v-model:active_item="activeTab" :changed="changed" storageKey="content" @onClose="onItemClose">
     <template v-slot:Scene v-if="showCanvas">
       <div id="canvasPlaceholder" class="page-content-canvas"></div>
     </template>

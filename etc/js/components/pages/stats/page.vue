@@ -1,6 +1,6 @@
 <template>
   <div id="page-stats" class="page-content">
-    <edit-tabs :items="items">
+    <edit-tabs :items="items" storageKey="stats">
       <template v-slot:world>
         <world-stats :conn="conn"></world-stats>
       </template>

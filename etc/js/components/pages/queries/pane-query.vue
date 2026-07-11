@@ -1,6 +1,6 @@
 <template>
   <div id="pane-query">
-    <edit-tabs :items="items"
+    <edit-tabs :items="items" storageKey="query"
         v-model:active_item="app_params.queries.query_tab"
         padding="0.5rem;">
       <template v-slot:editor>

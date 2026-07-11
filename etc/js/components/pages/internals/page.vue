@@ -1,6 +1,6 @@
 <template>
   <div id="page-internals" :class="pageCss">
-    <edit-tabs :items="items" v-model:active_item="app_params.internals.tab">
+    <edit-tabs :items="items" v-model:active_item="app_params.internals.tab" storageKey="internals">
       <template v-slot:tables>
         <template v-if="tablesLoading">
           <div class="loading">Loading...</div>

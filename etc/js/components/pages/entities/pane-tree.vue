@@ -1,19 +1,19 @@
 <template>
   <div id="pane-tree">
-    <edit-tabs :items="items" v-model:active_item="appParams.entities.tree_mode" padding="0px;">
-      <template v-slot:[appParams.entities.tree_mode]>
+    <edit-tabs :items="items" v-model:active_item="appParams.entities.tree_mode" padding="0px;" storageKey="tree" @visibleChanged="onVisibleChanged">
+      <template v-for="tab in visibleTabs" :key="tab" v-slot:[tab]>
         <div class="pane-tree-content">
           <div class="pane-tree-search">
-            <search-box v-model="nameFilter"></search-box>
+            <search-box v-model="nameFilters[tab]"></search-box>
           </div>
           <div class="pane-tree-entity-tree">
             <entity-tree
               :conn="conn"
-              :nameFilter="nameFilter"
-              :queryFilter="queryFilter"
-              :showButtons="appParams.entities.tree_mode !== 'Scripts' && appParams.entities.tree_mode !== 'Singletons'"
-              @select="selectItem"
-              ref="entity_tree">
+              :nameFilter="nameFilters[tab]"
+              :queryFilter="queryFilterFor(tab)"
+              :showButtons="tab !== 'Scripts' && tab !== 'Singletons'"
+              @select="item => selectItem(item, tab)"
+              :ref="el => setTreeRef(tab, el)">
             </entity-tree>
           </div>
         </div>
@@ -27,7 +27,7 @@ export default { name: "pane-tree" }
 </script>
 
 <script setup>
-import { computed, defineProps, defineModel, defineExpose, ref } from 'vue';
+import { computed, defineProps, defineModel, defineExpose, ref, reactive } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -35,8 +35,9 @@ const props = defineProps({
 
 const emit = defineEmits(["scriptOpen", "selectEntity"]);
 const appParams = defineModel("app_params");
-const nameFilter = ref();
-const entity_tree = ref(null);
+const nameFilters = reactive({});
+const activeTabs = ref([]);
+const treeRefs = {};
 
 const items = computed(() => {
   let result = [
@@ -52,41 +53,60 @@ const items = computed(() => {
   return result;
 });
 
-const queryFilter = computed(() => {
+const visibleTabs = computed(() => {
+  let result = activeTabs.value;
+  if (!result.length) {
+    result = [appParams.value.entities.tree_mode];
+  }
+  return result.filter(tab => tab !== undefined);
+});
+
+function queryFilterFor(mode) {
   let result = "";
 
-  if (appParams.value.entities.tree_mode === "Outline") {
+  if (mode === "Outline") {
     let activeScript = appParams.value.script;
     if (activeScript) {
       result = `[none] (flecs.script.Script, ${activeScript})`;
-      if (!nameFilter.value) {
+      if (!nameFilters[mode]) {
         result += `, !flecs.script.Script(up, ${activeScript})`;
       }
     } else {
       result = `!_`; // match nothing
     }
-  } else if (appParams.value.entities.tree_mode === "Scripts") {
+  } else if (mode === "Scripts") {
     result = `[none] flecs.script.Script, !flecs.core.Component`;
-  } else if (appParams.value.entities.tree_mode === "Singletons") {
+  } else if (mode === "Singletons") {
     result = `[none] flecs.core.Singleton, !flecs.core.Module`;
   }
 
   return result;
-});
+}
 
-function selectItem(item) {
+function onVisibleChanged(tabs) {
+  activeTabs.value = tabs;
+}
+
+function setTreeRef(tab, el) {
+  if (el) {
+    treeRefs[tab] = el;
+  } else {
+    delete treeRefs[tab];
+  }
+}
+
+function selectItem(item, tab) {
   if (item) {
-    const tab = appParams.value.entities.tree_mode === "Scripts" ?
-      "Script" : undefined;
-    emit("selectEntity", item.queryRef || item.path, tab);
+    const selectedTab = tab === "Scripts" ? "Script" : undefined;
+    emit("selectEntity", item.queryRef || item.path, selectedTab);
   } else {
     emit("selectEntity", undefined);
   }
 }
 
 const unselect = () => {
-  if (entity_tree.value) {
-    entity_tree.value.unselect();
+  for (let tab in treeRefs) {
+    treeRefs[tab].unselect();
   }
 }
 
