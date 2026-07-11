@@ -9,6 +9,7 @@
     <pane-query
       v-model:app_params="app_params"
       :conn="conn"
+      :paneResize="px => rootEl?.setLeftPaneWidth(px)"
       v-if="app_params.sidebar">
     </pane-query>
 
@@ -40,6 +41,8 @@
         :conn="conn"
         :path="app_params.queries.path"
         :app_params="app_params.queries"
+        storageKey="inspector-queries"
+        :paneResize="px => rootEl?.setRightPaneWidth(px)"
         @close="onClose"
         @selectEntity="onSelectEntity">
       </entity-inspector>
@@ -63,7 +66,8 @@ const app_params = defineModel("app_params");
 const rootEl = ref(null);
 
 const showInspector = computed(() => {
-  return app_params.value.queries.path !== undefined;
+  return app_params.value.inspector !== false &&
+    app_params.value.queries.path !== undefined;
 });
 
 const centerColumn = computed(() => {

@@ -18,38 +18,28 @@ const defaultAppParams = {
   host: undefined,
   queries: {
     path: undefined,
-    inspector_tab: "Inspect",
     expr: "(ChildOf, flecs)",
     name: undefined,
     use_name: false,
-    query_tab: "editor",
-    inspect_tab: "table",
     sort_col: undefined,
     sort_mode: undefined
   },
   entities: {
     path: undefined,
-    tab: "Overview",
-    inspector_tab: "Inspect",
-    tree_mode: "Entities",
     low_detail: false,
     split: false,
     split_path: undefined,
-    split_inspector_tab: "Inspect",
     split_low_detail: false,
     hsplit_main: false,
     main2_path: undefined,
-    main2_inspector_tab: "Inspect",
     main2_low_detail: false,
     split2: false,
     split2_path: undefined,
-    split2_inspector_tab: "Inspect",
     split2_low_detail: false,
     active_inspector: "main",
   },
   internals: {
     path: undefined,
-    tab: "tables",
   },
   rest: {
     endpoint: "world",
@@ -57,6 +47,7 @@ const defaultAppParams = {
     path: "",
   },
   sidebar: true,
+  inspector: true,
   pipeline: "All systems",
   scripts: [],
   script: undefined,
@@ -66,6 +57,17 @@ const defaultAppParams = {
 }
 
 const defaultCodeScript = "etc.assets.scene\\.flecs";
+
+const tabParams = new Set([
+  "tab",
+  "inspector_tab",
+  "split_inspector_tab",
+  "main2_inspector_tab",
+  "split2_inspector_tab",
+  "tree_mode",
+  "query_tab",
+  "inspect_tab"
+]);
 
 function newAppParams() {
   let result = structuredClone(defaultAppParams);
@@ -567,9 +569,13 @@ loadComponents(startupComponents).then(() => {
             if (!Array.isArray(value)) {
               if (key === obj.page) { // only add params for current page
                 for (let value_key in value) { // max 1 lvl of nesting
+                  if (tabParams.has(value_key)) {
+                    continue;
+                  }
+
                   if (hideCodeDrivenEntitiesParams &&
                     key === "entities" &&
-                    (value_key === "path" || value_key === "inspector_tab"))
+                    value_key === "path")
                   {
                     continue;
                   }
@@ -628,7 +634,9 @@ loadComponents(startupComponents).then(() => {
               this.convertTo(type, decodeURIComponent(value));
           } else if (key.length == 2) {
             let type = 'string';
-            if (this.app_params[key[0]]) {
+            if (this.app_params[key[0]] &&
+              this.app_params[key[0]][key[1]] !== undefined)
+            {
               type = typeof this.app_params[key[0]][key[1]];
             }
             this.app_params[key[0]][key[1]] = 

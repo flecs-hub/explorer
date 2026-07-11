@@ -1,6 +1,6 @@
 <template>
   <div id="pane-tree">
-    <edit-tabs :items="items" v-model:active_item="appParams.entities.tree_mode" padding="0px;" storageKey="tree" @visibleChanged="onVisibleChanged">
+    <edit-tabs :items="items" v-model:active_item="appParams.entities.tree_mode" padding="0px;" storageKey="tree" :paneResize="paneResize" @visibleChanged="onVisibleChanged">
       <template v-for="tab in visibleTabs" :key="tab" v-slot:[tab]>
         <div class="pane-tree-content">
           <div class="pane-tree-search">
@@ -31,6 +31,7 @@ import { computed, defineProps, defineModel, defineExpose, ref, reactive } from 
 
 const props = defineProps({
   conn: {type: Object, required: true},
+  paneResize: {type: Function, required: false},
 });
 
 const emit = defineEmits(["scriptOpen", "selectEntity"]);

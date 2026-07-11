@@ -2,6 +2,7 @@
   <div id="pane-query">
     <edit-tabs :items="items" storageKey="query"
         v-model:active_item="app_params.queries.query_tab"
+        :paneResize="paneResize"
         padding="0.5rem;">
       <template v-slot:editor>
         <query-editor
@@ -28,7 +29,8 @@ export default { name: "pane-query" }
 import { defineProps, defineModel, computed, watch } from 'vue';
 
 const props = defineProps({
-  conn: {type: Object, required: true}
+  conn: {type: Object, required: true},
+  paneResize: {type: Function, required: false}
 });
 
 const app_params = defineModel("app_params");

@@ -113,6 +113,23 @@ function getRightPaneWidth() {
   return rightPaneWidth.value;
 }
 
+function setLeftPaneWidth(px) {
+  if (!props.showLeftPane) return;
+  if (rootEl.value) {
+    containerWidth.value = rootEl.value.getBoundingClientRect().width;
+  }
+  const rightMin = props.showRightPane ? minRightPaneWidth : 0;
+  const max = Math.max(minLeftPaneWidth, containerWidth.value - rightMin);
+  const w = Math.round(Math.max(minLeftPaneWidth, Math.min(px, max)));
+  leftPaneWidth.value = w;
+  localStorage.setItem(`${props.id}.leftPaneWidth`, String(w));
+  updateCenterHidden(false);
+  nextTick(() => {
+    window.dispatchEvent(new Event('resize'));
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+  });
+}
+
 function setRightPaneWidth(px) {
   if (!props.showRightPane) return;
   if (rootEl.value) {
@@ -229,7 +246,7 @@ const gridStyle = computed(() => {
   }
 });
 
-defineExpose({startDragging, centerPaneHidden, dragging, getRightPaneWidth, setRightPaneWidth});
+defineExpose({startDragging, centerPaneHidden, dragging, getRightPaneWidth, setRightPaneWidth, setLeftPaneWidth});
 
 </script>
 

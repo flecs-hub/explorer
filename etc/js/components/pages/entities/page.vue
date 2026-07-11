@@ -3,10 +3,12 @@
     id="page-entities" 
     :class="pageCss" 
     :showLeftPane="appParams.sidebar"
+    :showRightPane="inspectorPaneVisible"
     ref="rootEl">
 
     <pane-tree 
       :conn="conn"
+      :paneResize="px => rootEl?.setLeftPaneWidth(px)"
       v-model:app_params="appParams"
       @selectEntity="onSelectEntity"
       @scriptOpen="onScriptOpen"
@@ -31,13 +33,15 @@
     </pane-content>
 
     <splitter
+      v-if="inspectorPaneVisible"
       :parent="rootEl"
       :column="inspectorSplitterColumn"
       :active="rootEl?.dragging === 'rightPane'"
       @mousedown="rootEl.startDragging('rightPane')"
     ></splitter>
 
-    <div :class="inspectorCss" :style="`grid-column: ${inspectorColumn}`" ref="inspectorEl">
+    <div :class="inspectorCss" :style="`grid-column: ${inspectorColumn}`" ref="inspectorEl"
+      v-if="inspectorPaneVisible">
       <div class="page-entities-inspector-column"
         :class="{'page-entities-inspector-column-vsplit': appParams.entities.split}"
         :style="inspectorColumnStyle(0)"
@@ -50,6 +54,8 @@
             :path="appParams.entities.path"
             :canSplit="!appParams.entities.split"
             :canSplitH="!appParams.entities.hsplit_main"
+            storageKey="inspector-main"
+            :paneResize="px => rootEl?.setRightPaneWidth(px)"
             :inactive="inspectorInactive('main')"
             v-model:app_params="appParams.entities"
             @close="onCloseInspector('main')"
@@ -75,6 +81,8 @@
             :conn="conn"
             :path="appParams.entities.split_path"
             :app_params="splitInspectorParams"
+            storageKey="inspector-split"
+            :paneResize="px => rootEl?.setRightPaneWidth(px)"
             :inactive="inspectorInactive('split')"
             @close="onCloseInspector('split')"
             @onCodeChange="onCodeChange"
@@ -101,6 +109,8 @@
             :conn="conn"
             :path="appParams.entities.main2_path"
             :canSplit="!appParams.entities.split2"
+            storageKey="inspector-main2"
+            :paneResize="px => rootEl?.setRightPaneWidth(px)"
             :app_params="main2InspectorParams"
             :inactive="inspectorInactive('main2')"
             @close="onCloseInspector('main2')"
@@ -125,6 +135,8 @@
             :conn="conn"
             :path="appParams.entities.split2_path"
             :app_params="split2InspectorParams"
+            storageKey="inspector-split2"
+            :paneResize="px => rootEl?.setRightPaneWidth(px)"
             :inactive="inspectorInactive('split2')"
             @close="onCloseInspector('split2')"
             @onCodeChange="onCodeChange"
@@ -173,7 +185,14 @@ const showCanvas = computed(() => {
   return props.app_state.has3DCanvas;
 });
 
+const inspectorPaneVisible = computed(() => {
+  return appParams.value.inspector !== false;
+});
+
 const showInspector = computed(() => {
+  if (!inspectorPaneVisible.value) {
+    return false;
+  }
   const entities = appParams.value.entities;
   if (!entities.path && !entities.split && !entities.hsplit_main) {
     return false;
@@ -181,10 +200,10 @@ const showInspector = computed(() => {
   return true;
 });
 
-watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.value.sidebar], () => {
+watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.value.sidebar, appParams.value.inspector], () => {
   nextTick(() => {
-    var resizeEvent = new Event('resize');
-    window.dispatchEvent(resizeEvent);
+    window.dispatchEvent(new Event('resize'));
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
   });
 });
 
@@ -398,7 +417,9 @@ function onQueryOpen() {
 
 const pageCss = computed(() => {
   let classes = ["page-content"];
-  if (showInspector.value || showScript.value) {
+  if (appParams.value.inspector !== false &&
+    (showInspector.value || showScript.value))
+  {
     classes.push("page-entities-show-inspector");
   }
   if (appParams.value.sidebar == true) {

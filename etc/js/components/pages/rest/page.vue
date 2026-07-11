@@ -9,6 +9,7 @@
     <pane-tree
       v-if="app_params.sidebar"
       :conn="conn"
+      :paneResize="px => rootEl?.setLeftPaneWidth(px)"
       v-model:app_params="app_params"
       @selectEntity="onSelectEntity">
     </pane-tree>

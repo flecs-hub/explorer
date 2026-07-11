@@ -46,6 +46,7 @@
         :conn="conn"
         :path="app_params.internals.path"
         v-model:app_params="app_params.internals"
+        storageKey="inspector-internals"
         @close="onClose">
       </entity-inspector>
     </div>
