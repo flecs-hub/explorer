@@ -261,7 +261,7 @@ defineExpose({
 
 <style scoped>
 #prop-browser {
-  position: absolute;
+  position: fixed;
   width: 300px;
   font-size: 14px;
   overflow-y: auto;

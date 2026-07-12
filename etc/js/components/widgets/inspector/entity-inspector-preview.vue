@@ -34,16 +34,16 @@
       </template>
       <template v-else-if="previewTypeKind === 'single'">
         <div class="component-preview-single">
-          <entity-inspector-field
+          <entity-inspector-preview
             :value="firstProp(value)"
             :type="firstProp(type)"
+            :expand="expand"
             :readonly="readonly"
-            :class="fieldClass"
-            :compact="true"
-            :shrink_to_content="compact"
+            :compact="compact"
+            :fieldClass="fieldClass"
             @setValue="(evt) => setValue(evt, firstKey(type))"
             @selectEntity="(evt) => emit('selectEntity', evt)">
-          </entity-inspector-field>
+          </entity-inspector-preview>
         </div>
       </template>
     </template>
@@ -70,7 +70,7 @@
     </template>
     <template v-else-if="previewTypeKind === 'object'">
         <div :class="objectClass()">
-          <entity-inspector-field 
+          <entity-inspector-field
             :value="objectToField(value)"
             :type="{}"
             :readonly="true"
@@ -79,6 +79,30 @@
             :shrink_to_content="compact">
           </entity-inspector-field>
         </div>
+    </template>
+    <template v-else-if="previewTypeKind === 'map'">
+        <div :class="objectClass()">
+          <entity-inspector-field
+            :value="mapToField(value)"
+            :type="{}"
+            :readonly="true"
+            :class="fieldClass"
+            :compact="true"
+            :shrink_to_content="compact">
+          </entity-inspector-field>
+        </div>
+    </template>
+    <template v-else-if="previewTypeKind === 'value'">
+      <entity-inspector-preview
+        :value="valueTypeInner(value)"
+        :type="inferType(valueTypeInner(value))"
+        :expand="expand"
+        :readonly="readonly"
+        :compact="compact"
+        :fieldClass="fieldClass"
+        @setValue="(evt) => valueTypeSet(evt, valueTypeName(value))"
+        @selectEntity="(evt) => emit('selectEntity', evt)">
+      </entity-inspector-preview>
     </template>
   </div>
 </template>
@@ -119,6 +143,12 @@ const previewTypeKind = computed(() => {
   }
 
   if (Array.isArray(type)) {
+    if (type[0] === "map") {
+      return "map";
+    }
+    if (type[0] === "value") {
+      return "value";
+    }
     return "scalar";
   }
 
@@ -179,7 +209,11 @@ function propBy(obj, n) {
 
 function setValue(evt, key) {
   if (evt.hasOwnProperty("key")) {
-    emit('setValue', { key: `${evt.key}.${key}`, value: evt.value });
+    if (evt.key.startsWith('[')) {
+      emit('setValue', { key: `${key}${evt.key}`, value: evt.value });
+    } else {
+      emit('setValue', { key: `${key}.${evt.key}`, value: evt.value });
+    }
   } else {
     emit('setValue', { key: key, value: evt.value });
   }
@@ -236,6 +270,65 @@ function objectToField(value) {
     }
   }
   return result.join(", ");
+}
+
+function mapToField(value) {
+  let result = [];
+  for (var k in value) {
+    const v = value[k];
+    let vs;
+    if (typeof v === "number") {
+      vs = Number.isInteger(v) ? v : v.toFixed(2);
+    } else if (typeof v === "object") {
+      vs = "{..}";
+    } else {
+      vs = v;
+    }
+    result.push(`${k}: ${vs}`);
+  }
+  return result.join(", ");
+}
+
+function valueTypeName(value) {
+  if (value && typeof value === "object") {
+    return Object.keys(value)[0];
+  }
+  return "";
+}
+
+function valueTypeInner(value) {
+  const name = valueTypeName(value);
+  if (name !== "") {
+    return value[name];
+  }
+}
+
+function inferType(value) {
+  if (typeof value === "boolean") {
+    return ["bool"];
+  }
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? ["int"] : ["float"];
+  }
+  if (Array.isArray(value)) {
+    return ["array", value.length ? inferType(value[0]) : ["text"]];
+  }
+  if (value && typeof value === "object") {
+    const result = {};
+    for (const key in value) {
+      result[key] = inferType(value[key]);
+    }
+    return result;
+  }
+  return ["text"];
+}
+
+function valueTypeSet(evt, name) {
+  if (evt.hasOwnProperty("key") && evt.key !== undefined && evt.key !== "") {
+    emit('setValue', { key: `${name}.${evt.key}`, value: evt.value });
+  } else {
+    emit('setValue', { key: name, value: evt.value });
+  }
 }
 
 </script>

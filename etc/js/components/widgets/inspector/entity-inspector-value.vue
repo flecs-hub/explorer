@@ -1,6 +1,36 @@
 <template>
   <div>
-    <template v-if="isArray(type, value)">
+    <template v-if="isMap(type)">
+      <div class="prop-grid" :class="{'no-chevron': !hasComplexChildren}">
+        <template v-for="(item, key) in value">
+          <entity-inspector-kv
+            :path="path + '.' + key"
+            :keyname="String(key)"
+            :value="item"
+            :type="mapValueType(type)"
+            :readonly="readonly"
+            :showChevron="hasComplexChildren"
+            @setValue="(evt) => emit('setValue', evt)"
+            @selectEntity="(evt) => emit('selectEntity', evt)">
+          </entity-inspector-kv>
+        </template>
+      </div>
+    </template>
+    <template v-else-if="isValueType(type)">
+      <div class="prop-grid" :class="{'no-chevron': !hasComplexChildren}">
+        <entity-inspector-kv
+          :path="path + '.' + valueTypeName()"
+          :keyname="valueTypeName()"
+          :value="valueTypeInner()"
+          :type="inferType(valueTypeInner())"
+          :readonly="readonly"
+          :showChevron="hasComplexChildren"
+          @setValue="(evt) => emit('setValue', evt)"
+          @selectEntity="(evt) => emit('selectEntity', evt)">
+        </entity-inspector-kv>
+      </div>
+    </template>
+    <template v-else-if="isArray(type, value)">
       <div class="prop-grid" :class="{'no-chevron': !hasComplexChildren}">
         <template v-for="(item, index) in value">
           <entity-inspector-kv
@@ -103,6 +133,52 @@ function isObject(type, value) {
     }
   }
   return (typeof value) === "object" && !Array.isArray(value);
+}
+
+function isMap(type) {
+  return Array.isArray(type) && type[0] === "map";
+}
+
+function mapValueType(type) {
+  return type[2];
+}
+
+function isValueType(type) {
+  return Array.isArray(type) && type[0] === "value";
+}
+
+function valueTypeName() {
+  if (props.value && typeof props.value === "object") {
+    return Object.keys(props.value)[0];
+  }
+  return "";
+}
+
+function valueTypeInner() {
+  const name = valueTypeName();
+  if (name !== "") {
+    return props.value[name];
+  }
+}
+
+function inferType(value) {
+  if (typeof value === "boolean") {
+    return ["bool"];
+  }
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? ["int"] : ["float"];
+  }
+  if (Array.isArray(value)) {
+    return ["array", value.length ? inferType(value[0]) : ["text"]];
+  }
+  if (value && typeof value === "object") {
+    const result = {};
+    for (const key in value) {
+      result[key] = inferType(value[key]);
+    }
+    return result;
+  }
+  return ["text"];
 }
 
 </script>
