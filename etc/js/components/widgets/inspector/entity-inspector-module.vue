@@ -15,7 +15,7 @@
             :key="elem.fullName"
             icon_src="symbol-field"
             :value="elem.value"
-            :type="type_info[elem.fullName]"
+            :type="typeInfoFor(elem.fullName)"
             :base="elem.base"
             v-model:loading="loading"
             @selectEntity="onSelectEntity"
@@ -97,6 +97,21 @@ function moduleHeaderName(name) {
 
 function onSelectEntity(evt) {
   emit("selectEntity", evt);
+}
+
+function typeInfoFor(fullName) {
+  const result = props.type_info[fullName];
+  if (result !== undefined) {
+    return result;
+  }
+  if (fullName[0] === '(' && fullName[fullName.length - 1] === ')') {
+    const [first, second] = fullName.slice(1, -1).split(",");
+    const firstType = props.type_info[first];
+    if (firstType !== undefined) {
+      return firstType;
+    }
+    return props.type_info[second];
+  }
 }
 
 function matchesFilter(elem) {
