@@ -453,7 +453,7 @@ div.value-entity, div.value-entity input {
 
 div.entity-field-wrapper {
   position: relative;
-  width: calc(100% - 18px);
+  width: 100%;
 }
 
 div.entity-field-wrapper input.has-entity-icon {
