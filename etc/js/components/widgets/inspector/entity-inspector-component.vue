@@ -5,11 +5,11 @@
       @mouseleave="onLeave"
       @click="toggle">
 
-      <template v-if="expand || (hover && canExpand)">
+      <template v-if="canExpand && (expanded || hover)">
         <div class="chevron-icon">
           <expand-button
-            :size="16" 
-            :expand="expand">
+            :size="16"
+            :expand="expanded">
           </expand-button>
         </div>
       </template>
@@ -44,7 +44,7 @@
           :value="value"
           :type="type"
           :targets="targets"
-          :expand="expand"
+          :expand="expanded"
           :readonly="isReadonly"
           @setValue="setValue"
           @selectEntity="onEntity">
@@ -54,7 +54,7 @@
           <template v-if="!value">
             <span class="component-base-name">{{ shortenEntity( base ) }}</span>
           </template>
-          <template v-else-if="expand">
+          <template v-else-if="expanded">
             <span class="component-base-name">{{ shortenEntity( base ) }}</span>
           </template>
         </template>
@@ -68,7 +68,7 @@
       </div>
     </div>
 
-    <template v-if="expand && value">
+    <template v-if="expanded && value">
       <div class="component-value">
         <entity-inspector-value
           :path="fullName"
@@ -81,7 +81,7 @@
       </div>
     </template>
 
-    <template v-if="expand && (targets && !singleTarget)">
+    <template v-if="expanded && (targets && !singleTarget)">
       <div class="component-value">
         <div class="component-targets">
           <template v-for="target in targets">
@@ -114,7 +114,7 @@ export default { name: "entity-inspector-component" }
 </script>
 
 <script setup>
-import { defineEmits, defineProps, defineModel, ref, computed, onMounted } from 'vue';
+import { defineEmits, defineProps, defineModel, ref, computed, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true},
@@ -135,9 +135,13 @@ const loading = defineModel("loading");
 const expand = ref(false);
 const hover = ref(false);
 
+const expanded = computed(() => {
+  return expand.value && canExpand.value;
+});
+
 const componentCss = computed(() => {
   let classes = ["component"];
-  if (expand.value) {
+  if (expanded.value) {
     classes.push("component-expand");
   }
   if (canExpand.value) {
@@ -184,13 +188,23 @@ const targetCss = computed(() => {
 });
 
 const canExpand = computed(() => {
-  return props.value || (props.targets && !singleTarget.value);
+  return Boolean(props.value || (props.targets && !singleTarget.value));
+});
+
+const expandKey = computed(() => {
+  if (singleTarget.value) {
+    return `(${props.fullName},${props.targets}).expand`;
+  } else if (props.targets) {
+    return `(${props.fullName},*).expand`;
+  } else {
+    return `${props.fullName}.expand`;
+  }
 });
 
 function toggle() {
   if (canExpand.value) {
     expand.value = !expand.value;
-    localStorage.setItem(`${props.fullName}.expand`, String(expand.value));
+    localStorage.setItem(expandKey.value, String(expand.value));
   }
 }
 
@@ -242,9 +256,9 @@ function onEntity(evt) {
   emit("selectEntity", evt);
 }
 
-onMounted(() => {
-  expand.value = localStorage.getItem(`${props.fullName}.expand`) === "true";
-});
+watch(expandKey, () => {
+  expand.value = localStorage.getItem(expandKey.value) === "true";
+}, { immediate: true });
 
 </script>
 
