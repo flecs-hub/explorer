@@ -9,7 +9,7 @@
       v-for="item in treeQueryResult"
       @select="selectItem"
       @remove="removeItem"
-      :key="item.name">
+      :key="itemKey(item)">
     </entity-tree-item>
     <template v-if="path !== '#0'">
       <div class="entity-tree-vertical-line" :style="lineIndent"></div>
@@ -71,12 +71,16 @@ function selectItem(evt) {
   emit('select', evt);
 }
 
+function itemKey(item) {
+  return item.id !== undefined ? "#" + item.id : item.path;
+}
+
 function removeItem(item) {
   if (treeQueryResult.value) {
     treeQueryResult.value = treeQueryResult.value.filter((i) => i !== item);
   }
-  if (item.path !== undefined) {
-    delete items.value[item.path];
+  if (itemKey(item) !== undefined) {
+    delete items.value[itemKey(item)];
   }
 }
 
@@ -181,6 +185,8 @@ function updateQuery() {
         reply.results = [];
       }
 
+      const resultPaths = [];
+      const pathCounts = {};
       for (let item of reply.results) {
         const name = item.name + "";
         const name_esc = name.replaceAll(".", "\\.");
@@ -188,16 +194,34 @@ function updateQuery() {
         if (item.parent && name[0] != '#') {
           path = item.parent + "." + name_esc
         }
+        resultPaths.push(path);
+        pathCounts[path] = (pathCounts[path] || 0) + 1;
+      }
 
-        let treeItem = items.value[path];
+      for (let i = 0; i < reply.results.length; i++) {
+        const item = reply.results[i];
+        const name = item.name + "";
+        const path = resultPaths[i];
+
+        const key = item.id !== undefined ? "#" + item.id : path;
+        let treeItem = items.value[key];
+        if (treeItem === undefined && key !== path) {
+          const pathItem = items.value[path];
+          if (pathItem !== undefined && pathItem.id === undefined) {
+            delete items.value[path];
+            treeItem = items.value[key] = pathItem;
+          }
+        }
         if (treeItem === undefined) {
-          treeItem = items.value[path] = {};
+          treeItem = items.value[key] = {};
         }
 
         Object.assign(treeItem, item);
 
         treeItem.path = path;
-        treeItem.queryRef = (name[0] == '#' && item.id !== undefined) ? "#" + item.id : path;
+        const selectById = item.id !== undefined &&
+          (name[0] == '#' || pathCounts[path] > 1);
+        treeItem.queryRef = selectById ? "#" + item.id : path;
         treeItem.isModule = item.fields.is_set[0];
         treeItem.isComponent = item.fields.is_set[1] || item.fields.is_set[2] || item.fields.is_set[3];
         treeItem.isTarget = item.fields.is_set[4];

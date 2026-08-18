@@ -34,7 +34,7 @@
         :selectedItem="selectedItem"
         :showButtons="showButtons"
         @select="selectChild"
-        :key="item.path">
+        :key="item.queryRef">
       </entity-subtree>
     </template>
   </div>
@@ -146,6 +146,12 @@ const itemName = computed(() => {
 });
 
 const isSelected = computed(() => {
+  if (!props.selectedItem) {
+    return false;
+  }
+  if (props.item.id !== undefined && props.selectedItem.id !== undefined) {
+    return props.item.id === props.selectedItem.id;
+  }
   return props.item == props.selectedItem;
 });
 
