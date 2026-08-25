@@ -314,7 +314,7 @@ function loadTypeFromReply(moduleMap, reply, base) {
     for (let tag of reply.tags) {
       let [moduleName, name] = splitIdentifier(tag);
       let module = getModule(moduleMap, moduleName);
-      module.tags[name] = {name: name, fullName: tag, base: base};
+      module.tags[tag] = {name: name, fullName: tag, base: base};
     }
   }
 
@@ -322,7 +322,7 @@ function loadTypeFromReply(moduleMap, reply, base) {
     for (let first in reply.pairs) {
       let [moduleName, name] = splitIdentifier(first);
       let module = getModule(moduleMap, moduleName);
-      module.pairs[name] = {name: name, fullName: first, value: reply.pairs[first], base: base};
+      module.pairs[first] = {name: name, fullName: first, value: reply.pairs[first], base: base};
     }
   }
 
@@ -330,7 +330,7 @@ function loadTypeFromReply(moduleMap, reply, base) {
     for (let id in reply.components) {
       let [moduleName, name] = splitIdentifier(id);
       let module = getModule(moduleMap, moduleName);
-      module.components[name] = {name: name, fullName: id, value: reply.components[id], base: base};
+      module.components[id] = {name: name, fullName: id, value: reply.components[id], base: base};
     }
   }
 }
