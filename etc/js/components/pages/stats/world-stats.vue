@@ -1,6 +1,6 @@
 <template>
   <div class="top-margin"></div>
-  <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
+  <dropdown :items="periodItems" v-model:active_item="app_params.stats.world_period"></dropdown>&nbsp;
   <div class="world-stats">
     <div class="stats-groups">
       <div v-for="(group, k, i) in groups" :key="i">
@@ -26,17 +26,19 @@ export default { name: "world-stats" };
 </script>
 
 <script setup>
-import { defineProps, ref, onMounted, onUnmounted, computed, watch } from 'vue';
+import { defineProps, defineModel, ref, onMounted, onUnmounted, computed, watch } from 'vue';
 
 const props = defineProps({
   conn: {type: Object, required: true}
 });
 
+const app_params = defineModel("app_params");
+
 const statsQuery = ref();
 const statsQueryResult = ref([]);
 
 const periodItems = ref(['1 second', '1 minute', '1 hour', '1 day', '1 week']);
-const periodItem = ref(periodItems.value[1]);
+const periodItem = computed(() => app_params.value.stats.world_period);
 const period = computed(() => {
   if (periodItem.value == "1 second") {
     return "1s";

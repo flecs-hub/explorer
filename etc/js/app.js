@@ -46,6 +46,12 @@ const defaultAppParams = {
     method: "GET",
     path: "",
   },
+  stats: {
+    world_period: "1 minute",
+    period: "1 minute",
+    flecs_mode: "Hide flecs",
+    view_mode: "Default"
+  },
   sidebar: true,
   inspector: true,
   pipeline: "All systems",
@@ -279,6 +285,7 @@ const PAGE_COMPONENTS = {
     'js/components/pages/stats/pipeline.vue',
     'js/components/pages/stats/pipeline-system.vue',
     'js/components/pages/stats/pipeline-segment.vue',
+    'js/components/pages/stats/pipeline-summary.vue',
   ],
   commands: [
     'js/components/pages/commands/page.vue',

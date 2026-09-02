@@ -2,7 +2,7 @@
   <div id="page-stats" class="page-content">
     <edit-tabs :items="items" storageKey="stats">
       <template v-slot:world>
-        <world-stats :conn="conn"></world-stats>
+        <world-stats :conn="conn" v-model:app_params="app_params"></world-stats>
       </template>
       <template v-slot:systems>
         <pipeline-stats :conn="conn" v-model:app_params="app_params"></pipeline-stats>

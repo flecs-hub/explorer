@@ -77,7 +77,9 @@ const segments = computed(() => {
     segments.push(curSegment);
 
   /* Segment per module */
-  } else if (props.viewMode == "by_module") {
+  } else if (props.viewMode == "by_module" ||
+    props.viewMode == "by_module_summary")
+  {
     let modules = {};
 
     for (let system of props.systems) {

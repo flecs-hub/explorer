@@ -1,10 +1,10 @@
 <template>
   <div class="top-margin"></div>
   <div class="controls">
-    <dropdown :items="periodItems" v-model:active_item="periodItem"></dropdown>&nbsp;
+    <dropdown :items="periodItems" v-model:active_item="app_params.stats.period"></dropdown>&nbsp;
     <dropdown :items="pipelines" v-model:active_item="app_params.pipeline"></dropdown>&nbsp;
-    <dropdown :items="flecsModeItems" v-model:active_item="flecsModeItem"></dropdown>&nbsp;
-    by&nbsp; <dropdown :items="viewModeItems" v-model:active_item="viewModeItem"></dropdown>
+    <dropdown :items="flecsModeItems" v-model:active_item="app_params.stats.flecs_mode"></dropdown>&nbsp;
+    by&nbsp; <dropdown :items="viewModeItems" v-model:active_item="app_params.stats.view_mode"></dropdown>
   </div>
   <div class="pipeline-stats">
     <div class="pipeline-container">
@@ -30,10 +30,9 @@ const props = defineProps({
 });
 
 const app_params = defineModel("app_params");
-const periodLabel = ref("1 minute");
 
-const viewModeItems = ref(["Default", "Time spent", "Module"]);
-const viewModeItem = ref(viewModeItems.value[0]);
+const viewModeItems = ref(["Default", "Time spent", "Module", "Module summary"]);
+const viewModeItem = computed(() => app_params.value.stats.view_mode);
 const viewMode = computed(() => {
   if (viewModeItem.value == viewModeItems.value[0]) {
     return "default";
@@ -41,11 +40,13 @@ const viewMode = computed(() => {
     return "by_time";
   } else if (viewModeItem.value == viewModeItems.value[2]) {
     return "by_module";
+  } else if (viewModeItem.value == viewModeItems.value[3]) {
+    return "by_module_summary";
   }
 });
 
 const flecsModeItems = ref(["Hide flecs", "Show flecs"]);
-const flecsModeItem = ref(flecsModeItems.value[0]);
+const flecsModeItem = computed(() => app_params.value.stats.flecs_mode);
 const flecsMode = computed(() => {
   if (flecsModeItem.value == flecsModeItems.value[0]) {
     return "hide_flecs";
@@ -55,7 +56,7 @@ const flecsMode = computed(() => {
 });
 
 const periodItems = ref(['1 second', '1 minute', '1 hour', '1 day', '1 week']);
-const periodItem = ref(periodItems.value[1]);
+const periodItem = computed(() => app_params.value.stats.period);
 const period = computed(() => {
   if (periodItem.value == "1 second") {
     return "1s";

@@ -1,7 +1,7 @@
 <template>
   <detail-toggle>
     <template v-slot:summary>
-      <template v-if="viewMode == 'by_module'">
+      <template v-if="isModuleView">
         <entity-path :path="segment.name"></entity-path>
       </template>
       <template v-else>
@@ -23,8 +23,13 @@
       </template>
     </template>
     <template v-slot:detail>
-      <template v-for="(system, i) in systems" :key="i">
-        <pipeline-system :conn="conn" :system="system"></pipeline-system>
+      <template v-if="viewMode == 'by_module_summary'">
+        <pipeline-summary :systems="systems"></pipeline-summary>
+      </template>
+      <template v-else>
+        <template v-for="(system, i) in systems" :key="i">
+          <pipeline-system :conn="conn" :system="system"></pipeline-system>
+        </template>
       </template>
     </template>
   </detail-toggle>
@@ -45,6 +50,11 @@ const props = defineProps({
 
 const systems = computed(() => {
   return props.segment.systems;
+});
+
+const isModuleView = computed(() => {
+  return props.viewMode == 'by_module' ||
+    props.viewMode == 'by_module_summary';
 });
 
 const syncSystem = computed(() => {
