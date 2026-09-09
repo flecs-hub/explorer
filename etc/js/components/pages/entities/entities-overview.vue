@@ -46,6 +46,7 @@ world.app()
         </div>
         <div class="entities-overview-header-center">
           <span><dropdown label="Target FPS" postfix="Hz" :items="targetFpsOptions" v-model:active_item="targetFps" :transparent="true"></dropdown></span>
+          <span><dropdown label="Time scale" :items="timeScaleOptions" v-model:active_item="timeScale" :transparent="true"></dropdown></span>
         </div>
         <div class="entities-overview-header-right">
           <button @click="shrinkMemory">Shrink Memory</button>
@@ -172,11 +173,25 @@ const worldMemoryQuery = ref();
 const worldMemoryData = ref({});
 const chartCanvas = ref(null);
 const targetFps = ref(60);
+const timeScale = ref("1x");
 let chart;
 
 const targetFpsOptions = computed(() => {
   return [0, 1, 10, 20, 30, 40, 60, 70, 90, 120, 240, 480];
 });
+
+const timeScaleOptions = computed(() => {
+  return [10, 5, 2, 1, 0.5, 0.1, 0].map(timeScaleLabel);
+});
+
+function timeScaleLabel(value) {
+  if (value === 0) return "0x (pause)";
+  return value + "x";
+}
+
+function timeScaleValue(label) {
+  return parseFloat(label);
+}
 
 const isConnected = computed(() => {
   return props.app_state.status == flecs.ConnectionStatus.Connected;
@@ -446,6 +461,9 @@ watch(() => props.app_state.status, () => {
       const summary = props.app_state.heartbeat.components['flecs.stats.WorldSummary'];
       if (summary) {
         targetFps.value = summary.target_fps;
+        if (summary.time_scale !== undefined) {
+          timeScale.value = timeScaleLabel(summary.time_scale);
+        }
       }
     }
 
@@ -457,6 +475,12 @@ watch(() => props.app_state.status, () => {
 watch(() => targetFps.value, () => {
   props.conn.set("flecs.core.World", "flecs.stats.WorldSummary", { 
     target_fps: targetFps.value 
+  });
+});
+
+watch(() => timeScale.value, () => {
+  props.conn.set("flecs.core.World", "flecs.stats.WorldSummary", { 
+    time_scale: timeScaleValue(timeScale.value)
   });
 });
 
@@ -692,6 +716,11 @@ div.entities-overview-header-right {
   display: flex;
   flex: 1;
   justify-content: right;
+}
+
+div.entities-overview-header-center {
+  display: flex;
+  gap: 8px;
 }
 
 div.entities-overview-header-left * {
