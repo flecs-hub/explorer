@@ -83,8 +83,234 @@ const flecs = {
     return conn;
   },
 
+  DefaultPort: 27750,
+
+  normalizeHost(host) {
+    if (!host) {
+      return host;
+    }
+
+    let result = host.trim();
+    if (result.endsWith(".wasm")) {
+      return result;
+    }
+
+    if (result.startsWith("http://")) {
+      result = result.slice(7);
+    }
+
+    while (result.endsWith("/")) {
+      result = result.slice(0, -1);
+    }
+
+    if (!/:\d+$/.test(result)) {
+      result += ":" + flecs.DefaultPort;
+    }
+
+    return result;
+  },
+
+  discover(params = {}) {
+    const hostname = params.hostname || "localhost";
+    const portMin = params.port_min !== undefined ? params.port_min : 27750;
+    const portMax = params.port_max !== undefined ? params.port_max : 27760;
+    const portLimit = params.port_limit !== undefined ? params.port_limit : portMax + 256;
+    const timeout_ms = params.timeout_ms !== undefined ? params.timeout_ms : 1000;
+
+    const probe = (port, checkUsed) =>
+      flecs._.probeHost(hostname, port, timeout_ms, checkUsed);
+
+    const ports = [];
+    for (let port = portMin; port <= portMax; port ++) {
+      ports.push(port);
+    }
+
+    const scanRange = Promise.all(ports.map((port) => probe(port, false)));
+
+    return scanRange.then((results) => {
+      const scanNext = (port) => {
+        if (port > portLimit) {
+          return results;
+        }
+        return probe(port, true).then((result) => {
+          results.push(result);
+          if (!result.used) {
+            return results;
+          }
+          return scanNext(port + 1);
+        });
+      };
+      return scanNext(Math.max(portMin, portMax + 1));
+    }).then((results) => {
+      return results
+        .filter((result) => result.flecs)
+        .sort((a, b) => a.port - b.port)
+        .map((result) => ({
+          host: result.host,
+          hostname: hostname,
+          port: result.port,
+          name: result.name,
+          world: result.world
+        }));
+    });
+  },
+
+  startDiscovery(params = {}) {
+    const interval_ms = params.interval_ms !== undefined ? params.interval_ms : 5000;
+
+    const discovery = {
+      hosts: [],
+      stopped: false,
+      timer: undefined,
+      pending: undefined,
+
+      scan() {
+        if (this.stopped) {
+          return Promise.resolve(this.hosts);
+        }
+        if (this.pending) {
+          return this.pending;
+        }
+
+        if (this.timer) {
+          clearTimeout(this.timer);
+          this.timer = undefined;
+        }
+
+        this.pending = flecs.discover(params).then((hosts) => {
+          this.pending = undefined;
+          if (this.stopped) {
+            return hosts;
+          }
+
+          this.hosts = hosts;
+          if (params.on_hosts) {
+            params.on_hosts(hosts);
+          }
+
+          this.schedule();
+          return hosts;
+        });
+
+        return this.pending;
+      },
+
+      schedule() {
+        if (interval_ms && !this.stopped) {
+          this.timer = setTimeout(() => {
+            this.timer = undefined;
+            this.scan();
+          }, interval_ms);
+        }
+      },
+
+      stop() {
+        this.stopped = true;
+        if (this.timer) {
+          clearTimeout(this.timer);
+          this.timer = undefined;
+        }
+      }
+    };
+
+    discovery.scan();
+    return discovery;
+  },
+
   // Private methods
   _: {
+    newHttpRequest() {
+      return new XMLHttpRequest();
+    },
+
+    probeHost(hostname, port, timeout_ms, checkUsed) {
+      const host = hostname + ":" + port;
+      const url = "http://" + host;
+
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = (result) => {
+          if (!done) {
+            done = true;
+            result.host = host;
+            result.port = port;
+            resolve(result);
+          }
+        };
+
+        let request;
+        try {
+          request = flecs._.newHttpRequest();
+          request.open("GET", url + "/entity/flecs/core/World?values=true&label=true");
+          request.timeout = timeout_ms;
+        } catch (e) {
+          finish({used: false, flecs: false});
+          return;
+        }
+
+        request.onload = () => {
+          if (request.status >= 200 && request.status < 300) {
+            try {
+              const world = JSON.parse(request.responseText);
+              let name;
+              if (world && world.components) {
+                const desc = world.components["(flecs.doc.Description,flecs.core.Name)"];
+                if (desc) {
+                  name = desc.value;
+                }
+              }
+              finish({used: true, flecs: true, name: name, world: world});
+              return;
+            } catch (e) {}
+          }
+          finish({used: true, flecs: false});
+        };
+
+        request.ontimeout = () => {
+          finish({used: true, flecs: false});
+        };
+
+        request.onerror = () => {
+          if (!checkUsed) {
+            finish({used: false, flecs: false});
+            return;
+          }
+          flecs._.probeUsed(url, timeout_ms).then((used) => {
+            finish({used: used, flecs: false});
+          });
+        };
+
+        request.send();
+      });
+    },
+
+    probeUsed(url, timeout_ms) {
+      if (typeof window !== "object" || typeof fetch !== "function") {
+        return Promise.resolve(false);
+      }
+
+      let controller;
+      let timer;
+      if (typeof AbortController === "function") {
+        controller = new AbortController();
+        timer = setTimeout(() => controller.abort(), timeout_ms);
+      }
+
+      return fetch(url + "/", {
+        mode: "no-cors",
+        cache: "no-store",
+        signal: controller ? controller.signal : undefined
+      }).then(() => {
+        return true;
+      }, (err) => {
+        return !!(err && err.name === "AbortError");
+      }).finally(() => {
+        if (timer) {
+          clearTimeout(timer);
+        }
+      });
+    },
+
     createConnection(params) {
       let connParams = {
         host: undefined,

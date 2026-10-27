@@ -176,7 +176,7 @@ const BASE_COMPONENTS = [
   // Common components
   'js/components/widgets/title-bar/title-bar.vue',
   'js/components/widgets/title-bar/layout-control.vue',
-  'js/components/widgets/title-bar/url-bar.vue',
+  'js/components/widgets/title-bar/host-tabs.vue',
   'js/components/widgets/title-bar/connecting-indicator.vue',
   'js/components/widgets/info-bar/info-bar.vue',
   'js/components/widgets/info-bar/info-connected.vue',

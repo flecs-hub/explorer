@@ -10,12 +10,10 @@
         target="_blank">
       </a>
     </div>
-    <div class="title-bar-controls">
-    </div>
-    <url-bar
+    <host-tabs
       :app_state="app_state"
       v-model:app_params="app_params">
-    </url-bar>
+    </host-tabs>
 
     <div class="title-bar-buttons">
       <layout-control
@@ -45,13 +43,10 @@ const app_params = defineModel("app_params");
 
 div.title-bar {
   display: grid;
-  grid-template-columns: 2.5rem 300px 1fr 300px auto 0px;
+  grid-template-columns: 2.5rem minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr);
   gap: var(--gap);
   font-size: 0.9rem;
-}
-
-div.title-bar-logo a {
-  grid-column: 1;
 }
 
 div.title-bar-logo {
@@ -61,19 +56,8 @@ div.title-bar-logo {
   padding: 2px;
 }
 
-div.title-bar-controls {
-  grid-column: 2;
-  text-align: center;
-  padding: 4px;
-}
-
-div.title-info {
-  display: flex;
-  align-items: center;
-}
-
 div.title-bar-buttons {
-  grid-column: 5;
+  grid-column: 3;
   display: flex;
   justify-content: right;
   padding-left: 4px;
@@ -81,26 +65,6 @@ div.title-bar-buttons {
 
 div.title-bar-buttons button {
   margin-left: 4px;
-}
-
-@media screen and (max-width: 1600px) {
-  div.title-bar {
-    grid-template-columns: 2.5rem 35px 1fr 10px auto 0px;
-  }
-}
-
-@media screen and (max-width: 800px) {
-  div.title-bar {
-    grid-template-columns: 2.5rem 0px 1fr 0px auto 0px;
-  }
-
-  div.title-bar-v3 {
-    display: none;
-  }
-
-  div.title-bar-controls {
-    display: none;
-  }
 }
 
 </style>
