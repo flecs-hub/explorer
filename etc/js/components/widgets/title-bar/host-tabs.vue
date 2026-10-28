@@ -305,7 +305,7 @@ function restoreState(key) {
     if (!host || flecs.normalizeHost(host) !== key) {
       return false;
     }
-    window.location.search = search;
+    app_params.value.load_url(search);
     return true;
   } catch (e) {}
   return false;

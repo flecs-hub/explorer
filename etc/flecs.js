@@ -219,6 +219,9 @@ const flecs = {
 
   // Private methods
   _: {
+    wasmModules: {},
+    requestCount: 0,
+
     newHttpRequest() {
       return new XMLHttpRequest();
     },
@@ -383,6 +386,7 @@ const flecs = {
             this._.loadWasmModule(host);
             this.mode = flecs.ConnectionMode.Wasm;
           } else {
+            this._.wasm_url = undefined;
             this._.FlecsHttpRequest = () => new XMLHttpRequest();
             this.mode = flecs.ConnectionMode.Remote;
 
@@ -650,6 +654,7 @@ const flecs = {
             // Create the request object
             let result = {
               // Properties
+              id: ++ flecs._.requestCount,
               status: flecs.RequestStatus.Pending,
               owner: this,
               conn: conn,
@@ -815,7 +820,7 @@ const flecs = {
                 if (this.managed) {
                   if (!this.persist || !keepPersist) {
                     this.conn.managedRequests =
-                      this.conn.managedRequests.filter(item => item !== this);
+                      this.conn.managedRequests.filter(item => item.id !== this.id);
                   }
                 }
 
@@ -1010,10 +1015,9 @@ const flecs = {
           },
 
           wasmModuleLoaded(wasm_url) {
-            const conn_priv = this;
             const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
             wasm_module = Function(`return ` + name + `;`)();
-            wasm_module().then(function(Module) {
+            return wasm_module().then(function(Module) {
               let nativeRequest = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string', 'string']);
               flecs.captureKeyboardEvents = Module.sokol_capture_keyboard_events;
               if (flecs.captureKeyboardEvents) {
@@ -1021,7 +1025,7 @@ const flecs = {
                 flecs.has3DCanvas = true;
               }
 
-              conn_priv.FlecsHttpRequest = function() {
+              return function() {
                 return {
                   method: undefined,
                   url: undefined,
@@ -1072,24 +1076,42 @@ const flecs = {
             });
           },
 
-          loadWasmModule(wasm_url, onReady) {
-            let js_url = wasm_url.slice(0, wasm_url.length - 5) + ".js";
-            const oldEl = document.getElementById("wasm-module");
-            if (oldEl) {
-              oldEl.remove();
+          loadWasmModule(wasm_url) {
+            this.wasm_url = wasm_url;
+            this.FlecsHttpRequest = undefined;
+
+            let module = flecs._.wasmModules[wasm_url];
+            if (!module) {
+              let js_url = wasm_url.slice(0, wasm_url.length - 5) + ".js";
+              const oldEl = document.getElementById("wasm-module");
+              if (oldEl) {
+                oldEl.remove();
+              }
+
+              module = new Promise((resolve, reject) => {
+                const scriptEl = document.createElement("script");
+                scriptEl.id = "wasm-module";
+                scriptEl.onload = () => {
+                  this.wasmModuleLoaded(js_url).then(resolve, reject);
+                };
+                scriptEl.onerror = () => {
+                  console.error(`failed to load wasm module ${wasm_url}`);
+                  delete flecs._.wasmModules[wasm_url];
+                  reject();
+                };
+                scriptEl.src = js_url;
+
+                document.head.appendChild(scriptEl);
+              });
+
+              flecs._.wasmModules[wasm_url] = module;
             }
-            
-            const scriptEl = document.createElement("script");
-            scriptEl.id = "wasm-module";
-            scriptEl.onload = () => {
-              this.wasmModuleLoaded(js_url, onReady);
-            };
-            scriptEl.onerror = () => {
-              console.error(`failed to load wasm module ${wasm_url}`);
-            };
-            scriptEl.src = js_url;
-          
-            document.head.appendChild(scriptEl);
+
+            module.then((factory) => {
+              if (this.wasm_url === wasm_url) {
+                this.FlecsHttpRequest = factory;
+              }
+            }, () => {});
           }
         }
       };

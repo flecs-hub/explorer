@@ -356,6 +356,13 @@ loadComponents(startupComponents).then(() => {
       // Load URL parameters
       const keys = this.fromUrlParams() || [];
 
+      this.app_params.load_url = function(search) {
+        for (const key in defaultAppParams) {
+          this.app_params[key] = structuredClone(defaultAppParams[key]);
+        }
+        this.fromUrlParams(search);
+      }.bind(this);
+
       // If code is provided, open the script inspector for it.
       if (this.getStartupCode()) {
         this.app_params.host = "flecs_explorer.wasm";
@@ -413,7 +420,8 @@ loadComponents(startupComponents).then(() => {
           this.app_state.requests.sent = this.conn.requests.sent;
           this.app_state.requests.error = this.conn.requests.error;
           this.app_state.bytes.received = this.conn.bytes.received;
-          this.app_state.has3DCanvas = flecs.has3DCanvas;
+          this.app_state.has3DCanvas =
+            this.conn.mode === flecs.ConnectionMode.Wasm && !!flecs.has3DCanvas;
 
           if (msg.components) {
             if (msg.components["flecs.stats.WorldSummary"]) {
@@ -468,6 +476,32 @@ loadComponents(startupComponents).then(() => {
     },
 
     methods: {
+      switchHost(host) {
+        if (this.conn.mode === flecs.ConnectionMode.Wasm && flecs.captureKeyboardEvents) {
+          flecs.captureKeyboardEvents(false);
+        }
+
+        const state = this.app_state;
+        state.app_name = undefined;
+        state.status = undefined;
+        state.mode = undefined;
+        state.heartbeat = undefined;
+        state.heartbeats_received = 0;
+        state.world_info = undefined;
+        state.build_info = undefined;
+        state.has3DCanvas = false;
+        state.command_counts = new Array(120).fill(0);
+        this.prev_command_count = -1;
+        this.code_from_url = undefined;
+
+        this.conn.requests.sent = 0;
+        this.conn.requests.received = 0;
+        this.conn.requests.error = 0;
+        this.conn.bytes.received = 0;
+        this.conn.params.on_fallback = undefined;
+        this.conn.connect(host);
+        this.conn_id ++;
+      },
       pageReady(page) {
         const normalized = normalizePage(page);
         if (!normalized) {
@@ -574,7 +608,7 @@ loadComponents(startupComponents).then(() => {
         const hideHostParam = this.getStartupCode() !== undefined;
 
         for (let key in obj) {
-          if (key == "run_playground") {
+          if (typeof obj[key] === "function") {
             continue;
           }
 
@@ -681,19 +715,13 @@ loadComponents(startupComponents).then(() => {
       },
       app_params: {
         handler(value) {
-          let reload = false;
-          if (!this.conn || value.host != this.conn.params.host) {
-            reload = true;
-          }
-          
           history.pushState({}, document.title,
               window.location.origin + 
               window.location.pathname +
               this.toUrlParams(this.app_params));
 
-          if (reload) {
-            this.conn.connect(value.host);
-            location.reload();
+          if (value.host != this.conn.params.host) {
+            this.switchHost(value.host);
           }
         },
         deep: true
@@ -742,6 +770,7 @@ loadComponents(startupComponents).then(() => {
         }, {}),
         code_from_url: undefined,
         conn: undefined,
+        conn_id: 0,
         lastWord: "",
         prev_command_count: -1,
         prev_heartbeats_received: -1
