@@ -272,7 +272,14 @@ const hasMemoryData = computed(() => {
 
 const memoryStats = computed(() => {
   if (!hasMemoryData.value) return {};
-  return worldMemoryData.value.components['flecs.stats.WorldMemory'];
+  const stats = worldMemoryData.value.components['flecs.stats.WorldMemory'];
+  let result = {};
+  for (let key in stats) {
+    if (stats[key] !== null && typeof stats[key] === "object") {
+      result[key] = stats[key];
+    }
+  }
+  return result;
 });
 
 function categoryLabel(name) {
