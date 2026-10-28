@@ -208,10 +208,10 @@ watch(() => [showCanvas.value, showInspector.value, showScript.value, appParams.
 });
 
 const inspectorSlots = {
-  main:   {path: "path",        tab: "inspector_tab",        detail: "low_detail"},
-  main2:  {path: "main2_path",  tab: "main2_inspector_tab",  detail: "main2_low_detail"},
-  split:  {path: "split_path",  tab: "split_inspector_tab",  detail: "split_low_detail"},
-  split2: {path: "split2_path", tab: "split2_inspector_tab", detail: "split2_low_detail"}
+  main:   {path: "path",        tab: "inspector_tab",        detail: "low_detail",        info: "info_mode"},
+  main2:  {path: "main2_path",  tab: "main2_inspector_tab",  detail: "main2_low_detail",  info: "main2_info_mode"},
+  split:  {path: "split_path",  tab: "split_inspector_tab",  detail: "split_low_detail",  info: "split_info_mode"},
+  split2: {path: "split2_path", tab: "split2_inspector_tab", detail: "split2_low_detail", info: "split2_info_mode"}
 };
 
 function makeInspectorParams(which) {
@@ -222,7 +222,9 @@ function makeInspectorParams(which) {
     get inspector_tab() { return appParams.value.entities[keys.tab]; },
     set inspector_tab(value) { appParams.value.entities[keys.tab] = value; },
     get low_detail() { return appParams.value.entities[keys.detail]; },
-    set low_detail(value) { appParams.value.entities[keys.detail] = value; }
+    set low_detail(value) { appParams.value.entities[keys.detail] = value; },
+    get info_mode() { return appParams.value.entities[keys.info]; },
+    set info_mode(value) { appParams.value.entities[keys.info] = value; }
   };
 }
 

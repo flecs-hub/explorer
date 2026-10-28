@@ -53,7 +53,6 @@ import { computed, ref, defineProps, defineModel, onMounted, onUnmounted, nextTi
 
 const TABS_STORAGE = "flecs-explorer-host-tabs";
 const DISMISSED_STORAGE = "flecs-explorer-host-tabs-dismissed";
-const STATE_STORAGE = "flecs-explorer-host-tabs-state";
 const PLAYGROUND_HOST = "flecs_explorer.wasm";
 
 const props = defineProps({
@@ -72,6 +71,7 @@ const tabs = ref(loadList(TABS_STORAGE).map((tab) => ({
 })));
 const dismissed = ref(loadList(DISMISSED_STORAGE));
 const adding = ref(false);
+const savedStates = new Map();
 const newHostInput = ref(null);
 let discovery;
 
@@ -282,33 +282,41 @@ function stateKey() {
   return currentKey.value;
 }
 
+function copyParam(value) {
+  if (Array.isArray(value)) {
+    return [...value];
+  }
+  if (value && typeof value === "object") {
+    return {...value};
+  }
+  return value;
+}
+
 function saveState() {
   const key = stateKey();
   if (!key) {
     return;
   }
-  try {
-    const state = JSON.parse(window.sessionStorage.getItem(STATE_STORAGE)) || {};
-    state[key] = window.location.search;
-    window.sessionStorage.setItem(STATE_STORAGE, JSON.stringify(state));
-  } catch (e) {}
+  const params = app_params.value;
+  const state = {};
+  for (const name in params) {
+    if (typeof params[name] !== "function") {
+      state[name] = copyParam(params[name]);
+    }
+  }
+  savedStates.set(key, state);
 }
 
 function restoreState(key) {
-  try {
-    const state = JSON.parse(window.sessionStorage.getItem(STATE_STORAGE)) || {};
-    const search = state[key];
-    if (!search) {
-      return false;
-    }
-    const host = new URLSearchParams(search).get("host");
-    if (!host || flecs.normalizeHost(host) !== key) {
-      return false;
-    }
-    app_params.value.load_url(search);
-    return true;
-  } catch (e) {}
-  return false;
+  const state = savedStates.get(key);
+  if (!state) {
+    return false;
+  }
+  const params = app_params.value;
+  for (const name in state) {
+    params[name] = copyParam(state[name]);
+  }
+  return true;
 }
 
 function resetHostParams() {
@@ -319,6 +327,7 @@ function resetHostParams() {
   params.code_url = undefined;
   params.entities.tab = "Overview";
   params.entities.inspector_tab = "Inspect";
+  params.entities.info_mode = undefined;
   params.entities.path = undefined;
 }
 
@@ -368,6 +377,7 @@ function closeTab(tab) {
       selectPlayground();
     }
   }
+  savedStates.delete(tab.key);
 }
 
 function onAuxClick(event, tab) {

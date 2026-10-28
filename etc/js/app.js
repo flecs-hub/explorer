@@ -70,6 +70,10 @@ const tabParams = new Set([
   "split_inspector_tab",
   "main2_inspector_tab",
   "split2_inspector_tab",
+  "info_mode",
+  "split_info_mode",
+  "main2_info_mode",
+  "split2_info_mode",
   "tree_mode",
   "query_tab",
   "inspect_tab"
@@ -355,13 +359,6 @@ loadComponents(startupComponents).then(() => {
     created() {
       // Load URL parameters
       const keys = this.fromUrlParams() || [];
-
-      this.app_params.load_url = function(search) {
-        for (const key in defaultAppParams) {
-          this.app_params[key] = structuredClone(defaultAppParams[key]);
-        }
-        this.fromUrlParams(search);
-      }.bind(this);
 
       // If code is provided, open the script inspector for it.
       if (this.getStartupCode()) {

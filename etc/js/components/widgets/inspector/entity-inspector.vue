@@ -187,24 +187,19 @@ const visibleTabs = ref([]);
 
 const infoModes = ["Matches", "References", "Alerts"];
 
-function infoModeStorageId() {
-  return "flecs-explorer-inspector-info-" + props.storageKey;
-}
-
-function loadInfoMode() {
-  const stored = window.localStorage.getItem(infoModeStorageId());
-  if (infoModes.includes(stored)) {
-    return stored;
+const infoMode = computed({
+  get() {
+    const value = appParams.value ? appParams.value.info_mode : undefined;
+    if (infoModes.includes(value)) {
+      return value;
+    }
+    return "Matches";
+  },
+  set(value) {
+    if (appParams.value) {
+      appParams.value.info_mode = value;
+    }
   }
-  return "Matches";
-}
-
-const infoMode = ref(loadInfoMode());
-
-watch(infoMode, (value) => {
-  try {
-    window.localStorage.setItem(infoModeStorageId(), value);
-  } catch (e) {}
 });
 
 if (appParams.value && infoModes.includes(appParams.value.inspector_tab)) {
