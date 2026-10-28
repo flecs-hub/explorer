@@ -13,8 +13,23 @@
       :class="tabCss(tab)"
       :title="tabTooltip(tab)"
       @click="selectHost(tab)"
+      @dblclick="startEdit(tab)"
       @auxclick="onAuxClick($event, tab)">
-      <div class="host-tab-inner">
+      <div class="host-tab-inner" v-if="isEditing(tab)">
+        <input
+          ref="editHostInput"
+          class="host-tab-input"
+          type="text"
+          placeholder="host:port"
+          :value="tab.host"
+          @click.stop
+          @dblclick.stop
+          @keydown.enter="confirmEdit(tab)"
+          @keydown.esc="cancelEdit"
+          @blur="cancelEdit">
+        </input>
+      </div>
+      <div class="host-tab-inner" v-else>
         <span :class="statusCss(tab)"></span>
         <span class="host-tab-label">{{ tabLabel(tab) }}</span>
         <span class="host-tab-port" v-if="tabPort(tab)">{{ tabPort(tab) }}</span>
@@ -71,8 +86,10 @@ const tabs = ref(loadList(TABS_STORAGE).map((tab) => ({
 })));
 const dismissed = ref(loadList(DISMISSED_STORAGE));
 const adding = ref(false);
+const editing = ref(undefined);
 const savedStates = new Map();
 const newHostInput = ref(null);
+const editHostInput = ref(null);
 let discovery;
 
 function loadList(key) {
@@ -260,6 +277,9 @@ function tabCss(tab) {
   if (tabStatus(tab) === "offline") {
     classes.push("host-tab-offline");
   }
+  if (isEditing(tab)) {
+    classes.push("host-tab-editing");
+  }
   return classes;
 }
 
@@ -419,6 +439,84 @@ function confirmAdd() {
   }
   saveTabs();
   selectHost(tab);
+}
+
+function isEditing(tab) {
+  return editing.value === tab.key;
+}
+
+function startEdit(tab) {
+  editing.value = tab.key;
+  nextTick(() => {
+    const input = editInput();
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+
+function editInput() {
+  const input = editHostInput.value;
+  return Array.isArray(input) ? input[0] : input;
+}
+
+function cancelEdit() {
+  editing.value = undefined;
+}
+
+function confirmEdit(tab) {
+  const input = editInput();
+  const host = input ? input.value.trim() : "";
+  editing.value = undefined;
+  if (!host) {
+    return;
+  }
+
+  const key = flecs.normalizeHost(host);
+  if (key === tab.key) {
+    tab.host = host;
+    saveTabs();
+    return;
+  }
+
+  const index = tabs.value.indexOf(tab);
+  if (index === -1) {
+    return;
+  }
+
+  const wasCurrent = isCurrent(tab);
+  const oldKey = tab.key;
+  savedStates.delete(oldKey);
+  if (tab.online !== false || wasCurrent) {
+    if (!dismissed.value.includes(oldKey)) {
+      dismissed.value.push(oldKey);
+    }
+  }
+  dismissed.value = dismissed.value.filter((k) => k !== key);
+
+  let target = tabs.value.find((t) => t.key === key);
+  if (target) {
+    tabs.value.splice(index, 1);
+    target.manual = true;
+  } else {
+    tab.key = key;
+    tab.host = host;
+    tab.name = undefined;
+    tab.manual = true;
+    tab.seen = false;
+    tab.online = undefined;
+    target = tab;
+  }
+  saveTabs();
+
+  if (wasCurrent) {
+    if (restoreState(target.key)) {
+      return;
+    }
+    resetHostParams();
+    app_params.value.host = target.host;
+  }
 }
 
 ensureCurrentTab();
@@ -611,9 +709,14 @@ span.host-tab-close:hover {
   background-color: var(--bg-button-hover);
 }
 
-div.host-tab-new {
+div.host-tab-new,
+div.host-tab-editing {
   flex: 0 1 200px;
   padding: 0px 2px;
+}
+
+div.host-tab-editing div.host-tab-inner {
+  padding: 0px;
 }
 
 input.host-tab-input {
