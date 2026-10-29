@@ -441,7 +441,7 @@ function deleteSession(id) {
 
 function clearScreen() {
   if (activeState.value) {
-    activeState.value.entries = [];
+    activeState.value.entries = [{ id: activeState.value.nextId ++, origin: "hint" }];
     activeState.value.focusRequest = (activeState.value.focusRequest || 0) + 1;
   }
 }

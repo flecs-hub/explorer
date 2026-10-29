@@ -80,6 +80,10 @@ function addEntry(entry) {
   return state.entries[state.entries.length - 1];
 }
 
+function helpHint() {
+  return { id: state.nextId ++, origin: "hint" };
+}
+
 function applyReply(entry, reply) {
   entry.type = reply.type;
   entry.result = reply.result;
@@ -137,7 +141,7 @@ function onReply(entry, reply) {
     state.virtualScope = reply.result;
   } else if (name === "clear" && entry.status === "done") {
     const i = state.entries.indexOf(entry);
-    state.entries = i !== -1 ? state.entries.slice(i + 1) : [];
+    state.entries = [helpHint()].concat(i !== -1 ? state.entries.slice(i + 1) : []);
     state.mirror = [];
     const p = state.pending.indexOf("clear");
     if (p !== -1) {
@@ -206,6 +210,8 @@ function applyRemote(value) {
         entry: addEntry({ cmd: cmd, status: "history", origin: "history", errors: [] })
       }));
       loadResults(entries, 0);
+    } else if (!state.entries.length) {
+      addEntry({ origin: "hint" });
     }
     state.scope = scope;
     state.virtualScope = scope;
@@ -394,7 +400,7 @@ function onInterrupt(text) {
 }
 
 function onClearScreen() {
-  state.entries = [];
+  state.entries = [helpHint()];
 }
 
 function focusPrompt() {

@@ -3,6 +3,9 @@
     <div class="term-system" v-if="entry.origin === 'system'">
       <span class="term-dim">&#x2500;&#x2500; {{ entry.text }} &#x2500;&#x2500;</span>
     </div>
+    <div class="term-hint" v-else-if="entry.origin === 'hint'">
+      <span class="term-dim">type </span><span class="term-hint-cmd" title="Click to run help" @click.stop="terminal.run('help')">help</span><span class="term-dim"> for a list of possible commands</span>
+    </div>
     <template v-else>
       <div class="term-line">
         <span class="terminal-ps1 noselect"><span class="terminal-ps1-scope">{{ scopeLabel }}</span><span class="terminal-ps1-sym">$&nbsp;</span></span>
@@ -278,6 +281,20 @@ function onCmdClick() {
 #page-terminal span.term-cmd {
   cursor: pointer;
   min-width: 0;
+}
+
+#page-terminal div.term-hint {
+  margin-bottom: 1.45em;
+}
+
+#page-terminal span.term-hint-cmd {
+  color: var(--term-prompt);
+  cursor: pointer;
+}
+
+#page-terminal span.term-hint-cmd:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 #page-terminal div.term-entry-history div.term-line {
