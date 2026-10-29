@@ -1,5 +1,26 @@
 <template>
-  <div id="page-terminal" class="page-content">
+  <pane-container
+    id="page-terminal"
+    class="page-content"
+    :showLeftPane="app_params.sidebar"
+    :showRightPane="false"
+    ref="rootEl">
+
+    <pane-tree
+      v-if="app_params.sidebar"
+      :conn="conn"
+      :paneResize="px => rootEl?.setLeftPaneWidth(px)"
+      v-model:app_params="app_params">
+    </pane-tree>
+
+    <splitter
+      v-if="app_params.sidebar"
+      :parent="rootEl"
+      :column="2"
+      :active="rootEl?.dragging === 'leftPane'"
+      @mousedown="rootEl.startDragging('leftPane')">
+    </splitter>
+
     <div class="terminal-frame">
       <div class="terminal-main">
         <terminal-session
@@ -34,7 +55,7 @@
         </div>
       </div>
 
-      <div class="terminal-panel" v-if="available">
+      <div class="terminal-panel" v-if="available && showSessions">
         <div class="terminal-panel-header">
           <span>Sessions</span>
           <span class="terminal-panel-button" title="New session" @click="newSession">
@@ -88,7 +109,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </pane-container>
 </template>
 
 <script>
@@ -284,6 +305,7 @@ const props = defineProps({
 
 const app_params = defineModel("app_params");
 
+const rootEl = ref(null);
 const available = ref(undefined);
 const sessions = ref([]);
 const renaming = ref(undefined);
@@ -303,6 +325,8 @@ const activeId = computed(() => {
   const id = app_params.value.terminal.session;
   return id === undefined || id === "" ? undefined : String(id);
 });
+
+const showSessions = computed(() => app_params.value.inspector !== false);
 
 const activeState = computed(() => activeId.value === undefined ?
   undefined : stateFor(host.value, activeId.value));
@@ -514,10 +538,12 @@ onUnmounted(() => {
 
 <style>
 #page-terminal {
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap);
+  display: grid;
+  grid-template-rows: 100%;
   height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
   --term-bg: var(--bg-color-alt);
   --term-prompt: var(--green);
   --term-scope: var(--bright-blue);
@@ -537,7 +563,7 @@ onUnmounted(() => {
 
 #page-terminal div.terminal-frame {
   display: flex;
-  flex-grow: 1;
+  min-width: 0;
   min-height: 0;
   border: 1px solid var(--border);
   border-radius: var(--border-radius-medium);
