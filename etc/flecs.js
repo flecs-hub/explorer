@@ -1052,15 +1052,89 @@ const flecs = {
             }
           },
 
+          patchTimestampWrites() {
+            if (GPUCommandEncoder.prototype._flecsTimestampWrites) {
+              return;
+            }
+
+            const queryIndexUndefined = 0xFFFFFFFF;
+            for (const name of ["beginComputePass", "beginRenderPass"]) {
+              const beginPass = GPUCommandEncoder.prototype[name];
+              GPUCommandEncoder.prototype[name] = function(desc) {
+                const writes = desc && desc.timestampWrites;
+                if (writes) {
+                  const fixed = { querySet: writes.querySet };
+                  if (writes.beginningOfPassWriteIndex !== queryIndexUndefined) {
+                    fixed.beginningOfPassWriteIndex = writes.beginningOfPassWriteIndex;
+                  }
+                  if (writes.endOfPassWriteIndex !== queryIndexUndefined) {
+                    fixed.endOfPassWriteIndex = writes.endOfPassWriteIndex;
+                  }
+                  desc = Object.assign({}, desc, { timestampWrites: fixed });
+                }
+                return beginPass.call(this, desc);
+              };
+            }
+
+            GPUCommandEncoder.prototype._flecsTimestampWrites = true;
+          },
+
+          wasmModuleArgs() {
+            const canvas = document.getElementById("canvas");
+            if (!canvas || !navigator.gpu) {
+              return Promise.resolve({});
+            }
+
+            this.patchTimestampWrites();
+
+            return navigator.gpu.requestAdapter({
+              powerPreference: "high-performance"
+            }).then(function(adapter) {
+              if (!adapter) {
+                return undefined;
+              }
+
+              const features = adapter.features.has("timestamp-query") ?
+                ["timestamp-query"] : [];
+              return adapter.requestDevice({
+                requiredFeatures: features,
+                requiredLimits: {
+                  maxTextureArrayLayers: adapter.limits.maxTextureArrayLayers
+                }
+              });
+            }).then(function(device) {
+              if (!device) {
+                return {};
+              }
+
+              return {
+                canvas: canvas,
+                preinitializedWebGPUDevice: device
+              };
+            }, function(err) {
+              console.error("failed to initialize WebGPU", err);
+              return {};
+            });
+          },
+
           wasmModuleLoaded(wasm_url) {
             const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
             wasm_module = Function(`return ` + name + `;`)();
-            return wasm_module().then(function(Module) {
+            let args;
+            return this.wasmModuleArgs().then(function(result) {
+              args = result;
+              return wasm_module(args);
+            }).then(function(Module) {
               let nativeRequest = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string', 'string']);
-              flecs.captureKeyboardEvents = Module.sokol_capture_keyboard_events;
-              if (flecs.captureKeyboardEvents) {
-                Module.sokol_capture_keyboard_events(false);
+              if (Module._flecs_explorer_has_canvas && args.preinitializedWebGPUDevice) {
                 flecs.has3DCanvas = true;
+                flecs.captureKeyboardEvents = function(capture) {
+                  if (capture) {
+                    args.canvas.focus();
+                  } else {
+                    args.canvas.blur();
+                  }
+                };
               }
 
               return function() {

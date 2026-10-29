@@ -1,5 +1,6 @@
 <template>
-  <canvas id="canvas" :style="canvasContainerStyle" v-on:click="onFocus" :class="css()">
+  <canvas id="canvas" tabindex="-1" :style="canvasContainerStyle" :class="css()"
+    v-on:focus="focus = true" v-on:blur="focus = false" v-on:contextmenu.prevent>
   </canvas>
 </template>
 
@@ -26,29 +27,14 @@ function css() {
   return css;
 }
 
-function onFocus() {
-  focus.value = !focus.value;
-  flecs.captureKeyboardEvents(focus.value);
-  if (focus.value) {
-    document.activeElement.blur();
-  }
-}
-
-function onOtherFocus() {
-  if (focus.value) {
-    onFocus();
-  }
-}
-
 onMounted(() => {
-  document.addEventListener("focus", onOtherFocus, true);
   window.addEventListener('resize', handleResize);
   var resizeEvent = new Event('resize');
   window.dispatchEvent(resizeEvent);
 });
 
 onUnmounted(() => {
-  document.removeEventListener("focus", onOtherFocus, true);
+  window.removeEventListener('resize', handleResize);
 });
 
 watch(() => [props.app_state.has3DCanvas, props.app_params.page, 
@@ -95,7 +81,9 @@ canvas.canvas-container {
   border-top-right-radius: 0px;
   border-width: 1px;
   border-color: var(--border);
-  cursor: pointer;
+  background-color: var(--bg-content);
+  object-fit: contain;
+  outline: none;
 }
 
 canvas.canvas-focus {

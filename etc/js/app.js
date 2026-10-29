@@ -65,7 +65,7 @@ const defaultAppParams = {
   refresh: "auto"
 }
 
-const defaultCodeScript = "etc.assets.scene\\.flecs";
+const defaultCodeScript = "etc.scenes.town\\.flecs";
 
 const tabParams = new Set([
   "tab",
@@ -88,7 +88,7 @@ function newAppParams() {
   result.run_playground = function() { 
     this.entities.tab = "Scene";
     this.entities.inspector_tab = "Script";
-    this.entities.path = "etc.assets.scene\\.flecs";
+    this.entities.path = "etc.scenes.town\\.flecs";
     this.host = "flecs_explorer.wasm";
   }
 

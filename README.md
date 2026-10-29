@@ -132,3 +132,16 @@ The following options can be added to the URL:
 ```
 ?host=10.20.30.40:1234
 ```
+
+## Building the playground
+The playground (`etc/flecs_explorer.wasm`) runs a [box](https://github.com/SanderMertens/box) world in the browser and opens box's `etc/scenes/town.flecs` scene. It renders with WebGPU, so it needs a browser with WebGPU support.
+
+Box is pinned at the commit in `BOX_COMMIT`. `box.sh` clones `../box` into `.box`, checks out that commit and builds it into the local bake environment. Bake arguments are passed through:
+
+```
+./box.sh --target em --cfg release
+bake3 --target em --cfg release --local-env
+cp .bake/local_env/build/flecs.explorer/wasm32-Emscripten-release/flecs_explorer.{js,wasm} etc/
+```
+
+To move the pin, write the new commit to `BOX_COMMIT` and run `box.sh` again. Box's `etc` folder is embedded in the wasm image at `etc/`.

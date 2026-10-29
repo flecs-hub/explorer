@@ -3,28 +3,25 @@
     "type": "application",
     "value": {
         "use": [
-            "flecs",
-            "flecs.components.transform",
-            "flecs.components.graphics",
-            "flecs.components.geometry",
-            "flecs.components.physics",
-            "flecs.components.gui",
-            "flecs.systems.physics",
-            "flecs.systems.transform",
-            "flecs.systems.sokol",
-            "flecs.game"
-        ],
-        "standalone": true
+            "box"
+        ]
     },
     "lang.c": {
-        "defines": ["FLECS_SCRIPT_MATH"],
         "${os linux}": {
-            "lib": ["rt", "pthread", "m"]
+            "lib": [
+                "rt",
+                "pthread",
+                "m"
+            ]
         },
         "${target em}": {
-            "defines": ["FLECS_SOFT_ASSERT", "FLECS_KEEP_ASSERT"],
-            "ldflags": ["-sSTACK_SIZE=1000000", "-Wl,-u,ntohs"],
-            "embed": ["etc/assets"]
+            "ldflags": [
+                "-sSTACK_SIZE=8388608",
+                "-Wl,-u,ntohs"
+            ],
+            "embed": [
+                ".box/etc@etc"
+            ]
         }
     }
 }
