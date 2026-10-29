@@ -33,7 +33,7 @@
         <span :class="statusCss(tab)"></span>
         <span class="host-tab-label">{{ tabLabel(tab) }}</span>
         <span class="host-tab-port" v-if="tabPort(tab)">{{ tabPort(tab) }}</span>
-        <span class="host-tab-close" @click.stop="closeTab(tab)" title="Close">
+        <span :class="closeCss(tab)" @click.stop="closeTab(tab)" :title="canClose(tab) ? 'Close' : undefined">
           <icon src="close" :size="14" :opacity="0.7"></icon>
         </span>
       </div>
@@ -67,7 +67,6 @@ export default { name: "host-tabs" };
 import { computed, ref, defineProps, defineModel, onMounted, onUnmounted, nextTick, watch } from 'vue';
 
 const TABS_STORAGE = "flecs-explorer-host-tabs";
-const DISMISSED_STORAGE = "flecs-explorer-host-tabs-dismissed";
 const PLAYGROUND_HOST = "flecs_explorer.wasm";
 
 const props = defineProps({
@@ -84,7 +83,6 @@ const tabs = ref(loadList(TABS_STORAGE).map((tab) => ({
   seen: !!tab.seen,
   online: undefined
 })));
-const dismissed = ref(loadList(DISMISSED_STORAGE));
 const adding = ref(false);
 const editing = ref(undefined);
 const savedStates = new Map();
@@ -127,7 +125,6 @@ function saveTabs() {
     manual: tab.manual,
     seen: tab.seen
   })));
-  saveList(DISMISSED_STORAGE, dismissed.value);
 }
 
 const isPlayground = computed(() => {
@@ -147,7 +144,6 @@ function ensureCurrentTab() {
   if (!key) {
     return;
   }
-  dismissed.value = dismissed.value.filter((k) => k !== key);
   if (!tabs.value.find((tab) => tab.key === key)) {
     tabs.value.push({
       key: key,
@@ -168,10 +164,6 @@ function onHosts(hosts) {
     const key = flecs.normalizeHost(host.host);
     found.add(key);
 
-    if (dismissed.value.includes(key)) {
-      continue;
-    }
-
     const tab = tabs.value.find((t) => t.key === key);
     if (tab) {
       tab.name = host.name;
@@ -188,8 +180,6 @@ function onHosts(hosts) {
       });
     }
   }
-
-  dismissed.value = dismissed.value.filter((key) => found.has(key));
 
   tabs.value = tabs.value.filter((tab) => {
     if (found.has(tab.key)) {
@@ -377,19 +367,26 @@ function selectPlayground() {
   app_params.value.run_playground();
 }
 
+function canClose(tab) {
+  return tabStatus(tab) !== "online";
+}
+
+function closeCss(tab) {
+  const classes = ["host-tab-close"];
+  if (!canClose(tab)) {
+    classes.push("host-tab-close-hidden");
+  }
+  return classes;
+}
+
 function closeTab(tab) {
   const index = tabs.value.indexOf(tab);
-  if (index === -1) {
+  if (index === -1 || !canClose(tab)) {
     return;
   }
 
   const wasCurrent = isCurrent(tab);
   tabs.value.splice(index, 1);
-  if (tab.online !== false || wasCurrent) {
-    if (!dismissed.value.includes(tab.key)) {
-      dismissed.value.push(tab.key);
-    }
-  }
   saveTabs();
 
   if (wasCurrent) {
@@ -431,7 +428,6 @@ function confirmAdd() {
   }
 
   const key = flecs.normalizeHost(host);
-  dismissed.value = dismissed.value.filter((k) => k !== key);
 
   let tab = tabs.value.find((t) => t.key === key);
   if (tab) {
@@ -489,14 +485,7 @@ function confirmEdit(tab) {
   }
 
   const wasCurrent = isCurrent(tab);
-  const oldKey = tab.key;
-  savedStates.delete(oldKey);
-  if (tab.online !== false || wasCurrent) {
-    if (!dismissed.value.includes(oldKey)) {
-      dismissed.value.push(oldKey);
-    }
-  }
-  dismissed.value = dismissed.value.filter((k) => k !== key);
+  savedStates.delete(tab.key);
 
   let target = tabs.value.find((t) => t.key === key);
   if (target) {
@@ -710,6 +699,10 @@ div.host-tab-active span.host-tab-close {
 
 span.host-tab-close:hover {
   background-color: var(--bg-button-hover);
+}
+
+span.host-tab-close-hidden {
+  visibility: hidden;
 }
 
 div.host-tab-new,
