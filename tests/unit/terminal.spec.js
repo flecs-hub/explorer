@@ -85,6 +85,13 @@ test('widgetFor maps result types to widgets', () => {
   expect(T.widgetFor('remove', undefined)).toBeUndefined();
 });
 
+test('entityInfoCommand picks the command supported by the app', () => {
+  expect(T.entityInfoCommand(new Map([['cat', {}]]))).toBe('cat');
+  expect(T.entityInfoCommand(new Map([['inspect', {}]]))).toBe('inspect');
+  expect(T.entityInfoCommand(new Map())).toBe('cat');
+  expect(T.READONLY_COMMANDS.has('cat')).toBe(true);
+});
+
 test('sessionIndexPath strips generation', () => {
   expect(T.sessionIndexPath('4294967904')).toBe('#608');
   expect(T.sessionIndexPath('607')).toBe('#607');

@@ -57,7 +57,7 @@ function onClick(event) {
   } else if (event.altKey) {
     terminal.insert(rel);
   } else {
-    terminal.run("inspect " + rel);
+    terminal.run(T.entityInfoCommand(terminal.commands.value) + " " + rel);
   }
 }
 </script>

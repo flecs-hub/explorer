@@ -2,7 +2,7 @@ const flecsTerminal = {
   HELPER_LABEL: "flecs.explorer.helper",
 
   READONLY_COMMANDS: new Set([
-    "help", "ls", "tree", "inspect", "schema", "schema_value", "pwd", "get",
+    "help", "ls", "tree", "cat", "inspect", "schema", "schema_value", "pwd", "get",
     "man", "eval", "query", "find", "grep", "grep_i", "scripts", "script_read",
     "script_grep", "script_where", "script_errors", "script_diff", "pointer",
     "listeners"
@@ -460,6 +460,10 @@ const flecsTerminal = {
 
   sessionIndexPath(session) {
     return "#" + (Number(session) % 4294967296);
+  },
+
+  entityInfoCommand(commands) {
+    return commands && commands.has("inspect") ? "inspect" : "cat";
   },
 
   widgetFor(command, type) {
