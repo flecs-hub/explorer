@@ -54,12 +54,12 @@ const gridStyle = computed(() => {
 </script>
 
 <style>
-#page-terminal div.term-entities-grid {
+#terminal-pane div.term-entities-grid {
   display: grid;
   column-gap: 2ch;
 }
 
-#page-terminal div.term-entities-grid span.term-entity {
+#terminal-pane div.term-entities-grid span.term-entity {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

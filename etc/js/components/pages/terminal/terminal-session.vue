@@ -415,7 +415,6 @@ function openEntity(path) {
     return;
   }
   app_params.value.entities.path = path;
-  app_params.value.page = "entities";
 }
 
 function insert(text) {
@@ -500,7 +499,7 @@ onUnmounted(() => {
 </script>
 
 <style>
-#page-terminal div.terminal-session {
+#terminal-pane div.terminal-session {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -509,11 +508,11 @@ onUnmounted(() => {
   cursor: text;
 }
 
-#page-terminal div.terminal-content {
+#terminal-pane div.terminal-content {
   padding: 10px 14px 14px 14px;
 }
 
-#page-terminal div.terminal-ended {
+#terminal-pane div.terminal-ended {
   padding-top: 6px;
 }
 </style>

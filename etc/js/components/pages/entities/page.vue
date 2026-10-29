@@ -28,6 +28,7 @@
       ref="pane_content"
       v-model:tab="appParams.entities.tab"
       v-model:scripts="appParams.scripts"
+      v-model:app_params="appParams"
       @onCodeChange="onCodeChange"
       v-show="!rootEl?.centerPaneHidden">
     </pane-content>

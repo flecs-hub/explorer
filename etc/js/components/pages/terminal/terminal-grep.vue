@@ -58,7 +58,7 @@ function segments(text) {
 </script>
 
 <style>
-#page-terminal td.term-grep-text {
+#terminal-pane td.term-grep-text {
   white-space: pre;
   color: var(--term-muted);
 }

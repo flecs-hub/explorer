@@ -37,11 +37,11 @@ function shortName(path) {
 </script>
 
 <style>
-#page-terminal div.term-tree-line {
+#terminal-pane div.term-tree-line {
   white-space: pre;
 }
 
-#page-terminal span.term-tree-guide {
+#terminal-pane span.term-tree-guide {
   color: var(--border);
 }
 </style>

@@ -458,53 +458,53 @@ defineExpose({ focus, insert });
 </script>
 
 <style>
-#page-terminal div.terminal-prompt-block {
+#terminal-pane div.terminal-prompt-block {
   margin: 0;
 }
 
-#page-terminal div.terminal-prompt {
+#terminal-pane div.terminal-prompt {
   display: flex;
   align-items: flex-start;
 }
 
-#page-terminal span.terminal-ps1 {
+#terminal-pane span.terminal-ps1 {
   white-space: pre;
   flex-shrink: 0;
 }
 
-#page-terminal span.terminal-ps1-scope {
+#terminal-pane span.terminal-ps1-scope {
   color: var(--term-prompt);
   font-weight: bold;
 }
 
-#page-terminal span.terminal-ps1-sym {
+#terminal-pane span.terminal-ps1-sym {
   color: var(--primary-text);
 }
 
-#page-terminal div.terminal-prompt-bell span.terminal-cursor {
+#terminal-pane div.terminal-prompt-bell span.terminal-cursor {
   background-color: var(--term-error);
 }
 
-#page-terminal span.terminal-cursor {
+#terminal-pane span.terminal-cursor {
   background-color: var(--primary-text);
   color: var(--term-bg);
 }
 
-#page-terminal span.terminal-cursor-blur {
+#terminal-pane span.terminal-cursor-blur {
   background-color: transparent;
   color: inherit;
   outline: 1px solid var(--term-muted);
   outline-offset: -1px;
 }
 
-#page-terminal div.terminal-input {
+#terminal-pane div.terminal-input {
   position: relative;
   flex-grow: 1;
   min-width: 0;
 }
 
-#page-terminal pre.terminal-input-mirror,
-#page-terminal div.terminal-input textarea {
+#terminal-pane pre.terminal-input-mirror,
+#terminal-pane div.terminal-input textarea {
   font: var(--term-font);
   margin: 0;
   padding: 0;
@@ -515,7 +515,7 @@ defineExpose({ focus, insert });
   tab-size: 4;
 }
 
-#page-terminal pre.terminal-input-mirror {
+#terminal-pane pre.terminal-input-mirror {
   background: transparent;
   border-radius: 0;
   color: var(--primary-text);
@@ -523,7 +523,7 @@ defineExpose({ focus, insert });
   min-height: 1.45em;
 }
 
-#page-terminal div.terminal-input textarea {
+#terminal-pane div.terminal-input textarea {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -536,45 +536,45 @@ defineExpose({ focus, insert });
   caret-color: transparent;
 }
 
-#page-terminal div.terminal-input textarea::selection {
+#terminal-pane div.terminal-input textarea::selection {
   background-color: rgba(86, 168, 248, 0.35);
 }
 
-#page-terminal .term-in-cmd { color: var(--term-prompt); }
-#page-terminal .term-in-cmd-unknown { color: var(--term-error); }
-#page-terminal .term-in-string { color: var(--term-string); }
-#page-terminal .term-in-number { color: var(--term-number); }
-#page-terminal .term-in-variable { color: var(--yellow); }
-#page-terminal .term-in-group { color: var(--term-component); }
-#page-terminal .term-in-arg { color: var(--primary-text); }
-#page-terminal .term-in-ghost { color: var(--term-dim); opacity: 0.7; }
+#terminal-pane .term-in-cmd { color: var(--term-prompt); }
+#terminal-pane .term-in-cmd-unknown { color: var(--term-error); }
+#terminal-pane .term-in-string { color: var(--term-string); }
+#terminal-pane .term-in-number { color: var(--term-number); }
+#terminal-pane .term-in-variable { color: var(--yellow); }
+#terminal-pane .term-in-group { color: var(--term-component); }
+#terminal-pane .term-in-arg { color: var(--primary-text); }
+#terminal-pane .term-in-ghost { color: var(--term-dim); opacity: 0.7; }
 
-#page-terminal div.terminal-completions {
+#terminal-pane div.terminal-completions {
   display: flex;
   flex-wrap: wrap;
   gap: 2px 14px;
   padding: 4px 0 2px 0;
 }
 
-#page-terminal span.terminal-candidate {
+#terminal-pane span.terminal-candidate {
   cursor: pointer;
   padding: 0 3px;
   border-radius: 3px;
 }
 
-#page-terminal span.terminal-candidate-command {
+#terminal-pane span.terminal-candidate-command {
   color: var(--term-prompt);
 }
 
-#page-terminal span.terminal-candidate-entity {
+#terminal-pane span.terminal-candidate-entity {
   color: var(--primary-text);
 }
 
-#page-terminal span.terminal-candidate:hover {
+#terminal-pane span.terminal-candidate:hover {
   background-color: var(--hover-bg);
 }
 
-#page-terminal span.terminal-candidate-active {
+#terminal-pane span.terminal-candidate-active {
   background-color: var(--selected-bg);
   outline: 1px solid var(--selected-border);
 }

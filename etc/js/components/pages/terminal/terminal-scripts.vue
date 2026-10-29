@@ -45,7 +45,7 @@ const props = defineProps({
 </script>
 
 <style>
-#page-terminal td.term-scripts-error {
+#terminal-pane td.term-scripts-error {
   color: var(--term-error);
   white-space: pre-wrap;
   padding-left: 2ch;

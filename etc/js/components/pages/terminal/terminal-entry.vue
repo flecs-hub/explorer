@@ -265,11 +265,11 @@ function onCmdClick() {
 </script>
 
 <style>
-#page-terminal div.term-entry {
+#terminal-pane div.term-entry {
   padding: 0;
 }
 
-#page-terminal div.term-line {
+#terminal-pane div.term-line {
   position: relative;
   display: flex;
   align-items: flex-start;
@@ -278,31 +278,31 @@ function onCmdClick() {
   overflow-wrap: anywhere;
 }
 
-#page-terminal span.term-cmd {
+#terminal-pane span.term-cmd {
   cursor: pointer;
   min-width: 0;
 }
 
-#page-terminal div.term-hint {
+#terminal-pane div.term-hint {
   margin-bottom: 1.45em;
 }
 
-#page-terminal span.term-hint-cmd {
+#terminal-pane span.term-hint-cmd {
   color: var(--term-prompt);
   cursor: pointer;
 }
 
-#page-terminal span.term-hint-cmd:hover {
+#terminal-pane span.term-hint-cmd:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-#page-terminal div.term-entry-history div.term-line {
+#terminal-pane div.term-entry-history div.term-line {
   opacity: 0.55;
 }
 
 
-#page-terminal span.term-badges {
+#terminal-pane span.term-badges {
   position: absolute;
   top: 0;
   right: 0;
@@ -318,7 +318,7 @@ function onCmdClick() {
   background-color: var(--term-bg);
 }
 
-#page-terminal span.term-badge {
+#terminal-pane span.term-badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -328,12 +328,12 @@ function onCmdClick() {
   color: var(--term-dim);
 }
 
-#page-terminal span.term-badge-remote {
+#terminal-pane span.term-badge-remote {
   color: var(--purple);
   background-color: rgba(188, 137, 189, 0.12);
 }
 
-#page-terminal span.term-spinner {
+#terminal-pane span.term-spinner {
   width: 9px;
   height: 9px;
   border: 2px solid var(--term-dim);
@@ -342,27 +342,27 @@ function onCmdClick() {
   animation: spin 0.8s linear infinite;
 }
 
-#page-terminal div.term-output {
+#terminal-pane div.term-output {
   padding: 0;
   margin-bottom: 1.45em;
   overflow-x: auto;
 }
 
-#page-terminal div.term-output > *:last-child,
-#page-terminal div.term-output > * > *:last-child {
+#terminal-pane div.term-output > *:last-child,
+#terminal-pane div.term-output > * > *:last-child {
   margin-bottom: 0;
 }
 
-#page-terminal div.term-error-line {
+#terminal-pane div.term-error-line {
   white-space: pre-wrap;
 }
 
-#page-terminal span.term-error-msg {
+#terminal-pane span.term-error-msg {
   color: var(--primary-text);
 }
 
-#page-terminal pre.term-error-detail,
-#page-terminal pre.term-pre {
+#terminal-pane pre.term-error-detail,
+#terminal-pane pre.term-pre {
   font: var(--term-font);
   background: transparent;
   padding: 0;
@@ -372,27 +372,27 @@ function onCmdClick() {
   overflow-x: visible;
 }
 
-#page-terminal pre.term-error-detail {
+#terminal-pane pre.term-error-detail {
   color: var(--term-muted);
   padding-left: 2ch;
 }
 
-#page-terminal div.term-diff div {
+#terminal-pane div.term-diff div {
   white-space: pre;
 }
 
-#page-terminal div.term-diff-hunk { color: var(--cyan); }
-#page-terminal div.term-diff-file { color: var(--term-muted); font-weight: bold; }
-#page-terminal div.term-diff-add { color: var(--bright-green); background-color: rgba(66, 185, 131, 0.08); }
-#page-terminal div.term-diff-del { color: var(--bright-red); background-color: rgba(239, 135, 132, 0.08); }
-#page-terminal div.term-diff-context { color: var(--term-muted); }
+#terminal-pane div.term-diff-hunk { color: var(--cyan); }
+#terminal-pane div.term-diff-file { color: var(--term-muted); font-weight: bold; }
+#terminal-pane div.term-diff-add { color: var(--bright-green); background-color: rgba(66, 185, 131, 0.08); }
+#terminal-pane div.term-diff-del { color: var(--bright-red); background-color: rgba(239, 135, 132, 0.08); }
+#terminal-pane div.term-diff-context { color: var(--term-muted); }
 
-#page-terminal span.term-chip {
+#terminal-pane span.term-chip {
   display: inline-block;
   margin-right: 10px;
 }
 
-#page-terminal .term-warning {
+#terminal-pane .term-warning {
   color: var(--term-warning);
 }
 </style>

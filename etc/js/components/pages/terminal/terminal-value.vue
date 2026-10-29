@@ -119,7 +119,7 @@ const render = () => {
 </script>
 
 <style>
-#page-terminal span.term-value {
+#terminal-pane span.term-value {
   white-space: pre;
 }
 </style>

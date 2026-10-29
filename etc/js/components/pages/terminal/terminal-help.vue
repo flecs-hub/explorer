@@ -92,40 +92,40 @@ function use(c) {
 </script>
 
 <style>
-#page-terminal span.term-help-name {
+#terminal-pane span.term-help-name {
   color: var(--term-prompt);
   cursor: pointer;
 }
 
-#page-terminal span.term-help-name:hover {
+#terminal-pane span.term-help-name:hover {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 
-#page-terminal div.term-help-group {
+#terminal-pane div.term-help-group {
   margin-bottom: 1.45em;
 }
 
-#page-terminal div.term-help-group-name {
+#terminal-pane div.term-help-group-name {
   color: var(--term-scope);
   margin-bottom: 0;
 }
 
-#page-terminal div.term-help-group table.term-table {
+#terminal-pane div.term-help-group table.term-table {
   margin-left: 2ch;
 }
 
-#page-terminal div.term-help-brief {
+#terminal-pane div.term-help-brief {
   color: var(--term-muted);
   margin: 0;
 }
 
-#page-terminal td.term-help-param {
+#terminal-pane td.term-help-param {
   color: var(--primary-text);
   padding-left: 2ch;
 }
 
-#page-terminal div.term-help-footer {
+#terminal-pane div.term-help-footer {
   white-space: normal;
 }
 </style>

@@ -34,39 +34,39 @@ function shortName(path) {
 </script>
 
 <style>
-#page-terminal div.term-doc-title {
+#terminal-pane div.term-doc-title {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-#page-terminal span.term-doc-name {
+#terminal-pane span.term-doc-name {
   font-weight: bold;
 }
 
-#page-terminal span.term-doc-swatch {
+#terminal-pane span.term-doc-swatch {
   display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 2px;
 }
 
-#page-terminal div.term-doc-brief {
+#terminal-pane div.term-doc-brief {
   margin: 0 0 0 2ch;
   color: var(--primary-text);
 }
 
-#page-terminal div.term-doc-detail {
+#terminal-pane div.term-doc-detail {
   margin: 0 0 0 2ch;
   color: var(--term-muted);
   white-space: pre-wrap;
 }
 
-#page-terminal div.term-doc-link {
+#terminal-pane div.term-doc-link {
   margin: 0 0 0 2ch;
 }
 
-#page-terminal div.term-doc-link a {
+#terminal-pane div.term-doc-link a {
   color: var(--term-scope);
 }
 </style>

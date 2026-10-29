@@ -61,11 +61,11 @@ const gutterStyle = computed(() => {
 </script>
 
 <style>
-#page-terminal div.term-code-line {
+#terminal-pane div.term-code-line {
   white-space: pre;
 }
 
-#page-terminal span.term-code-gutter {
+#terminal-pane span.term-code-gutter {
   display: inline-block;
   text-align: right;
   color: var(--term-dim);
@@ -74,7 +74,7 @@ const gutterStyle = computed(() => {
   border-right: 1px solid var(--border);
 }
 
-#page-terminal div.term-code-gap {
+#terminal-pane div.term-code-gap {
   color: var(--term-dim);
   padding-left: 1ch;
 }

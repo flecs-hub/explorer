@@ -9,6 +9,13 @@
         :app_state="app_state">
       </entities-overview>
     </template>
+    <template v-slot:Terminal>
+      <terminal-pane
+        :conn="conn"
+        :app_state="app_state"
+        v-model:app_params="app_params">
+      </terminal-pane>
+    </template>
     <template v-slot:[script.label] v-for="script in scriptItems">
       <div class="script-container">
         <flecs-script
@@ -37,6 +44,7 @@ const props = defineProps({
 const emit = defineEmits(["onCodeChange"]);
 const activeTab = defineModel("tab");
 const scripts = defineModel("scripts");
+const app_params = defineModel("app_params");
 const changed = ref(false);
 
 defineExpose({
@@ -49,7 +57,7 @@ const scriptItems = computed(() => {
     label = label.replaceAll(".", "/");
     label = label.replaceAll("@@@", ".");
     label = label.split("/").pop();
-    return {label: label, value: script, canClose: true};
+    return {label: label, value: script, canClose: true, icon: "file-code"};
   });
 });
 
@@ -60,14 +68,23 @@ const items = computed(() => {
     result.push({
       label: "Scene",
       value: "Scene",
-      canClose: false
+      canClose: false,
+      icon: "device-camera-video"
     });
   }
 
   result.push({
     label: "Overview",
     value: "Overview",
-    canClose: false
+    canClose: false,
+    icon: "dashboard"
+  });
+
+  result.push({
+    label: "Terminal",
+    value: "Terminal",
+    canClose: false,
+    icon: "terminal"
   });
 
   for (let script of scriptItems.value) {

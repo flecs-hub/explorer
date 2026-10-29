@@ -1,26 +1,5 @@
 <template>
-  <pane-container
-    id="page-terminal"
-    class="page-content"
-    :showLeftPane="app_params.sidebar"
-    :showRightPane="false"
-    ref="rootEl">
-
-    <pane-tree
-      v-if="app_params.sidebar"
-      :conn="conn"
-      :paneResize="px => rootEl?.setLeftPaneWidth(px)"
-      v-model:app_params="app_params">
-    </pane-tree>
-
-    <splitter
-      v-if="app_params.sidebar"
-      :parent="rootEl"
-      :column="2"
-      :active="rootEl?.dragging === 'leftPane'"
-      @mousedown="rootEl.startDragging('leftPane')">
-    </splitter>
-
+  <div id="terminal-pane" ref="rootEl">
     <div class="terminal-frame">
       <div class="terminal-main">
         <terminal-session
@@ -55,7 +34,7 @@
         </div>
       </div>
 
-      <div class="terminal-panel" v-if="available && showSessions">
+      <div class="terminal-panel" v-if="available">
         <div class="terminal-panel-header">
           <span>Sessions</span>
           <span class="terminal-panel-button" title="New session" @click="newSession">
@@ -109,7 +88,7 @@
         </div>
       </div>
     </div>
-  </pane-container>
+  </div>
 </template>
 
 <script>
@@ -292,7 +271,7 @@ function stateFor(host, id) {
   return state;
 }
 
-export default { name: "page-terminal" };
+export default { name: "terminal-pane" };
 </script>
 
 <script setup>
@@ -313,6 +292,8 @@ const renameInput = ref(null);
 const confirmDelete = ref(undefined);
 let listTimer;
 let confirmTimer;
+let visibilityObserver;
+const visible = ref(false);
 
 const host = computed(() => props.conn.params.host);
 const helper = helperFor(props.conn);
@@ -325,8 +306,6 @@ const activeId = computed(() => {
   const id = app_params.value.terminal.session;
   return id === undefined || id === "" ? undefined : String(id);
 });
-
-const showSessions = computed(() => app_params.value.inspector !== false);
 
 const activeState = computed(() => activeId.value === undefined ?
   undefined : stateFor(host.value, activeId.value));
@@ -513,34 +492,38 @@ function init() {
 
 let initialized = false;
 function tryInit() {
-  if (!initialized && props.app_state.status == flecs.ConnectionStatus.Connected) {
+  if (!initialized && visible.value && props.app_state.status == flecs.ConnectionStatus.Connected) {
     initialized = true;
     init();
   }
 }
 
-watch(() => props.app_state.status, tryInit);
+watch(() => [props.app_state.status, visible.value], tryInit);
 
 onMounted(() => {
-  tryInit();
+  visibilityObserver = new IntersectionObserver((entries) => {
+    visible.value = entries.some((e) => e.isIntersecting);
+  });
+  visibilityObserver.observe(rootEl.value);
   listTimer = setInterval(() => {
-    if (available.value && props.app_state.status == flecs.ConnectionStatus.Connected) {
+    if (visible.value && available.value && props.app_state.status == flecs.ConnectionStatus.Connected) {
       refreshSessions();
     }
   }, 5000);
 });
 
 onUnmounted(() => {
+  visibilityObserver.disconnect();
   clearInterval(listTimer);
   clearTimeout(confirmTimer);
 });
 </script>
 
 <style>
-#page-terminal {
+#terminal-pane {
   display: grid;
   grid-template-rows: 100%;
-  height: calc(100vh - var(--header-height) - var(--footer-height) - 3 * var(--gap));
+  height: 100%;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
@@ -561,23 +544,21 @@ onUnmounted(() => {
   --term-font: 13px/1.45 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'Source Code Pro', 'source-code-pro', monospace;
 }
 
-#page-terminal div.terminal-frame {
+#terminal-pane div.terminal-frame {
   display: flex;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--border-radius-medium);
   overflow: hidden;
 }
 
-#page-terminal div.terminal-main {
+#terminal-pane div.terminal-main {
   position: relative;
   flex-grow: 1;
   min-width: 0;
   background-color: var(--term-bg);
 }
 
-#page-terminal div.terminal-panel {
+#terminal-pane div.terminal-panel {
   display: flex;
   flex-direction: column;
   width: 15rem;
@@ -587,7 +568,7 @@ onUnmounted(() => {
   font-size: 0.85rem;
 }
 
-#page-terminal div.terminal-panel-header {
+#terminal-pane div.terminal-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -600,23 +581,23 @@ onUnmounted(() => {
   color: var(--tertiary-text);
 }
 
-#page-terminal span.terminal-panel-button {
+#terminal-pane span.terminal-panel-button {
   display: flex;
   padding: 3px;
   border-radius: var(--border-radius-small);
   cursor: pointer;
 }
 
-#page-terminal span.terminal-panel-button:hover {
+#terminal-pane span.terminal-panel-button:hover {
   background-color: var(--hover-bg);
 }
 
-#page-terminal div.terminal-panel-list {
+#terminal-pane div.terminal-panel-list {
   flex-grow: 1;
   overflow-y: auto;
 }
 
-#page-terminal div.terminal-session-item {
+#terminal-pane div.terminal-session-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -627,21 +608,21 @@ onUnmounted(() => {
   user-select: none;
 }
 
-#page-terminal div.terminal-session-item:hover {
+#terminal-pane div.terminal-session-item:hover {
   background-color: var(--hover-bg);
 }
 
-#page-terminal div.terminal-session-active {
+#terminal-pane div.terminal-session-active {
   border-left-color: var(--green);
   background-color: var(--term-bg);
   color: var(--primary-text);
 }
 
-#page-terminal div.terminal-session-active:hover {
+#terminal-pane div.terminal-session-active:hover {
   background-color: var(--term-bg);
 }
 
-#page-terminal span.terminal-session-dot {
+#terminal-pane span.terminal-session-dot {
   width: 7px;
   height: 7px;
   flex-shrink: 0;
@@ -649,12 +630,12 @@ onUnmounted(() => {
   background-color: var(--green);
 }
 
-#page-terminal span.terminal-session-dot-running {
+#terminal-pane span.terminal-session-dot-running {
   background-color: var(--yellow);
   animation: terminal-pulse 0.8s ease-in-out infinite;
 }
 
-#page-terminal span.terminal-session-dot-ended {
+#terminal-pane span.terminal-session-dot-ended {
   background-color: var(--steel-500);
 }
 
@@ -663,27 +644,27 @@ onUnmounted(() => {
   50% { opacity: 0.3; }
 }
 
-#page-terminal div.terminal-session-text {
+#terminal-pane div.terminal-session-text {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
   min-width: 0;
 }
 
-#page-terminal span.terminal-session-label,
-#page-terminal span.terminal-session-scope {
+#terminal-pane span.terminal-session-label,
+#terminal-pane span.terminal-session-scope {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-#page-terminal span.terminal-session-scope {
+#terminal-pane span.terminal-session-scope {
   font: var(--term-font);
   font-size: 0.7rem;
   color: var(--tertiary-text);
 }
 
-#page-terminal input.terminal-session-input {
+#terminal-pane input.terminal-session-input {
   width: 100%;
   box-sizing: border-box;
   background-color: var(--bg-input);
@@ -695,37 +676,37 @@ onUnmounted(() => {
   outline: none;
 }
 
-#page-terminal span.terminal-session-delete {
+#terminal-pane span.terminal-session-delete {
   display: flex;
   padding: 3px;
   border-radius: var(--border-radius-small);
   opacity: 0;
 }
 
-#page-terminal div.terminal-session-item:hover span.terminal-session-delete,
-#page-terminal span.terminal-session-delete-confirm {
+#terminal-pane div.terminal-session-item:hover span.terminal-session-delete,
+#terminal-pane span.terminal-session-delete-confirm {
   opacity: 1;
 }
 
-#page-terminal span.terminal-session-delete:hover {
+#terminal-pane span.terminal-session-delete:hover {
   background-color: rgba(181, 73, 75, 0.3);
 }
 
-#page-terminal span.terminal-session-delete-confirm {
+#terminal-pane span.terminal-session-delete-confirm {
   background-color: rgba(181, 73, 75, 0.45);
 }
 
-#page-terminal div.terminal-panel-none {
+#terminal-pane div.terminal-panel-none {
   padding: 10px 12px;
   color: var(--tertiary-text);
 }
 
-#page-terminal div.terminal-panel-footer {
+#terminal-pane div.terminal-panel-footer {
   border-top: 1px solid var(--border);
   padding: 4px 0;
 }
 
-#page-terminal div.terminal-panel-action {
+#terminal-pane div.terminal-panel-action {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -734,12 +715,12 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-#page-terminal div.terminal-panel-action:hover {
+#terminal-pane div.terminal-panel-action:hover {
   background-color: var(--hover-bg);
   color: var(--primary-text);
 }
 
-#page-terminal div.terminal-empty {
+#terminal-pane div.terminal-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -749,18 +730,18 @@ onUnmounted(() => {
   color: var(--secondary-text);
 }
 
-#page-terminal div.terminal-empty-title {
+#terminal-pane div.terminal-empty-title {
   font-size: 1.1rem;
   color: var(--primary-text);
 }
 
-#page-terminal div.terminal-empty-text {
+#terminal-pane div.terminal-empty-text {
   max-width: 32rem;
   text-align: center;
   line-height: 1.5;
 }
 
-#page-terminal div.terminal-empty-new {
+#terminal-pane div.terminal-empty-new {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -772,39 +753,39 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-#page-terminal div.terminal-empty-new:hover {
+#terminal-pane div.terminal-empty-new:hover {
   border-color: var(--selected-border);
 }
 
-#page-terminal .term-dim { color: var(--term-dim); }
-#page-terminal .term-muted { color: var(--term-muted); }
-#page-terminal .term-error { color: var(--term-error); }
-#page-terminal .term-ok { color: var(--green); }
-#page-terminal .term-number { color: var(--term-number); }
-#page-terminal .term-string { color: var(--term-string); }
-#page-terminal .term-keyword { color: var(--term-keyword); }
-#page-terminal .term-key { color: var(--term-muted); }
-#page-terminal .term-component { color: var(--term-component); }
-#page-terminal .term-tag { color: var(--term-tag); }
-#page-terminal .term-punct { color: var(--term-dim); }
-#page-terminal .term-null { color: var(--term-dim); font-style: italic; }
-#page-terminal .term-match { background-color: var(--term-match); color: var(--yellow); border-radius: 2px; }
+#terminal-pane .term-dim { color: var(--term-dim); }
+#terminal-pane .term-muted { color: var(--term-muted); }
+#terminal-pane .term-error { color: var(--term-error); }
+#terminal-pane .term-ok { color: var(--green); }
+#terminal-pane .term-number { color: var(--term-number); }
+#terminal-pane .term-string { color: var(--term-string); }
+#terminal-pane .term-keyword { color: var(--term-keyword); }
+#terminal-pane .term-key { color: var(--term-muted); }
+#terminal-pane .term-component { color: var(--term-component); }
+#terminal-pane .term-tag { color: var(--term-tag); }
+#terminal-pane .term-punct { color: var(--term-dim); }
+#terminal-pane .term-null { color: var(--term-dim); font-style: italic; }
+#terminal-pane .term-match { background-color: var(--term-match); color: var(--yellow); border-radius: 2px; }
 
-#page-terminal .term-hl-comment { color: var(--term-dim); font-style: italic; }
-#page-terminal .term-hl-string { color: var(--term-string); }
-#page-terminal .term-hl-number { color: var(--term-number); }
-#page-terminal .term-hl-variable { color: var(--yellow); }
-#page-terminal .term-hl-keyword { color: var(--term-keyword); }
-#page-terminal .term-hl-type { color: var(--term-component); }
-#page-terminal .term-hl-ident { color: var(--primary-text); }
-#page-terminal .term-hl-punct { color: var(--term-muted); }
+#terminal-pane .term-hl-comment { color: var(--term-dim); font-style: italic; }
+#terminal-pane .term-hl-string { color: var(--term-string); }
+#terminal-pane .term-hl-number { color: var(--term-number); }
+#terminal-pane .term-hl-variable { color: var(--yellow); }
+#terminal-pane .term-hl-keyword { color: var(--term-keyword); }
+#terminal-pane .term-hl-type { color: var(--term-component); }
+#terminal-pane .term-hl-ident { color: var(--primary-text); }
+#terminal-pane .term-hl-punct { color: var(--term-muted); }
 
-#page-terminal table.term-table {
+#terminal-pane table.term-table {
   border-collapse: collapse;
   margin: 0;
 }
 
-#page-terminal table.term-table th {
+#terminal-pane table.term-table th {
   text-align: left;
   font-weight: normal;
   color: var(--term-muted);
@@ -812,26 +793,26 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-#page-terminal table.term-table td {
+#terminal-pane table.term-table td {
   padding: 0 16px 0 0;
   vertical-align: top;
   white-space: nowrap;
 }
 
-#page-terminal table.term-table tr:hover td {
+#terminal-pane table.term-table tr:hover td {
   background-color: rgba(255, 255, 255, 0.025);
 }
 
-#page-terminal span.term-more {
+#terminal-pane span.term-more {
   color: var(--term-scope);
   cursor: pointer;
 }
 
-#page-terminal span.term-more:hover {
+#terminal-pane span.term-more:hover {
   text-decoration: underline;
 }
 
-#page-terminal span.term-count {
+#terminal-pane span.term-count {
   color: var(--term-dim);
 }
 </style>

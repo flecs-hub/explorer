@@ -39,11 +39,11 @@ const ids = computed(() => props.info.ids || []);
 </script>
 
 <style>
-#page-terminal div.term-inspect-header span.term-entity {
+#terminal-pane div.term-inspect-header span.term-entity {
   font-weight: bold;
 }
 
-#page-terminal div.term-inspect-body {
+#terminal-pane div.term-inspect-body {
   margin-left: 2ch;
 }
 </style>

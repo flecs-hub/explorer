@@ -22,7 +22,7 @@ const props = defineProps({
 </script>
 
 <style>
-#page-terminal div.term-component-row {
+#terminal-pane div.term-component-row {
   white-space: pre;
 }
 </style>

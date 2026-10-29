@@ -63,20 +63,20 @@ function onClick(event) {
 </script>
 
 <style>
-#page-terminal span.term-entity {
+#terminal-pane span.term-entity {
   cursor: pointer;
   border-radius: 2px;
 }
 
-#page-terminal span.term-entity-entity {
+#terminal-pane span.term-entity-entity {
   color: var(--term-entity);
 }
 
-#page-terminal span.term-entity-component {
+#terminal-pane span.term-entity-component {
   color: var(--term-dim);
 }
 
-#page-terminal span.term-entity:hover {
+#terminal-pane span.term-entity:hover {
   color: var(--green);
   text-decoration: underline;
   text-underline-offset: 3px;

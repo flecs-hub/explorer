@@ -49,7 +49,7 @@ function shortName(path) {
 </script>
 
 <style>
-#page-terminal span.term-id {
+#terminal-pane span.term-id {
   white-space: nowrap;
 }
 </style>
