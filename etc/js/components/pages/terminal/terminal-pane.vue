@@ -67,24 +67,12 @@
                 <span class="terminal-session-scope">{{ scopeOf(s) }}</span>
               </template>
             </div>
-            <span :class="deleteCss(s)"
-              :title="confirmDelete === s.id ? 'Click again to end the session for all viewers' : 'End session'"
-              @click.stop="onDelete(s)">
-              <icon src="trash" :size="14" :opacity="confirmDelete === s.id ? 1.0 : 0.6"></icon>
+            <span class="terminal-session-delete" title="End session"
+              @click.stop="deleteSession(s.id)">
+              <icon src="trash" :size="14" :opacity="0.6"></icon>
             </span>
           </div>
           <div class="terminal-panel-none" v-if="!sessions.length">No sessions</div>
-        </div>
-
-        <div class="terminal-panel-footer" v-if="activeState && activeState.alive !== false">
-          <div class="terminal-panel-action" title="Clear the screen of this explorer (Ctrl+L)" @click="clearScreen">
-            <icon src="clear-all" :size="14" :opacity="0.7"></icon>
-            <span>Clear screen</span>
-          </div>
-          <div class="terminal-panel-action" title="Clear the session history for all viewers" @click="clearHistory">
-            <icon src="history" :size="14" :opacity="0.7"></icon>
-            <span>Clear history</span>
-          </div>
         </div>
       </div>
     </div>
@@ -261,7 +249,8 @@ function stateFor(host, id) {
       historySize: 256,
       entries: [],
       mirror: [],
-      pending: [],
+      local: [],
+      localCount: 0,
       draft: "",
       nextId: 1,
       chain: Promise.resolve()
@@ -289,9 +278,7 @@ const available = ref(undefined);
 const sessions = ref([]);
 const renaming = ref(undefined);
 const renameInput = ref(null);
-const confirmDelete = ref(undefined);
 let listTimer;
-let confirmTimer;
 let visibilityObserver;
 const visible = ref(false);
 
@@ -350,11 +337,6 @@ function dotCss(s) {
   return "terminal-session-dot";
 }
 
-function deleteCss(s) {
-  return confirmDelete.value === s.id ?
-    "terminal-session-delete terminal-session-delete-confirm" : "terminal-session-delete";
-}
-
 function activate(id) {
   app_params.value.terminal.session = id === undefined ? undefined : String(id);
 }
@@ -394,17 +376,6 @@ function confirmRename(s, event) {
   setTimeout(refreshSessions, 200);
 }
 
-function onDelete(s) {
-  if (confirmDelete.value !== s.id) {
-    confirmDelete.value = s.id;
-    clearTimeout(confirmTimer);
-    confirmTimer = setTimeout(() => confirmDelete.value = undefined, 3000);
-    return;
-  }
-  confirmDelete.value = undefined;
-  deleteSession(s.id);
-}
-
 function deleteSession(id) {
   props.conn.commandSessionDelete(id, () => {
     const index = sessions.value.findIndex((s) => s.id === id);
@@ -416,19 +387,6 @@ function deleteSession(id) {
     }
     refreshSessions();
   }, () => refreshSessions());
-}
-
-function clearScreen() {
-  if (activeState.value) {
-    activeState.value.entries = [{ id: activeState.value.nextId ++, origin: "hint" }];
-    activeState.value.focusRequest = (activeState.value.focusRequest || 0) + 1;
-  }
-}
-
-function clearHistory() {
-  if (activeState.value) {
-    activeState.value.runRequest = { cmd: "clear", n: Date.now() };
-  }
 }
 
 function onSessionEnded() {
@@ -515,7 +473,6 @@ onMounted(() => {
 onUnmounted(() => {
   visibilityObserver.disconnect();
   clearInterval(listTimer);
-  clearTimeout(confirmTimer);
 });
 </script>
 
@@ -683,8 +640,7 @@ onUnmounted(() => {
   opacity: 0;
 }
 
-#terminal-pane div.terminal-session-item:hover span.terminal-session-delete,
-#terminal-pane span.terminal-session-delete-confirm {
+#terminal-pane div.terminal-session-item:hover span.terminal-session-delete {
   opacity: 1;
 }
 
@@ -692,32 +648,9 @@ onUnmounted(() => {
   background-color: rgba(181, 73, 75, 0.3);
 }
 
-#terminal-pane span.terminal-session-delete-confirm {
-  background-color: rgba(181, 73, 75, 0.45);
-}
-
 #terminal-pane div.terminal-panel-none {
   padding: 10px 12px;
   color: var(--tertiary-text);
-}
-
-#terminal-pane div.terminal-panel-footer {
-  border-top: 1px solid var(--border);
-  padding: 4px 0;
-}
-
-#terminal-pane div.terminal-panel-action {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px;
-  color: var(--secondary-text);
-  cursor: pointer;
-}
-
-#terminal-pane div.terminal-panel-action:hover {
-  background-color: var(--hover-bg);
-  color: var(--primary-text);
 }
 
 #terminal-pane div.terminal-empty {

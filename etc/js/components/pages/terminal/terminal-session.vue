@@ -62,7 +62,7 @@ const T = flecsTerminal;
 const state = props.state;
 
 const history = computed(() => {
-  const list = state.mirror.concat(state.pending.filter((c) => c !== "clear"));
+  const list = state.mirror.concat(state.local.filter((c) => c !== "clear"));
   const result = [];
   for (const cmd of list) {
     if (cmd.trim().length && result[result.length - 1] !== cmd) {
@@ -111,7 +111,8 @@ function run(cmd) {
     cmd: text, scope: state.scope, status: "running", origin: "local",
     errors: [], time: Date.now()
   });
-  state.pending.push(text);
+  state.local.push(text);
+  state.localCount ++;
   state.running = (state.running || 0) + 1;
   stick = true;
 
@@ -128,10 +129,6 @@ function run(cmd) {
 function onReply(entry, reply) {
   applyReply(entry, reply);
   if (reply.error === "invalid command session") {
-    const i = state.pending.indexOf(entry.cmd);
-    if (i !== -1) {
-      state.pending.splice(i, 1);
-    }
     sessionEnded();
     return;
   }
@@ -144,10 +141,7 @@ function onReply(entry, reply) {
     const i = state.entries.indexOf(entry);
     state.entries = [helpHint()].concat(i !== -1 ? state.entries.slice(i + 1) : []);
     state.mirror = [];
-    const p = state.pending.indexOf("clear");
-    if (p !== -1) {
-      state.pending.splice(p, 1);
-    }
+    state.local = state.local.slice(state.local.indexOf("clear") + 1);
   } else if (name === "help" && !T.args(entry.cmd).length && Array.isArray(reply.result)) {
     props.helper.setCommands(reply.result);
   }
@@ -190,7 +184,6 @@ function replay(entries, scope) {
       entry.scope = r.scope;
       if (run) {
         applyReply(entry, r.reply);
-        entry.replayed = true;
       }
     }, () => {
       entry.status = "remote";
@@ -206,6 +199,7 @@ function applyRemote(value) {
 
   if (!state.synced) {
     state.mirror = remote.slice();
+    state.local = [];
     if (!state.entries.length && remote.length) {
       const entries = remote.map((cmd) => ({
         entry: addEntry({ cmd: cmd, status: "history", origin: "history", errors: [] })
@@ -223,7 +217,7 @@ function applyRemote(value) {
 
   const diff = T.historyDiff(state.mirror, remote, state.historySize);
   if (diff.cleared) {
-    const ours = state.pending.indexOf("clear") !== -1;
+    const ours = state.local.indexOf("clear") !== -1;
     state.entries = state.entries.filter((e) => e.status === "running" && e.origin === "local");
     if (!ours) {
       addEntry({ origin: "system", text: "session history was cleared by another viewer" });
@@ -232,14 +226,15 @@ function applyRemote(value) {
 
   const added = [];
   for (const cmd of diff.added) {
-    const i = state.pending.indexOf(cmd);
-    if (i !== -1 && state.pending.slice(0, i).every((c) => c === "clear")) {
-      state.pending.splice(i, 1);
+    const i = state.local.indexOf(cmd);
+    if (i !== -1) {
+      state.local.splice(i, 1);
       continue;
     }
     added.push(cmd);
   }
   state.mirror = remote.slice();
+  state.local = [];
 
   const replayable = [];
   added.forEach((cmd, i) => {
@@ -267,17 +262,21 @@ function applyRemote(value) {
 }
 
 function poll() {
-  if (polling || state.alive === false) {
+  if (polling || state.running || state.alive === false) {
     return;
   }
   if (props.app_state.status != flecs.ConnectionStatus.Connected) {
     return;
   }
   polling = true;
+  const localCount = state.localCount;
   props.conn.get(T.sessionIndexPath(state.id),
     { component: "flecs.script.command.CommandSession" },
     (value) => {
       polling = false;
+      if (state.running || state.localCount !== localCount) {
+        return;
+      }
       applyRemote(value || {});
     }, (err) => {
       polling = false;
@@ -463,14 +462,6 @@ function onMouseUp(event) {
   }
   focusPrompt();
 }
-
-watch(() => state.runRequest, (req) => {
-  if (req) {
-    run(req.cmd);
-  }
-});
-
-watch(() => state.focusRequest, () => nextTick(focusPrompt));
 
 onMounted(() => {
   poll();

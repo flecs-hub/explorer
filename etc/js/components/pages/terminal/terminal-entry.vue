@@ -13,17 +13,8 @@
           v-for="(t, i) in cmdTokens" :key="i"
           :class="t.cls ? 'term-in-' + t.cls : ''">{{ t.text }}</span></span>
         <span class="term-dim" v-if="entry.interrupted">^C</span>
-        <span class="term-badges noselect" v-if="showBadges">
-          <span class="term-badge term-badge-remote" v-if="entry.origin === 'remote'"
-            title="This command was run by another viewer of the session">
-            <icon src="broadcast" :size="12" :opacity="0.8"></icon>
-            <span>other viewer</span>
-          </span>
-          <span class="term-badge" v-if="entry.replayed"
-            title="Output was evaluated again by this explorer, and may differ from what the other viewer saw">re-evaluated</span>
-          <span class="term-badge" v-if="entry.origin === 'remote' && entry.status === 'remote'"
-            title="Commands that change the world are not evaluated again">output not shown</span>
-          <span class="term-spinner" v-if="entry.status === 'running'"></span>
+        <span class="term-badges noselect" v-if="entry.status === 'running'">
+          <span class="term-spinner"></span>
         </span>
       </div>
 
@@ -173,9 +164,6 @@ const entryCss = computed(() => {
   if (props.entry.origin === "history") {
     result += " term-entry-history";
   }
-  if (props.entry.origin === "remote") {
-    result += " term-entry-remote";
-  }
   if (props.entry.status === "error") {
     result += " term-entry-error";
   }
@@ -209,9 +197,6 @@ const hasOutput = computed(() => {
   }
   return true;
 });
-
-const showBadges = computed(() => props.entry.origin === "remote" ||
-  props.entry.status === "running");
 
 const linesResult = computed(() => {
   const r = props.entry.result;
@@ -321,21 +306,6 @@ function onCmdClick() {
   line-height: 1;
   white-space: nowrap;
   background-color: var(--term-bg);
-}
-
-#terminal-pane span.term-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  padding: 0 6px;
-  border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.05);
-  color: var(--term-dim);
-}
-
-#terminal-pane span.term-badge-remote {
-  color: var(--purple);
-  background-color: rgba(188, 137, 189, 0.12);
 }
 
 #terminal-pane span.term-spinner {
