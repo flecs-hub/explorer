@@ -42,13 +42,13 @@ const treeRefs = {};
 
 const items = computed(() => {
   let result = [
-    { label: "Entities", value: "Entities", canClose: false },
-    { label: "Singletons", value: "Singletons", canClose: false },
-    { label: "Scripts", value: "Scripts", canClose: false }
+    { label: "Entities", value: "Entities", canClose: false, icon: "list-tree" },
+    { label: "Singletons", value: "Singletons", canClose: false, icon: "symbol-constant" },
+    { label: "Scripts", value: "Scripts", canClose: false, icon: "file-code" }
   ];
 
   if (appParams.value.script) {
-    result.push({ label: "Outline", value: "Outline", canClose: false });
+    result.push({ label: "Outline", value: "Outline", canClose: false, icon: "symbol-structure" });
   }
 
   return result;

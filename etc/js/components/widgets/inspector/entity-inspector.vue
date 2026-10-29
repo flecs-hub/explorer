@@ -238,7 +238,8 @@ const items = computed(() => {
   result.push({
     label: "Inspect",
     value: "Inspect",
-    canClose: false
+    canClose: false,
+    icon: "inspect"
   });
 
   if (isScript.value || inspectorMode.value == "Script") {
@@ -246,6 +247,7 @@ const items = computed(() => {
       label: "Script",
       value: "Script",
       canClose: false,
+      icon: "file-code",
       changed: scriptChanged.value
     });
   }
@@ -254,14 +256,16 @@ const items = computed(() => {
     result.push({
       label: "Query",
       value: "Query",
-      canClose: false
+      canClose: false,
+      icon: "search"
     });
   }
 
   result.push({
     label: "Info",
     value: "Info",
-    canClose: false
+    canClose: false,
+    icon: "info"
   });
 
   return result;
