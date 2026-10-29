@@ -53,6 +53,7 @@ const scrollEl = ref(null);
 const contentEl = ref(null);
 const promptEl = ref(null);
 let stick = true;
+let autoScrollTop = 0;
 let polling = false;
 let pollTimer;
 let resizeObserver;
@@ -440,13 +441,15 @@ provide("terminal", {
 
 function onScroll() {
   const el = scrollEl.value;
-  stick = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+  stick = el.scrollTop >= autoScrollTop ||
+    el.scrollHeight - el.scrollTop - el.clientHeight < 40;
 }
 
 function scrollToBottom() {
   const el = scrollEl.value;
   if (el) {
     el.scrollTop = el.scrollHeight;
+    autoScrollTop = el.scrollTop;
   }
 }
 
