@@ -1092,7 +1092,7 @@ const flecs = {
                       if (reply) {
                         const replyObj = JSON.parse(reply);
                         if (replyObj.error) {
-                          this.status = replyObj.status;
+                          this.status = replyObj.status || 400;
                         }
                       }
 
