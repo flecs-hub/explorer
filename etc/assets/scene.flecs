@@ -7,11 +7,11 @@ using flecs.script.*
 using flecs.components.*
 using flecs.game
 
-const rng = Rng: {} // Random number generator
+const rng: Rng = {} // Random number generator
 
 @tree Parent
 template Tree {
-  prop height: 1
+  prop height = 1
 
   const trunkY = 0.5
   const canopyY = height - trunkY
@@ -20,7 +20,8 @@ template Tree {
     Position3: {0, trunkY / 2, 0}
     Rgb: {0.08, 0.03, 0.0}
     Box: {0.1, trunkY, 0.1}
-  } {
+  }
+  {
     Position3: {0, trunkY + canopyY / 2, 0}
     Rgb: {0.1, 0.2, 0.06}
     Box: {0.5, canopyY, 0.5}
@@ -29,7 +30,7 @@ template Tree {
 
 @tree Parent
 template Pavement {
-  prop width: 5.0
+  prop width = 5.0
 
   Box: {width, 0.1, width}
   Rgb: {0.2, 0.2, 0.2}
@@ -49,12 +50,12 @@ template Pavement {
 
 @tree Parent
 template Building {
-  prop width: 4
-  prop floors: 8
-  prop windows: 3
-  prop windowSpacing: 0.4
-  prop floorThickness: 0.6
-  prop color = Rgb: {0.3, 0.3, 0.3}
+  prop width = 4
+  prop floors = 8
+  prop windows = 3
+  prop windowSpacing = 0.4
+  prop floorThickness = 0.6
+  prop color: Rgb = {0.3, 0.3, 0.3}
 
   // Single blue box for the windows
   {
@@ -65,11 +66,11 @@ template Building {
   }
 
   const pillars = windows + 2
-  const wallW: width - windowSpacing
-  const wallWH: wallW / 2
-  const spacing: wallW / (pillars - 1)
+  const wallW = width - windowSpacing
+  const wallWH = wallW / 2
+  const spacing = wallW / (pillars - 1)
 
-  with $color {
+  with Rgb(color.r, color.g, color.b) {
     // Floors
     for i in 0..floors {{
       Position3: {0, y: 2 * i + 2, 0}
@@ -82,7 +83,8 @@ template Building {
         p * spacing - wallWH, floors
       }
       Box: {windowSpacing, floors * 2, width}
-    }{
+    }
+    {
       Position3: {
         0, floors, p * spacing - wallWH
       }
@@ -101,12 +103,12 @@ template Building {
 
 // City template
 template City {
-  prop gridSize: 15
-  prop blockWidth: 15
-  prop pavementWidth: 12
-  prop buildingWidth: 8
-  prop maxFloors: 26
-  prop varFloors: 4
+  prop gridSize = 15
+  prop blockWidth = 15
+  prop pavementWidth = 12
+  prop buildingWidth = 8
+  prop maxFloors = 26
+  prop varFloors = 4
 
   const gridSizeH = gridSize / 2
 
@@ -123,14 +125,14 @@ template City {
   // The city grid
   for x in 0 .. gridSize {
     for y in 0 .. gridSize {
-      const xR: x - gridSizeH
-      const yR: y - gridSizeH
-      const xS: 1.0 - (abs(xR + 0.5) / gridSizeH)
-      const yS: 1.0 - (abs(yR + 0.5) / gridSizeH)
-      const baseY: pow(xS, 2) * pow(yS, 2) * maxFloors
-      const xP: xR * blockWidth + blockWidth / 2
-      const yP: yR * blockWidth + blockWidth / 2
-      const rgb: rng.f(0.5) + 0.05
+      const xR = x - gridSizeH
+      const yR = y - gridSizeH
+      const xS = 1.0 - (abs(xR + 0.5) / gridSizeH)
+      const yS = 1.0 - (abs(yR + 0.5) / gridSizeH)
+      const baseY = pow(xS, 2) * pow(yS, 2) * maxFloors
+      const xP = xR * blockWidth + blockWidth / 2
+      const yP = yR * blockWidth + blockWidth / 2
+      const rgb = rng.f(0.5) + 0.05
 
       // Pavement
       Pavement(pavementWidth) {

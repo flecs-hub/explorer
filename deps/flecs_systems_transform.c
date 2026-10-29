@@ -202,18 +202,18 @@ void FlecsSystemsTransformImport(
 
     ecs_system(world, {
         .entity = ecs_entity(world, { 
-            .name = "EcsApplyTransform3",
-            .add = ecs_ids( ecs_dependson(EcsOnValidate) )
+            .name = "EcsApplyTransform3"
         }),
+        .phase = EcsOnValidate,
         .run = EcsApplyTransform3,
         .ctx = ctx
     });
 
     ecs_system(world, {
         .entity = ecs_entity(world, { 
-            .name = "EcsApplyTransformOnce3",
-            .add = ecs_ids( ecs_dependson(EcsOnValidate) )
+            .name = "EcsApplyTransformOnce3"
         }),
+        .phase = EcsOnValidate,
         .query = {
             .terms = {{ 
                 .id = ecs_id(EcsTransform3),

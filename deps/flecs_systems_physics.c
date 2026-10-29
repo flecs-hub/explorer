@@ -251,8 +251,8 @@ cube_t *new_cube(
 {
     cube_t *result = NULL;
     if (!ecs_vec_count(&ot->free_cubes)) {
-        result = ecs_sparse_add_t(&ot->cubes, cube_t);
-        result->id = (int32_t)ecs_sparse_last_id(&ot->cubes);
+        result = flecs_sparse_add_t(&ot->cubes, cube_t);
+        result->id = (int32_t)flecs_sparse_last_id(&ot->cubes);
     } else {
         result = ecs_vec_last_t(&ot->free_cubes, cube_t*)[0];
         ecs_vec_remove_last(&ot->free_cubes);
@@ -576,7 +576,7 @@ ecs_octree_t* ecs_octree_new(
     ecs_octree_t *result = ecs_os_calloc(sizeof(ecs_octree_t));
     glm_vec3_copy(center, result->center);
     result->size = size;
-    ecs_sparse_init_t(&result->cubes, cube_t);
+    flecs_sparse_init_t(&result->cubes, NULL, NULL, cube_t);
     return result;
 }
 
@@ -588,9 +588,9 @@ void ecs_octree_clear(
     /* Keep existing cubes intact so that we can reuse them when the octree is
      * repopulated. This lets us keep the entity vectors, and should cause the
      * octree memory to stabilize eventually. */
-    int32_t i, count = ecs_sparse_count(&ot->cubes);
+    int32_t i, count = flecs_sparse_count(&ot->cubes);
     for (i = 0; i < count; i ++) {
-        cube_t *cube = ecs_sparse_get_dense_t(&ot->cubes, cube_t, i);
+        cube_t *cube = flecs_sparse_get_dense_t(&ot->cubes, cube_t, i);
         ecs_vec_clear(&cube->entities);
         ecs_os_memset_n(cube->nodes, 0, cube_t*, 8);
 

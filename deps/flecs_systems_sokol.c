@@ -32624,13 +32624,15 @@ void FlecsSystemsSokolGeometryImport(
         Geometry, GeometryQuery);
 
     /* Support for rectangle primitive */
-    ECS_ENTITY_DEFINE(world, SokolRectangleGeometry, Geometry);
+    ECS_TAG_DEFINE(world, SokolRectangleGeometry);
+    ecs_add(world, SokolRectangleGeometry, SokolGeometry);
         ecs_set(world, SokolRectangleGeometry, SokolGeometryQuery, {
             .component = ecs_id(EcsRectangle)
         });
 
     /* Support for box primitive */
-    ECS_ENTITY_DEFINE(world, SokolBoxGeometry, Geometry);
+    ECS_TAG_DEFINE(world, SokolBoxGeometry);
+    ecs_add(world, SokolBoxGeometry, SokolGeometry);
         ecs_set(world, SokolBoxGeometry, SokolGeometryQuery, {
             .component = ecs_id(EcsBox)
         });
