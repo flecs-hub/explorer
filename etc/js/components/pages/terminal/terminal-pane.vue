@@ -16,8 +16,8 @@
         <div class="terminal-empty" v-else-if="available === false">
           <div class="terminal-empty-title">Terminal is not available</div>
           <div class="terminal-empty-text">
-            The connected application does not have the script command addon.
-            Build Flecs with <code>FLECS_SCRIPT_COMMAND</code> and enable the REST API to use the terminal.
+            The connected application does not have the script shell addon.
+            Build Flecs with <code>FLECS_SCRIPT_SHELL</code> and enable the REST API to use the terminal.
           </div>
         </div>
 

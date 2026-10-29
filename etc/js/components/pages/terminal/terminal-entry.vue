@@ -4,7 +4,7 @@
       <span class="term-dim">&#x2500;&#x2500; {{ entry.text }} &#x2500;&#x2500;</span>
     </div>
     <div class="term-hint" v-else-if="entry.origin === 'hint'">
-      <span class="term-dim">type </span><span class="term-hint-cmd" title="Click to run help" @click.stop="terminal.run('help')">help</span><span class="term-dim"> for a list of possible commands</span>
+      <span class="term-hint-title">Flecs Shell</span> <span class="term-dim">type </span><span class="term-hint-cmd" title="Click to run help" @click.stop="terminal.run('help')">help</span><span class="term-dim"> for a list of possible commands</span>
     </div>
     <template v-else>
       <div class="term-line">
@@ -285,6 +285,11 @@ function onCmdClick() {
 
 #terminal-pane div.term-hint {
   margin-bottom: 1.45em;
+}
+
+#terminal-pane span.term-hint-title {
+  font-weight: bold;
+  margin-right: 0.5em;
 }
 
 #terminal-pane span.term-hint-cmd {
