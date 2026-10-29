@@ -33,6 +33,19 @@ test('historyDiff handles truncated history', () => {
   expect(T.historyDiff(['a', 'b', 'c'], ['c', 'd', 'e'], 3)).toEqual({ added: ['d', 'e'], cleared: false });
 });
 
+test('matchResults pairs commands with stored results in order', () => {
+  const r = (n) => ({ scope: '#0', result: n, errors: [] });
+  expect(T.matchResults(['a', 'b'], ['a', 'b'], [r(1), r(2)])).toEqual([r(1), r(2)]);
+  expect(T.matchResults(['a', 'c'], ['a', 'b', 'c'], [r(1), r(2), r(3)])).toEqual([r(1), r(3)]);
+  expect(T.matchResults(['a', 'a'], ['a', 'a'], [r(1), r(2)])).toEqual([r(1), r(2)]);
+});
+
+test('matchResults returns undefined for missing results', () => {
+  expect(T.matchResults(['a', 'b'], ['a', 'b'], [])).toEqual([undefined, undefined]);
+  expect(T.matchResults(['a', 'b'], ['a', 'b'], [null, { errors: [] }])).toEqual([undefined, { errors: [] }]);
+  expect(T.matchResults(['x', 'a'], ['a'], [{ errors: [] }])).toEqual([undefined, undefined]);
+});
+
 test('treeLines draws guides', () => {
   const lines = T.treeLines([
     { entity: 'a', depth: 0 },

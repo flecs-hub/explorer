@@ -148,6 +148,19 @@ const flecsTerminal = {
     return { added: remote.slice(), cleared: mirror.length > 0 };
   },
 
+  matchResults(cmds, history, results) {
+    const matched = [];
+    let j = 0;
+    for (const cmd of cmds) {
+      while (j < history.length && history[j] !== cmd) {
+        j ++;
+      }
+      matched.push(results[j] || undefined);
+      j ++;
+    }
+    return matched;
+  },
+
   isRoot(path) {
     return !path || path === "#0" || path === "0";
   },

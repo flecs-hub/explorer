@@ -148,6 +148,31 @@ function onReply(entry, reply) {
   }
 }
 
+function loadResults(entries, offset, fallback) {
+  props.conn.commandSessionHistory(state.id, { results: true, offset: offset }, (reply) => {
+    const history = Array.isArray(reply.history) ? reply.history : [];
+    const results = Array.isArray(reply.results) ? reply.results : [];
+    const matched = T.matchResults(entries.map((item) => item.entry.cmd), history, results);
+    const missing = [];
+    entries.forEach((item, i) => {
+      const stored = matched[i];
+      if (stored && state.entries.indexOf(item.entry) !== -1) {
+        item.entry.scope = stored.scope;
+        applyReply(item.entry, stored);
+      } else {
+        missing.push(item);
+      }
+    });
+    if (fallback && missing.length) {
+      fallback(missing);
+    }
+  }, () => {
+    if (fallback) {
+      fallback(entries);
+    }
+  });
+}
+
 function replay(entries, scope) {
   let first = true;
   for (const { entry, run } of entries) {
@@ -176,10 +201,11 @@ function applyRemote(value) {
 
   if (!state.synced) {
     state.mirror = remote.slice();
-    if (!state.entries.length) {
-      for (const cmd of remote) {
-        addEntry({ cmd: cmd, status: "history", origin: "history", errors: [] });
-      }
+    if (!state.entries.length && remote.length) {
+      const entries = remote.map((cmd) => ({
+        entry: addEntry({ cmd: cmd, status: "history", origin: "history", errors: [] })
+      }));
+      loadResults(entries, 0);
     }
     state.scope = scope;
     state.virtualScope = scope;
@@ -211,7 +237,7 @@ function applyRemote(value) {
   const replayable = [];
   added.forEach((cmd, i) => {
     const entry = addEntry({
-      cmd: cmd, scope: state.virtualScope, status: "remote", origin: "remote",
+      cmd: cmd, scope: state.virtualScope, status: "running", origin: "remote",
       errors: [], time: Date.now()
     });
     const name = T.commandName(cmd);
@@ -220,7 +246,13 @@ function applyRemote(value) {
   });
 
   if (replayable.length) {
-    replay(replayable, state.virtualScope);
+    const virtualScope = state.virtualScope;
+    loadResults(replayable, remote.length - diff.added.length, (missing) => {
+      for (const item of missing) {
+        item.entry.status = "remote";
+      }
+      replay(missing, virtualScope);
+    });
   }
 
   state.virtualScope = scope;
