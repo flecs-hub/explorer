@@ -349,6 +349,9 @@ function resetHostParams() {
   params.entities.inspector_tab = "Inspect";
   params.entities.info_mode = undefined;
   params.entities.path = undefined;
+  if (params.terminal) {
+    params.terminal.session = undefined;
+  }
 }
 
 function selectHost(tab) {

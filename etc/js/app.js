@@ -41,6 +41,9 @@ const defaultAppParams = {
   internals: {
     path: undefined,
   },
+  terminal: {
+    session: undefined,
+  },
   rest: {
     endpoint: "world",
     method: "GET",
@@ -308,6 +311,25 @@ const PAGE_COMPONENTS = {
     'js/components/pages/internals/build.vue',
     'js/components/pages/internals/connection.vue',
     'js/components/pages/internals/natvis.vue',
+  ],
+  terminal: [
+    'js/components/pages/terminal/page.vue',
+    'js/components/pages/terminal/terminal-session.vue',
+    'js/components/pages/terminal/terminal-prompt.vue',
+    'js/components/pages/terminal/terminal-entry.vue',
+    'js/components/pages/terminal/terminal-value.vue',
+    'js/components/pages/terminal/terminal-entity.vue',
+    'js/components/pages/terminal/terminal-id.vue',
+    'js/components/pages/terminal/terminal-component.vue',
+    'js/components/pages/terminal/terminal-entities.vue',
+    'js/components/pages/terminal/terminal-tree.vue',
+    'js/components/pages/terminal/terminal-query.vue',
+    'js/components/pages/terminal/terminal-help.vue',
+    'js/components/pages/terminal/terminal-inspect.vue',
+    'js/components/pages/terminal/terminal-doc.vue',
+    'js/components/pages/terminal/terminal-grep.vue',
+    'js/components/pages/terminal/terminal-scripts.vue',
+    'js/components/pages/terminal/terminal-code.vue',
   ],
   rest: [
     'js/components/pages/rest/page.vue',

@@ -587,6 +587,33 @@ const flecs = {
           return this._.request(this, "PUT", "action/" + action, {}, recv, err);
         },
 
+        commandSessionCreate: function(recv, err) {
+          return this._.request(this, "PUT", "command/session", {},
+            (msg) => { if (recv) recv(this._.parseReply(msg)); },
+            (msg) => { if (err) err(this._.parseReply(msg)); });
+        },
+
+        commandSessionDelete: function(session, recv, err) {
+          return this._.request(this, "DELETE", "command/session/" + session, {},
+            (msg) => { if (recv) recv(this._.parseReply(msg)); },
+            (msg) => { if (err) err(this._.parseReply(msg)); });
+        },
+
+        commandSessionHistory: function(session, params, recv, err) {
+          return this._.request(this, "GET",
+            "command/session/" + session + "/history", params || {},
+            (msg) => { if (recv) recv(this._.parseReply(msg)); },
+            (msg) => { if (err) err(this._.parseReply(msg)); });
+        },
+
+        commandRun: function(session, cmd, params, recv, err) {
+          if (!params) params = {};
+          params.payload = cmd;
+          return this._.request(this, "PUT", "command/session/" + session, params,
+            (msg) => { if (recv) recv(this._.parseReply(msg)); },
+            (msg) => { if (err) err(this._.parseReply(msg)); });
+        },
+
         // Other REST endpoints
         request: function(path, params, recv, err, abort) {
           return this._.request(this, "GET", path, params, 
@@ -615,6 +642,17 @@ const flecs = {
               if (pub.params.on_status) {
                 pub.params.on_status(status);
               }
+            }
+          },
+
+          parseReply(msg) {
+            if (!msg) {
+              return {};
+            }
+            try {
+              return JSON.parse(msg);
+            } catch (e) {
+              return { error: msg };
             }
           },
 
