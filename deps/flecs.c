@@ -115767,7 +115767,7 @@ static void flecs_command_tree(
     }
 }
 
-static void flecs_command_inspect(
+static void flecs_command_cat(
     const ecs_function_ctx_t *ctx,
     int32_t argc,
     const ecs_value_t *argv,
@@ -115990,21 +115990,28 @@ static void flecs_command_add(
     *(ecs_id_t*)result->ptr = id;
 }
 
-static void flecs_command_remove(
+static void flecs_command_rm(
     const ecs_function_ctx_t *ctx,
     int32_t argc,
     const ecs_value_t *argv,
     ecs_value_t *result)
 {
-    (void)argc;
     (void)result;
     ecs_entity_t e = flecs_command_arg(argv, 0, ecs_entity_t);
-    ecs_id_t id = flecs_command_arg(argv, 1, ecs_id_t);
-    if (!flecs_command_check_alive(ctx, e) || !flecs_command_check_id(ctx, id)) {
+    if (!flecs_command_check_alive(ctx, e)) {
         return;
     }
 
-    ecs_remove_id(ctx->world, e, id);
+    if (argc > 1) {
+        ecs_id_t id = flecs_command_arg(argv, 1, ecs_id_t);
+        if (!flecs_command_check_id(ctx, id)) {
+            return;
+        }
+
+        ecs_remove_id(ctx->world, e, id);
+    } else {
+        ecs_delete(ctx->world, e);
+    }
 }
 
 static void flecs_command_new(
@@ -116036,22 +116043,6 @@ static void flecs_command_new(
     }
 
     *(ecs_entity_t*)result->ptr = e;
-}
-
-static void flecs_command_delete(
-    const ecs_function_ctx_t *ctx,
-    int32_t argc,
-    const ecs_value_t *argv,
-    ecs_value_t *result)
-{
-    (void)argc;
-    (void)result;
-    ecs_entity_t e = flecs_command_arg(argv, 0, ecs_entity_t);
-    if (!flecs_command_check_alive(ctx, e)) {
-        return;
-    }
-
-    ecs_delete(ctx->world, e);
 }
 
 static void flecs_command_mv(
@@ -116399,9 +116390,9 @@ void flecs_command_core_import(
             "Descendants in preorder", {
             { "scope", entity_t, true,
                 "Scope to list (default: session scope)" }}},
-        { "inspect", flecs_command_inspect, ecs_id(ecs_command_entity_info_t),
+        { "cat", flecs_command_cat, ecs_id(ecs_command_entity_info_t),
             "Id, components with values, and ids without values", {
-            { "entity", entity_t, false, "Entity to inspect" }}},
+            { "entity", entity_t, false, "Entity to show" }}},
         { "schema", flecs_command_schema, string_t, "Type as script", {
             { "component", entity_t, false, "Component or type" }}},
         { "schema_value", flecs_command_schema_value, value_t,
@@ -116424,14 +116415,13 @@ void flecs_command_core_import(
         { "add", flecs_command_add, id_t, "Add component", {
             { "entity", entity_t, false, "Entity, $ for singleton" },
             { "component", id_t, false, "Component, tag or pair" }}},
-        { "remove", flecs_command_remove, 0, "Remove component", {
+        { "rm", flecs_command_rm, 0,
+            "Remove component, or delete entity if no component is provided", {
             { "entity", entity_t, false, "Entity, $ for singleton" },
-            { "component", id_t, false, "Component, tag or pair" }}},
+            { "component", id_t, true, "Component, tag or pair" }}},
         { "new", flecs_command_new, entity_t,
             "Create entity in the session scope", {
             { "name", string_t, true, "Entity name" }}},
-        { "delete", flecs_command_delete, 0, "Delete entity", {
-            { "entity", entity_t, false, "Entity to delete" }}},
         { "mv", flecs_command_mv, entity_t, "Move or rename entity", {
             { "entity", entity_t, false, "Entity to move or rename" },
             { "path", string_t, false, "New full path" }}},

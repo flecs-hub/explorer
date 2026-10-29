@@ -17082,7 +17082,7 @@ typedef struct ecs_command_component_value_t {
     ecs_value_t value;       /**< Component value. */
 } ecs_command_component_value_t;
 
-/** Entity information, returned by inspect. */
+/** Entity information, returned by cat. */
 typedef struct ecs_command_entity_info_t {
     ecs_entity_t entity;     /**< The entity. */
     uint64_t id;             /**< Numeric entity id. */
