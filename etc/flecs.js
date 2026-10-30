@@ -588,20 +588,20 @@ const flecs = {
         },
 
         commandSessionCreate: function(recv, err) {
-          return this._.request(this, "PUT", "command/session", {},
+          return this._.request(this, "PUT", "shell/session", {},
             (msg) => { if (recv) recv(this._.parseReply(msg)); },
             (msg) => { if (err) err(this._.parseReply(msg)); });
         },
 
         commandSessionDelete: function(session, recv, err) {
-          return this._.request(this, "DELETE", "command/session/" + session, {},
+          return this._.request(this, "DELETE", "shell/session/" + session, {},
             (msg) => { if (recv) recv(this._.parseReply(msg)); },
             (msg) => { if (err) err(this._.parseReply(msg)); });
         },
 
         commandSessionHistory: function(session, params, recv, err) {
           return this._.request(this, "GET",
-            "command/session/" + session + "/history", params || {},
+            "shell/session/" + session + "/history", params || {},
             (msg) => { if (recv) recv(this._.parseReply(msg)); },
             (msg) => { if (err) err(this._.parseReply(msg)); });
         },
@@ -609,7 +609,7 @@ const flecs = {
         commandRun: function(session, cmd, params, recv, err) {
           if (!params) params = {};
           params.payload = cmd;
-          return this._.request(this, "PUT", "command/session/" + session, params,
+          return this._.request(this, "PUT", "shell/session/" + session, params,
             (msg) => { if (recv) recv(this._.parseReply(msg)); },
             (msg) => { if (err) err(this._.parseReply(msg)); });
         },

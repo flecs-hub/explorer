@@ -271,7 +271,7 @@ function poll() {
   polling = true;
   const localCount = state.localCount;
   props.conn.get(T.sessionIndexPath(state.id),
-    { component: "flecs.script.command.CommandSession" },
+    { component: "flecs.script.shell.CommandSession" },
     (value) => {
       polling = false;
       if (state.running || state.localCount !== localCount) {

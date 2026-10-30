@@ -226,7 +226,7 @@ function createHelper(conn) {
     helper.id = undefined;
     if (helper.conn.mode == flecs.ConnectionMode.Remote && typeof fetch === "function") {
       try {
-        fetch(restUrl(helper.conn, "command/session/" + id),
+        fetch(restUrl(helper.conn, "shell/session/" + id),
           { method: "DELETE", keepalive: true }).catch(() => {});
       } catch (e) {}
     } else {
@@ -422,7 +422,7 @@ function onSessionEnded() {
 }
 
 function refreshSessions(done) {
-  props.conn.query("flecs.script.command.CommandSession",
+  props.conn.query("flecs.script.shell.CommandSession",
     { doc: true, fields: false, entity_ids: true, limit: 1000 },
     (reply) => {
       const result = [];
