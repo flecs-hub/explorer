@@ -291,3 +291,19 @@ span.code-number {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+div.wasm-error {
+  position: fixed;
+  left: 50%;
+  bottom: 40px;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--red);
+  border-radius: var(--border-radius-medium);
+  background-color: var(--bg-content);
+  color: var(--primary-text);
+}

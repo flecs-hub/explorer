@@ -85,6 +85,20 @@ const flecs = {
 
   DefaultPort: 27750,
 
+  reloadBypassingCache() {
+    const urls = performance.getEntriesByType("resource").filter((entry) => {
+      return entry.initiatorType !== "xmlhttprequest" &&
+        entry.name.startsWith(window.location.origin);
+    }).map((entry) => entry.name);
+    urls.push(window.location.href);
+
+    return Promise.allSettled(urls.map((url) => {
+      return fetch(url, { cache: "reload" });
+    })).then(() => {
+      window.location.reload();
+    });
+  },
+
   normalizeHost(host) {
     if (!host) {
       return host;
@@ -1119,13 +1133,44 @@ const flecs = {
 
           wasmModuleLoaded(wasm_url) {
             const name = wasm_url.slice(wasm_url.lastIndexOf("/") + 1, wasm_url.lastIndexOf("."));
+            const image_url = wasm_url.slice(0, wasm_url.lastIndexOf(".")) + ".wasm";
             wasm_module = Function(`return ` + name + `;`)();
             let args;
-            return this.wasmModuleArgs().then(function(result) {
+            let failed = false;
+            let replied = false;
+            const fail = (reason) => {
+              failed = true;
+              this.wasmImageFailed(image_url, reason);
+            };
+            return this.wasmModuleArgs().then((result) => {
               args = result;
+              args.onAbort = fail;
               return wasm_module(args);
-            }).then(function(Module) {
+            }).then((Module) => {
               let nativeRequest = Module.cwrap('flecs_explorer_request', 'string', ['string', 'string', 'string']);
+              const imageRequest = (method, url, body) => {
+                if (failed) {
+                  return JSON.stringify({ error: flecs.wasmImageError, status: 503 });
+                }
+
+                let reply;
+                try {
+                  reply = nativeRequest(method, url, body);
+                  if (reply) {
+                    JSON.parse(reply);
+                    replied = true;
+                  } else if (method === "GET") {
+                    if (!replied) {
+                      fail("image returned an empty reply");
+                    }
+                    return JSON.stringify({ error: "empty reply from wasm image", status: 500 });
+                  }
+                } catch (err) {
+                  fail(err);
+                  return JSON.stringify({ error: flecs.wasmImageError, status: 503 });
+                }
+                return reply;
+              };
               if (Module._flecs_explorer_has_canvas && args.preinitializedWebGPUDevice) {
                 flecs.has3DCanvas = true;
                 flecs.captureKeyboardEvents = function(capture) {
@@ -1137,8 +1182,13 @@ const flecs = {
                 };
               }
 
-              return function() {
-                return {
+              return this.wasmRequestFactory(imageRequest);
+            });
+          },
+
+          wasmRequestFactory(imageRequest) {
+            return function() {
+              return {
                   method: undefined,
                   url: undefined,
                   handler: undefined,
@@ -1160,7 +1210,7 @@ const flecs = {
                         return;
                       }
 
-                      const reply = nativeRequest(this.method, this.url, body);
+                      const reply = imageRequest(this.method, this.url, body);
                       this.responseText = reply;
 
                       if (reply) {
@@ -1183,14 +1233,32 @@ const flecs = {
                       this._timer = undefined;
                     }
                   }
-                };
               };
-            });
+            };
+          },
+
+          wasmImageFailed(wasm_url, reason) {
+            const detail = reason ? `: ${reason.message || reason}` : "";
+            flecs.wasmImageError = `failed to run wasm image ${wasm_url}${detail}`;
+            flecs.has3DCanvas = false;
+            console.error(flecs.wasmImageError);
+            delete flecs._.wasmModules[wasm_url];
+          },
+
+          revalidateWasmImage(wasm_url, js_url) {
+            return Promise.all([js_url, wasm_url].map((url) => {
+              return fetch(url, { cache: "no-cache" }).then((reply) => {
+                return reply.arrayBuffer();
+              }).catch((err) => {
+                console.warn(`failed to revalidate ${url}`, err);
+              });
+            }));
           },
 
           loadWasmModule(wasm_url) {
             this.wasm_url = wasm_url;
             this.FlecsHttpRequest = undefined;
+            flecs.wasmImageError = undefined;
 
             let module = flecs._.wasmModules[wasm_url];
             if (!module) {
@@ -1207,13 +1275,13 @@ const flecs = {
                   this.wasmModuleLoaded(js_url).then(resolve, reject);
                 };
                 scriptEl.onerror = () => {
-                  console.error(`failed to load wasm module ${wasm_url}`);
-                  delete flecs._.wasmModules[wasm_url];
-                  reject();
+                  reject(new Error(`failed to load ${js_url}`));
                 };
-                scriptEl.src = js_url;
 
-                document.head.appendChild(scriptEl);
+                this.revalidateWasmImage(wasm_url, js_url).then(() => {
+                  scriptEl.src = js_url;
+                  document.head.appendChild(scriptEl);
+                });
               });
 
               flecs._.wasmModules[wasm_url] = module;
@@ -1223,7 +1291,14 @@ const flecs = {
               if (this.wasm_url === wasm_url) {
                 this.FlecsHttpRequest = factory;
               }
-            }, () => {});
+            }, (err) => {
+              this.wasmImageFailed(wasm_url, err);
+              if (this.wasm_url === wasm_url) {
+                this.FlecsHttpRequest = this.wasmRequestFactory(() => {
+                  return JSON.stringify({ error: flecs.wasmImageError, status: 503 });
+                });
+              }
+            });
           }
         }
       };

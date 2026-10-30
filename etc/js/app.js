@@ -459,6 +459,12 @@ loadComponents(startupComponents).then(() => {
       // heartbeats so we still populate the array even if the connection is
       // gone.
       setInterval(function() {
+        this.app_state.wasm_error = this.conn.mode === flecs.ConnectionMode.Wasm ?
+          flecs.wasmImageError : undefined;
+        if (this.app_state.wasm_error) {
+          this.app_state.has3DCanvas = false;
+        }
+
         if (this.app_state.world_info && 
             this.app_state.status == flecs.ConnectionStatus.Connected) 
         {
@@ -493,6 +499,10 @@ loadComponents(startupComponents).then(() => {
     },
 
     methods: {
+      reloadBypassingCache() {
+        flecs.reloadBypassingCache();
+      },
+
       switchHost(host) {
         if (this.conn.mode === flecs.ConnectionMode.Wasm && flecs.captureKeyboardEvents) {
           flecs.captureKeyboardEvents(false);
