@@ -34,12 +34,34 @@
         </div>
       </div>
 
-      <div class="terminal-panel" v-if="available">
+      <div class="terminal-panel terminal-panel-collapsed" v-if="available && panelCollapsed">
+        <span class="terminal-panel-button" title="Show sessions" @click="panelCollapsed = false">
+          <icon src="chevron-left" :size="16" :opacity="0.7"></icon>
+        </span>
+        <span class="terminal-panel-button" title="New session" @click="newSession">
+          <icon src="add" :size="16" :opacity="0.7"></icon>
+        </span>
+        <div class="terminal-panel-dots">
+          <span v-for="s in sessions" :key="s.id"
+            :class="collapsedItemCss(s)"
+            :title="s.label || defaultLabel(s)"
+            @click="activate(s.id)">
+            <span :class="dotCss(s)"></span>
+          </span>
+        </div>
+      </div>
+
+      <div class="terminal-panel" v-else-if="available">
         <div class="terminal-panel-header">
           <span>Sessions</span>
-          <span class="terminal-panel-button" title="New session" @click="newSession">
-            <icon src="add" :size="16" :opacity="0.7"></icon>
-          </span>
+          <div class="terminal-panel-buttons">
+            <span class="terminal-panel-button" title="New session" @click="newSession">
+              <icon src="add" :size="16" :opacity="0.7"></icon>
+            </span>
+            <span class="terminal-panel-button" title="Hide sessions" @click="panelCollapsed = true">
+              <icon src="chevron-right" :size="16" :opacity="0.7"></icon>
+            </span>
+          </div>
         </div>
 
         <div class="terminal-panel-list">
@@ -80,9 +102,10 @@
 </template>
 
 <script>
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 
 const sessionStates = reactive(new Map());
+const panelCollapsed = ref(true);
 const helpers = new Map();
 
 function restUrl(conn, path) {
@@ -326,6 +349,11 @@ function itemCss(s) {
     "terminal-session-item";
 }
 
+function collapsedItemCss(s) {
+  return s.id === activeId.value ? "terminal-panel-dot terminal-panel-dot-active" :
+    "terminal-panel-dot";
+}
+
 function dotCss(s) {
   const state = stateOf(s);
   if (state && state.alive === false) {
@@ -523,6 +551,48 @@ onUnmounted(() => {
   border-left: 1px solid var(--border);
   background-color: var(--bg-content-alt);
   font-size: 0.85rem;
+}
+
+#terminal-pane div.terminal-panel-collapsed {
+  width: 2rem;
+  align-items: center;
+  padding-top: 4px;
+  gap: 2px;
+}
+
+#terminal-pane div.terminal-panel-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+#terminal-pane div.terminal-panel-dots {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+  width: 100%;
+  overflow-y: auto;
+}
+
+#terminal-pane span.terminal-panel-dot {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 7px 0;
+  border-left: 2px solid transparent;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+#terminal-pane span.terminal-panel-dot:hover {
+  background-color: var(--hover-bg);
+}
+
+#terminal-pane span.terminal-panel-dot-active {
+  border-left-color: var(--green);
+  background-color: var(--term-bg);
 }
 
 #terminal-pane div.terminal-panel-header {
