@@ -1171,6 +1171,9 @@ const flecs = {
                 }
                 return reply;
               };
+              if (Module._flecs_explorer_has_canvas) {
+                flecs.webGPUUnavailable = !args.preinitializedWebGPUDevice;
+              }
               if (Module._flecs_explorer_has_canvas && args.preinitializedWebGPUDevice) {
                 flecs.has3DCanvas = true;
                 flecs.captureKeyboardEvents = function(capture) {
@@ -1241,6 +1244,7 @@ const flecs = {
             const detail = reason ? `: ${reason.message || reason}` : "";
             flecs.wasmImageError = `failed to run wasm image ${wasm_url}${detail}`;
             flecs.has3DCanvas = false;
+            flecs.webGPUUnavailable = false;
             console.error(flecs.wasmImageError);
             delete flecs._.wasmModules[wasm_url];
           },

@@ -25,8 +25,62 @@ describe('flecs.js wasm requests', () => {
   afterEach(() => {
     delete globalThis.fake_wasm_module;
     delete flecs.wasmImageError;
+    delete flecs.has3DCanvas;
+    delete flecs.webGPUUnavailable;
     flecs._.wasmModules = {};
     jest.restoreAllMocks();
+  });
+
+  test('image with canvas and no WebGPU device reports WebGPU as unavailable', async () => {
+    globalThis.fake_wasm_module = () => Promise.resolve({
+      _flecs_explorer_has_canvas: () => true,
+      cwrap: () => () => '{}'
+    });
+    const conn = flecs._.createConnection({});
+    jest.spyOn(conn._, 'wasmModuleArgs').mockResolvedValue({});
+
+    await conn._.wasmModuleLoaded('fake_wasm_module.js');
+
+    expect(flecs.webGPUUnavailable).toBe(true);
+    expect(flecs.has3DCanvas).toBeFalsy();
+  });
+
+  test('image with canvas and WebGPU device does not report WebGPU as unavailable', async () => {
+    globalThis.fake_wasm_module = () => Promise.resolve({
+      _flecs_explorer_has_canvas: () => true,
+      cwrap: () => () => '{}'
+    });
+    const conn = flecs._.createConnection({});
+    jest.spyOn(conn._, 'wasmModuleArgs').mockResolvedValue({
+      preinitializedWebGPUDevice: {}
+    });
+
+    await conn._.wasmModuleLoaded('fake_wasm_module.js');
+
+    expect(flecs.webGPUUnavailable).toBe(false);
+    expect(flecs.has3DCanvas).toBe(true);
+  });
+
+  test('image without canvas does not report WebGPU as unavailable', async () => {
+    globalThis.fake_wasm_module = () => Promise.resolve({
+      cwrap: () => () => '{}'
+    });
+    const conn = flecs._.createConnection({});
+    jest.spyOn(conn._, 'wasmModuleArgs').mockResolvedValue({});
+
+    await conn._.wasmModuleLoaded('fake_wasm_module.js');
+
+    expect(flecs.webGPUUnavailable).toBeFalsy();
+  });
+
+  test('failed image clears unavailable WebGPU state', () => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    const conn = flecs._.createConnection({});
+    flecs.webGPUUnavailable = true;
+
+    conn._.wasmImageFailed('fake_wasm_module.wasm', 'abort');
+
+    expect(flecs.webGPUUnavailable).toBe(false);
   });
 
   test('image that throws stops being called and reports an error', async () => {

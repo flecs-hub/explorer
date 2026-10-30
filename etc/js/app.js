@@ -439,6 +439,8 @@ loadComponents(startupComponents).then(() => {
           this.app_state.bytes.received = this.conn.bytes.received;
           this.app_state.has3DCanvas =
             this.conn.mode === flecs.ConnectionMode.Wasm && !!flecs.has3DCanvas;
+          this.app_state.webgpu_unavailable =
+            this.conn.mode === flecs.ConnectionMode.Wasm && !!flecs.webGPUUnavailable;
 
           if (msg.components) {
             if (msg.components["flecs.stats.WorldSummary"]) {
@@ -463,6 +465,7 @@ loadComponents(startupComponents).then(() => {
           flecs.wasmImageError : undefined;
         if (this.app_state.wasm_error) {
           this.app_state.has3DCanvas = false;
+          this.app_state.webgpu_unavailable = false;
         }
 
         if (this.app_state.world_info && 
@@ -517,6 +520,7 @@ loadComponents(startupComponents).then(() => {
         state.world_info = undefined;
         state.build_info = undefined;
         state.has3DCanvas = false;
+        state.webgpu_unavailable = false;
         state.command_counts = new Array(120).fill(0);
         this.prev_command_count = -1;
         this.code_from_url = undefined;

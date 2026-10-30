@@ -1,7 +1,11 @@
 <template>
   <edit-tabs :items='items' padding="0px;" v-model:active_item="activeTab" :changed="changed" storageKey="content" @onClose="onItemClose">
-    <template v-slot:Scene v-if="showCanvas">
-      <div id="canvasPlaceholder" class="page-content-canvas"></div>
+    <template v-slot:Scene v-if="showScene">
+      <div id="canvasPlaceholder" class="page-content-canvas" v-if="showCanvas"></div>
+      <div class="page-content-canvas-error" v-else>
+        <p>The 3D scene could not be displayed.</p>
+        <p>The scene renders with WebGPU, which is not available in this browser.</p>
+      </div>
     </template>
     <template v-slot:Overview>
       <entities-overview
@@ -64,7 +68,7 @@ const scriptItems = computed(() => {
 const items = computed(() => {
   let result = [];
 
-  if (showCanvas.value) {
+  if (showScene.value) {
     result.push({
       label: "Scene",
       value: "Scene",
@@ -124,6 +128,10 @@ const showCanvas = computed(() => {
   return props.app_state.has3DCanvas;
 });
 
+const showScene = computed(() => {
+  return showCanvas.value || props.app_state.webgpu_unavailable;
+});
+
 function onScriptUpdate(msg) {
   changed.value = msg.changed;
 }
@@ -142,6 +150,17 @@ div.script-container {
 
 div.page-content-canvas {
   height: 100%;
+}
+
+div.page-content-canvas-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 16px;
+  text-align: center;
+  color: var(--secondary-text);
 }
 
 </style>
