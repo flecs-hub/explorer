@@ -171,6 +171,13 @@ watch(() => props.first, () => {
   }
 });
 
+function clearDocked() {
+  if (props.docked) {
+    prop_query.value.results = [];
+    selected.value = 0;
+  }
+}
+
 function runQuery() {
   if (!props.expr.length && (!oneof.value.length || !props.first.length)) {
     if (props.docked) {
@@ -208,8 +215,10 @@ function runQuery() {
         }
         prop_query.value.results = sortResults(reply.results);
         selected.value = 0;
+      } else {
+        clearDocked();
       }
-    });
+    }, clearDocked);
   }
 }
 

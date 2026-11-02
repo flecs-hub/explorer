@@ -20,6 +20,7 @@
         @select="onPropSelect">
       </prop-browser>
     </div>
+    <div class="add-component-error" v-if="error">{{ error }}</div>
   </modal>
 </template>
 
@@ -31,7 +32,8 @@ export default { name: "entity-inspector-add-component-modal" }
 import { ref, onMounted, onBeforeUnmount, nextTick, defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
-  conn: {type: Object, required: true}
+  conn: {type: Object, required: true},
+  error: {type: String, required: false}
 });
 
 const emit = defineEmits(["submit", "cancel"]);
@@ -46,10 +48,20 @@ function onPropSelect(evt) {
   emit("submit", path);
 }
 
-function onOk() {
-  if (browser.value) {
-    browser.value.select("ok");
+function submitFilter(kind) {
+  const expr = filter.value.trim();
+  if (expr[0] !== "(" && browser.value && browser.value.select(kind)) {
+    return true;
   }
+  if (expr.length) {
+    emit("submit", expr);
+    return true;
+  }
+  return false;
+}
+
+function onOk() {
+  submitFilter("ok");
 }
 
 function onCancel() {
@@ -57,14 +69,16 @@ function onCancel() {
 }
 
 function onKeydown(e) {
+  if (e.key === "Enter") {
+    if (submitFilter("enter")) {
+      e.preventDefault();
+    }
+    return;
+  }
   if (!browser.value) {
     return;
   }
-  if (e.key === "Enter") {
-    if (browser.value.select("enter")) {
-      e.preventDefault();
-    }
-  } else if (e.key === "ArrowDown") {
+  if (e.key === "ArrowDown") {
     if (browser.value.moveDown()) {
       e.preventDefault();
     }
@@ -97,6 +111,13 @@ onBeforeUnmount(() => {
 
 div.add-component-filter {
   padding: 0px 16px 12px 16px;
+}
+
+div.add-component-error {
+  padding: 8px 16px;
+  color: var(--bright-red);
+  border-top: 1px solid var(--bg-content-alt);
+  overflow-wrap: anywhere;
 }
 
 div.add-component-list {

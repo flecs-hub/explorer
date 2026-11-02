@@ -7,6 +7,7 @@
   <entity-inspector-add-component-modal
     v-if="showModal"
     :conn="conn"
+    :error="error"
     @submit="onSubmit"
     @cancel="onCancel">
   </entity-inspector-add-component-modal>
@@ -25,14 +26,22 @@ const props = defineProps({
 
 const emit = defineEmits(["submit"]);
 const showModal = ref(false);
+const error = ref();
 
 function onClick() {
+  error.value = undefined;
   showModal.value = true;
 }
 
 function onSubmit(component) {
-  showModal.value = false;
-  emit("submit", component);
+  error.value = undefined;
+  emit("submit", component, (msg) => {
+    if (msg) {
+      error.value = msg;
+    } else {
+      showModal.value = false;
+    }
+  });
 }
 
 function onCancel() {

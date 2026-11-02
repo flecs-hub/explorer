@@ -144,11 +144,7 @@ function scriptUpdate(code, save = false) {
     pendingRequest = undefined;
   }
 
-  pendingRequest = props.conn.scriptUpdate(props.script, code, {
-    try: true,
-    save_file: save,
-    latency_budget_ms: save ? undefined : explorer.EDITOR_LATENCY_BUDGET_MS
-  }, (msg) => {
+  const onReply = (msg) => {
     pendingRequest = undefined;
 
     if (msg.error) {
@@ -158,7 +154,13 @@ function scriptUpdate(code, save = false) {
     }
 
     emit("onUpdate", msg);
-  });
+  };
+
+  pendingRequest = props.conn.scriptUpdate(props.script, code, {
+    try: true,
+    save_file: save,
+    latency_budget_ms: save ? undefined : explorer.EDITOR_LATENCY_BUDGET_MS
+  }, onReply, onReply);
 }
 
 const errorMessage = computed(() => {

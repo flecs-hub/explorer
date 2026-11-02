@@ -534,14 +534,14 @@ const flecs = {
         add: function(path, component, recv, err) {
           path = this._.escapePath(path);
           return this._.request(this, "PUT", "component/" + path, 
-            {component: component}, recv, err);
+            {component: encodeURIComponent(component)}, recv, err);
         },
 
         // Remove component
         remove: function(path, component, recv, err) {
           path = this._.escapePath(path);
           return this._.request(this, "DELETE", "component/" + path,
-            {component: component}, recv, err);
+            {component: encodeURIComponent(component)}, recv, err);
         },
 
         // Enable entity/component

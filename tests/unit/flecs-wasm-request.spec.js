@@ -160,6 +160,34 @@ describe('flecs.js wasm requests', () => {
     expect(err).toHaveBeenCalledWith({ error: 'bad request', status: 404 });
   });
 
+  test('script error reply invokes error callback', async () => {
+    const conn = await createWasmConnection('{"error": "1: unexpected end of script"}');
+    const recv = jest.fn();
+    const err = jest.fn();
+
+    conn.scriptUpdate('my_script', 'Foo {', {try: true}, recv, err);
+    await flush();
+
+    expect(recv).not.toHaveBeenCalled();
+    expect(err).toHaveBeenCalledWith({ error: '1: unexpected end of script' });
+  });
+
+  test('add and remove encode the component', async () => {
+    const native = jest.fn(() => '{}');
+    globalThis.fake_wasm_module = () => Promise.resolve({ cwrap: () => native });
+    const conn = flecs._.createConnection({});
+    conn._.FlecsHttpRequest = await conn._.wasmModuleLoaded('fake_wasm_module.js');
+    conn.mode = flecs.ConnectionMode.Wasm;
+    conn.status = flecs.ConnectionStatus.Connected;
+
+    conn.add('my_ent', '(IsA, my_prefab)');
+    conn.remove('my_ent', '(IsA, my_prefab)');
+    await flush();
+
+    expect(native.mock.calls[0][1]).toContain('component=(IsA%2C%20my_prefab)');
+    expect(native.mock.calls[1][1]).toContain('component=(IsA%2C%20my_prefab)');
+  });
+
   test('successful reply invokes receive callback', async () => {
     const conn = await createWasmConnection('{"session": 5}');
     const recv = jest.fn();

@@ -499,11 +499,20 @@ function onCodeChange(code) {
   emit("onCodeChange", code);
 }
 
-function onAddComponent(component) {
+function onAddComponent(component, done) {
+  loading.value = true;
   props.conn.add(props.path, component, (reply) => {
     entityQuery.value.now();
+    done();
+  }, (reply) => {
+    loading.value = false;
+    let msg = reply;
+    try {
+      msg = JSON.parse(reply).error || reply;
+    } catch (e) {
+    }
+    done(msg || "failed to add component");
   });
-  loading.value = true;
 }
 
 function onAddScript() {
