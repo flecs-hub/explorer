@@ -110,6 +110,43 @@ describe('terminal-image', () => {
     expect(wrapper.text()).toContain('could not be decoded');
   });
 
+  test('zooms in on click and zooms out on click or escape', async () => {
+    global.fetch.mockResolvedValue(reply(10));
+    const wrapper = mount(TerminalImage, {
+      props: { resource, url },
+      global: { stubs: { teleport: true } }
+    });
+    await flushPromises();
+    expect(wrapper.find('.term-image-zoom').exists()).toBe(false);
+
+    await wrapper.find('img').trigger('click');
+    expect(wrapper.find('.term-image-zoom img').attributes('src')).toBe('blob:image');
+
+    await wrapper.find('.term-image-zoom').trigger('click');
+    expect(wrapper.find('.term-image-zoom').exists()).toBe(false);
+
+    await wrapper.find('img').trigger('click');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await flushPromises();
+    expect(wrapper.find('.term-image-zoom').exists()).toBe(false);
+  });
+
+  test('stops listening for escape when unmounted while zoomed', async () => {
+    global.fetch.mockResolvedValue(reply(10));
+    const remove = jest.spyOn(window, 'removeEventListener');
+    const wrapper = mount(TerminalImage, {
+      props: { resource, url },
+      global: { stubs: { teleport: true } }
+    });
+    await flushPromises();
+    await wrapper.find('img').trigger('click');
+
+    remove.mockClear();
+    wrapper.unmount();
+    expect(remove).toHaveBeenCalledWith('keydown', expect.any(Function), true);
+    remove.mockRestore();
+  });
+
   test('does not request anything without a url', async () => {
     const wrapper = mount(TerminalImage, { props: { resource } });
     await flushPromises();
