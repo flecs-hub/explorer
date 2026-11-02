@@ -628,6 +628,14 @@ const flecs = {
             (msg) => { if (err) err(this._.parseReply(msg)); });
         },
 
+        commandResourceUrl: function(session, name) {
+          if (this.mode != flecs.ConnectionMode.Remote) {
+            return undefined;
+          }
+          return this.url + "/shell/session/" + session + "/resource/" +
+            encodeURIComponent(name);
+        },
+
         // Other REST endpoints
         request: function(path, params, recv, err, abort) {
           return this._.request(this, "GET", path, params, 

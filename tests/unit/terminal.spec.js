@@ -85,6 +85,15 @@ test('widgetFor maps result types to widgets', () => {
   expect(T.widgetFor('remove', undefined)).toBeUndefined();
 });
 
+test('widgetFor shows resources with an image type as images', () => {
+  const type = 'flecs.script.shell.resource';
+  expect(T.widgetFor('capture', type, { name: '1', content_type: 'image/png' })).toBe('image');
+  expect(T.widgetFor('capture', type, { name: '1', content_type: 'IMAGE/JPEG' })).toBe('image');
+  expect(T.widgetFor('dump', type, { name: '1', content_type: 'text/plain' })).toBe('value');
+  expect(T.widgetFor('capture', type, { name: null, content_type: null })).toBe('value');
+  expect(T.widgetFor('capture', type, undefined)).toBe('value');
+});
+
 test('entityInfoCommand picks the command supported by the app', () => {
   expect(T.entityInfoCommand(new Map([['cat', {}]]))).toBe('cat');
   expect(T.entityInfoCommand(new Map([['inspect', {}]]))).toBe('inspect');

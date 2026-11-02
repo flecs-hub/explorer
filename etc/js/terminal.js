@@ -516,9 +516,18 @@ const flecsTerminal = {
     return commands && commands.has("inspect") ? "inspect" : "cat";
   },
 
-  widgetFor(command, type) {
+  isImageResource(resource) {
+    return !!resource && !!resource.name &&
+      typeof resource.content_type === "string" &&
+      resource.content_type.toLowerCase().startsWith("image/");
+  },
+
+  widgetFor(command, type, result) {
     if (!type) {
       return undefined;
+    }
+    if (type === "flecs.script.shell.resource") {
+      return this.isImageResource(result) ? "image" : "value";
     }
     const vec = type.match(/vector<(.*)>$/);
     const elem = vec ? vec[1] : undefined;

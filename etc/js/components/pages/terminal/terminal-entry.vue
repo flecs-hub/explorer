@@ -67,6 +67,10 @@
             :text="entry.result">
           </terminal-code>
 
+          <terminal-image v-else-if="widget === 'image'"
+            :resource="entry.result" :url="terminal.resourceUrl(entry.result.name)">
+          </terminal-image>
+
           <div v-else-if="widget === 'location'" class="term-location">
             <div>
               <terminal-entity :path="entry.result.script" :scope="entry.scope"></terminal-entity><span
@@ -157,7 +161,7 @@ const terminal = inject("terminal");
 
 const command = computed(() => T.commandName(props.entry.cmd));
 const args = computed(() => T.args(props.entry.cmd));
-const widget = computed(() => T.widgetFor(command.value, props.entry.type));
+const widget = computed(() => T.widgetFor(command.value, props.entry.type, props.entry.result));
 
 const entryCss = computed(() => {
   let result = "term-entry";

@@ -280,6 +280,7 @@ const PAGE_COMPONENTS = {
     'js/components/pages/terminal/terminal-grep.vue',
     'js/components/pages/terminal/terminal-scripts.vue',
     'js/components/pages/terminal/terminal-code.vue',
+    'js/components/pages/terminal/terminal-image.vue',
   ],
   queries: [
     'js/components/pages/queries/page.vue',

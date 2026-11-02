@@ -457,6 +457,7 @@ provide("terminal", {
   setInput: setInput,
   commands: computed(() => props.helper.commands),
   openEntity: openEntity,
+  resourceUrl: (name) => props.conn.commandResourceUrl(state.id, name),
   focus: focusPrompt,
   scope: computed(() => state.scope)
 });
