@@ -102,3 +102,53 @@ test('parseId splits pairs', () => {
   expect(T.parseId('(Identifier, Name)')).toEqual(['Identifier', 'Name']);
   expect(T.parseId('(Likes, (A, B))')).toEqual(['Likes', '(A, B)']);
 });
+
+test('tokenize stops words at separators', () => {
+  expect(T.tokenize('cd a;ls').map((t) => t.kind)).toEqual(['word', 'word', 'separator', 'word']);
+  expect(T.tokenize('eval {a; b} "c;d" ```e;f```').map((t) => t.kind)).toEqual(['word', 'group', 'string', 'raw']);
+});
+
+test('splitCommands splits on top level separators', () => {
+  expect(T.splitCommands('cd flecs; cat core.Component')).toEqual(['cd flecs', 'cat core.Component']);
+  expect(T.splitCommands(' ;; a b ;c; ')).toEqual(['a b', 'c']);
+  expect(T.splitCommands('eval (a;b); eval "c;d"; run ```e;f```')).toEqual(['eval (a;b)', 'eval "c;d"', 'run ```e;f```']);
+  expect(T.splitCommands(' ; ')).toEqual([]);
+});
+
+test('splitCommands keeps the remainder after a parse error as one command', () => {
+  expect(T.splitCommands('a; b ); c ')).toEqual(['a', 'b ); c']);
+  expect(T.splitCommands('a; eval "b; c')).toEqual(['a', 'eval "b; c']);
+});
+
+test('commandReplies returns a flat reply per command with errors on the last', () => {
+  const replies = T.commandReplies({
+    results: [{ type: 'flecs.meta.entity', result: 'game' }, {}],
+    errors: ['failed']
+  });
+  expect(replies).toEqual([
+    { type: 'flecs.meta.entity', result: 'game', errors: [] },
+    { errors: ['failed'] }
+  ]);
+  expect(T.commandReplies({ results: [{ type: 't', result: 1, more: true }], errors: [] })[0])
+    .toMatchObject({ type: 't', result: 1, more: true, errors: [] });
+});
+
+test('commandReplies handles replies without results', () => {
+  expect(T.commandReplies({ error: 'invalid command session' })).toEqual([
+    { error: 'invalid command session', errors: ['invalid command session'] }
+  ]);
+  expect(T.commandReplies({ results: [], errors: ['e'] })).toEqual([{ errors: ['e'] }]);
+  expect(T.commandReplies({})).toEqual([{ errors: [] }]);
+});
+
+test('completionContext is relative to the command under the cursor', () => {
+  expect(T.completionContext('cd a; inspect ga', 16)).toMatchObject({ index: 1, command: 'inspect', prefix: 'ga', start: 14 });
+  expect(T.completionContext('cd a; in', 8)).toMatchObject({ index: 0, command: 'in', prefix: 'in', start: 6 });
+  expect(T.completionContext('cd a;', 5)).toMatchObject({ index: 0, command: '', prefix: '', start: 5 });
+});
+
+test('highlightCommand highlights the command after a separator', () => {
+  const cmds = new Map([['cd', {}], ['ls', {}]]);
+  expect(T.highlightCommand('cd a; ls; foo', cmds).filter((t) => t.cls === 'cmd' || t.cls === 'cmd-unknown'))
+    .toEqual([{ text: 'cd', cls: 'cmd' }, { text: 'ls', cls: 'cmd' }, { text: 'foo', cls: 'cmd-unknown' }]);
+});

@@ -41,6 +41,12 @@ const flecsTerminal = {
         break;
       }
 
+      if (cmd[i] === ";") {
+        tokens.push({ kind: "separator", start: i, end: i + 1, text: ";", closed: true });
+        i ++;
+        continue;
+      }
+
       const start = i;
       if (cmd.startsWith("```", i)) {
         const end = cmd.indexOf("```", i + 3);
@@ -65,9 +71,10 @@ const flecsTerminal = {
       } else {
         const closers = [];
         let grouped = false;
+        let invalid = false;
         while (i < cmd.length) {
           const ch = cmd[i];
-          if (!closers.length && this.isSpace(ch)) {
+          if (!closers.length && (this.isSpace(ch) || ch === ";")) {
             break;
           }
           if (ch === '"') {
@@ -85,12 +92,14 @@ const flecsTerminal = {
           } else if (ch === ")" || ch === "}" || ch === "]") {
             if (closers.length && closers[closers.length - 1] === ch) {
               closers.pop();
+            } else {
+              invalid = true;
             }
           }
           i ++;
         }
         tokens.push({ kind: grouped ? "group" : "word", start, end: i,
-          text: cmd.slice(start, i), closed: !closers.length });
+          text: cmd.slice(start, i), closed: !closers.length, invalid: invalid });
       }
     }
     return tokens;
@@ -108,6 +117,42 @@ const flecsTerminal = {
 
   args(cmd) {
     return this.tokenize(cmd || "").slice(1).map((t) => t.text);
+  },
+
+  splitCommands(text) {
+    const result = [];
+    let start;
+    let end;
+    for (const t of this.tokenize(text)) {
+      if (t.kind === "separator") {
+        if (start !== undefined) {
+          result.push(text.slice(start, end));
+          start = undefined;
+        }
+        continue;
+      }
+      if (start === undefined) {
+        start = t.start;
+      }
+      end = t.end;
+      if (t.invalid) {
+        end = text.replace(/\s+$/, "").length;
+        break;
+      }
+    }
+    if (start !== undefined) {
+      result.push(text.slice(start, end));
+    }
+    return result;
+  },
+
+  commandReplies(reply) {
+    const results = Array.isArray(reply.results) && reply.results.length ? reply.results : [{}];
+    const errors = reply.errors || (reply.error ? [reply.error] : []);
+    return results.map((result, i) => Object.assign({}, result, {
+      error: reply.error,
+      errors: i === results.length - 1 ? errors : []
+    }));
   },
 
   isPrefix(prefix, list) {
@@ -285,7 +330,8 @@ const flecsTerminal = {
 
   completionContext(text, cursor) {
     const before = text.slice(0, cursor);
-    const tokens = this.tokenize(before);
+    const all = this.tokenize(before);
+    const tokens = all.slice(all.map((t) => t.kind).lastIndexOf("separator") + 1);
     let index = tokens.length;
     let token;
     if (tokens.length) {
@@ -387,12 +433,16 @@ const flecsTerminal = {
     const result = [];
     const tokens = this.tokenize(text);
     let pos = 0;
-    tokens.forEach((t, i) => {
+    let first = true;
+    tokens.forEach((t) => {
       if (t.start > pos) {
         result.push({ text: text.slice(pos, t.start) });
       }
       let cls;
-      if (i === 0) {
+      if (t.kind === "separator") {
+        first = true;
+      } else if (first) {
+        first = false;
         if (!commands || !commands.size) {
           cls = "cmd";
         } else {

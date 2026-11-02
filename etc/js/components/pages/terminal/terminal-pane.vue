@@ -157,11 +157,12 @@ function createHelper(conn) {
 
   function raw(cmd) {
     return new Promise((resolve) => {
-      helper.conn.commandRun(helper.id, cmd, {}, resolve, (err) => {
+      const done = (reply) => resolve(flecsTerminal.commandReplies(reply)[0]);
+      helper.conn.commandRun(helper.id, cmd, {}, done, (err) => {
         if (err && err.error === "invalid command session") {
           helper.id = undefined;
         }
-        resolve(err || { errors: ["request failed"] });
+        done(err || { errors: ["request failed"] });
       });
     });
   }

@@ -102,16 +102,17 @@ function sessionEnded() {
 
 function run(cmd) {
   const text = cmd.replace(/\s+$/, "");
-  if (!text.trim().length) {
+  const cmds = T.splitCommands(text);
+  if (!cmds.length) {
     addEntry({ cmd: "", scope: state.scope, status: "done", origin: "local", errors: [] });
     return;
   }
 
-  const entry = addEntry({
-    cmd: text, scope: state.scope, status: "running", origin: "local",
+  const entries = cmds.map((c) => addEntry({
+    cmd: c, scope: state.scope, status: "running", origin: "local",
     errors: [], time: Date.now()
-  });
-  state.local.push(text);
+  }));
+  state.local.push(...cmds);
   state.localCount ++;
   state.running = (state.running || 0) + 1;
   stick = true;
@@ -119,11 +120,34 @@ function run(cmd) {
   state.chain = state.chain.then(() => new Promise((resolve) => {
     const finish = (reply) => {
       state.running --;
-      onReply(entry, reply || {});
+      onReplies(entries, reply || {});
       resolve();
     };
     props.conn.commandRun(state.id, text, {}, finish, finish);
   }));
+}
+
+function onReplies(entries, reply) {
+  const replies = T.commandReplies(reply);
+  entries.forEach((entry, i) => {
+    if (i < replies.length) {
+      entry.scope = state.scope;
+      onReply(entry, replies[i]);
+    } else {
+      removeNotRun(entry);
+    }
+  });
+}
+
+function removeNotRun(entry) {
+  const i = state.entries.indexOf(entry);
+  if (i !== -1) {
+    state.entries.splice(i, 1);
+  }
+  const j = state.local.lastIndexOf(entry.cmd);
+  if (j !== -1) {
+    state.local.splice(j, 1);
+  }
 }
 
 function onReply(entry, reply) {
