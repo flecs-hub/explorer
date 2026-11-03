@@ -1,6 +1,6 @@
 <template>
   <div class="term-image">
-    <div v-if="!url" class="term-dim">{{ resource.content_type }} resource {{ resource.name }}: images can only be shown when connected to a running application</div>
+    <div v-if="!loader" class="term-dim">{{ resource.content_type }} resource {{ resource.name }}: images can only be shown when connected to a running application</div>
     <img v-else-if="src" :src="src" :alt="label" :title="label" @click.stop="zoomIn" @error="fail('image could not be decoded')">
     <div v-else-if="error">
       <span class="term-error">error: </span><span class="term-error-msg">{{ error }} </span>
@@ -24,7 +24,7 @@ import { defineProps, computed, ref, onMounted, onUnmounted } from 'vue';
 
 const props = defineProps({
   resource: {type: Object, required: true},
-  url: {type: String, required: false}
+  loader: {type: Function, required: false}
 });
 
 const RETRY_INTERVAL_MS = 250;
@@ -70,17 +70,13 @@ function fail(message) {
   error.value = message;
 }
 
-async function attempt(id) {
-  let blob;
-  let gone = false;
-  try {
-    const response = await fetch(props.url, { cache: "no-store" });
-    gone = response.status === 404;
-    if (response.ok) {
-      blob = await response.blob();
-    }
-  } catch (e) {}
+function attempt(id) {
+  props.loader(
+    (blob) => received(id, blob, false),
+    (err) => received(id, undefined, !!err && err.status === 404));
+}
 
+function received(id, blob, gone) {
   if (id !== attemptId) {
     return;
   }
@@ -104,7 +100,7 @@ function load() {
 }
 
 onMounted(() => {
-  if (props.url) {
+  if (props.loader) {
     load();
   }
 });

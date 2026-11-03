@@ -68,7 +68,7 @@
           </terminal-code>
 
           <terminal-image v-else-if="widget === 'image'"
-            :resource="entry.result" :url="terminal.resourceUrl(entry.result.name)">
+            :resource="entry.result" :loader="terminal.resourceLoader(entry.result.name)">
           </terminal-image>
 
           <div v-else-if="widget === 'location'" class="term-location">

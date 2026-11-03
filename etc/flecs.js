@@ -607,7 +607,27 @@ const flecs = {
             (msg) => { if (err) err(this._.parseReply(msg)); });
         },
 
-        commandSessionDelete: function(session, recv, err) {
+        commandSessionDelete: function(session, recv, err, params) {
+          if (params && params.keepalive &&
+              this.mode == flecs.ConnectionMode.Remote && typeof fetch === "function") {
+            this.requests.sent ++;
+            fetch(this.url + "/shell/session/" + session,
+              { method: "DELETE", keepalive: true }).then((response) => {
+                this.requests.received ++;
+                return response.text().then((msg) => {
+                  if (response.ok) {
+                    if (recv) recv(this._.parseReply(msg));
+                  } else {
+                    this.requests.error ++;
+                    if (err) err(this._.parseReply(msg));
+                  }
+                });
+              }).catch((e) => {
+                this.requests.error ++;
+                if (err) err({ error: String(e) });
+              });
+            return;
+          }
           return this._.request(this, "DELETE", "shell/session/" + session, {},
             (msg) => { if (recv) recv(this._.parseReply(msg)); },
             (msg) => { if (err) err(this._.parseReply(msg)); });
@@ -634,6 +654,32 @@ const flecs = {
           }
           return this.url + "/shell/session/" + session + "/resource/" +
             encodeURIComponent(name);
+        },
+
+        commandResource: function(session, name, recv, err) {
+          const url = this.commandResourceUrl(session, name);
+          if (!url || typeof fetch !== "function") {
+            if (err) err({ error: "resources are only available on a remote connection" });
+            return;
+          }
+          this.requests.sent ++;
+          fetch(url, { cache: "no-store" }).then((response) => {
+            this.requests.received ++;
+            if (!response.ok) {
+              this.requests.error ++;
+              if (err) err({ error: "request failed", status: response.status });
+              return;
+            }
+            return response.blob().then((blob) => {
+              if (blob.size) {
+                this.bytes.received += blob.size;
+              }
+              if (recv) recv(blob);
+            });
+          }).catch((e) => {
+            this.requests.error ++;
+            if (err) err({ error: String(e), status: 0 });
+          });
         },
 
         // Other REST endpoints

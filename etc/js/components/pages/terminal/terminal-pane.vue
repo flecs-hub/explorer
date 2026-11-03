@@ -108,19 +108,6 @@ const sessionStates = reactive(new Map());
 const panelCollapsed = ref(true);
 const helpers = new Map();
 
-function restUrl(conn, path) {
-  let url = conn.params.host;
-  if (url.slice(0, 4) !== "http") {
-    url = "http://" + url;
-  }
-  let portIndex = url.indexOf(":");
-  portIndex = url.indexOf(":", portIndex + 1);
-  if (portIndex == -1) {
-    url += ":27750";
-  }
-  return url + "/" + path;
-}
-
 function createHelper(conn) {
   const helper = reactive({
     conn: conn,
@@ -225,14 +212,7 @@ function createHelper(conn) {
     }
     const id = helper.id;
     helper.id = undefined;
-    if (helper.conn.mode == flecs.ConnectionMode.Remote && typeof fetch === "function") {
-      try {
-        fetch(restUrl(helper.conn, "shell/session/" + id),
-          { method: "DELETE", keepalive: true }).catch(() => {});
-      } catch (e) {}
-    } else {
-      helper.conn.commandSessionDelete(id);
-    }
+    helper.conn.commandSessionDelete(id, undefined, undefined, { keepalive: true });
   };
 
   return helper;

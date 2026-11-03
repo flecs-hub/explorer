@@ -8,6 +8,10 @@ const flecs = new Function('process', flecsSrc + '\nreturn flecs;')(undefined);
 
 const resource = { name: '1', content_type: 'image/png' };
 const url = 'http://localhost:27750/shell/session/5/resource/1';
+const conn = flecs._.createConnection({});
+conn.mode = flecs.ConnectionMode.Remote;
+conn.url = 'http://localhost:27750';
+const loader = (recv, err) => conn.commandResource('5', '1', recv, err);
 
 function reply(size, status = 200) {
   return { ok: status < 300, status, blob: () => Promise.resolve({ size }) };
@@ -28,7 +32,7 @@ describe('terminal-image', () => {
 
   test('shows the image of a resource', async () => {
     global.fetch.mockResolvedValue(reply(10));
-    const wrapper = mount(TerminalImage, { props: { resource, url } });
+    const wrapper = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
 
     expect(global.fetch).toHaveBeenCalledWith(url, { cache: 'no-store' });
@@ -37,7 +41,7 @@ describe('terminal-image', () => {
 
   test('retries until the image is written', async () => {
     global.fetch.mockResolvedValueOnce(reply(0)).mockResolvedValueOnce(reply(10));
-    const wrapper = mount(TerminalImage, { props: { resource, url } });
+    const wrapper = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
     expect(wrapper.find('img').exists()).toBe(false);
     expect(wrapper.text()).toContain('loading image');
@@ -50,7 +54,7 @@ describe('terminal-image', () => {
 
   test('retries after a failed request', async () => {
     global.fetch.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(reply(10));
-    const wrapper = mount(TerminalImage, { props: { resource, url } });
+    const wrapper = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
 
     await jest.advanceTimersByTimeAsync(250);
@@ -60,7 +64,7 @@ describe('terminal-image', () => {
 
   test('stops when the resource does not exist', async () => {
     global.fetch.mockResolvedValue(reply(0, 404));
-    const wrapper = mount(TerminalImage, { props: { resource, url } });
+    const wrapper = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
 
     await jest.advanceTimersByTimeAsync(1000);
@@ -70,7 +74,7 @@ describe('terminal-image', () => {
 
   test('times out and can be retried', async () => {
     global.fetch.mockResolvedValue(reply(0));
-    const wrapper = mount(TerminalImage, { props: { resource, url } });
+    const wrapper = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
 
     await jest.advanceTimersByTimeAsync(31000);
@@ -87,14 +91,14 @@ describe('terminal-image', () => {
 
   test('stops loading and releases the image when unmounted', async () => {
     global.fetch.mockResolvedValueOnce(reply(0));
-    const pending = mount(TerminalImage, { props: { resource, url } });
+    const pending = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
     pending.unmount();
     await jest.advanceTimersByTimeAsync(1000);
     expect(global.fetch).toHaveBeenCalledTimes(1);
 
     global.fetch.mockResolvedValueOnce(reply(10));
-    const loaded = mount(TerminalImage, { props: { resource, url } });
+    const loaded = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
     loaded.unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:image');
@@ -102,7 +106,7 @@ describe('terminal-image', () => {
 
   test('reports images that cannot be decoded', async () => {
     global.fetch.mockResolvedValue(reply(10));
-    const wrapper = mount(TerminalImage, { props: { resource, url } });
+    const wrapper = mount(TerminalImage, { props: { resource, loader } });
     await flushPromises();
 
     await wrapper.find('img').trigger('error');
@@ -113,7 +117,7 @@ describe('terminal-image', () => {
   test('zooms in on click and zooms out on click or escape', async () => {
     global.fetch.mockResolvedValue(reply(10));
     const wrapper = mount(TerminalImage, {
-      props: { resource, url },
+      props: { resource, loader },
       global: { stubs: { teleport: true } }
     });
     await flushPromises();
@@ -135,7 +139,7 @@ describe('terminal-image', () => {
     global.fetch.mockResolvedValue(reply(10));
     const remove = jest.spyOn(window, 'removeEventListener');
     const wrapper = mount(TerminalImage, {
-      props: { resource, url },
+      props: { resource, loader },
       global: { stubs: { teleport: true } }
     });
     await flushPromises();
@@ -147,7 +151,7 @@ describe('terminal-image', () => {
     remove.mockRestore();
   });
 
-  test('does not request anything without a url', async () => {
+  test('does not request anything without a loader', async () => {
     const wrapper = mount(TerminalImage, { props: { resource } });
     await flushPromises();
 
@@ -169,5 +173,40 @@ describe('commandResourceUrl', () => {
     const conn = flecs._.createConnection({});
     conn.mode = flecs.ConnectionMode.Wasm;
     expect(conn.commandResourceUrl('1', '1')).toBeUndefined();
+  });
+});
+
+describe('commandResource', () => {
+  afterEach(() => {
+    delete global.fetch;
+  });
+
+  test('reports an error without fetching on a wasm connection', () => {
+    global.fetch = jest.fn();
+    const conn = flecs._.createConnection({});
+    conn.mode = flecs.ConnectionMode.Wasm;
+    const err = jest.fn();
+    conn.commandResource('1', '1', undefined, err);
+    expect(global.fetch).not.toHaveBeenCalled();
+    expect(err).toHaveBeenCalled();
+  });
+});
+
+describe('commandSessionDelete', () => {
+  afterEach(() => {
+    delete global.fetch;
+  });
+
+  test('uses a keepalive request on a remote connection', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, text: () => Promise.resolve('{}') });
+    const conn = flecs._.createConnection({});
+    conn.mode = flecs.ConnectionMode.Remote;
+    conn.url = 'http://localhost:27750';
+    const recv = jest.fn();
+    conn.commandSessionDelete('7', recv, undefined, { keepalive: true });
+    await flushPromises();
+    expect(global.fetch).toHaveBeenCalledWith('http://localhost:27750/shell/session/7',
+      { method: 'DELETE', keepalive: true });
+    expect(recv).toHaveBeenCalled();
   });
 });
