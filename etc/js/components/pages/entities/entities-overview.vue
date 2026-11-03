@@ -276,7 +276,11 @@ const memoryStats = computed(() => {
   let result = {};
   for (let key in stats) {
     if (stats[key] !== null && typeof stats[key] === "object") {
-      result[key] = stats[key];
+      result[key] = {};
+      for (let field in stats[key]) {
+        const value = stats[key][field];
+        result[key][field] = field.startsWith('bytes_') && value < 0 ? value >>> 0 : value;
+      }
     }
   }
   return result;
@@ -348,6 +352,7 @@ function formatBytes(bytes) {
   if (Array.isArray(bytes)) {
     return "";
   }
+  if (typeof bytes !== 'number' || !(bytes >= 0)) return 'n/a';
   if (bytes === 0) return '0 B';
   const k = 1000;
   const sizes = ['B', 'KB', 'MB', 'GB'];
