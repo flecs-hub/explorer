@@ -147,7 +147,10 @@ const flecsTerminal = {
   },
 
   commandReplies(reply) {
-    const results = Array.isArray(reply.results) && reply.results.length ? reply.results : [{}];
+    let results = [reply];
+    if (Array.isArray(reply.results)) {
+      results = reply.results.length ? reply.results : [{}];
+    }
     const errors = reply.errors || (reply.error ? [reply.error] : []);
     return results.map((result, i) => Object.assign({}, result, {
       error: reply.error,

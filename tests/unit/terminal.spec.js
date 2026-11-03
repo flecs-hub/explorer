@@ -150,6 +150,15 @@ test('commandReplies handles replies without results', () => {
   expect(T.commandReplies({})).toEqual([{ errors: [] }]);
 });
 
+test('commandReplies handles single command replies', () => {
+  expect(T.commandReplies({ type: 'flecs.meta.entity', result: 'game', more: true, errors: [] })).toEqual([
+    { type: 'flecs.meta.entity', result: 'game', more: true, errors: [] }
+  ]);
+  expect(T.commandReplies({ type: 't', result: 1, errors: ['e'] })).toEqual([
+    { type: 't', result: 1, errors: ['e'] }
+  ]);
+});
+
 test('completionContext is relative to the command under the cursor', () => {
   expect(T.completionContext('cd a; inspect ga', 16)).toMatchObject({ index: 1, command: 'inspect', prefix: 'ga', start: 14 });
   expect(T.completionContext('cd a; in', 8)).toMatchObject({ index: 0, command: 'in', prefix: 'in', start: 6 });
