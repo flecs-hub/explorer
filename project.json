@@ -20,7 +20,13 @@
                 "-Wl,-u,ntohs"
             ],
             "embed": [
-                ".box/etc@etc"
+                ".box/etc/shaders@etc/shaders",
+                ".box/etc/fonts@etc/fonts",
+                ".box/etc/luts@etc/luts",
+                ".box/etc/scenes/town.flecs@etc/scenes/town.flecs",
+                ".box/etc/scenes/town@etc/scenes/town",
+                ".box/etc/scenes/ui@etc/scenes/ui",
+                ".box/etc/scenes/cfg@etc/scenes/cfg"
             ]
         }
     }
