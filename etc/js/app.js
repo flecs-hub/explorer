@@ -96,13 +96,15 @@ function newAppParams() {
 }
 
 function nameQueryFromExpr(expr, oneof) {
-  if (!expr) {
+  if (!expr && !oneof) {
     return {
       parent: undefined,
       expr: undefined,
       query: undefined
     };
   }
+
+  expr = expr || "";
 
   let parent;
   let last_sep = expr.lastIndexOf(".");

@@ -3,7 +3,7 @@
     <template v-for="(el, i) in prop_query.results">
       <query-list-item :prop="el" :expr="expr" :index="i" :show_usage="false"
         :highlight="i == selected"
-        v-on:click="onClickItem(i)"
+        v-on:click="onClickItem(i, $event)"
         v-on:dblclick="onDblClickItem(i)">
       </query-list-item>
     </template>
@@ -17,7 +17,7 @@ export default { name: "prop-browser" }
 <script setup>
 import { ref, defineProps, defineExpose, defineEmits, watch, computed, onMounted } from 'vue';
 
-const emit = defineEmits(['select']);
+const emit = defineEmits(['select', 'highlight']);
 
 const props = defineProps({
   conn: {type: Object, required: true },
@@ -58,9 +58,11 @@ let oneof = ref("");
 const showWidget = ref(true);
 const selected = ref(0);
 
-function onClickItem(i) {
+function onClickItem(i, e) {
   selected.value = i;
-  if (!props.docked) {
+  if (props.docked) {
+    emit('select', { value: prop_query.value.results[i], kind: "click", detail: e ? e.detail : 1 });
+  } else {
     emit('select', { value: prop_query.value.results[i], kind: "select" });
   }
 }
@@ -146,6 +148,18 @@ function sortResults(results) {
     }
   });
 }
+
+const highlighted = computed(() => {
+  const results = prop_query.value.results;
+  if (!results || !results.length) {
+    return undefined;
+  }
+  return results[Math.min(selected.value, results.length - 1)];
+});
+
+watch(highlighted, (value) => {
+  emit('highlight', value);
+});
 
 let isTarget = computed(() => {
   return props.first !== undefined && props.first.length !== 0;

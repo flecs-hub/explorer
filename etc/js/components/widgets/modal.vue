@@ -1,12 +1,17 @@
 <template>
   <Teleport to="body">
-    <div class="modal-overlay" @click.self="onCancel">
-      <div class="modal" :style="{ width }">
-        <div class="modal-header noselect">{{ title }}</div>
+    <div class="modal-overlay" @mousedown="onOverlayMousedown" @click="onOverlayClick">
+      <div class="modal" :style="{ width, height }">
+        <div class="modal-header noselect">
+          <slot name="header">{{ title }}</slot>
+        </div>
         <div class="modal-body">
           <slot></slot>
         </div>
         <div class="modal-actions">
+          <div class="modal-status">
+            <slot name="footer"></slot>
+          </div>
           <button class="modal-cancel" @click="onCancel">{{ cancelLabel }}</button>
           <button class="modal-ok" :disabled="okDisabled" @click="onOk">{{ okLabel }}</button>
         </div>
@@ -23,11 +28,12 @@ export default { name: "modal" }
 import { onMounted, onBeforeUnmount, defineProps, defineEmits } from 'vue';
 
 const props = defineProps({
-  title: {type: String, required: true},
+  title: {type: String, required: false, default: ""},
   okLabel: {type: String, required: false, default: "OK"},
   cancelLabel: {type: String, required: false, default: "Cancel"},
   okDisabled: {type: Boolean, required: false, default: false},
-  width: {type: String, required: false, default: "360px"}
+  width: {type: String, required: false, default: "360px"},
+  height: {type: String, required: false}
 });
 
 const emit = defineEmits(["ok", "cancel"]);
@@ -41,6 +47,19 @@ function onOk() {
 
 function onCancel() {
   emit("cancel");
+}
+
+let overlayPressed = false;
+
+function onOverlayMousedown(e) {
+  overlayPressed = e.target === e.currentTarget;
+}
+
+function onOverlayClick(e) {
+  if (overlayPressed && e.target === e.currentTarget) {
+    onCancel();
+  }
+  overlayPressed = false;
 }
 
 function onKeydown(e) {
@@ -123,10 +142,16 @@ div.modal-body {
 
 div.modal-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 16px;
   border-top: 1px solid var(--bg-content-alt);
+}
+
+div.modal-status {
+  flex: 1;
+  min-width: 0;
 }
 
 div.modal-actions button {
